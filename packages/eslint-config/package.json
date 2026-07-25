@@ -1,0 +1,27 @@
+{
+  "name": "@formulate/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    "./base": "./base.js",
+    "./next": "./next.js",
+    "./react-native": "./react-native.js"
+  },
+  "dependencies": {
+    "@eslint/js": "^10.0.1",
+    "@next/eslint-plugin-next": "^16.2.11",
+    "eslint-config-expo": "^57.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^16.5.0",
+    "typescript-eslint": "^8.65.0"
+  },
+  "devDependencies": {
+    "eslint": "^10.8.0"
+  },
+  "peerDependencies": {
+    "eslint": "^10.0.0"
+  }
+}
