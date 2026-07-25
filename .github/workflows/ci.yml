@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, typecheck, build
+    runs-on: ubuntu-latest
+
+    env:
+      # Placeholders only. Both apps construct their Storefront client with a
+      # `?? ""` fallback and every page is server-rendered on demand, so no
+      # real credential is needed to lint, typecheck or bundle. Never put a
+      # real token here — this repository is public.
+      SHOPIFY_STORE_DOMAIN: example.myshopify.com
+      SHOPIFY_STOREFRONT_TOKEN: ""
+      SHOPIFY_API_VERSION: "2026-04"
+      EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN: example.myshopify.com
+      EXPO_PUBLIC_SHOPIFY_STOREFRONT_TOKEN: ""
+      EXPO_PUBLIC_SHOPIFY_API_VERSION: "2026-04"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Proves the committed codegen output is genuinely generated and has not
+      # drifted from the query documents. `git diff --exit-code` fails the run
+      # if regenerating changes anything.
+      - name: Verify generated types are up to date
+        run: |
+          pnpm --filter @formulate/shopify codegen
+          git diff --exit-code -- packages/shopify/src/generated
+
+      - run: pnpm turbo lint typecheck build
