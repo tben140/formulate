@@ -1,0 +1,44 @@
+{
+  "name": "@formulate/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "ios": "expo start --ios",
+    "android": "expo start --android",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "build": "expo export --platform ios --output-dir dist"
+  },
+  "dependencies": {
+    "@formulate/shopify": "workspace:*",
+    "@formulate/tokens": "workspace:*",
+    "@tanstack/react-query": "^5.101.4",
+    "expo": "~57.0.8",
+    "expo-constants": "~57.0.7",
+    "expo-image": "~57.0.1",
+    "expo-linking": "~57.0.4",
+    "expo-router": "~57.0.8",
+    "expo-status-bar": "~57.0.1",
+    "nativewind": "5.0.0-preview.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-css": "^3.0.7",
+    "react-native-reanimated": "4.5.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.2",
+    "react-native-web": "~0.21.2"
+  },
+  "devDependencies": {
+    "@formulate/eslint-config": "workspace:*",
+    "@formulate/typescript-config": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/react": "^19.2.0",
+    "eslint": "^10.8.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3"
+  }
+}

@@ -1,0 +1,15 @@
+/*
+ * NativeWind v5 requires Tailwind's layers to be imported explicitly rather
+ * than via the single `@import "tailwindcss"` shorthand the web app uses.
+ */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+/*
+ * The same generated token file the web app imports. This single shared line
+ * is what keeps the two apps visually in step without a shared component
+ * library. Source: packages/tokens/src/tokens.ts.
+ */
+@import "@formulate/tokens/theme.css";

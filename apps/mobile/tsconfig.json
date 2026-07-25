@@ -1,0 +1,18 @@
+{
+  "extends": "@formulate/typescript-config/react-native.json",
+  "compilerOptions": {
+    // No `baseUrl` — deprecated in TypeScript 6, removed in 7. Since TS 5,
+    // `paths` resolves relative to this file's directory anyway.
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "nativewind-env.d.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": ["node_modules", ".expo", "dist"]
+}
