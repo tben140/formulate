@@ -1,0 +1,21 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Native resolver used by eslint-import-resolver-typescript (pulled in by
+# eslint-config-expo). It ships a Rust binary and needs its postinstall step.
+allowBuilds:
+  # Image processing used by Next.js and Expo tooling; ships prebuilt binaries.
+  sharp: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - eslint@10.8.0
+
+# @shopify/hydrogen-react declares a hard (non-optional) peer dependency on
+# vite, because it is built for the Hydrogen/Vite stack. We only use its
+# DOM components and its bundled Storefront schema, both of which work fine
+# under Next.js — so we suppress the warning rather than installing Vite.
+peerDependencyRules:
+  ignoreMissing:
+    - vite

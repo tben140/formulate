@@ -1,0 +1,51 @@
+# Secrets — never commit. The repo is public.
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Dependencies
+node_modules/
+.pnp.*
+.yarn/*
+
+# Build output
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Turborepo
+.turbo/
+
+# Expo
+.expo/
+.expo-shared/
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Vercel
+.vercel/
+
+# Testing / coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

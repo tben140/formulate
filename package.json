@@ -1,0 +1,24 @@
+{
+  "name": "formulate",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "codegen": "turbo run codegen",
+    "web": "turbo run dev --filter=@formulate/web",
+    "mobile": "turbo run dev --filter=@formulate/mobile",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "^2.10.6",
+    "typescript": "~6.0.3"
+  }
+}
