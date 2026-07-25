@@ -1,0 +1,7 @@
+{
+  "extends": "@formulate/typescript-config/base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "ES2023"]
+  },
+  "include": ["src/**/*.ts", "codegen.ts", "scripts/**/*.ts"]
+}

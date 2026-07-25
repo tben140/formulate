@@ -1,0 +1,28 @@
+{
+  "name": "@formulate/shopify",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "codegen": "graphql-codegen --config codegen.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "smoke": "node --env-file-if-exists=../../apps/web/.env.local scripts/smoke-test.mjs"
+  },
+  "dependencies": {
+    "@graphql-typed-document-node/core": "^3.2.0"
+  },
+  "devDependencies": {
+    "@formulate/eslint-config": "workspace:*",
+    "@formulate/typescript-config": "workspace:*",
+    "@graphql-codegen/cli": "^7.2.0",
+    "@graphql-codegen/client-preset": "^5.1.0",
+    "@shopify/hydrogen-react": "^2026.4.3",
+    "eslint": "^10.8.0",
+    "graphql": "^16.11.0",
+    "typescript": "~6.0.3"
+  }
+}
