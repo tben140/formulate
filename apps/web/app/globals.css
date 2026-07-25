@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens, generated from packages/tokens/src/tokens.ts.
+ * The same file is imported by apps/mobile/global.css, which is what keeps
+ * the two apps visually in step without sharing a component library.
+ */
+@import "@formulate/tokens/theme.css";
+
+@layer base {
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* WCAG 2.4.7 — never remove focus indication, only restyle it. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+}

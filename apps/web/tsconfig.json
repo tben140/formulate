@@ -1,0 +1,12 @@
+{
+  "extends": "@formulate/typescript-config/nextjs.json",
+  "compilerOptions": {
+    // No `baseUrl` — deprecated in TypeScript 6, removed in 7. Since TS 5,
+    // `paths` resolves relative to this file's directory anyway.
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}
