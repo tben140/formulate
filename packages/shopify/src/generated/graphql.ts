@@ -5,6 +5,48 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
 /**
+ * A custom key-value pair that stores additional information on a [cart](https://shopify.dev/docs/api/storefront/current/objects/Cart) or [cart line](https://shopify.dev/docs/api/storefront/current/objects/CartLine). Attributes capture additional information like gift messages, special instructions, or custom order details. Learn more about [managing carts with the Storefront API](https://shopify.dev/docs/storefronts/headless/building-with-the-storefront-api/cart/manage).
+ *
+ */
+export type AttributeInput = {
+  /** Key or name of the attribute. */
+  key: string;
+  /** Value of the attribute. */
+  value: string;
+};
+
+/**
+ * The input fields for adding a merchandise line to a cart. Each line represents a [`ProductVariant`](https://shopify.dev/docs/api/storefront/current/objects/ProductVariant) the buyer intends to purchase, along with the quantity and optional [`SellingPlan`](https://shopify.dev/docs/api/storefront/current/objects/SellingPlan) for subscriptions.
+ *
+ * Used by the [`cartCreate`](https://shopify.dev/docs/api/storefront/current/mutations/cartCreate) mutation when creating a cart with initial items, and the [`cartLinesAdd`](https://shopify.dev/docs/api/storefront/current/mutations/cartLinesAdd) mutation when adding items to an existing cart.
+ *
+ */
+export type CartLineInput = {
+  /**
+   * An array of key-value pairs that contains additional information about the merchandise line.
+   *
+   * The input must not contain more than `250` values.
+   */
+  attributes?: Array<AttributeInput> | null | undefined;
+  /** The ID of the merchandise that the buyer intends to purchase. */
+  merchandiseId: string | number;
+  /** The parent line item of the cart line. */
+  parent?: CartLineParentInput | null | undefined;
+  /** The quantity of the merchandise. */
+  quantity?: number | null | undefined;
+  /** The ID of the selling plan that the merchandise is being purchased with. */
+  sellingPlanId?: string | number | null | undefined;
+};
+
+/** The parent line item of the cart line. */
+export type CartLineParentInput = {
+  /** The id of the parent line item. */
+  lineId?: string | number | null | undefined;
+  /** The ID of the parent line merchandise. */
+  merchandiseId?: string | number | null | undefined;
+};
+
+/**
  * The three-letter currency codes that represent the world currencies used in
  * stores. These include standard ISO 4217 codes, legacy codes,
  * and non-standard codes.
@@ -354,6 +396,13 @@ export type ShopNameQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type ShopNameQuery = { shop: { name: string, primaryDomain: { url: string } } };
 
+export type CartCreateMutationVariables = Exact<{
+  lines: Array<CartLineInput> | CartLineInput;
+}>;
+
+
+export type CartCreateMutation = { cartCreate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } } } | null, userErrors: Array<{ field: Array<string> | null, message: string }> } | null };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -452,3 +501,24 @@ export const ShopNameDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<ShopNameQuery, ShopNameQueryVariables>;
+export const CartCreateDocument = new TypedDocumentString(`
+    mutation CartCreate($lines: [CartLineInput!]!) {
+  cartCreate(input: {lines: $lines}) {
+    cart {
+      id
+      checkoutUrl
+      totalQuantity
+      cost {
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<CartCreateMutation, CartCreateMutationVariables>;

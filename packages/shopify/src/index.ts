@@ -12,6 +12,7 @@ export { formatMoney } from "./format-money";
 export type { MoneyLike } from "./format-money";
 
 export {
+  CartCreateMutation,
   CollectionProductsQuery,
   ProductByHandleQuery,
   ShopNameQuery,

@@ -93,3 +93,35 @@ export const ShopNameQuery = graphql(`
     }
   }
 `);
+
+/**
+ * SPIKE ONLY (SHO-56) — not part of the cart project.
+ *
+ * Checkout Kit's entire API is "present this URL", and the URL comes from
+ * cart.checkoutUrl. This is the minimum needed to get one; real cart work
+ * (persistence, line mutations, selling plans) belongs to P1 — Cart.
+ *
+ * `sellingPlanId` is accepted per line so the spike can test whether a
+ * subscription line changes the handoff — question 4 of the spike.
+ */
+export const CartCreateMutation = graphql(`
+  mutation CartCreate($lines: [CartLineInput!]!) {
+    cartCreate(input: { lines: $lines }) {
+      cart {
+        id
+        checkoutUrl
+        totalQuantity
+        cost {
+          totalAmount {
+            amount
+            currencyCode
+          }
+        }
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`);
