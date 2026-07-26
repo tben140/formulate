@@ -31,6 +31,9 @@ importers:
       '@formulate/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@shopify/checkout-sheet-kit':
+        specifier: 3.8.1
+        version: 3.8.1(react-native@0.86.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.101.4(react@19.2.3)
@@ -2054,6 +2057,12 @@ packages:
 
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
+
+  '@shopify/checkout-sheet-kit@3.8.1':
+    resolution: {integrity: sha512-m2AM7580Sepx2vBJlblQmJXVAX6IdrLFxLlsRBBQ5u5UXGwVO4TFC7c6Eo5Xyy3oQDHLxgQQ5T4wItr2ayRroA==}
+    peerDependencies:
+      react: 19.2.3
+      react-native: '*'
 
   '@shopify/hydrogen-react@2026.4.3':
     resolution: {integrity: sha512-mUVgcj25Fq4rk7zXDjHzE+G5+IMc31fJDv229ENhoiy9MXOquCVXIHQiywF9mrzQ5Chl8bGjmRIS7D7pZHPjnA==}
@@ -7896,6 +7905,11 @@ snapshots:
   '@rolldown/pluginutils@1.0.1': {}
 
   '@rtsao/scc@1.1.0': {}
+
+  '@shopify/checkout-sheet-kit@3.8.1(react-native@0.86.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+      react-native: 0.86.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1)
 
   '@shopify/hydrogen-react@2026.4.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.183.2)(vite@8.1.5(@types/node@22.20.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))':
     dependencies:

@@ -58,6 +58,10 @@ const CollectionScreen = () => {
               {collection.description}
             </Text>
           ) : null}
+          {/* SPIKE (SHO-56) — remove before merge. */}
+          <Link href="/spike-checkout" className="mt-3 text-sm text-brand-600">
+            → SHO-56 checkout spike
+          </Link>
         </View>
       }
       renderItem={({ item }) => (

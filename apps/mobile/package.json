@@ -5,8 +5,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "dev": "expo start",
-    "ios": "expo start --ios",
-    "android": "expo start --android",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "build": "expo export --platform ios --output-dir dist"
@@ -14,6 +14,7 @@
   "dependencies": {
     "@formulate/shopify": "workspace:*",
     "@formulate/tokens": "workspace:*",
+    "@shopify/checkout-sheet-kit": "3.8.1",
     "@tanstack/react-query": "^5.101.4",
     "expo": "~57.0.8",
     "expo-constants": "~57.0.7",
