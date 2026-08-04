@@ -16,7 +16,7 @@
 
 {% assign current_variant = product.selected_or_first_available_variant %}
 
-<article class="product">
+<article class="container product">
   <media-gallery class="product__gallery">
     <div class="product__media">
       {% if product.featured_image %}
@@ -91,9 +91,7 @@
   .product {
     display: grid;
     gap: var(--spacing-8);
-    max-width: 64rem;
-    margin-inline: auto;
-    padding: var(--spacing-8) var(--spacing-4);
+    padding-block: var(--spacing-8);
   }
 
   @media (min-width: 48rem) {

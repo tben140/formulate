@@ -115,3 +115,125 @@ body {
 .shopify-section > .full-width {
   grid-column: 1 / -1;
 }
+
+/* ---------------------------------------------------------------------------
+   Layout container
+
+   Matches the Next.js app's `mx-auto max-w-5xl px-4 py-8`, so all three
+   surfaces share the same measure and rhythm.
+   --------------------------------------------------------------------------- */
+.container {
+  /* `width: 100%` is load-bearing, not redundant. Shopify wraps every section
+     in `.shopify-section`, which the skeleton styles as `display: grid`. A
+     grid child with `margin-inline: auto` and `width: auto` shrinks to fit its
+     content and centres that, rather than filling the track and capping at
+     max-width — so short pages (404, an empty search) collapse to a narrow
+     centred column while wide ones look fine by accident.
+     Filling first, then capping, then centring is correct in grid, flex and
+     block contexts alike. */
+  width: 100%;
+  max-width: 64rem;
+  margin-inline: auto;
+  padding-inline: var(--spacing-4);
+}
+
+/* ---------------------------------------------------------------------------
+   Product grid
+
+   Used by both the collection template and the homepage via
+   snippets/product-grid.liquid. Lives here rather than in a section
+   `{% stylesheet %}` block because a snippet cannot own one, and duplicating
+   these rules across two sections would let them drift.
+   --------------------------------------------------------------------------- */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--spacing-6);
+  padding: 0;
+  list-style: none;
+}
+
+.product-card {
+  display: block;
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 150ms ease;
+}
+
+.product-card:hover,
+.product-card:focus-visible {
+  border-color: var(--color-brand-400);
+}
+
+.product-card__media {
+  aspect-ratio: 1;
+  margin-block-end: var(--spacing-3);
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-muted);
+}
+
+.product-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-card__placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: var(--text-sm);
+  color: var(--color-foreground-muted);
+}
+
+.product-card__title {
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+
+.product-card__price {
+  margin-block-start: var(--spacing-1);
+  font-size: var(--text-sm);
+  color: var(--color-foreground-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Base typography
+
+   The skeleton leaves headings and links at browser defaults, which reads as
+   unstyled next to the token-driven pages. These give every page — including
+   ones with no Next.js counterpart (search, 404, list-collections) — the same
+   type scale and colours.
+   --------------------------------------------------------------------------- */
+h1 {
+  font-size: var(--text-3xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+}
+
+a {
+  color: var(--color-brand-600);
+}
+
+a:hover {
+  color: var(--color-brand-700);
+}
+
+/* Page sections that are not the storefront's main browse surfaces still get
+   the same measure and vertical rhythm. */
+.page-section {
+  padding-block: var(--spacing-8);
+}
+
+.page-section > * + * {
+  margin-block-start: var(--spacing-4);
+}

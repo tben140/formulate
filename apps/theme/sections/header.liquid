@@ -1,59 +1,69 @@
-<header>
-  <h2 class="header__title">
-    {{ shop.name | link_to: routes.root_url }}
-  </h2>
+{% comment %}
+  Site header — matches apps/web's app/layout.tsx: a wordmark linking home,
+  inside the shared container, with a bottom border.
 
-  <div class="header__menu">
-    {% for link in section.settings.menu.links %}
-      {{ link.title | link_to: link.url }}
-    {% endfor %}
-  </div>
+  The cart and account icons from the skeleton are deliberately omitted. All
+  three surfaces stop at read-only browse until P1 — Cart & selling plans, and
+  a cart icon leading to an unbuilt experience is worse than no icon. They
+  return with the cart work, on all three surfaces together.
 
-  <div class="header__icons">
-    {% if shop.customer_accounts_enabled %}
-      <shopify-account menu="{{ section.settings.customer_account_menu }}">
-        {{ 'icon-account.svg' | inline_asset_content }}
-      </shopify-account>
-    {% endif %}
+  The wordmark is a setting rather than `shop.name` so it can read "Formulate"
+  (the project brand) while the store itself is named something else — and
+  still be editable in the theme editor, as a theme should be.
+{% endcomment %}
 
-    <a href="{{ routes.cart_url }}">
-      {% if cart.item_count > 0 %}
-        <sup>{{ cart.item_count }}</sup>
-      {% endif %}
-
-      {{ 'icon-cart.svg' | inline_asset_content }}
+<header class="site-header">
+  <nav class="container site-header__nav">
+    <a class="site-header__wordmark" href="{{ routes.root_url }}">
+      {{ section.settings.wordmark | default: shop.name }}
     </a>
-  </div>
+
+    {% if section.settings.menu != blank %}
+      <ul class="site-header__menu" role="list">
+        {% for link in section.settings.menu.links %}
+          <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </nav>
 </header>
 
 {% stylesheet %}
-  header {
-    height: 5rem;
+  .site-header {
+    border-block-end: 1px solid var(--color-border);
+  }
+
+  .site-header__nav {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: var(--spacing-6);
+    padding-block: var(--spacing-4);
   }
-  header a {
-    position: relative;
-    text-decoration: none;
+
+  .site-header__wordmark {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    letter-spacing: -0.02em;
     color: var(--color-foreground);
+    text-decoration: none;
+  }
+
+  .site-header__menu {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: var(--spacing-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-sm);
   }
-  header a sup {
-    position: absolute;
-    left: 100%;
-    overflow: hidden;
-    max-width: var(--page-margin);
+
+  .site-header__menu a {
+    color: var(--color-foreground-muted);
+    text-decoration: none;
   }
-  header svg {
-    width: 2rem;
-  }
-  header .header__menu,
-  header .header__icons {
-    display: flex;
-    gap: 1rem;
+
+  .site-header__menu a:hover {
+    color: var(--color-foreground);
   }
 {% endstylesheet %}
 
@@ -62,15 +72,15 @@
   "name": "t:general.header",
   "settings": [
     {
-      "type": "link_list",
-      "id": "menu",
-      "label": "t:labels.menu"
+      "type": "text",
+      "id": "wordmark",
+      "label": "Wordmark",
+      "default": "Formulate"
     },
     {
       "type": "link_list",
-      "id": "customer_account_menu",
-      "label": "t:labels.customer_account_menu",
-      "default": "customer-account-main-menu"
+      "id": "menu",
+      "label": "t:labels.menu"
     }
   ]
 }

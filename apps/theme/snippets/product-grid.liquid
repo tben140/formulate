@@ -1,0 +1,35 @@
+{% doc %}
+  Renders a responsive grid of product cards.
+
+  Shared by the collection template and the homepage so the two cannot drift.
+  Styles live in assets/critical.css rather than a section `{% stylesheet %}`
+  block, because a snippet cannot own one and duplicating the rules across
+  both sections would be a maintenance trap.
+
+  @param {object} products - A product list (e.g. collection.products).
+{% enddoc %}
+
+<ul class="product-grid" role="list">
+  {% for product in products %}
+    <li>
+      <a class="product-card" href="{{ product.url }}">
+        <div class="product-card__media">
+          {% if product.featured_image %}
+            {% render 'image',
+              class: 'product-card__image',
+              image: product.featured_image,
+              width: 600,
+              height: 600,
+              crop: 'center'
+            %}
+          {% else %}
+            <span class="product-card__placeholder">No image</span>
+          {% endif %}
+        </div>
+
+        <h2 class="product-card__title">{{ product.title | escape }}</h2>
+        <p class="product-card__price">{{ product.price | money }}</p>
+      </a>
+    </li>
+  {% endfor %}
+</ul>
