@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/sync-tokens.mjs",
-    "dev": "shopify theme dev --path .",
+    "dev": "./scripts/with-env.sh shopify theme dev --path .",
     "lint": "shopify theme check --path .",
     "typecheck": "tsc --noEmit",
-    "push": "shopify theme push --path . --unpublished",
-    "pull": "shopify theme pull --path ."
+    "push": "./scripts/with-env.sh shopify theme push --path . --unpublished",
+    "pull": "./scripts/with-env.sh shopify theme pull --path ."
   },
   "devDependencies": {
     "@formulate/tokens": "workspace:*",
