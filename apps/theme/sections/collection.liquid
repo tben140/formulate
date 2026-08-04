@@ -1,0 +1,140 @@
+{% comment %}
+  Collection listing — the Liquid counterpart of apps/web's
+  app/collections/[handle]/page.tsx and apps/mobile's app/index.tsx.
+
+  Data comes from Liquid's `collection` object, rendered server-side by
+  Shopify. This surface deliberately does NOT use the Storefront API client in
+  packages/shopify: parity here is the design system, not the data layer.
+
+  Every value in the stylesheet below comes from assets/tokens.css, generated
+  from packages/tokens/src/tokens.ts — the same source behind the other two
+  surfaces.
+
+  https://shopify.dev/docs/storefronts/themes/architecture/templates/collection
+{% endcomment %}
+
+<div class="collection">
+  <header class="collection__header">
+    <h1 class="collection__title">{{ collection.title }}</h1>
+    {% if collection.description != blank %}
+      <p class="collection__description">{{ collection.description }}</p>
+    {% endif %}
+  </header>
+
+  {% paginate collection.products by 24 %}
+    <ul class="product-grid" role="list">
+      {% for product in collection.products %}
+        <li>
+          <a class="product-card" href="{{ product.url }}">
+            <div class="product-card__media">
+              {% if product.featured_image %}
+                {% render 'image',
+                  class: 'product-card__image',
+                  image: product.featured_image,
+                  width: 600,
+                  height: 600,
+                  crop: 'center'
+                %}
+              {% else %}
+                <span class="product-card__placeholder">No image</span>
+              {% endif %}
+            </div>
+
+            <h2 class="product-card__title">{{ product.title | escape }}</h2>
+            <p class="product-card__price">{{ product.price | money }}</p>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+
+    {{ paginate | default_pagination }}
+  {% endpaginate %}
+</div>
+
+{% stylesheet %}
+  .collection {
+    max-width: 64rem;
+    margin-inline: auto;
+    padding: var(--spacing-8) var(--spacing-4);
+  }
+
+  .collection__header {
+    margin-block-end: var(--spacing-8);
+  }
+
+  .collection__title {
+    font-size: var(--text-3xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--color-foreground);
+  }
+
+  .collection__description {
+    margin-block-start: var(--spacing-2);
+    max-width: 42rem;
+    color: var(--color-foreground-muted);
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: var(--spacing-6);
+    padding: 0;
+    list-style: none;
+  }
+
+  .product-card {
+    display: block;
+    padding: var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 150ms ease;
+  }
+
+  .product-card:hover,
+  .product-card:focus-visible {
+    border-color: var(--color-brand-400);
+  }
+
+  .product-card__media {
+    aspect-ratio: 1;
+    margin-block-end: var(--spacing-3);
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface-muted);
+  }
+
+  .product-card__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .product-card__placeholder {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    font-size: var(--text-sm);
+    color: var(--color-foreground-muted);
+  }
+
+  .product-card__title {
+    font-size: var(--text-base);
+    font-weight: 500;
+  }
+
+  .product-card__price {
+    margin-block-start: var(--spacing-1);
+    font-size: var(--text-sm);
+    color: var(--color-foreground-muted);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "t:general.collection",
+  "settings": []
+}
+{% endschema %}

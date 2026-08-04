@@ -1,0 +1,225 @@
+{% comment %}
+  Product detail — the Liquid counterpart of apps/web's
+  app/products/[handle]/page.tsx and apps/mobile's app/products/[handle].tsx.
+
+  Scope note: there is deliberately no add-to-cart form here. The other two
+  surfaces stop at read-only browse, and cart lands across all three together
+  during P1 — Cart & selling plans. Variants are listed with availability,
+  matching what web and native show today.
+
+  The gallery is progressively enhanced by <media-gallery> in
+  assets/media-gallery.js. Without JavaScript the first image still renders and
+  every thumbnail is a plain button, so the page remains usable.
+
+  https://shopify.dev/docs/storefronts/themes/architecture/templates/product
+{% endcomment %}
+
+{% assign current_variant = product.selected_or_first_available_variant %}
+
+<article class="product">
+  <media-gallery class="product__gallery">
+    <div class="product__media">
+      {% if product.featured_image %}
+        <img
+          ref="mainImage"
+          class="product__image"
+          src="{{ product.featured_image | image_url: width: 1200 }}"
+          alt="{{ product.featured_image.alt | escape }}"
+          width="{{ product.featured_image.width }}"
+          height="{{ product.featured_image.height }}"
+          loading="eager"
+        >
+      {% else %}
+        <span class="product__placeholder">No image</span>
+      {% endif %}
+    </div>
+
+    {% if product.images.size > 1 %}
+      <div class="product__thumbnails" role="group" aria-label="Product images">
+        {% for image in product.images %}
+          <button
+            ref="thumbnail"
+            type="button"
+            class="product__thumbnail"
+            data-src="{{ image | image_url: width: 1200 }}"
+            data-alt="{{ image.alt | escape }}"
+            aria-label="Show image {{ forloop.index }} of {{ product.images.size }}"
+          >
+            <img
+              src="{{ image | image_url: width: 160, height: 160, crop: 'center' }}"
+              alt=""
+              width="80"
+              height="80"
+              loading="lazy"
+            >
+          </button>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </media-gallery>
+
+  <div class="product__info">
+    <h1 class="product__title">{{ product.title }}</h1>
+    <p class="product__price">{{ current_variant.price | money }}</p>
+
+    {% if product.description != blank %}
+      <div class="product__description">{{ product.description }}</div>
+    {% endif %}
+
+    <section class="product__variants">
+      <h2 class="product__variants-heading">Variants</h2>
+      <ul class="variant-list" role="list">
+        {% for variant in product.variants %}
+          <li class="variant">
+            <span>{{ variant.title }}</span>
+            <span class="variant__meta">
+              <span class="variant__price">{{ variant.price | money }}</span>
+              {% if variant.available %}
+                <span class="variant__status variant__status--available">In stock</span>
+              {% else %}
+                <span class="variant__status variant__status--sold-out">Sold out</span>
+              {% endif %}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</article>
+
+{% stylesheet %}
+  .product {
+    display: grid;
+    gap: var(--spacing-8);
+    max-width: 64rem;
+    margin-inline: auto;
+    padding: var(--spacing-8) var(--spacing-4);
+  }
+
+  @media (min-width: 48rem) {
+    .product {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .product__media {
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface-muted);
+  }
+
+  .product__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .product__placeholder {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    font-size: var(--text-sm);
+    color: var(--color-foreground-muted);
+  }
+
+  .product__thumbnails {
+    display: flex;
+    gap: var(--spacing-2);
+    margin-block-start: var(--spacing-3);
+    flex-wrap: wrap;
+  }
+
+  .product__thumbnail {
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    background: none;
+    cursor: pointer;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .product__thumbnail[aria-current='true'] {
+    border-color: var(--color-brand-600);
+  }
+
+  .product__thumbnail:focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+
+  .product__title {
+    font-size: var(--text-3xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .product__price {
+    margin-block-start: var(--spacing-2);
+    font-size: var(--text-xl);
+  }
+
+  .product__description {
+    margin-block-start: var(--spacing-4);
+    color: var(--color-foreground-muted);
+  }
+
+  .product__variants {
+    margin-block-start: var(--spacing-8);
+  }
+
+  .product__variants-heading {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-foreground-muted);
+  }
+
+  .variant-list {
+    display: grid;
+    gap: var(--spacing-2);
+    margin-block-start: var(--spacing-3);
+    padding: 0;
+    list-style: none;
+  }
+
+  .variant {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-2) var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+  }
+
+  .variant__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+  }
+
+  .variant__price {
+    color: var(--color-foreground-muted);
+  }
+
+  .variant__status--available {
+    color: var(--color-success);
+  }
+
+  .variant__status--sold-out {
+    color: var(--color-danger);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "t:general.product",
+  "settings": [],
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  }
+}
+{% endschema %}

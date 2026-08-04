@@ -1,0 +1,23 @@
+{
+  "extends": "@formulate/typescript-config/base.json",
+  "compilerOptions": {
+    // The theme ships plain JavaScript — no bundler, no emit. Types come from
+    // JSDoc annotations and are enforced by `tsc --noEmit`, which is how
+    // Shopify's own Horizon theme is typed. See apps/theme/README.md.
+    "allowJs": true,
+    "checkJs": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "types": [],
+
+    // Mirrors the runtime import map in snippets/scripts.liquid, so TypeScript
+    // can resolve the same bare specifiers the browser resolves. Both lists
+    // must be kept in step — there is no tooling enforcing that.
+    "paths": {
+      "@theme/*": ["./assets/*.js"]
+    }
+  },
+  // Only the theme's own browser code. scripts/ is Node tooling and would need
+  // @types/node, which would then wrongly expose Node globals to theme assets.
+  "include": ["assets/**/*.js"],
+  "exclude": ["node_modules"]
+}

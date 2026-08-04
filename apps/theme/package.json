@@ -1,0 +1,19 @@
+{
+  "name": "@formulate/theme",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/sync-tokens.mjs",
+    "dev": "shopify theme dev --path .",
+    "lint": "shopify theme check --path .",
+    "typecheck": "tsc --noEmit",
+    "push": "shopify theme push --path . --unpublished",
+    "pull": "shopify theme pull --path ."
+  },
+  "devDependencies": {
+    "@formulate/tokens": "workspace:*",
+    "@formulate/typescript-config": "workspace:*",
+    "typescript": "~6.0.3"
+  }
+}
