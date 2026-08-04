@@ -132,7 +132,12 @@
 
   .product__thumbnail {
     padding: 0;
-    border: 2px solid transparent;
+    /* A visible resting border, not `transparent`. Product photography is
+       often on a white background, so a transparent border leaves unselected
+       thumbnails indistinguishable from the page and the user cannot tell
+       other images exist. The border is always 2px so selection changes
+       cannot shift layout. */
+    border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
     background: none;
     cursor: pointer;
