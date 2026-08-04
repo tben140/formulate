@@ -3,6 +3,7 @@ import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
+import { SiteFooter } from "../../components/site-footer";
 import { useProduct } from "../../lib/queries";
 
 const ProductScreen = () => {
@@ -98,6 +99,8 @@ const ProductScreen = () => {
           ))}
         </View>
       </View>
+
+      <SiteFooter />
     </ScrollView>
   );
 };
