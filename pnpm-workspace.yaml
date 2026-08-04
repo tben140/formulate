@@ -5,6 +5,8 @@ packages:
 # Native resolver used by eslint-import-resolver-typescript (pulled in by
 # eslint-config-expo). It ships a Rust binary and needs its postinstall step.
 allowBuilds:
+  # Bundler used by @shopify/cli; ships prebuilt platform binaries.
+  esbuild: true
   # Image processing used by Next.js and Expo tooling; ships prebuilt binaries.
   sharp: true
   unrs-resolver: true
