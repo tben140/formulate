@@ -12,7 +12,16 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "theme.css"]
+      // VERCEL is part of the cache key so a build produced locally is never
+      // reused for a Vercel build, where the environment genuinely differs.
+      "env": ["VERCEL"],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        ".vercel/output/**",
+        "dist/**",
+        "theme.css"
+      ]
     },
     "dev": {
       "dependsOn": ["^build"],
