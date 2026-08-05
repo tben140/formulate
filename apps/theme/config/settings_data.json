@@ -8,5 +8,30 @@
  * ------------------------------------------------------------
  */
 {
-  "current": {}
+  "current": {
+    /*
+     * App embeds. Committed rather than enabled through the theme editor,
+     * because `.shopifyignore` does not exclude this file — so `shopify theme
+     * push` overwrites whatever the editor set, and an embed enabled there
+     * would silently disappear on the next push.
+     *
+     * Same reasoning as the committed assets/tokens.css: state the theme
+     * depends on lives in the repository, not in the admin.
+     *
+     * The UUID identifies Klaviyo's theme app extension, not this store, so
+     * this block is portable to any store with the app installed. The outer
+     * key is an arbitrary unique id.
+     *
+     * Note this only covers THIS theme. App embeds are per-theme, and neither
+     * apps/web nor apps/mobile has an embed mechanism at all — see
+     * docs/integration-klaviyo.md.
+     */
+    "blocks": {
+      "855628211100114053": {
+        "type": "shopify://apps/klaviyo-email-marketing-sms/blocks/klaviyo-onsite-embed/2632fe16-c075-4321-a88b-50b567f42507",
+        "disabled": false,
+        "settings": {}
+      }
+    }
+  }
 }
