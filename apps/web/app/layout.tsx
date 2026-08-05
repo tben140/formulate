@@ -1,3 +1,5 @@
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -23,6 +25,15 @@ const RootLayout = ({ children }: { children: ReactNode }) => (
         </nav>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+
+      {/*
+        Both are no-ops outside Vercel, so local dev and CI builds are
+        unaffected. Analytics is cookieless and collects no personal data,
+        which keeps it clear of the consent requirements that will apply to
+        product analytics later.
+      */}
+      <Analytics />
+      <SpeedInsights />
     </body>
   </html>
 );
