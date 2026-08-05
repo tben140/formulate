@@ -1,7 +1,8 @@
 # Formulate
 
-A headless Shopify storefront as a Turborepo monorepo: a Next.js web app, an Expo
-React Native app, and a shared data + design-token layer between them.
+One Shopify store rendered three ways, as a Turborepo monorepo: a Next.js web
+app, an Expo React Native app, and a Liquid theme — over a shared data layer and
+one set of design tokens.
 
 ## Structure
 
@@ -9,32 +10,46 @@ React Native app, and a shared data + design-token layer between them.
 apps/
   web/          Next.js 16 · App Router · Tailwind v4 · deploys to Vercel
   mobile/       Expo SDK 57 · Expo Router · NativeWind v5 · builds via EAS
+  theme/        Liquid · web components · no build step · Shopify Online Store
 packages/
   shopify/      Storefront API client, query documents, generated types
-  tokens/       Design tokens (TS source) → generated Tailwind v4 @theme CSS
+  tokens/       Design tokens (TS source) → generated CSS for Tailwind and Liquid
   eslint-config/
   typescript-config/
+docs/           Architecture, domain model, decision records (also an Obsidian vault)
 ```
+
+## Documentation
+
+- [`docs/`](docs/README.md) — architecture, domain model, integration design
+- [`docs/adr/`](docs/adr/README.md) — architecture decision records
+- [`AGENTS.md`](AGENTS.md) — conventions and constraints, for humans and agents alike
 
 ## The one architectural rule
 
-**`packages/shopify` must stay platform-neutral.** Both apps import it, so it
-uses bare `fetch` and has no Shopify runtime dependency — nothing DOM-flavoured.
-Web-only ergonomics (`@shopify/hydrogen-react`'s `<Image>`) live in `apps/web`.
+**`packages/shopify` must stay platform-neutral.** Both React apps import it, so
+it uses bare `fetch` and has no Shopify runtime dependency — nothing
+DOM-flavoured. Web-only ergonomics (`@shopify/hydrogen-react`'s `<Image>`) live
+in `apps/web`.
 
-`@shopify/hydrogen-react` *is* a devDependency of `packages/shopify`, but only
+`@shopify/hydrogen-react` _is_ a devDependency of `packages/shopify`, but only
 for codegen: it ships the Storefront GraphQL schema as a local JSON file, so
 type generation runs offline with no credentials and no network call.
 
+The Liquid theme is the exception: it reads its data from Liquid, server-side,
+and deliberately does not use `packages/shopify` at all. What all three share is
+the design tokens — see
+[ADR 0005](docs/adr/0005-parity-means-design-not-data.md).
+
 ## Data fetching differs by platform, deliberately
 
-| | Web | Native |
-|---|---|---|
-| Fetching | React Server Components | TanStack Query |
-| Token env var | `SHOPIFY_*` (server-only) | `EXPO_PUBLIC_SHOPIFY_*` |
+|               | Web                       | Native                  | Liquid theme        |
+| ------------- | ------------------------- | ----------------------- | ------------------- |
+| Fetching      | React Server Components   | TanStack Query          | Liquid, server-side |
+| Token env var | `SHOPIFY_*` (server-only) | `EXPO_PUBLIC_SHOPIFY_*` | none needed         |
 
 The web app never sends its token to the browser because every query runs on the
-server. The Expo bundle *is* the client, so its token ships with the app — which
+server. The Expo bundle _is_ the client, so its token ships with the app — which
 is exactly what a public Storefront access token is designed for.
 
 ⚠️ The Admin API token must never appear in any package. Anything Admin-flavoured
@@ -97,7 +112,7 @@ These are load-bearing. Read the comments before changing them.
   that is the version Expo SDK 57 expects. Under the hoisted node linker a
   second React copy would break hooks in the Expo app.
 - **React version is declared explicitly** in `packages/eslint-config/react-native.js`.
-  `eslint-plugin-react` 7.37.x crashes on ESLint 10 during version *detection*.
+  `eslint-plugin-react` 7.37.x crashes on ESLint 10 during version _detection_.
 - **NativeWind v5 is pre-release** (`5.0.0-preview.4`), chosen so both apps share
   one Tailwind v4 token file. The fallback is NativeWind v4 + Tailwind v3 in
   `apps/mobile` only.
