@@ -63,12 +63,31 @@ collection membership as stable between requests.
 
 ## Cart
 
-**Not yet built.** Design, and the trap already identified:
+A Storefront cart ID is `gid://shopify/Cart/{token}?key={secret}`. **The whole
+string is the identifier**, and the key is not a query parameter to be tidied
+away.
 
-> A Storefront cart ID is `gid://shopify/Cart/{token}?key={secret}`. The whole
-> string is the identifier. Strip the `?key=` and subsequent queries return
-> _stripped_ data with no error naming the cause — the request appears to
-> succeed and simply returns less.
+Measured against the live store on 2026-08-05 rather than assumed:
+
+| Field                                                       | Correct key | No key   | Wrong key |
+| ----------------------------------------------------------- | ----------- | -------- | --------- |
+| lines, note, attributes, totalQuantity, cost, `checkoutUrl` | returned    | returned | returned  |
+| `buyerIdentity.email`                                       | returned    | **null** | **null**  |
+
+So the cart resolves perfectly well without the key — it is the **buyer's
+personal data** that is gated. That is a sensible design: the key proves the
+caller is the buyer who owns this cart, and a cart token alone is guessable
+enough that leaking an email off it would matter.
+
+Two things make it nasty in practice:
+
+1. **The failure is silent in both directions.** A missing key and a _wrong_ key
+   both return 200 with a valid-looking cart and no error of any kind.
+2. **It breaks things that look unrelated** — checkout email prefill, and any
+   Klaviyo identification keyed off the cart's email — while every test
+   asserting on line items keeps passing.
+
+`isCartId` in `packages/shopify` guards persisted ids on the way in.
 
 Persistence differs per surface and is not being abstracted:
 
@@ -81,8 +100,15 @@ Persistence differs per surface and is not being abstracted:
 Forcing one abstraction over three genuinely different storage models would
 produce a lowest-common-denominator API that fits none of them.
 
-`buyerIdentity.countryCode` must be set on cart creation. Without it checkout
-defaults to the United States on a GBP store based in the UK.
+`buyerIdentity.countryCode` must be set on cart creation. Verified on the live
+store: a cart created with no buyer context comes back with
+`buyerIdentity.countryCode: "US"` while its cost is still denominated in GBP —
+so the buyer lands on a US address form with a US state dropdown. The Storefront
+API resolves country from context and does **not** inherit the shop's own
+country.
+
+`DEFAULT_COUNTRY_CODE` in `packages/shopify/src/config.ts` is the single place
+that decision lives.
 
 ## Order
 
