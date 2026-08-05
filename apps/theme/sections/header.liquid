@@ -1,0 +1,87 @@
+{% comment %}
+  Site header — matches apps/web's app/layout.tsx: a wordmark linking home,
+  inside the shared container, with a bottom border.
+
+  The cart and account icons from the skeleton are deliberately omitted. All
+  three surfaces stop at read-only browse until P1 — Cart & selling plans, and
+  a cart icon leading to an unbuilt experience is worse than no icon. They
+  return with the cart work, on all three surfaces together.
+
+  The wordmark is a setting rather than `shop.name` so it can read "Formulate"
+  (the project brand) while the store itself is named something else — and
+  still be editable in the theme editor, as a theme should be.
+{% endcomment %}
+
+<header class="site-header">
+  <nav class="container site-header__nav">
+    <a class="site-header__wordmark" href="{{ routes.root_url }}">
+      {{ section.settings.wordmark | default: shop.name }}
+    </a>
+
+    {% if section.settings.menu != blank %}
+      <ul class="site-header__menu" role="list">
+        {% for link in section.settings.menu.links %}
+          <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </nav>
+</header>
+
+{% stylesheet %}
+  .site-header {
+    border-block-end: 1px solid var(--color-border);
+  }
+
+  .site-header__nav {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    padding-block: var(--spacing-4);
+  }
+
+  .site-header__wordmark {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--color-foreground);
+    text-decoration: none;
+  }
+
+  .site-header__menu {
+    display: flex;
+    gap: var(--spacing-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-sm);
+  }
+
+  .site-header__menu a {
+    color: var(--color-foreground-muted);
+    text-decoration: none;
+  }
+
+  .site-header__menu a:hover {
+    color: var(--color-foreground);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "t:general.header",
+  "settings": [
+    {
+      "type": "text",
+      "id": "wordmark",
+      "label": "Wordmark",
+      "default": "Formulate"
+    },
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:labels.menu"
+    }
+  ]
+}
+{% endschema %}

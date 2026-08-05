@@ -1,0 +1,20 @@
+{
+  "name": "@formulate/theme",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/sync-tokens.mjs",
+    "dev": "./scripts/with-env.sh shopify theme dev --path .",
+    "lint": "shopify theme check --path .",
+    "typecheck": "tsc --noEmit",
+    "push": "./scripts/with-env.sh shopify theme push --path . --unpublished",
+    "pull": "./scripts/with-env.sh shopify theme pull --path ."
+  },
+  "devDependencies": {
+    "@formulate/tokens": "workspace:*",
+    "@formulate/typescript-config": "workspace:*",
+    "@shopify/cli": "4.6.0",
+    "typescript": "~6.0.3"
+  }
+}

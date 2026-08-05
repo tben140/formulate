@@ -1,0 +1,26 @@
+{% doc %}
+  Renders the theme's import map and module scripts.
+
+  Bare specifiers (`@theme/component`) are resolved by the browser's import
+  map rather than by a bundler — the same approach Shopify's Horizon theme
+  uses. This is what lets the theme ship plain ES modules with no build step
+  while still writing readable imports.
+
+  Because modules resolve at runtime, load order does not matter: a module
+  can import another regardless of which `<script>` tag came first.
+
+  Keep this list in step with the `paths` mapping in tsconfig.json, which is
+  how TypeScript resolves the same specifiers for typechecking.
+{% enddoc %}
+
+<script type="importmap">
+  {
+    "imports": {
+      "@theme/component": {{ 'component.js' | asset_url | json }},
+      "@theme/media-gallery": {{ 'media-gallery.js' | asset_url | json }}
+    }
+  }
+</script>
+
+{% # Components self-register, so importing the module is enough. %}
+<script type="module" src="{{ 'media-gallery.js' | asset_url }}"></script>

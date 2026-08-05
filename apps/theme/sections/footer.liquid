@@ -1,0 +1,74 @@
+{% comment %}
+  Site footer.
+
+  apps/web has no footer at all. Rather than replicate that absence — a
+  storefront with no policy links or copyright is a genuine gap, not a design
+  choice worth copying — this is a minimal, token-styled footer that reads as
+  part of the same design system.
+
+  Payment icons from the skeleton are omitted: they advertise a checkout this
+  surface does not yet reach, and return with P1 — Cart & selling plans.
+{% endcomment %}
+
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <p class="site-footer__copyright">
+      &copy; {{ 'now' | date: '%Y' }} {{ shop.name }}
+    </p>
+
+    {% if section.settings.menu != blank %}
+      <ul class="site-footer__links" role="list">
+        {% for link in section.settings.menu.links %}
+          <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</footer>
+
+{% stylesheet %}
+  .site-footer {
+    margin-block-start: auto;
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .site-footer__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+    padding-block: var(--spacing-6);
+    font-size: var(--text-sm);
+    color: var(--color-foreground-muted);
+  }
+
+  .site-footer__links {
+    display: flex;
+    gap: var(--spacing-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-footer__links a {
+    color: var(--color-foreground-muted);
+    text-decoration: none;
+  }
+
+  .site-footer__links a:hover {
+    color: var(--color-foreground);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "t:general.footer",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:labels.menu"
+    }
+  ]
+}
+{% endschema %}

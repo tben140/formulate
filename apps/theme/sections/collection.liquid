@@ -1,0 +1,57 @@
+{% comment %}
+  Collection listing — the Liquid counterpart of apps/web's
+  app/collections/[handle]/page.tsx and apps/mobile's app/index.tsx.
+
+  Data comes from Liquid's `collection` object, rendered server-side by
+  Shopify. This surface deliberately does NOT use the Storefront API client in
+  packages/shopify: parity here is the design system, not the data layer.
+
+  The grid itself lives in snippets/product-grid.liquid, shared with the
+  homepage. Its styles are in assets/critical.css.
+
+  https://shopify.dev/docs/storefronts/themes/architecture/templates/collection
+{% endcomment %}
+
+<div class="container collection">
+  <header class="collection__header">
+    <h1 class="collection__title">{{ collection.title }}</h1>
+    {% if collection.description != blank %}
+      <p class="collection__description">{{ collection.description }}</p>
+    {% endif %}
+  </header>
+
+  {% paginate collection.products by 24 %}
+    {% render 'product-grid', products: collection.products %}
+    {{ paginate | default_pagination }}
+  {% endpaginate %}
+</div>
+
+{% stylesheet %}
+  .collection {
+    padding-block: var(--spacing-8);
+  }
+
+  .collection__header {
+    margin-block-end: var(--spacing-8);
+  }
+
+  .collection__title {
+    font-size: var(--text-3xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--color-foreground);
+  }
+
+  .collection__description {
+    margin-block-start: var(--spacing-2);
+    max-width: 42rem;
+    color: var(--color-foreground-muted);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "t:general.collection",
+  "settings": []
+}
+{% endschema %}

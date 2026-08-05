@@ -1,11 +1,11 @@
 /*
  * GENERATED FILE — DO NOT EDIT.
  * Source: packages/tokens/src/tokens.ts
- * Consumer: apps/web and apps/mobile, via Tailwind v4
+ * Consumer: apps/theme (Liquid), via assets/tokens.css
  * Regenerate: pnpm --filter @formulate/tokens build
  */
 
-@theme {
+:root {
   /* Colours */
   --color-brand-50: #eff5ff;
   --color-brand-100: #dbe8fe;
