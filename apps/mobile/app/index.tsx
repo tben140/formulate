@@ -3,6 +3,7 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
+import { SiteFooter } from "../components/site-footer";
 import { useCollection } from "../lib/queries";
 
 const CollectionScreen = () => {
@@ -60,6 +61,7 @@ const CollectionScreen = () => {
           ) : null}
         </View>
       }
+      ListFooterComponent={<SiteFooter />}
       renderItem={({ item }) => (
         <Link href={`/products/${item.handle}`} asChild>
           <View
