@@ -93,3 +93,189 @@ export const ShopNameQuery = graphql(`
     }
   }
 `);
+
+/* -------------------------------------------------------------------------- */
+/*  Cart                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Everything the surfaces need from a cart, in one fragment.
+ *
+ * Every cart operation returns this, so a mutation response is directly usable
+ * as the new state — no refetch, and no chance of the mutation and the query
+ * disagreeing about what a cart looks like.
+ *
+ * Codegen runs with `fragmentMasking: false`, so consumers get the fields
+ * inline rather than an opaque masked type.
+ */
+export const CartFields = graphql(`
+  fragment CartFields on Cart {
+    id
+    checkoutUrl
+    totalQuantity
+    buyerIdentity {
+      countryCode
+    }
+    cost {
+      subtotalAmount {
+        amount
+        currencyCode
+      }
+      totalAmount {
+        amount
+        currencyCode
+      }
+      totalTaxAmount {
+        amount
+        currencyCode
+      }
+    }
+    lines(first: 100) {
+      nodes {
+        id
+        quantity
+        cost {
+          totalAmount {
+            amount
+            currencyCode
+          }
+        }
+        merchandise {
+          ... on ProductVariant {
+            id
+            title
+            availableForSale
+            image {
+              url
+              altText
+              width
+              height
+            }
+            price {
+              amount
+              currencyCode
+            }
+            selectedOptions {
+              name
+              value
+            }
+            product {
+              handle
+              title
+            }
+          }
+        }
+        sellingPlanAllocation {
+          sellingPlan {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`);
+
+/**
+ * Fetches an existing cart.
+ *
+ * ⚠️ `id` must be the COMPLETE identifier, including the `?key=` suffix:
+ * `gid://shopify/Cart/{token}?key={secret}`. See `isCartId` in ./cart for what
+ * actually breaks when it is missing — it is narrower, and quieter, than it
+ * first appears.
+ *
+ * Returns null for a cart that has been completed at checkout, so a null here
+ * is normal rather than exceptional.
+ */
+export const CartQuery = graphql(`
+  query Cart($id: ID!) {
+    cart(id: $id) {
+      ...CartFields
+    }
+  }
+`);
+
+/**
+ * `buyerIdentity` is not optional in practice — see DEFAULT_COUNTRY_CODE.
+ */
+export const CartCreateMutation = graphql(`
+  mutation CartCreate($input: CartInput!) {
+    cartCreate(input: $input) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+`);
+
+export const CartLinesAddMutation = graphql(`
+  mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+    cartLinesAdd(cartId: $cartId, lines: $lines) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+`);
+
+export const CartLinesUpdateMutation = graphql(`
+  mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+    cartLinesUpdate(cartId: $cartId, lines: $lines) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+`);
+
+export const CartLinesRemoveMutation = graphql(`
+  mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+    cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+`);
+
+/**
+ * Used to correct the country on a cart that was created without one — and to
+ * attach a customer once accounts exist.
+ */
+export const CartBuyerIdentityUpdateMutation = graphql(`
+  mutation CartBuyerIdentityUpdate(
+    $cartId: ID!
+    $buyerIdentity: CartBuyerIdentityInput!
+  ) {
+    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+`);
