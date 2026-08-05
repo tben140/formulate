@@ -49,3 +49,8 @@ pnpm-debug.log*
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Obsidian workspace state. `docs/` is a vault as well as a docs folder, and
+# .obsidian/ holds per-machine UI state (open panes, window size, hotkeys) that
+# would churn on every commit.
+.obsidian/
