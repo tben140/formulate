@@ -11,6 +11,10 @@ concurrency:
 
 jobs:
   verify:
+    # ⚠️ Do NOT rename this job. Branch protection requires the status check
+    # context "Lint, typecheck, build", matched by this exact string. Renaming
+    # it means the required check never reports and every PR blocks forever
+    # under the strict up-to-date rule. Change the protection rule first.
     name: Lint, typecheck, build
     runs-on: ubuntu-latest
 
@@ -46,4 +50,4 @@ jobs:
           pnpm --filter @formulate/shopify codegen
           git diff --exit-code -- packages/shopify/src/generated
 
-      - run: pnpm turbo lint typecheck build
+      - run: pnpm turbo lint typecheck test build
