@@ -4,9 +4,19 @@ import {
   defaultSelectedOptions,
   findVariantByOptions,
   hasOwningApp,
+  purchasableAllocations,
   purchasableSellingPlanGroups,
   withOption,
 } from "./product-selection";
+
+/**
+ * Real plan ids from `selling-plans-ski-wax`, read from the Storefront API on
+ * 2026-08-06. The variant allocates exactly these three of the product's five
+ * groups, and only the last one is managed by an app.
+ */
+const PREPAID_PLAN = "gid://shopify/SellingPlan/697692062008";
+const WEEKLY_PLAN = "gid://shopify/SellingPlan/697692094776";
+const RECHARGE_PLAN = "gid://shopify/SellingPlan/697746522424";
 
 /**
  * These are the rules every surface applies, so a bug here is a bug in three
@@ -153,13 +163,19 @@ describe("hasOwningApp", () => {
    * The shapes below are the real ones from `selling-plans-ski-wax` on the demo
    * store, read from the Storefront API on 2026-08-06.
    */
+  const plans = (...ids: string[]) => ({ nodes: ids.map((id) => ({ id })) });
+
   const SEED_GROUPS = [
-    { name: "Prepaid", appName: null },
-    { name: "Subscription", appName: null },
-    { name: "Try Before You Buy", appName: null },
-    { name: "Preorder", appName: null },
+    { name: "Prepaid", appName: null, sellingPlans: plans(PREPAID_PLAN) },
+    { name: "Subscription", appName: null, sellingPlans: plans(WEEKLY_PLAN) },
+    { name: "Try Before You Buy", appName: null, sellingPlans: plans("gid://tbyb") },
+    { name: "Preorder", appName: null, sellingPlans: plans("gid://preorder") },
   ];
-  const RECHARGE_GROUP = { name: "Delivery every 30 days", appName: "294517" };
+  const RECHARGE_GROUP = {
+    name: "Delivery every 30 days",
+    appName: "294517",
+    sellingPlans: plans(RECHARGE_PLAN),
+  };
 
   it("rejects Shopify's unmanaged seed groups", () => {
     // These look entirely legitimate — real names, real plans, real price
@@ -174,11 +190,11 @@ describe("hasOwningApp", () => {
   });
 
   it("treats a missing appName the same as a null one", () => {
-    expect(hasOwningApp({ name: "No field at all" })).toBe(false);
+    expect(hasOwningApp({})).toBe(false);
   });
 
   it("rejects an empty-string appName", () => {
-    expect(hasOwningApp({ name: "Empty", appName: "" })).toBe(false);
+    expect(hasOwningApp({ appName: "" })).toBe(false);
   });
 
   it("keeps only the Recharge group out of the real five", () => {
@@ -190,5 +206,48 @@ describe("hasOwningApp", () => {
   it("returns an empty array when nothing is app-managed", () => {
     // Callers must read this as "one-time purchase only", not as an error.
     expect(purchasableSellingPlanGroups(SEED_GROUPS)).toEqual([]);
+  });
+});
+
+describe("purchasableAllocations", () => {
+  const plans = (...ids: string[]) => ({ nodes: ids.map((id) => ({ id })) });
+
+  const GROUPS = [
+    { name: "Prepaid", appName: null, sellingPlans: plans(PREPAID_PLAN) },
+    { name: "Subscription", appName: null, sellingPlans: plans(WEEKLY_PLAN) },
+    {
+      name: "Delivery every 30 days",
+      appName: "294517",
+      sellingPlans: plans(RECHARGE_PLAN),
+    },
+  ];
+
+  /** Exactly what the variant returns on the live store. */
+  const ALLOCATIONS = [
+    { sellingPlan: { id: PREPAID_PLAN } },
+    { sellingPlan: { id: WEEKLY_PLAN } },
+    { sellingPlan: { id: RECHARGE_PLAN } },
+  ];
+
+  it("keeps only the allocation whose group has an owning app", () => {
+    // Three plausible-looking subscription options; one that will ever charge.
+    expect(purchasableAllocations(GROUPS, ALLOCATIONS)).toEqual([
+      { sellingPlan: { id: RECHARGE_PLAN } },
+    ]);
+  });
+
+  it("returns nothing when no group is app-managed", () => {
+    expect(purchasableAllocations(GROUPS.slice(0, 2), ALLOCATIONS)).toEqual([]);
+  });
+
+  it("ignores plans the variant does not allocate", () => {
+    // A group can own plans this particular variant is not sold on.
+    expect(
+      purchasableAllocations(GROUPS, [{ sellingPlan: { id: PREPAID_PLAN } }]),
+    ).toEqual([]);
+  });
+
+  it("returns an empty array for a variant with no allocations", () => {
+    expect(purchasableAllocations(GROUPS, [])).toEqual([]);
   });
 });

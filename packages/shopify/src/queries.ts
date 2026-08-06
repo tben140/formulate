@@ -85,6 +85,19 @@ export const ProductByHandleQuery = graphql(`
             name
             values
           }
+          # Needed to map an allocation back to its group. An allocation names
+          # only its plan, so without these ids there is no way to tell which
+          # of a variant's plans belong to an app-managed group — and the
+          # appName filter becomes unusable.
+          #
+          # NB: no backticks anywhere in this document. These queries live in
+          # JS template literals, so a backtick silently ends the string and
+          # the file stops parsing.
+          sellingPlans(first: 20) {
+            nodes {
+              id
+            }
+          }
         }
       }
       variants(first: 100) {

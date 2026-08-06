@@ -19,6 +19,7 @@ export {
   defaultSelectedOptions,
   findVariantByOptions,
   hasOwningApp,
+  purchasableAllocations,
   purchasableSellingPlanGroups,
   withOption,
 } from "./product-selection";

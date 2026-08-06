@@ -20,8 +20,12 @@ interface VariantLike {
   readonly availableForSale: boolean;
 }
 
-interface SellingPlanGroupLike {
-  readonly name: string;
+/**
+ * Each constraint below asks for exactly the fields its function reads, and
+ * nothing more — so callers can pass whatever shape they already have rather
+ * than reconstructing a full group.
+ */
+interface AppOwnedLike {
   /**
    * The id of the app that owns this group, or null if nothing owns it.
    *
@@ -31,6 +35,14 @@ interface SellingPlanGroupLike {
    * and the point is only whether SOMETHING owns the group.
    */
   readonly appName?: string | null;
+}
+
+interface SellingPlanGroupLike extends AppOwnedLike {
+  readonly sellingPlans: { readonly nodes: readonly { readonly id: string }[] };
+}
+
+interface AllocationLike {
+  readonly sellingPlan: { readonly id: string };
 }
 
 /**
@@ -110,8 +122,7 @@ export const withOption = (
  * Rendering every group you find is therefore not a cosmetic bug: it lets a
  * shopper buy a subscription that will never be fulfilled.
  */
-export const hasOwningApp = (group: SellingPlanGroupLike): boolean =>
-  Boolean(group.appName);
+export const hasOwningApp = (group: AppOwnedLike): boolean => Boolean(group.appName);
 
 /**
  * The selling plan groups safe to offer a shopper.
@@ -119,6 +130,38 @@ export const hasOwningApp = (group: SellingPlanGroupLike): boolean =>
  * Returns an empty array for a product with no app-managed plans, which callers
  * should treat as "one-time purchase only" rather than as an error.
  */
-export const purchasableSellingPlanGroups = <T extends SellingPlanGroupLike>(
+export const purchasableSellingPlanGroups = <T extends AppOwnedLike>(
   groups: readonly T[],
 ): readonly T[] => groups.filter(hasOwningApp);
+
+/**
+ * The selling plans a given variant can actually be bought on, safely.
+ *
+ * Two different lists have to be intersected, and neither alone is sufficient:
+ *
+ *   - **The product's groups** say who owns each plan, but say nothing about
+ *     whether a particular variant is sold on it.
+ *   - **The variant's allocations** say what this variant is sold on, and at
+ *     what price, but name only the plan — never its group.
+ *
+ * So an allocation cannot be judged on its own. This maps each allocation back
+ * to its group through the plan ids and keeps only those whose group has an
+ * owning app.
+ *
+ * On the demo store the numbers make the point: `selling-plans-ski-wax`
+ * declares five groups, its variant allocates three of them, and exactly one
+ * of those three is real. Offering the variant's allocations unfiltered would
+ * present three subscription options where only one works.
+ */
+export const purchasableAllocations = <A extends AllocationLike>(
+  groups: readonly SellingPlanGroupLike[],
+  allocations: readonly A[],
+): readonly A[] => {
+  const ownedPlanIds = new Set(
+    purchasableSellingPlanGroups(groups).flatMap((group) =>
+      group.sellingPlans.nodes.map((plan) => plan.id),
+    ),
+  );
+
+  return allocations.filter((allocation) => ownedPlanIds.has(allocation.sellingPlan.id));
+};
