@@ -65,14 +65,67 @@ export const ProductByHandleQuery = graphql(`
           currencyCode
         }
       }
-      variants(first: 20) {
+      # The option axes, in the merchant's order. Drives which pickers render
+      # and in what sequence — do not derive this from the variants, which have
+      # no defined ordering.
+      options {
+        name
+        optionValues {
+          name
+        }
+      }
+      # Selling plans as declared on the PRODUCT. Read this only to know which
+      # groups exist and who owns them; what a given variant can actually be
+      # bought on is sellingPlanAllocations below, which is a smaller set.
+      sellingPlanGroups(first: 10) {
+        nodes {
+          name
+          appName
+          options {
+            name
+            values
+          }
+        }
+      }
+      variants(first: 100) {
         nodes {
           id
           title
           availableForSale
+          selectedOptions {
+            name
+            value
+          }
           price {
             amount
             currencyCode
+          }
+          compareAtPrice {
+            amount
+            currencyCode
+          }
+          image {
+            url
+            altText
+            width
+            height
+          }
+          # The authoritative list of plans purchasable for THIS variant, with
+          # the price each one charges. Never compute a subscription price by
+          # discounting price yourself — the adjustment is Shopify's to apply.
+          sellingPlanAllocations(first: 10) {
+            nodes {
+              sellingPlan {
+                id
+                name
+              }
+              priceAdjustments {
+                price {
+                  amount
+                  currencyCode
+                }
+              }
+            }
           }
         }
       }

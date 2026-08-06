@@ -11,6 +11,7 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
     "codegen": "turbo run codegen",
     "web": "turbo run dev --filter=@formulate/web",
     "mobile": "turbo run dev --filter=@formulate/mobile",

@@ -10,6 +10,8 @@
     "codegen": "graphql-codegen --config codegen.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "smoke": "node --env-file-if-exists=../../apps/web/.env.local scripts/smoke-test.mjs"
   },
   "dependencies": {
@@ -23,6 +25,7 @@
     "@shopify/hydrogen-react": "^2026.4.3",
     "eslint": "^10.8.0",
     "graphql": "^16.11.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "^3.2.7"
   }
 }

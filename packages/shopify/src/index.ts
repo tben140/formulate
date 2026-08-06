@@ -16,6 +16,15 @@ export { formatMoney } from "./format-money";
 export type { MoneyLike } from "./format-money";
 
 export {
+  defaultSelectedOptions,
+  findVariantByOptions,
+  hasOwningApp,
+  purchasableSellingPlanGroups,
+  withOption,
+} from "./product-selection";
+export type { SelectedOption } from "./product-selection";
+
+export {
   CartBuyerIdentityUpdateMutation,
   CartCreateMutation,
   CartLinesAddMutation,

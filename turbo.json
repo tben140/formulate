@@ -32,6 +32,12 @@
     "typecheck": {
       "dependsOn": ["^build"]
     },
+    // Only packages/shopify has tests today. The task is declared here rather
+    // than waiting for a second one, so `turbo test` is the command from the
+    // start and CI never has to change shape when tests spread.
+    "test": {
+      "dependsOn": ["^build"]
+    },
     "codegen": {
       "cache": false
     }
