@@ -17,10 +17,42 @@
   {
     "imports": {
       "@theme/component": {{ 'component.js' | asset_url | json }},
-      "@theme/media-gallery": {{ 'media-gallery.js' | asset_url | json }}
+      "@theme/media-gallery": {{ 'media-gallery.js' | asset_url | json }},
+      "@theme/cart-api": {{ 'cart-api.js' | asset_url | json }},
+      "@theme/cart-drawer": {{ 'cart-drawer.js' | asset_url | json }},
+      "@theme/cart-count": {{ 'cart-count.js' | asset_url | json }},
+      "@theme/product-form": {{ 'product-form.js' | asset_url | json }}
     }
   }
 </script>
 
-{% # Components self-register, so importing the module is enough. %}
-<script type="module" src="{{ 'media-gallery.js' | asset_url }}"></script>
+{% comment %}
+  One entry module, importing through the SAME bare specifiers the import map
+  declares. Components self-register, so importing is enough.
+
+  ⚠️ Do not go back to `<script type="module" src="{{ 'x.js' | asset_url }}">`
+  per component. `asset_url` inside a `src` attribute and `asset_url` inside the
+  import map JSON do not always produce the same string — under
+  `shopify theme dev` the tag is rewritten to the local proxy
+  (`http://127.0.0.1:9292/cdn/...`) while the import map keeps the
+  protocol-relative CDN host (`//shop.myshopify.com/cdn/...`).
+
+  Two URLs means the browser evaluates the module twice, and the second
+  `customElements.define()` throws:
+
+    NotSupportedError: the name "cart-drawer" has already been used with this
+    registry
+
+  That error aborts whichever module triggered the second evaluation, so the
+  visible symptom is unrelated components silently failing to upgrade — with
+  nothing in the console pointing at the cause.
+
+  Importing everything through the import map gives each module exactly one
+  resolved URL, which is what the import map is for.
+{% endcomment %}
+<script type="module">
+  import "@theme/media-gallery";
+  import "@theme/cart-drawer";
+  import "@theme/cart-count";
+  import "@theme/product-form";
+</script>

@@ -43,5 +43,22 @@
     {{ content_for_layout }}
 
     {% sections 'footer-group' %}
+
+    {% comment %}
+      The cart drawer lives in the layout so it is present on every page — a
+      shopper can add from a product page and see the drawer without a
+      navigation.
+
+      The <dialog> is here rather than inside the section on purpose. Cart
+      mutations re-render the section and swap its contents in, and the dialog
+      surviving that swap is what preserves its open state, its place in the
+      top layer, and any transition mid-flight. Re-rendering the dialog itself
+      would close the drawer on every quantity change.
+    {% endcomment %}
+    <cart-drawer>
+      <dialog class="cart-drawer" aria-label="{{ 'cart.title' | t }}">
+        {% section 'cart-drawer' %}
+      </dialog>
+    </cart-drawer>
   </body>
 </html>

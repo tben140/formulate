@@ -16,6 +16,17 @@ Consequences you must not quietly undo:
 - **Do not add a bundler.** No Vite, no esbuild, no rollup. Bare specifiers like
   `@theme/component` are resolved by a **browser import map**, not a module
   graph.
+- ⚠️ **Load every module through the import map, from the single entry
+  `<script type="module">` in `snippets/scripts.liquid`.** Never go back to one
+  `<script type="module" src="{{ 'x.js' | asset_url }}">` per component. Under
+  `shopify theme dev` the `src` attribute is rewritten to the local proxy
+  (`http://127.0.0.1:9292/cdn/...`) while the import map keeps the
+  protocol-relative CDN host (`//shop.myshopify.com/cdn/...`). Two URLs for one
+  file means the browser evaluates it twice, the second
+  `customElements.define()` throws `NotSupportedError`, and that aborts
+  whichever module triggered the re-evaluation. The symptom is _unrelated_
+  components silently failing to upgrade, with nothing in the console naming the
+  cause.
 - **Do not write TypeScript.** Types come from **JSDoc**, checked by
   `tsc --noEmit --checkJs`. This gives real type safety, including generics, while
   shipping plain JavaScript that needs no compilation.

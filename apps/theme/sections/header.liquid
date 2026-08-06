@@ -2,10 +2,9 @@
   Site header — matches apps/web's app/layout.tsx: a wordmark linking home,
   inside the shared container, with a bottom border.
 
-  The cart and account icons from the skeleton are deliberately omitted. All
-  three surfaces stop at read-only browse until P1 — Cart & selling plans, and
-  a cart icon leading to an unbuilt experience is worse than no icon. They
-  return with the cart work, on all three surfaces together.
+  The cart button is back now that it leads somewhere. The account icon is
+  still omitted — customer accounts are not built on any surface yet, and an
+  icon leading to an unbuilt experience is worse than no icon.
 
   The wordmark is a setting rather than `shop.name` so it can read "Formulate"
   (the project brand) while the store itself is named something else — and
@@ -25,6 +24,30 @@
         {% endfor %}
       </ul>
     {% endif %}
+
+    {% comment %}
+      A link to /cart, upgraded into a drawer trigger by cart-count.js. Without
+      JavaScript it navigates to the cart page, which is a real page — so the
+      cart is reachable either way.
+    {% endcomment %}
+    <cart-count class="site-header__cart">
+      <a
+        ref="link"
+        href="{{ routes.cart_url }}"
+        class="site-header__cart-link"
+        aria-label="{{ 'cart.open_with_count' | t: count: cart.item_count }}"
+      >
+        {{ 'cart.title' | t }}
+        <span
+          ref="badge"
+          class="site-header__cart-count"
+          aria-hidden="true"
+          {% if cart.item_count == 0 %}hidden{% endif %}
+        >
+          {{ cart.item_count }}
+        </span>
+      </a>
+    </cart-count>
   </nav>
 </header>
 

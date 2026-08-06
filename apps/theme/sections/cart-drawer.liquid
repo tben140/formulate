@@ -1,0 +1,154 @@
+{% comment %}
+  The slide-in cart, and the Liquid counterpart of apps/web's
+  components/cart-drawer.tsx.
+
+  Rendered on every page from layout/theme.liquid, and re-rendered by the
+  Section Rendering API after every mutation — assets/cart-api.js asks for this
+  section by id and assets/cart-drawer.js swaps in the result. That is why the
+  markup lives here rather than as template strings in JavaScript: one source of
+  truth for the design, and no client-side rendering to keep in step with it.
+
+  `data-item-count` is how the header badge stays correct without a second
+  request. The count arrives inside the same re-rendered HTML.
+{% endcomment %}
+
+<div
+  class="cart-drawer-section"
+  data-item-count="{{ cart.item_count }}"
+  data-section-id="{{ section.id }}"
+>
+  <div class="cart-drawer__panel">
+    <header class="cart-drawer__header">
+      <h2 class="cart-drawer__title">
+        {{ 'cart.title' | t }}
+        {% if cart.item_count > 0 %}
+          <span class="cart-drawer__count">
+            {{ 'cart.item_count' | t: count: cart.item_count }}
+          </span>
+        {% endif %}
+      </h2>
+
+      <button ref="close" type="button" class="cart-drawer__close">
+        {{ 'cart.close' | t }}
+      </button>
+    </header>
+
+    {% if cart.item_count == 0 %}
+      <p class="cart-drawer__empty">{{ 'cart.empty' | t }}</p>
+    {% else %}
+      <ul class="cart-drawer__lines" role="list">
+        {% for item in cart.items %}
+          <li class="cart-line">
+            {% if item.image %}
+              <img
+                class="cart-line__image"
+                src="{{ item.image | image_url: width: 128, height: 128, crop: 'center' }}"
+                alt=""
+                width="64"
+                height="64"
+                loading="lazy"
+              >
+            {% endif %}
+
+            <div class="cart-line__body">
+              <p class="cart-line__title">{{ item.product.title }}</p>
+
+              {% unless item.variant.title == 'Default Title' %}
+                <p class="cart-line__variant">{{ item.variant.title }}</p>
+              {% endunless %}
+
+              {% comment %}
+                The subscription line. This is the whole reason the selling-plan
+                filter in snippets/product-form.liquid exists — it is how a
+                shopper confirms they bought a subscription, not a one-off.
+              {% endcomment %}
+              {% if item.selling_plan_allocation %}
+                <p class="cart-line__plan">
+                  {{ item.selling_plan_allocation.selling_plan.name }}
+                </p>
+              {% endif %}
+
+              <div class="cart-line__controls">
+                {% comment %}
+                  A real form posting to /cart/change. Without JavaScript this
+                  submits normally and Shopify redirects back to the cart page;
+                  cart-drawer.js intercepts it when JavaScript is available.
+                {% endcomment %}
+                <form
+                  ref="quantityForm"
+                  class="cart-line__quantity"
+                  action="{{ routes.cart_change_url }}"
+                  method="post"
+                >
+                  <input type="hidden" name="id" value="{{ item.key }}">
+                  <label class="visually-hidden" for="qty-{{ item.key }}">
+                    {{ 'cart.quantity_for' | t: title: item.product.title }}
+                  </label>
+                  <input
+                    id="qty-{{ item.key }}"
+                    class="cart-line__quantity-input"
+                    type="number"
+                    name="quantity"
+                    value="{{ item.quantity }}"
+                    min="0"
+                    inputmode="numeric"
+                  >
+                  <button type="submit" class="cart-line__update">
+                    {{ 'cart.update' | t }}
+                  </button>
+                </form>
+
+                <p class="cart-line__price">{{ item.final_line_price | money }}</p>
+              </div>
+            </div>
+
+            <form
+              ref="removeForm"
+              action="{{ routes.cart_change_url }}"
+              method="post"
+            >
+              <input type="hidden" name="id" value="{{ item.key }}">
+              <input type="hidden" name="quantity" value="0">
+              <button type="submit" class="cart-line__remove">
+                {{ 'cart.remove' | t }}
+                <span class="visually-hidden">
+                  {{ 'cart.remove_for' | t: title: item.product.title }}
+                </span>
+              </button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <footer class="cart-drawer__footer">
+        <div class="cart-drawer__subtotal">
+          <span>{{ 'cart.subtotal' | t }}</span>
+          <span class="cart-drawer__subtotal-value">
+            {{ cart.total_price | money }}
+          </span>
+        </div>
+
+        <p class="cart-drawer__note">{{ 'cart.taxes_note' | t }}</p>
+
+        {% comment %}
+          Checkout is a form submit to Shopify's own checkout, not a link — the
+          Online Store expects the cart form to be posted. Unlike the headless
+          surfaces there is no checkoutUrl to redirect to; the platform owns
+          this handoff entirely.
+        {% endcomment %}
+        <form action="{{ routes.cart_url }}" method="post">
+          <button type="submit" name="checkout" class="cart-drawer__checkout">
+            {{ 'cart.checkout' | t }}
+          </button>
+        </form>
+      </footer>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:general.cart",
+  "settings": []
+}
+{% endschema %}
