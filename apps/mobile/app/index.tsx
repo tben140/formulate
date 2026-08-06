@@ -7,9 +7,7 @@ import { SiteFooter } from "../components/site-footer";
 import { useCollection } from "../lib/queries";
 
 const CollectionScreen = () => {
-  const { data, isPending, isError, error } = useCollection(
-    DEFAULT_COLLECTION_HANDLE,
-  );
+  const { data, isPending, isError, error } = useCollection(DEFAULT_COLLECTION_HANDLE);
 
   if (isPending) {
     return (
@@ -77,9 +75,7 @@ const CollectionScreen = () => {
               accessibilityIgnoresInvertColors
             />
             <View className="flex-1">
-              <Text className="text-base font-medium text-foreground">
-                {item.title}
-              </Text>
+              <Text className="text-base font-medium text-foreground">{item.title}</Text>
               <Text className="mt-1 text-sm text-foreground-muted">
                 {formatMoney(item.priceRange.minVariantPrice)}
               </Text>

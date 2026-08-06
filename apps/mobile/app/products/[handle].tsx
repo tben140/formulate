@@ -1,13 +1,15 @@
-import { formatMoney } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
+import { AddToCart } from "../../components/add-to-cart";
+import { useCartUi } from "../../components/cart-provider";
 import { SiteFooter } from "../../components/site-footer";
 import { useProduct } from "../../lib/queries";
 
 const ProductScreen = () => {
   const { handle } = useLocalSearchParams<{ handle: string }>();
+  const { openCart } = useCartUi();
   const { data, isPending, isError, error } = useProduct(handle ?? "");
 
   if (isPending) {
@@ -36,9 +38,7 @@ const ProductScreen = () => {
   if (!product) {
     return (
       <View className="flex-1 items-center justify-center p-6">
-        <Text className="text-base text-foreground-muted">
-          Product not found.
-        </Text>
+        <Text className="text-base text-foreground-muted">Product not found.</Text>
       </View>
     );
   }
@@ -56,49 +56,22 @@ const ProductScreen = () => {
       />
 
       <View>
-        <Text className="text-2xl font-semibold text-foreground">
-          {product.title}
-        </Text>
-        <Text className="mt-1 text-xl text-foreground">
-          {formatMoney(product.priceRange.minVariantPrice)}
-        </Text>
+        <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
       </View>
 
       {product.description ? (
-        <Text className="text-base text-foreground-muted">
-          {product.description}
-        </Text>
+        <Text className="text-base text-foreground-muted">{product.description}</Text>
       ) : null}
 
-      <View>
-        <Text className="mb-2 text-sm font-semibold uppercase text-foreground-muted">
-          Variants
-        </Text>
-        <View className="gap-2">
-          {product.variants.nodes.map((variant) => (
-            <View
-              key={variant.id}
-              className="flex-row items-center justify-between rounded-md border border-border px-3 py-2"
-            >
-              <Text className="text-sm text-foreground">{variant.title}</Text>
-              <View className="flex-row items-center gap-3">
-                <Text className="text-sm text-foreground-muted">
-                  {formatMoney(variant.price)}
-                </Text>
-                <Text
-                  className={
-                    variant.availableForSale
-                      ? "text-sm text-success"
-                      : "text-sm text-danger"
-                  }
-                >
-                  {variant.availableForSale ? "In stock" : "Sold out"}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
+      {/*
+        The price lives inside AddToCart, because it changes with the selection
+        — a subscription plan carries its own adjusted price, and showing
+        minVariantPrice alongside would contradict whatever was chosen.
+
+        The static variant list is gone for the same reason: it listed every
+        price at once next to a picker that changes the price.
+      */}
+      <AddToCart product={product} onAdded={openCart} />
 
       <SiteFooter />
     </ScrollView>
