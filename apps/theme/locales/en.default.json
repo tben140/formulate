@@ -17,7 +17,25 @@
     "checkout": "Checkout",
     "title": "Cart",
     "update": "Update",
-    "remove": "Remove"
+    "remove": "Remove",
+    "close": "Close",
+    "empty": "Your cart is empty.",
+    "subtotal": "Subtotal",
+    "taxes_note": "Taxes and shipping calculated at checkout.",
+    "item_count": {
+      "one": "{{ count }} item",
+      "other": "{{ count }} items"
+    },
+    "open_with_count": {
+      "zero": "Open cart, empty",
+      "one": "Open cart, {{ count }} item",
+      "other": "Open cart, {{ count }} items"
+    },
+    "quantity_for": "Quantity for {{ title }}",
+    "remove_for": "{{ title }} from cart"
+  },
+  "collections": {
+    "title": "Collections"
   },
   "customers": {
     "login": {
@@ -26,9 +44,6 @@
       "submit": "Sign in",
       "title": "Login"
     }
-  },
-  "collections": {
-    "title": "Collections"
   },
   "gift_card": {
     "add_to_apple_wallet": "Add to Apple Wallet",
@@ -41,6 +56,15 @@
     "title": "This shop is private",
     "password": "Password",
     "enter": "Enter"
+  },
+  "product": {
+    "add_to_cart": "Add to cart",
+    "sold_out": "Sold out",
+    "unavailable": "Unavailable in this combination",
+    "added": "Added to your cart.",
+    "purchase_options": "Purchase options",
+    "one_time": "One-time purchase",
+    "variant": "Variant"
   },
   "search": {
     "title": "Search",

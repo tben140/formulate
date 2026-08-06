@@ -1,0 +1,183 @@
+{% comment %}
+  Add to cart, with variant and selling-plan selection.
+
+  The Liquid counterpart of apps/web's components/add-to-cart-form.tsx. Same
+  rules, same layout, different mechanism — the web app resolves options to a
+  variant in JavaScript, this posts a real form to /cart/add.
+
+  Progressive enhancement is the constraint that shapes everything here:
+
+    - The whole thing is a genuine <form method="post">. With JavaScript off it
+      submits to Shopify and redirects to the cart page.
+    - The option pills are radios whose selection is resolved to a variant by
+      product-form.js. Without JavaScript they cannot be, so <noscript> hides
+      them and reveals a plain <select name="id"> instead — one control that
+      needs no scripting to work.
+    - Selling plan radios are named `selling_plan`, which Shopify reads from a
+      normal form post. They need no JavaScript at all.
+
+  ⚠️ The selling-plan filter below is load-bearing. See `hasOwningApp` in
+  packages/shopify: a store carries selling plan groups that no app manages,
+  and this store has four of them. They add to the cart and complete at
+  checkout, then never charge or ship again.
+{% endcomment %}
+
+{% assign current_variant = product.selected_or_first_available_variant %}
+
+{% comment %} Group ids owned by an installed app. `app_id` is nil for the
+  seed groups Shopify creates, which is exactly the discriminator the headless
+  surfaces use via `appName`. {% endcomment %}
+{% assign owned_group_ids = '' %}
+{% for group in product.selling_plan_groups %}
+  {% if group.app_id %}
+    {% assign owned_group_ids = owned_group_ids | append: group.id | append: ',' %}
+  {% endif %}
+{% endfor %}
+
+<product-form class="product-form">
+  <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data">
+    <input ref="variantId" type="hidden" name="id" value="{{ current_variant.id }}">
+    <input type="hidden" name="quantity" value="1">
+
+    {% comment %} Option pills, matching apps/web. {% endcomment %}
+    {% if product.has_only_default_variant == false %}
+      <div ref="options" class="product-form__options">
+        {% for option in product.options_with_values %}
+          <fieldset class="product-form__option">
+            <legend class="product-form__legend">{{ option.name }}</legend>
+            <div class="product-form__values">
+              {% for value in option.values %}
+                <label class="product-form__pill">
+                  <input
+                    ref="optionInput"
+                    type="radio"
+                    class="visually-hidden"
+                    name="option{{ forloop.parentloop.index }}"
+                    value="{{ value | escape }}"
+                    data-option-position="{{ forloop.parentloop.index }}"
+                    {% if option.selected_value == value %}checked{% endif %}
+                  >
+                  <span>{{ value }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+        {% endfor %}
+      </div>
+
+      <noscript>
+        {% comment %} Hides the pills, which cannot resolve to a variant
+          without scripting, and offers a select that can. {% endcomment %}
+        <style>
+          .product-form__options { display: none; }
+        </style>
+
+        <p class="product-form__legend">
+          <label for="variant-select">{{ 'product.variant' | t }}</label>
+        </p>
+        <select id="variant-select" name="id" class="product-form__select">
+          {% for variant in product.variants %}
+            <option
+              value="{{ variant.id }}"
+              {% if variant == current_variant %}selected{% endif %}
+              {% unless variant.available %}disabled{% endunless %}
+            >
+              {{ variant.title }} — {{ variant.price | money }}
+              {% unless variant.available %}({{ 'product.sold_out' | t }}){% endunless %}
+            </option>
+          {% endfor %}
+        </select>
+      </noscript>
+    {% endif %}
+
+    {% comment %} Purchase options, filtered to app-managed groups. {% endcomment %}
+    {% assign has_plans = false %}
+    {% for allocation in current_variant.selling_plan_allocations %}
+      {% assign group_key = allocation.selling_plan_group_id | append: ',' %}
+      {% if owned_group_ids contains group_key %}
+        {% assign has_plans = true %}
+      {% endif %}
+    {% endfor %}
+
+    {% if has_plans %}
+      <fieldset class="product-form__option">
+        <legend class="product-form__legend">{{ 'product.purchase_options' | t }}</legend>
+        <div class="product-form__plans">
+          <label class="product-form__plan">
+            <span>
+              <input type="radio" name="selling_plan" value="" checked>
+              {{ 'product.one_time' | t }}
+            </span>
+            <span class="product-form__plan-price">{{ current_variant.price | money }}</span>
+          </label>
+
+          {% for allocation in current_variant.selling_plan_allocations %}
+            {% assign group_key = allocation.selling_plan_group_id | append: ',' %}
+            {% if owned_group_ids contains group_key %}
+              <label class="product-form__plan">
+                <span>
+                  <input
+                    type="radio"
+                    name="selling_plan"
+                    value="{{ allocation.selling_plan.id }}"
+                  >
+                  {{ allocation.selling_plan.name }}
+                </span>
+                <span class="product-form__plan-price">{{ allocation.price | money }}</span>
+              </label>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </fieldset>
+    {% endif %}
+
+    <p ref="price" class="product-form__price">{{ current_variant.price | money }}</p>
+
+    {% comment %}
+      The button's three states are passed as data attributes rather than
+      hard-coded in product-form.js, so they stay translatable — the script
+      has no access to Liquid's `t` filter.
+    {% endcomment %}
+    <button
+      ref="submit"
+      type="submit"
+      class="product-form__submit"
+      data-add-label="{{ 'product.add_to_cart' | t | escape }}"
+      data-sold-out-label="{{ 'product.sold_out' | t | escape }}"
+      data-unavailable-label="{{ 'product.unavailable' | t | escape }}"
+      {% unless current_variant.available %}disabled{% endunless %}
+    >
+      {% if current_variant.available %}
+        {{ 'product.add_to_cart' | t }}
+      {% else %}
+        {{ 'product.sold_out' | t }}
+      {% endif %}
+    </button>
+
+    {% comment %} Errors and confirmations are announced, because the drawer
+      opening is a visual event a screen reader does not narrate. {% endcomment %}
+    <p
+      ref="status"
+      class="product-form__status"
+      role="status"
+      aria-live="polite"
+      data-added-label="{{ 'product.added' | t | escape }}"
+    ></p>
+  </form>
+</product-form>
+
+{% comment %} Variant data for product-form.js. A script tag of JSON rather
+  than data attributes: the shape is nested, and JSON.parse of one element
+  beats reading a dozen attributes. {% endcomment %}
+<script type="application/json" data-product-variants>
+  [
+    {%- for variant in product.variants -%}
+      {
+        "id": {{ variant.id | json }},
+        "available": {{ variant.available | json }},
+        "options": {{ variant.options | json }},
+        "price": {{ variant.price | money | json }}
+      }{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  ]
+</script>

@@ -2,10 +2,10 @@
   Product detail — the Liquid counterpart of apps/web's
   app/products/[handle]/page.tsx and apps/mobile's app/products/[handle].tsx.
 
-  Scope note: there is deliberately no add-to-cart form here. The other two
-  surfaces stop at read-only browse, and cart lands across all three together
-  during P1 — Cart & selling plans. Variants are listed with availability,
-  matching what web and native show today.
+  Add to cart, variant pickers and subscribe-and-save live in
+  snippets/product-form.liquid. The static variant list the skeleton had is
+  gone: it duplicated what the pickers now show, and listing every variant's
+  price alongside a selection that changes the price is a contradiction.
 
   The gallery is progressively enhanced by <media-gallery> in
   assets/media-gallery.js. Without JavaScript the first image still renders and
@@ -13,8 +13,6 @@
 
   https://shopify.dev/docs/storefronts/themes/architecture/templates/product
 {% endcomment %}
-
-{% assign current_variant = product.selected_or_first_available_variant %}
 
 <article class="container product">
   <media-gallery class="product__gallery">
@@ -60,30 +58,12 @@
 
   <div class="product__info">
     <h1 class="product__title">{{ product.title }}</h1>
-    <p class="product__price">{{ current_variant.price | money }}</p>
 
     {% if product.description != blank %}
       <div class="product__description">{{ product.description }}</div>
     {% endif %}
 
-    <section class="product__variants">
-      <h2 class="product__variants-heading">Variants</h2>
-      <ul class="variant-list" role="list">
-        {% for variant in product.variants %}
-          <li class="variant">
-            <span>{{ variant.title }}</span>
-            <span class="variant__meta">
-              <span class="variant__price">{{ variant.price | money }}</span>
-              {% if variant.available %}
-                <span class="variant__status variant__status--available">In stock</span>
-              {% else %}
-                <span class="variant__status variant__status--sold-out">Sold out</span>
-              {% endif %}
-            </span>
-          </li>
-        {% endfor %}
-      </ul>
-    </section>
+    {% render 'product-form', product: product %}
   </div>
 </article>
 
@@ -168,53 +148,6 @@
     color: var(--color-foreground-muted);
   }
 
-  .product__variants {
-    margin-block-start: var(--spacing-8);
-  }
-
-  .product__variants-heading {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-foreground-muted);
-  }
-
-  .variant-list {
-    display: grid;
-    gap: var(--spacing-2);
-    margin-block-start: var(--spacing-3);
-    padding: 0;
-    list-style: none;
-  }
-
-  .variant {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-2) var(--spacing-3);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-  }
-
-  .variant__meta {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-3);
-  }
-
-  .variant__price {
-    color: var(--color-foreground-muted);
-  }
-
-  .variant__status--available {
-    color: var(--color-success);
-  }
-
-  .variant__status--sold-out {
-    color: var(--color-danger);
-  }
 {% endstylesheet %}
 
 {% schema %}
