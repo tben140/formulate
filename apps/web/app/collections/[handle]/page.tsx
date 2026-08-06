@@ -30,13 +30,9 @@ const CollectionPage = async ({ params }: PageProps) => {
   return (
     <>
       <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {collection.title}
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{collection.title}</h1>
         {collection.description ? (
-          <p className="mt-2 max-w-2xl text-foreground-muted">
-            {collection.description}
-          </p>
+          <p className="mt-2 max-w-2xl text-foreground-muted">{collection.description}</p>
         ) : null}
       </header>
 

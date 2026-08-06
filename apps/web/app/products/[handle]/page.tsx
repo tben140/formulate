@@ -1,12 +1,9 @@
-import {
-  DEFAULT_COLLECTION_HANDLE,
-  ProductByHandleQuery,
-  formatMoney,
-} from "@formulate/shopify";
+import { DEFAULT_COLLECTION_HANDLE, ProductByHandleQuery } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AddToCartForm } from "@/components/add-to-cart-form";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { storefront } from "@/lib/storefront";
 
@@ -51,45 +48,19 @@ const ProductPage = async ({ params }: PageProps) => {
           &larr; Back to collection
         </Link>
 
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-          {product.title}
-        </h1>
-
-        <p className="mt-2 text-xl text-foreground">
-          {formatMoney(product.priceRange.minVariantPrice)}
-        </p>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight">{product.title}</h1>
 
         {product.description ? (
           <p className="mt-4 text-foreground-muted">{product.description}</p>
         ) : null}
 
-        <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground-muted">
-            Variants
-          </h2>
-          <ul className="mt-3 space-y-2">
-            {product.variants.nodes.map((variant) => (
-              <li
-                key={variant.id}
-                className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
-              >
-                <span>{variant.title}</span>
-                <span className="flex items-center gap-3">
-                  <span className="text-foreground-muted">
-                    {formatMoney(variant.price)}
-                  </span>
-                  <span
-                    className={
-                      variant.availableForSale ? "text-success" : "text-danger"
-                    }
-                  >
-                    {variant.availableForSale ? "In stock" : "Sold out"}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {/*
+          The price now lives inside the form, because it changes with the
+          selection — a subscription plan carries its own adjusted price, and
+          showing the product's `minVariantPrice` alongside it would contradict
+          whatever the shopper had chosen.
+        */}
+        <AddToCartForm product={product} />
       </div>
     </article>
   );
