@@ -21,7 +21,9 @@ import { storefront } from "./storefront";
  * to drive its own `isError` state.
  */
 
-const unwrap = <T>(result: Awaited<ReturnType<typeof storefront.request<T, never>>>): T => {
+const unwrap = <T>(
+  result: Awaited<ReturnType<typeof storefront.request<T, never>>>,
+): T => {
   if (!result.ok) throw new Error(describeError(result.error));
   return result.data;
 };
