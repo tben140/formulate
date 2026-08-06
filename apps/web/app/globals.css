@@ -20,3 +20,92 @@
     outline-offset: 2px;
   }
 }
+
+@layer components {
+  /*
+   * The slide-in cart.
+   *
+   * A native <dialog> opened with showModal(), so focus trapping, Escape, page
+   * inerting and the backdrop all come from the platform. Only the slide is
+   * ours.
+   *
+   * `max-height`/`max-width` are reset because UA stylesheets cap a dialog at
+   * calc(100% - 6px - 2em), which would leave a visible gap at the edges.
+   */
+  .cart-drawer {
+    position: fixed;
+    inset: 0 0 0 auto;
+    width: min(28rem, 100vw);
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-left: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    color: var(--color-foreground);
+
+    /*
+     * `allow-discrete` is what makes an exit animation possible at all: without
+     * it `display` flips to none immediately and the panel vanishes rather than
+     * sliding out. `overlay` does the same for the top-layer promotion.
+     */
+    transform: translateX(100%);
+    transition:
+      transform 240ms ease,
+      overlay 240ms ease allow-discrete,
+      display 240ms ease allow-discrete;
+  }
+
+  .cart-drawer[open] {
+    transform: translateX(0);
+  }
+
+  /* The entry side of the same animation — the state to animate *from*. */
+  @starting-style {
+    .cart-drawer[open] {
+      transform: translateX(100%);
+    }
+  }
+
+  .cart-drawer::backdrop {
+    background-color: rgb(0 0 0 / 0.4);
+    transition:
+      opacity 240ms ease,
+      overlay 240ms ease allow-discrete,
+      display 240ms ease allow-discrete;
+    opacity: 1;
+  }
+
+  .cart-drawer:not([open])::backdrop {
+    opacity: 0;
+  }
+
+  @starting-style {
+    .cart-drawer[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  /*
+   * WCAG 2.3.3. Respect a stated preference for less motion — the drawer still
+   * appears, it just stops travelling across the screen to do it.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .cart-drawer,
+    .cart-drawer::backdrop {
+      transition-duration: 1ms;
+    }
+
+    .cart-drawer {
+      transform: none;
+    }
+
+    @starting-style {
+      .cart-drawer[open] {
+        transform: none;
+      }
+    }
+  }
+}

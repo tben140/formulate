@@ -20,15 +20,15 @@ export const StorefrontErrorState = ({ error }: { error: StorefrontError }) => (
     {error.kind === "config" ? (
       <p className="text-foreground-muted">
         Copy <code className="font-mono">.env.example</code> to{" "}
-        <code className="font-mono">apps/web/.env.local</code> and fill in the
-        Storefront token.
+        <code className="font-mono">apps/web/.env.local</code> and fill in the Storefront
+        token.
       </p>
     ) : null}
 
     {error.kind === "http" && (error.status === 401 || error.status === 403) ? (
       <p className="text-foreground-muted">
-        The token was rejected. Check it is a Storefront (not Admin) access
-        token and that it belongs to this store.
+        The token was rejected. Check it is a Storefront (not Admin) access token and that
+        it belongs to this store.
       </p>
     ) : null}
   </div>
