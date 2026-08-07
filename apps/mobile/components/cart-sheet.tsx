@@ -1,7 +1,7 @@
 import { formatMoney } from "@formulate/shopify";
 import { useShopifyCheckoutSheet } from "@shopify/checkout-sheet-kit";
 import { Image } from "expo-image";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -43,35 +43,59 @@ export const CartSheet = ({
   const clearCart = useClearCart();
   const checkout = useShopifyCheckoutSheet();
 
+  /**
+   * Whether the checkout that is closing completed, as opposed to being
+   * abandoned. A ref rather than state: it is read inside an event listener
+   * that must not re-subscribe, and nothing renders from it.
+   */
+  const purchased = useRef(false);
+
   useEffect(() => {
     /*
-     * Verified ordering from the SHO-56 spike:
+     * Verified ordering from the SHO-56 spike, and again on order #1002:
      *
-     *   14:54:27  completed  — carries the order id
-     *   14:55:41  close      — when the buyer dismisses the confirmation
+     *   completed  — carries the order id
+     *   close      — later, when the buyer dismisses the confirmation
      *
-     * `close` fires AFTER `completed`, so clearing on `close` would undo a
-     * correct clear. Everything here hangs off `completed`.
+     * ⚠️ The two events own DIFFERENT concerns, and conflating them produced a
+     * real bug: dismissing this sheet inside `completed` left a blank white
+     * screen the buyer could not escape.
      *
-     * Closing our own sheet here too is what stops the buyer landing back in a
-     * cart after a successful purchase. Shopify's checkout sheet is presented
-     * over ours; when it dismisses, whatever is underneath becomes visible
-     * again. An empty cart is a dead end — the storefront is not.
+     * The cause is UIKit, not React. Shopify's checkout is presented OVER this
+     * sheet, so dismissing this one while it still has a presented child tears
+     * down the presenting controller and orphans the child.
+     *
+     *   completed -> clear the cart      (data; must be now, while we know)
+     *   close     -> dismiss this sheet  (presentation; only once the checkout
+     *                                     sheet has actually gone)
+     *
+     * Clearing still cannot move to `close`, for the original reason: `close`
+     * fires on abandonment too, and clearing there would throw away a cart the
+     * buyer never bought.
      */
     const completed = checkout.addEventListener("completed", () => {
+      purchased.current = true;
       clearCart.mutate();
+    });
+
+    const closed = checkout.addEventListener("close", () => {
+      // Only after a purchase. A buyer who backed out of checkout should find
+      // their cart exactly where they left it, not dismissed from under them.
+      if (!purchased.current) return;
+      purchased.current = false;
       onClose();
     });
 
     const errored = checkout.addEventListener("error", () => {
-      // The cart is deliberately left intact. A failed checkout is not a
-      // completed one, and discarding what the buyer assembled would be the
-      // worst possible response to a payment problem.
-      onClose();
+      // The cart is deliberately left intact, and this sheet stays open. A
+      // failed checkout is not a completed one, and discarding what the buyer
+      // assembled is the worst possible response to a payment problem.
+      purchased.current = false;
     });
 
     return () => {
       completed?.remove();
+      closed?.remove();
       errored?.remove();
     };
     // `clearCart` and `checkout` are stable for the life of the component;
