@@ -28,30 +28,42 @@ export const KLAVIYO_SCRIPT_URL = `https://static.klaviyo.com/onsite/js/klaviyo.
 declare global {
   interface Window {
     /**
-     * Klaviyo's onsite global.
+     * Klaviyo's event queue, and the ONLY thing to push events onto.
      *
-     * Genuinely two different things over a page's life: a plain array acting
-     * as a queue, then the real object once `klaviyo.js` has loaded and
-     * drained it. Both accept `push`, which is the entire reason the
-     * queue-style API exists.
+     * Starts as a plain array and is replaced by `klaviyo.js` with something
+     * that consumes each `push` immediately. Both accept `push`, which is why
+     * the queue-style API exists at all.
      */
-    klaviyo?: { push: (args: unknown[]) => void } | unknown[];
+    _learnq?: { push: (args: unknown[]) => void };
   }
 }
 
 /**
- * The queue Klaviyo's script drains on load.
+ * ⚠️ Events go to `_learnq`, NOT to `window.klaviyo`.
  *
- * ⚠️ This stub is load-bearing and easy to leave out. On the Liquid theme the
- * app embed emits an inline snippet that creates it; a bare `<Script>` tag
- * creates nothing, so `window.klaviyo` is simply `undefined` until the script
- * arrives. Without this, every event fired before then — including
- * `Viewed Product`, which fires on mount — is silently dropped, with the
- * script loading perfectly and the feed staying empty.
+ * This cost a debugging cycle and is worth stating plainly, because
+ * `window.klaviyo` looks like the obvious target: after `klaviyo.js` loads it
+ * is a real object exposing `push`, `track` and `identify`, and calling
+ * `window.klaviyo.push(["track", …])` throws no error.
+ *
+ * It also does nothing. `klaviyo.js` never reads `window.klaviyo` as a queue —
+ * it owns that global. Assigning `window.klaviyo = []` before the script loads
+ * is worse still: the array shadows the object the script wants to install, so
+ * every event lands in a dead array that is never drained, the script loads
+ * perfectly, the `__kla_id` cookie appears, page-view tracking works, and the
+ * activity feed stays empty.
+ *
+ * Proved empirically: a push to `_learnq` is consumed instantly (length stays
+ * zero), while pushes to `window.klaviyo` accumulate forever.
  */
-const queue = (): { push: (args: unknown[]) => void } | unknown[] => {
-  window.klaviyo ??= [];
-  return window.klaviyo;
+const queue = (): { push: (args: unknown[]) => void } => {
+  const existing = window._learnq;
+  if (existing) return existing;
+
+  // A plain array satisfies the same contract until `klaviyo.js` replaces it.
+  const created: unknown[] = [];
+  window._learnq = created as unknown as { push: (args: unknown[]) => void };
+  return window._learnq;
 };
 
 /**

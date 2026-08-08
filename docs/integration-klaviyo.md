@@ -53,6 +53,35 @@ does reliably, and duplicated events are worse than missing ones.
 
 The hard part, and the reason this is worth doing at all.
 
+### ⚠️ Identity is a precondition for events, not an enhancement
+
+Established empirically on 2026-08-08, and it reshapes the whole plan.
+
+**Klaviyo does not transmit events for an unidentified visitor.** It caches them
+in the browser and sends nothing. The `cacheEvent` and `sendCachedEvents`
+methods on the onsite global exist for exactly this. Observed:
+
+| State                        | Network                                                        |
+| ---------------------------- | -------------------------------------------------------------- |
+| Anonymous, event pushed      | **nothing leaves the browser**                                 |
+| After `identify`, same event | `POST /client/event-bulk-create/` and `POST /client/profiles/` |
+
+Nothing errors in the anonymous case. The script loads, the `__kla_id` cookie
+appears, page-view tracking works, and the activity feed stays empty — which
+reads exactly like a broken integration.
+
+**This is not a headless problem.** It applies to the Liquid theme identically:
+its automatic `Viewed Product` is cached and unsent for an anonymous browser
+too. Any surface, same behaviour.
+
+Two consequences:
+
+1. **Email capture is a dependency, not a follow-on.** Without some way to
+   identify a visitor there is nothing to demonstrate, because no event ever
+   reaches Klaviyo.
+2. **Verifying an event means identifying first.** "Browse the site and check
+   the feed" will always show nothing.
+
 A browser session is anonymous until something identifies it. Klaviyo's onsite
 JavaScript maintains its own cookie; the theme and the web app are **different
 origins**, so a visitor browsing both is two profiles until an email address
