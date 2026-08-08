@@ -9,6 +9,26 @@
  */
 {
   "current": {
+    "settings": {
+      /*
+       * Klaviyo onsite credentials for the footer email capture form.
+       *
+       * Committed rather than set in the theme editor, for the same reason the
+       * app embed below is: `.shopifyignore` does not exclude this file, so a
+       * `shopify theme push` overwrites whatever the editor set.
+       *
+       * ⚠️ Both values are public by design. The onsite key is scoped to
+       * writing events and subscriptions for one account and is *meant* to
+       * ship in client code — it is the same key `NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY`
+       * carries on apps/web. A list id names a destination, not a permission.
+       *
+       * A Klaviyo **private** key must never appear here, or anywhere in this
+       * repository — see the root AGENTS.md.
+       */
+      "klaviyo_public_key": "X2g4U5",
+      "klaviyo_list_id": ""
+    },
+
     /*
      * App embeds. Committed rather than enabled through the theme editor,
      * because `.shopifyignore` does not exclude this file — so `shopify theme
