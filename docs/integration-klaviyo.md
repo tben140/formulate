@@ -104,7 +104,52 @@ tracking working.
 `next dev --experimental-https` was tried and did not engage; the Vercel
 deployment is the practical test rig.
 
-### ⚠️ Unresolved: 202 accepted, nothing in the dashboard
+### ⚠️ Klaviyo silently discards addresses it judges fake
+
+**This is what cost the most time, and it is invisible from the client.**
+
+Klaviyo validates email addresses on the client/Identify path and drops
+anything that looks like test data — `@example.com`, `@test.com`, and
+addresses containing words like `test`, `invalid` or `fake`. There is **no
+public list** of the patterns. The API returns `202` either way.
+
+The decisive evidence is on this very account. Compare two profiles:
+
+| Address                     | Created via                                   | In Klaviyo? |
+| --------------------------- | --------------------------------------------- | ----------- |
+| `cart-test@example.com`     | Shopify order sync (server-side, private key) | **yes**     |
+| `klaviyo-probe@example.com` | `/client/events/` (client-side, public key)   | **no**      |
+
+Same account, same domain, different path. **The server-side integration does
+not apply the filter; the client-side one does.** So a store can be full of
+`@example.com` profiles from seeded orders while every client-side attempt at
+the same domain vanishes.
+
+**When testing, use a plausible address.** Not `@example.com`, and without the
+words `test` or `fake` in it.
+
+### Not the cause: domain allow-listing
+
+Worth recording as ruled out, because it is the intuitive first suspicion.
+Klaviyo does restrict domains — but only for **forms**, not for events. Onsite
+tracking is not scoped to an allow-list, so events from a `*.vercel.app`
+origin are not rejected for that reason.
+
+What _is_ domain-bound is the cookie: Klaviyo's onsite tracking is per-subdomain
+and does not use third-party cookies. That confirms the identity note above —
+the theme and the web app genuinely cannot share an anonymous profile.
+
+### The other silent behaviours in this API
+
+- `202` means _validated and queued_, never _recorded_. There is no response
+  that tells you an event was dropped downstream.
+- Events are processed asynchronously and take time to surface.
+- **Client-side endpoints cannot update an existing profile's identifiers.**
+  Klaviyo's own docs: attempts "will return a 202, however the identifier
+  field(s) will not be updated." Changing an email needs a private key and a
+  server-side call.
+
+### Status: transport proven, delivery still to confirm
 
 HTTPS fixed the _transport_ and did **not** make events appear. As of
 2026-08-08 the position is:
@@ -114,18 +159,12 @@ HTTPS fixed the _transport_ and did **not** make events appear. As of
   and a full `profile` block also returns **202**, empty body
 - No matching profile or event appears in the Klaviyo dashboard
 
-So Klaviyo accepts everything we send and surfaces none of it. The cause is
-account-side and not visible from the browser. Things not yet ruled out:
-
-- **Processing delay.** Klaviyo's client-side events are asynchronous and
-  documented as taking time to surface.
-- **Domain allow-listing.** Onsite tracking may be scoped to the store's own
-  domain, silently discarding events from `*.vercel.app`.
-- **Account state** — plan or configuration suppressing client-API events.
+Every probe used an `@example.com` address, which is the most likely reason
+none of them landed — see above. Re-testing with a plausible domain is the
+outstanding step.
 
 Do not treat the web integration as verified until an event is visible in the
-feed. The code is believed correct and the transport is proven; the last hop
-is not.
+feed with a real-looking address.
 
 A browser session is anonymous until something identifies it. Klaviyo's onsite
 JavaScript maintains its own cookie; the theme and the web app are **different
