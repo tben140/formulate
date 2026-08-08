@@ -82,6 +82,51 @@ Two consequences:
 2. **Verifying an event means identifying first.** "Browse the site and check
    the feed" will always show nothing.
 
+### ⚠️ Onsite tracking cannot be verified over plain HTTP
+
+Klaviyo builds its API URLs from the page's own protocol. On an `http://` page
+— which `next dev` serves by default — the profile call goes to
+`http://a.klaviyo.com` and fails outright, while the event call still succeeds.
+The result is the worst kind of half-working: events accepted, no profile to
+attach them to, nothing in the feed.
+
+Measured on the same commit, same key, only the scheme differing:
+
+| Endpoint                 | `http://localhost:3100`       | production HTTPS |
+| ------------------------ | ----------------------------- | ---------------- |
+| `POST /client/profiles/` | **status 0, failed, 0 bytes** | **202**          |
+| `POST /client/events/`   | 202, orphaned                 | **202**          |
+
+So **verify on a deployed HTTPS origin, never on `next dev`.** Every local
+signal looks healthy meanwhile — script loaded, `__kla_id` set, page-view
+tracking working.
+
+`next dev --experimental-https` was tried and did not engage; the Vercel
+deployment is the practical test rig.
+
+### ⚠️ Unresolved: 202 accepted, nothing in the dashboard
+
+HTTPS fixed the _transport_ and did **not** make events appear. As of
+2026-08-08 the position is:
+
+- Both endpoints return **202** over HTTPS
+- A textbook direct call to `POST /client/events/` with a `revision` header
+  and a full `profile` block also returns **202**, empty body
+- No matching profile or event appears in the Klaviyo dashboard
+
+So Klaviyo accepts everything we send and surfaces none of it. The cause is
+account-side and not visible from the browser. Things not yet ruled out:
+
+- **Processing delay.** Klaviyo's client-side events are asynchronous and
+  documented as taking time to surface.
+- **Domain allow-listing.** Onsite tracking may be scoped to the store's own
+  domain, silently discarding events from `*.vercel.app`.
+- **Account state** — plan or configuration suppressing client-API events.
+
+Do not treat the web integration as verified until an event is visible in the
+feed. The code is believed correct and the transport is proven; the last hop
+is not.
+
 A browser session is anonymous until something identifies it. Klaviyo's onsite
 JavaScript maintains its own cookie; the theme and the web app are **different
 origins**, so a visitor browsing both is two profiles until an email address
