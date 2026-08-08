@@ -1,7 +1,8 @@
 # Integration: Klaviyo
 
-**Status: planned. Nothing is built.** This note is design, and is written so
-that the eventual implementation has something to be judged against.
+**Status as of 2026-08-08:** onsite tracking and the three commerce events are
+live on web and theme and verified in Klaviyo's own feed. Email capture ships
+on both surfaces. Mobile events and the lifecycle flows are outstanding.
 
 ## Why Klaviyo
 
@@ -27,23 +28,29 @@ Online Store to say anything about the headless surfaces), and Customer.io
 | One or two lifecycle flows                      | Full segmentation strategy       |
 | Recharge subscription events → Klaviyo flows    | B2B / company-level segmentation |
 
-The mobile app is deliberately excluded. Klaviyo's React Native SDK would need
-another native module and another development build, and it demonstrates roughly
-the same thing the web integration already does. That is depth where the current
-priority is breadth.
+Klaviyo's **SDK** is excluded on mobile: it would need another native module and
+another development build to demonstrate roughly what the web integration
+already does. The **events** are not excluded — `/client/events/` is plain HTTP
+and needs no SDK at all, so mobile can emit the same payloads over `fetch`
+(SHO-109). The one piece with no web equivalent is the anonymous profile id,
+because there is no `__kla_id` cookie on native; it goes in `expo-secure-store`.
 
 ## Events we intend to emit
 
-| Event              | Fires from | Depends on               |
-| ------------------ | ---------- | ------------------------ |
-| Viewed product     | Web, theme | Nothing — can ship first |
-| Added to cart      | Web, theme | Cart                     |
-| Started checkout   | Web, theme | Cart                     |
-| Subscribed to list | Web, theme | Email capture form       |
+| Event              | Fires from | Status                             |
+| ------------------ | ---------- | ---------------------------------- |
+| Viewed product     | Web, theme | Shipped                            |
+| Added to cart      | Web, theme | Shipped                            |
+| Started checkout   | Web, theme | Shipped                            |
+| Subscribed to list | Web, theme | Shipped — see Email capture below  |
 
-**Only the first is buildable today.** The rest wait on cart, which is why cart
-sits at the head of the critical path — without it, the events worth having do
-not exist to emit.
+The theme emits the first three automatically through Klaviyo's app embed, with
+no code from us. The headless surfaces build the same payloads by hand in
+`packages/analytics`, which exists precisely so the two cannot drift: its tests
+assert against a payload captured from the running theme. A `ProductID` sent as
+a Storefront gid rather than a legacy numeric id would produce events that look
+correct in Klaviyo and never match a theme-generated one, splitting every
+segment in two with no error anywhere.
 
 Order and refund events come from Shopify's own Klaviyo integration rather than
 from our code. Emitting them ourselves would duplicate what the platform already
@@ -78,7 +85,7 @@ Two consequences:
 
 1. **Email capture is a dependency, not a follow-on.** Without some way to
    identify a visitor there is nothing to demonstrate, because no event ever
-   reaches Klaviyo.
+   reaches Klaviyo. This reordered the plan — see Email capture below.
 2. **Verifying an event means identifying first.** "Browse the site and check
    the feed" will always show nothing.
 
@@ -149,22 +156,72 @@ the theme and the web app genuinely cannot share an anonymous profile.
   field(s) will not be updated." Changing an email needs a private key and a
   server-side call.
 
-### Status: transport proven, delivery still to confirm
+### Resolved
 
-HTTPS fixed the _transport_ and did **not** make events appear. As of
-2026-08-08 the position is:
+Confirmed on 2026-08-08: a probe from a real domain landed, with its `Viewed
+Product` attached. The web integration is verified end to end.
 
-- Both endpoints return **202** over HTTPS
-- A textbook direct call to `POST /client/events/` with a `revision` header
-  and a full `profile` block also returns **202**, empty body
-- No matching profile or event appears in the Klaviyo dashboard
+The sequence of four silent failures that led here is worth keeping, because
+each one looked exactly like the others from the outside — a healthy-looking
+page and an empty dashboard:
 
-Every probe used an `@example.com` address, which is the most likely reason
-none of them landed — see above. Re-testing with a plausible domain is the
-outstanding step.
+1. Events pushed to `window.klaviyo` instead of `_learnq`
+2. Anonymous visitor, so events were cached and never transmitted
+3. `http://localhost`, so the profile call failed while events still 202'd
+4. `@example.com`, so the profile was discarded server-side
 
-Do not treat the web integration as verified until an event is visible in the
-feed with a real-looking address.
+Only the first was a bug in our code.
+
+## Email capture
+
+Shipped on web (`apps/web/components/email-capture.tsx`) and theme
+(`apps/theme/assets/email-capture.js`), sharing payload, validation and
+transport through `packages/analytics/src/subscribe.ts` — except the theme,
+which reimplements them in plain JavaScript because it ships ES modules with no
+build step and cannot import a TypeScript workspace package. Same boundary as
+the cart.
+
+**Two steps, and the second is the one that matters:**
+
+| Step                         | Effect                                                   |
+| ---------------------------- | -------------------------------------------------------- |
+| `POST /client/subscriptions/` | Creates the profile, records consent. Durable.           |
+| `_learnq.push(["identify"])`  | Tells the script in **this tab** who the visitor is.      |
+
+Step 1 alone leaves the session anonymous, so every event cached during it
+stays cached. The profile appears in Klaviyo with no history attached, which
+reads as a working integration that collects nothing.
+
+### ⚠️ There is no already-subscribed state
+
+Klaviyo returns `202` with an empty body whether the profile is brand new or has
+been on the list for a year — subscription is processed asynchronously, long
+after the response is sent. Telling the two apart needs a **private** key and a
+server-side lookup, which this project deliberately does not have.
+
+So both surfaces say **"You're on the list"**, which is true either way, rather
+than "Thanks for subscribing", which is a claim the API does not support.
+`SubscribeResult` has no `already-subscribed` variant for the same reason: a
+type should not be able to represent a state you cannot observe.
+
+### Configuration
+
+| Surface | Public key                        | List id                        |
+| ------- | --------------------------------- | ------------------------------ |
+| Web     | `NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY`  | `NEXT_PUBLIC_KLAVIYO_LIST_ID`  |
+| Theme   | `settings.klaviyo_public_key`     | `settings.klaviyo_list_id`     |
+
+Both values are public by design — the onsite key is scoped to writing events
+and subscriptions for one account and is meant to ship in client code, and a
+list id names a destination rather than a permission. The theme's live in
+`config/settings_data.json` rather than the theme editor, because
+`.shopifyignore` does not exclude that file and a `theme push` would overwrite
+whatever the editor set.
+
+The theme renders the form only when both are present, so a store without
+Klaviyo configured gets a clean footer rather than a form that cannot work.
+
+### Identity, in general
 
 A browser session is anonymous until something identifies it. Klaviyo's onsite
 JavaScript maintains its own cookie; the theme and the web app are **different

@@ -118,6 +118,31 @@ server-side. Do not add client-side Storefront API calls to fetch what
 That ADR also explains why this surface shows **6** products where web and mobile
 show 7. It is sales-channel publication, not drift. Do not "fix" it.
 
+## Klaviyo
+
+The app embed in `config/settings_data.json` loads `klaviyo.js` and emits
+`Viewed Product` automatically, reading Shopify's `window.meta`. None of that is
+our code, and it is why the headless surfaces have to reproduce these payloads
+by hand rather than invent their own.
+
+⚠️ **The embed is not enough on its own.** Klaviyo caches events for an
+anonymous visitor and transmits none of them, and the embed provides no way to
+identify anyone — so the automatic tracking collects nothing until the footer
+email capture form succeeds. This surface needs identification exactly as much
+as the headless ones do, which is the opposite of the intuition.
+
+`assets/email-capture.js` duplicates the logic in
+`packages/analytics/src/subscribe.ts`, including the pinned `revision`. It has
+to: there is no build step here, so a TypeScript workspace package cannot be
+imported. **Change one, change the other.** Same boundary as the cart.
+
+Push to `_learnq`, never to `window.klaviyo` — the latter is owned by
+`klaviyo.js`, and pushing to it silently does nothing.
+
+⚠️ Never test with an `@example.com` address. Klaviyo discards addresses it
+judges fake and returns `202` regardless. See
+[`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
+
 ## Verification
 
 `shopify theme check` must report **no offenses**.

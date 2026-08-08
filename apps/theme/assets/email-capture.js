@@ -93,6 +93,17 @@ class EmailCapture extends Component {
 
     const email = input.value.trim();
 
+    /*
+     * Empty is separated from malformed because the form sets `novalidate`.
+     * Native validation fires before this handler and reports through a
+     * browser bubble screen readers announce inconsistently, so the messaging
+     * is ours — including the empty case the browser used to cover.
+     */
+    if (email === "") {
+      this.#report(this.dataset.errorEmpty ?? "", true);
+      return;
+    }
+
     if (!isPlausibleEmail(email)) {
       this.#report(this.dataset.errorInvalid ?? "", true);
       return;

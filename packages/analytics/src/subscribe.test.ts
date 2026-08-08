@@ -147,6 +147,17 @@ describe("submitSubscription", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("distinguishes an empty field from a malformed address", async () => {
+    // The forms set `novalidate` to own their messaging, which means they own
+    // the empty case too. "That doesn't look like an email address" is a
+    // strange thing to tell someone who typed nothing.
+    stubFetch({ ok: true, status: 202 });
+    expect(await submitSubscription({ ...input, email: "   " })).toEqual({
+      ok: false,
+      reason: "empty",
+    });
+  });
+
   it("reports a missing key or list as configuration, not as a shopper error", async () => {
     // Otherwise an unconfigured deployment tells visitors their address is
     // invalid, which sends them to fix the one thing that is not broken.
