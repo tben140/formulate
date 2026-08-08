@@ -6,8 +6,8 @@
     "blog": "Blog",
     "cart": "Cart",
     "collection": "Collection",
-    "collections": "Collections",
     "collection_card": "Collection card",
+    "collections": "Collections",
     "collections_grid": "Collections grid",
     "colors": "Colors",
     "column": "Column",
@@ -17,6 +17,8 @@
     "footer": "Footer",
     "group": "Group",
     "header": "Header",
+    "klaviyo": "Klaviyo",
+    "klaviyo_help": "Credentials for the footer email capture form. Both are public values, safe to ship in client code. Never paste a private key here.",
     "layout": "Layout",
     "main": "Main",
     "page": "Page",
@@ -36,19 +38,21 @@
   "labels": {
     "alignment": "Alignment",
     "background": "Background",
+    "customer_account_menu": "Customer account menu",
     "foreground": "Foreground",
     "grid_gap": "Grid spacing",
     "grid_item_width": "Grid item width",
     "input_corner_radius": "Input corner radius",
+    "klaviyo_list_id": "List ID",
+    "klaviyo_public_key": "Public API key (site ID)",
     "layout_direction": "Layout direction",
     "menu": "Menu",
-    "customer_account_menu": "Customer account menu",
     "padding": "Padding",
     "page_margin": "Page margin",
     "page_width": "Page width",
     "show_payment_icons": "Show payment icons",
-    "text_style": "Text style",
-    "text": "Text"
+    "text": "Text",
+    "text_style": "Text style"
   },
   "options": {
     "alignment": {
@@ -73,5 +77,9 @@
       "subtitle": "Subtitle",
       "normal": "Normal text"
     }
+  },
+  "info": {
+    "klaviyo_public_key": "Klaviyo → Settings → API keys → Public API key.",
+    "klaviyo_list_id": "Klaviyo → Lists & Segments → open the list → the ID in the browser URL."
   }
 }

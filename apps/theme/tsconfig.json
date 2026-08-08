@@ -18,6 +18,10 @@
   },
   // Only the theme's own browser code. scripts/ is Node tooling and would need
   // @types/node, which would then wrongly expose Node globals to theme assets.
-  "include": ["assets/**/*.js"],
+  //
+  // types/ holds ambient declarations for globals the theme touches but does
+  // not own (Klaviyo's queue). It sits outside assets/ so the Shopify CLI does
+  // not upload it as a theme asset.
+  "include": ["assets/**/*.js", "types/**/*.d.ts"],
   "exclude": ["node_modules"]
 }

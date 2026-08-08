@@ -14,3 +14,14 @@ export type {
   StartedCheckoutPayload,
   ViewedProductPayload,
 } from "./events";
+
+export {
+  KLAVIYO_REVISION,
+  isPlausibleEmail,
+  looksFakeToKlaviyo,
+  submitSubscription,
+  subscriptionPayload,
+  subscriptionsUrl,
+} from "./subscribe";
+
+export type { SubscribeResult, SubscriptionSource } from "./subscribe";

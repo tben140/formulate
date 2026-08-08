@@ -54,6 +54,27 @@
     ]
   },
   {
+    "name": "t:general.klaviyo",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "t:general.klaviyo_help"
+      },
+      {
+        "type": "text",
+        "id": "klaviyo_public_key",
+        "label": "t:labels.klaviyo_public_key",
+        "info": "t:info.klaviyo_public_key"
+      },
+      {
+        "type": "text",
+        "id": "klaviyo_list_id",
+        "label": "t:labels.klaviyo_list_id",
+        "info": "t:info.klaviyo_list_id"
+      }
+    ]
+  },
+  {
     "name": "t:general.colors",
     "settings": [
       {

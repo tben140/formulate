@@ -1,4 +1,9 @@
-import type { EventName } from "@formulate/analytics";
+import {
+  looksFakeToKlaviyo,
+  submitSubscription,
+  type EventName,
+  type SubscribeResult,
+} from "@formulate/analytics";
 
 /**
  * Klaviyo onsite tracking for the web app.
@@ -22,6 +27,15 @@ import type { EventName } from "@formulate/analytics";
  * never appear here.
  */
 export const KLAVIYO_PUBLIC_KEY = process.env.NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY ?? "";
+
+/**
+ * The list new subscribers are added to.
+ *
+ * Public in the same sense as the key above — a list id identifies a
+ * destination, not a permission, and the client endpoint requires it. It is
+ * separate from the key because it is the one value that changes per store.
+ */
+export const KLAVIYO_LIST_ID = process.env.NEXT_PUBLIC_KLAVIYO_LIST_ID ?? "";
 
 export const KLAVIYO_SCRIPT_URL = `https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=${KLAVIYO_PUBLIC_KEY}`;
 
@@ -88,4 +102,53 @@ export const track = (name: EventName, payload: Readonly<object>): void => {
 export const identify = (email: string): void => {
   if (!KLAVIYO_PUBLIC_KEY || typeof window === "undefined" || !email) return;
   queue().push(["identify", { $email: email }]);
+};
+
+/**
+ * Subscribes an address, then identifies the browser.
+ *
+ * ⚠️ **The order matters and the second step is not optional.**
+ *
+ * `submitSubscription` creates the profile and records consent server-side.
+ * That alone changes nothing in the current tab: the copy of `klaviyo.js`
+ * running here still considers the visitor anonymous, so every event it has
+ * cached — the `Viewed Product` from the page they arrived on, the `Added to
+ * Cart` from ten seconds ago — stays cached and unsent.
+ *
+ * `identify` is what flushes them. It is the difference between a Klaviyo
+ * account containing a profile with no history and one containing a shopper's
+ * actual session.
+ *
+ * Identifying only *after* a successful subscribe is deliberate: the shopper
+ * has just typed their address and consented, which is the one moment we know
+ * who they are without guessing.
+ */
+export const subscribe = async (email: string): Promise<SubscribeResult> => {
+  /*
+   * A warning, never a rejection.
+   *
+   * Klaviyo drops addresses it judges fake and still returns 202, so a demo
+   * tested with `@example.com` looks broken with nothing in the console. We
+   * cannot reproduce their filter well enough to block on it — a false
+   * positive would reject a real shopper — so this only speaks up in
+   * development, where the person reading the console is the one who needs it.
+   */
+  if (process.env.NODE_ENV !== "production" && looksFakeToKlaviyo(email)) {
+    console.warn(
+      `[klaviyo] "${email}" looks like test data. Klaviyo silently discards ` +
+        `addresses containing test/fake/invalid or on example.com and test.com, ` +
+        `and still returns 202. Use a plausible address, or nothing will appear ` +
+        `in the dashboard. See docs/integration-klaviyo.md.`,
+    );
+  }
+
+  const result = await submitSubscription({
+    publicKey: KLAVIYO_PUBLIC_KEY,
+    listId: KLAVIYO_LIST_ID,
+    email,
+    source: "Formulate web",
+  });
+
+  if (result.ok) identify(email);
+  return result;
 };

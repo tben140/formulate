@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
+import { EmailCapture } from "@/components/email-capture";
 import { getCart } from "@/lib/cart";
 import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
 
@@ -61,8 +62,11 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             Rendered on the server, so the year needs no hydration guard.
           */}
           <footer className="border-t border-border">
-            <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-6 text-sm text-foreground-muted">
-              <p>&copy; {new Date().getFullYear()} Formulate</p>
+            <div className="mx-auto max-w-5xl px-4 py-6">
+              <EmailCapture />
+              <p className="mt-6 text-sm text-foreground-muted">
+                &copy; {new Date().getFullYear()} Formulate
+              </p>
             </div>
           </footer>
 

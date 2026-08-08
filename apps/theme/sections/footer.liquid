@@ -11,18 +11,97 @@
 {% endcomment %}
 
 <footer class="site-footer">
-  <div class="container site-footer__inner">
-    <p class="site-footer__copyright">
-      &copy; {{ 'now' | date: '%Y' }} {{ shop.name }}
-    </p>
+  <div class="container">
+    {% comment %}
+      Email capture — the theme's identity moment.
 
-    {% if section.settings.menu != blank %}
-      <ul class="site-footer__links" role="list">
-        {% for link in section.settings.menu.links %}
-          <li><a href="{{ link.url }}">{{ link.title }}</a></li>
-        {% endfor %}
-      </ul>
+      ⚠️ Easy to assume the theme does not need this, because Klaviyo's app
+      embed already emits Viewed Product with no code from us. It does need it:
+      Klaviyo caches events for an anonymous visitor and transmits none of
+      them, and the embed provides no way to identify anyone. The automatic
+      tracking is worth exactly nothing until this form succeeds.
+
+      Rendered only when both settings are present, so a store without Klaviyo
+      configured gets a clean footer rather than a form that cannot work.
+    {% endcomment %}
+    {% if settings.klaviyo_public_key != blank and settings.klaviyo_list_id != blank %}
+      <email-capture
+        class="email-capture"
+        data-public-key="{{ settings.klaviyo_public_key }}"
+        data-list-id="{{ settings.klaviyo_list_id }}"
+        data-label-pending="{{ 'newsletter.pending' | t }}"
+        data-label-success="{{ 'newsletter.success' | t }}"
+        data-error-invalid="{{ 'newsletter.error_invalid' | t }}"
+        data-error-unavailable="{{ 'newsletter.error_unavailable' | t }}"
+        data-error-failed="{{ 'newsletter.error_failed' | t }}"
+        data-error-network="{{ 'newsletter.error_network' | t }}"
+      >
+        <form class="email-capture__form">
+          <label class="email-capture__label" for="newsletter-email">
+            {{ 'newsletter.heading' | t }}
+          </label>
+
+          <div class="email-capture__row">
+            {% comment %}
+              type="email" gives mobile keyboards the @ key; autocomplete lets
+              a password manager fill it. Both are the difference between a
+              form people finish and one they abandon.
+            {% endcomment %}
+            <input
+              ref="input"
+              id="newsletter-email"
+              class="email-capture__input"
+              type="email"
+              name="email"
+              autocomplete="email"
+              required
+              placeholder="{{ 'newsletter.placeholder' | t }}"
+              aria-describedby="newsletter-consent newsletter-message"
+            >
+            <button ref="submit" class="email-capture__submit" type="submit">
+              {{ 'newsletter.submit' | t }}
+            </button>
+          </div>
+
+          {% comment %}
+            An explicit statement of what is being consented to. Recording
+            SUBSCRIBED against someone who was never told is the real GDPR
+            problem — the cookie banner is the lesser one.
+          {% endcomment %}
+          <p id="newsletter-consent" class="email-capture__consent">
+            {{ 'newsletter.consent' | t }}
+          </p>
+
+          {% comment %}
+            One element is both the live region and the input's description, so
+            the message is announced when it appears and reachable from the
+            field afterwards. polite — a newsletter form never warrants
+            interrupting what someone is reading.
+          {% endcomment %}
+          <p
+            ref="message"
+            id="newsletter-message"
+            class="email-capture__message"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </form>
+      </email-capture>
     {% endif %}
+
+    <div class="site-footer__inner">
+      <p class="site-footer__copyright">
+        &copy; {{ 'now' | date: '%Y' }} {{ shop.name }}
+      </p>
+
+      {% if section.settings.menu != blank %}
+        <ul class="site-footer__links" role="list">
+          {% for link in section.settings.menu.links %}
+            <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
   </div>
 </footer>
 
@@ -57,6 +136,95 @@
 
   .site-footer__links a:hover {
     color: var(--color-foreground);
+  }
+
+  /*
+    Matched against apps/web's <EmailCapture />, which is Tailwind. The values
+    below are the tokens those utilities compile to — max-w-sm, gap-2, px-3
+    py-2, text-sm. Changing one surface without the other breaks the parity
+    the whole project is arguing for. See docs/adr/0005.
+  */
+  .email-capture {
+    display: block;
+    padding-block-start: var(--spacing-6);
+  }
+
+  .email-capture__form {
+    max-width: 24rem;
+  }
+
+  .email-capture__label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-foreground);
+  }
+
+  .email-capture__row {
+    display: flex;
+    gap: var(--spacing-2);
+    margin-block-start: var(--spacing-2);
+  }
+
+  .email-capture__input {
+    /* min-width: 0 stops the flex item refusing to shrink below its intrinsic
+       width, which otherwise pushes the button off narrow viewports. */
+    min-width: 0;
+    flex: 1;
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--text-sm);
+    color: var(--color-foreground);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  .email-capture__input:focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+    border-color: var(--color-brand-600);
+  }
+
+  .email-capture__submit {
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-surface);
+    background: var(--color-brand-600);
+    border: 0;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .email-capture__submit:hover {
+    background: var(--color-brand-700);
+  }
+
+  .email-capture__submit:disabled {
+    background: var(--color-ink-300);
+    cursor: not-allowed;
+  }
+
+  .email-capture__consent {
+    margin-block-start: var(--spacing-2);
+    font-size: var(--text-xs);
+    color: var(--color-foreground-muted);
+  }
+
+  /*
+    min-height reserves the line so the footer does not jump when a message
+    appears — the layout shift is small but it lands directly under the
+    control the shopper just used.
+  */
+  .email-capture__message {
+    min-height: 1.25rem;
+    margin-block-start: var(--spacing-2);
+    font-size: var(--text-sm);
+    color: var(--color-success);
+  }
+
+  .email-capture__message--error {
+    color: var(--color-danger);
   }
 {% endstylesheet %}
 
