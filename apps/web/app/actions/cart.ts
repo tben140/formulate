@@ -1,6 +1,6 @@
 "use server";
 
-import { describeError, type CartLineInput } from "@formulate/shopify";
+import { describeError, type Cart, type CartLineInput } from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
 
 import { cartClient, clearCartId, readCartId, writeCartId } from "@/lib/cart";
@@ -42,6 +42,17 @@ export interface CartActionState {
    * had closed.
    */
   readonly token?: number;
+  /**
+   * The cart as it stands after a successful add.
+   *
+   * Returned so the client can build the Klaviyo `Added to Cart` payload
+   * without a second request. It has to be built client-side regardless —
+   * Klaviyo onsite is a browser API and this action runs on the server — so
+   * handing back the data is cheaper than making the client refetch it.
+   */
+  readonly cart?: Cart;
+  /** Line key of the item just added, so the event can name it. */
+  readonly addedLineId?: string;
 }
 
 const revalidate = () => revalidatePath("/", "layout");
@@ -90,7 +101,21 @@ export const addToCart = async (
   await writeCartId(result.data.id);
   revalidate();
 
-  return { status: "success", token: Date.now() };
+  // The line Shopify actually created for this merchandise + selling plan
+  // combination — not necessarily the last one, since adding to an existing
+  // line increments it in place rather than appending.
+  const addedLine = result.data.lines.nodes.find(
+    (line) =>
+      line.merchandise.id === merchandiseId &&
+      (line.sellingPlanAllocation?.sellingPlan.id ?? "") === sellingPlanId,
+  );
+
+  return {
+    status: "success",
+    token: Date.now(),
+    cart: result.data,
+    addedLineId: addedLine?.id,
+  };
 };
 
 export const updateCartLine = async (formData: FormData): Promise<void> => {

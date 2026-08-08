@@ -12,6 +12,7 @@
     "build": "expo export --platform ios --output-dir dist"
   },
   "dependencies": {
+    "@formulate/analytics": "workspace:*",
     "@formulate/shopify": "workspace:*",
     "@formulate/tokens": "workspace:*",
     "@shopify/checkout-sheet-kit": "3.8.1",

@@ -1,9 +1,11 @@
 "use client";
 
+import { EVENTS, startedCheckout } from "@formulate/analytics";
 import { formatMoney, type Cart } from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
+import { track } from "@/lib/klaviyo";
 
 import { useCartUi } from "./cart-provider";
 
@@ -23,7 +25,7 @@ import { useCartUi } from "./cart-provider";
  * only thing added on top is the slide, which is pure CSS in globals.css.
  */
 export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
-  const { open, closeCart } = useCartUi();
+  const { open, closeCart, storeDomain } = useCartUi();
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -181,6 +183,13 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
             */}
             <a
               href={cart.checkoutUrl}
+              // Fires before navigation rather than after. Checkout is
+              // cross-origin, so there is no "after" — the page is gone.
+              // Klaviyo's onsite script queues and flushes, which is what makes
+              // a beacon unnecessary here.
+              onClick={() =>
+                track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain))
+              }
               className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface hover:bg-brand-700"
             >
               Checkout

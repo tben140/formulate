@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@formulate/analytics": "workspace:*",
     "@formulate/shopify": "workspace:*",
     "@formulate/tokens": "workspace:*",
     "@shopify/hydrogen-react": "^2026.4.3",

@@ -1,5 +1,6 @@
 "use client";
 
+import { EVENTS, addedToCart } from "@formulate/analytics";
 import {
   defaultSelectedOptions,
   findVariantByOptions,
@@ -12,6 +13,7 @@ import {
 import { useActionState, useEffect, useState } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
+import { track } from "@/lib/klaviyo";
 
 import { useCartUi } from "./cart-provider";
 
@@ -34,7 +36,7 @@ const IDLE: CartActionState = { status: "idle" };
  * only the rendering is here. See docs/adr/0005-parity-means-design-not-data.md.
  */
 export const AddToCartForm = ({ product }: { product: Product }) => {
-  const { openCart } = useCartUi();
+  const { openCart, storeDomain } = useCartUi();
   const [state, formAction, pending] = useActionState(addToCart, IDLE);
 
   const [selected, setSelected] = useState<readonly SelectedOption[]>(() =>
@@ -75,11 +77,24 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     ? planId
     : ONE_TIME;
 
-  // Opens on the token rather than on status, so adding the same product twice
-  // reopens a drawer the shopper closed in between.
+  /*
+   * Opens on the token rather than on status, so adding the same product twice
+   * reopens a drawer the shopper closed in between.
+   *
+   * `Added to Cart` fires here rather than inside the Server Action, because
+   * Klaviyo onsite is a browser API and the action runs on the server. The
+   * action hands back the updated cart precisely so this can build the payload
+   * without a second request.
+   */
   useEffect(() => {
-    if (state.status === "success") openCart();
-  }, [state.token, state.status, openCart]);
+    if (state.status !== "success") return;
+    openCart();
+
+    const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
+    if (state.cart && line) {
+      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
+    }
+  }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
 
   const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
   const displayPrice =
