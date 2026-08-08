@@ -106,6 +106,18 @@ Two things make this integration hard to verify, and both look like broken code:
 `202` means _validated and queued_, never _recorded_. Nothing in the response
 ever tells you an event was dropped.
 
+Email capture (`components/email-capture.tsx`) does two things and both are
+required: `POST /client/subscriptions/` creates the profile and records
+consent, then `identify` tells the script in *this tab* who the visitor is,
+which is what flushes the cached events. The first alone leaves them cached.
+
+There is no already-subscribed state to render. Klaviyo returns `202` for a new
+profile and an existing one alike, so the success copy is worded to be true
+under both — do not change it to "Thanks for subscribing".
+
+`NEXT_PUBLIC_KLAVIYO_LIST_ID` is required alongside the public key. Both are
+public by design; a list id names a destination, not a permission.
+
 See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
 
 ## Vercel

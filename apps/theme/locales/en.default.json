@@ -59,6 +59,7 @@
     "placeholder": "you@company.com",
     "consent": "Marketing emails about restocks and subscription offers. Unsubscribe any time.",
     "success": "You're on the list. Check your inbox.",
+    "error_empty": "Enter your email address.",
     "error_invalid": "That doesn't look like an email address. Check it and try again.",
     "error_unavailable": "Sign-up isn't available at the moment.",
     "error_failed": "Something went wrong at our end. Please try again.",

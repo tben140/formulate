@@ -31,12 +31,21 @@
         data-list-id="{{ settings.klaviyo_list_id }}"
         data-label-pending="{{ 'newsletter.pending' | t }}"
         data-label-success="{{ 'newsletter.success' | t }}"
+        data-error-empty="{{ 'newsletter.error_empty' | t }}"
         data-error-invalid="{{ 'newsletter.error_invalid' | t }}"
         data-error-unavailable="{{ 'newsletter.error_unavailable' | t }}"
         data-error-failed="{{ 'newsletter.error_failed' | t }}"
         data-error-network="{{ 'newsletter.error_network' | t }}"
       >
-        <form class="email-capture__form">
+        {% comment %}
+          novalidate turns off native constraint validation deliberately.
+          It fires before the submit handler, so required and type="email"
+          would pre-empt our own checks — and it reports through a browser
+          bubble that screen readers announce inconsistently and CSS cannot
+          touch. Those attributes stay for their other jobs (the @ key,
+          autofill, semantics); only the reporting is ours.
+        {% endcomment %}
+        <form class="email-capture__form" novalidate>
           <label class="email-capture__label" for="newsletter-email">
             {{ 'newsletter.heading' | t }}
           </label>

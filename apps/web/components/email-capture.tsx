@@ -16,6 +16,8 @@ const errorMessage = (result: Extract<SubscribeResult, { ok: false }>): string =
   switch (result.reason) {
     case "invalid-email":
       return "That doesn't look like an email address. Check it and try again.";
+    case "empty":
+      return "Enter your email address.";
     case "not-configured":
       return "Sign-up isn't available at the moment.";
     case "network":
@@ -76,7 +78,15 @@ export const EmailCapture = () => {
   };
 
   return (
-    <form onSubmit={onSubmit} className="w-full max-w-sm">
+    /*
+      `noValidate` turns off native constraint validation deliberately. It
+      fires before this handler, so `required` and `type="email"` would
+      pre-empt our own checks — and it reports through a browser bubble that
+      screen readers announce inconsistently and CSS cannot touch. The
+      attributes stay for their other jobs (the @ key, autofill, semantics);
+      only the reporting is ours.
+    */
+    <form onSubmit={onSubmit} noValidate className="w-full max-w-sm">
       <label htmlFor={inputId} className="block text-sm font-semibold text-foreground">
         Get restock and subscription news
       </label>

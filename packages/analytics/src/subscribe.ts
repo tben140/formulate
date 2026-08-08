@@ -144,7 +144,12 @@ export type SubscribeResult =
   | { readonly ok: true }
   | {
       readonly ok: false;
-      readonly reason: "invalid-email" | "not-configured" | "rejected" | "network";
+      readonly reason:
+        | "empty"
+        | "invalid-email"
+        | "not-configured"
+        | "rejected"
+        | "network";
       readonly status?: number;
     };
 
@@ -176,6 +181,16 @@ export const submitSubscription = async ({
   listId,
   source,
 }: SubmitInput): Promise<SubscribeResult> => {
+  /*
+   * Empty is separated from malformed because the surfaces set `novalidate`.
+   *
+   * Native constraint validation fires before a submit handler and shows a
+   * browser bubble that screen readers announce inconsistently — so the forms
+   * turn it off and own the messaging, which means they also own the empty
+   * case the browser used to cover. "That doesn't look like an email address"
+   * is a strange thing to tell someone who typed nothing.
+   */
+  if (email.trim() === "") return { ok: false, reason: "empty" };
   if (!isPlausibleEmail(email)) return { ok: false, reason: "invalid-email" };
   if (!publicKey || !listId) return { ok: false, reason: "not-configured" };
 
