@@ -96,10 +96,15 @@ Two things make this integration hard to verify, and both look like broken code:
   `http://a.klaviyo.com` and fails while events still return 202. Test on a
   deployed HTTPS origin.
 
-**Still unverified end to end.** Over HTTPS both endpoints return 202 — as does
-a textbook direct call to the Client API — yet nothing appears in the Klaviyo
-dashboard. Cause is account-side and unresolved. Do not treat this integration
-as working until an event is visible in the feed.
+- ⚠️ **Never test with an `@example.com` address.** Klaviyo silently discards
+  addresses it judges fake — `@example.com`, `@test.com`, anything containing
+  `test`, `invalid` or `fake` — and still returns `202`. There is no public
+  list of the patterns. Notably the **server-side** Shopify sync does not apply
+  this filter, so the account can be full of `@example.com` profiles from
+  seeded orders while every client-side attempt at the same domain vanishes.
+
+`202` means _validated and queued_, never _recorded_. Nothing in the response
+ever tells you an event was dropped.
 
 See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
 
