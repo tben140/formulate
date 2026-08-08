@@ -80,6 +80,29 @@ dependency means adding it there too.
 
 `cdn.shopify.com` is the only allowed remote image host.
 
+## Klaviyo
+
+Events go to `window._learnq`, **never** to `window.klaviyo`. The latter is
+owned by `klaviyo.js`; assigning an array to it shadows the object the script
+installs, and every event lands somewhere nothing drains — silently.
+
+Two things make this integration hard to verify, and both look like broken code:
+
+- **Klaviyo does not transmit events for anonymous visitors.** They are cached
+  in the browser until a profile is identified. So email capture is a
+  dependency of demonstrating anything, not a follow-on.
+- ⚠️ **It cannot be verified over plain HTTP.** Klaviyo derives its API URLs
+  from the page protocol, so on `next dev` the profile call goes to
+  `http://a.klaviyo.com` and fails while events still return 202. Test on a
+  deployed HTTPS origin.
+
+**Still unverified end to end.** Over HTTPS both endpoints return 202 — as does
+a textbook direct call to the Client API — yet nothing appears in the Klaviyo
+dashboard. Cause is account-side and unresolved. Do not treat this integration
+as working until an event is visible in the feed.
+
+See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
+
 ## Vercel
 
 - The Vercel project's root directory is `apps/web`.
