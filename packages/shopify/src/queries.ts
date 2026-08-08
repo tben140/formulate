@@ -45,6 +45,15 @@ export const ProductByHandleQuery = graphql(`
       handle
       title
       description
+      # Both exist for the Klaviyo payload, which must match what the theme's
+      # app embed already emits — see packages/analytics/src/events.ts.
+      vendor
+      compareAtPriceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+      }
       featuredImage {
         url
         altText

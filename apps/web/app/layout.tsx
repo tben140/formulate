@@ -2,12 +2,14 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
 import { getCart } from "@/lib/cart";
+import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
 
 import "./globals.css";
 
@@ -39,7 +41,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         rather than floating mid-viewport.
       */}
       <body className="flex min-h-screen flex-col">
-        <CartProvider>
+        <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
           <header className="border-b border-border">
             <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
               <Link
@@ -79,6 +81,21 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         */}
         <Analytics />
         <SpeedInsights />
+
+        {/*
+          Klaviyo onsite. The Liquid theme gets this injected by an app embed;
+          a headless surface has no such mechanism, so it is loaded by hand.
+
+          `afterInteractive` rather than `beforeInteractive`: tracking must not
+          block first paint, and `lib/klaviyo.ts` queues events that fire
+          before the script arrives.
+
+          Omitted entirely when the key is unset, so local dev and CI without
+          Klaviyo credentials render a clean page.
+        */}
+        {KLAVIYO_PUBLIC_KEY ? (
+          <Script src={KLAVIYO_SCRIPT_URL} strategy="afterInteractive" />
+        ) : null}
       </body>
     </html>
   );

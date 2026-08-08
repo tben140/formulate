@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
    * Next compiles them itself. This is what removes a `build` step (and a
    * turbo dependency edge) from every shared package.
    */
-  transpilePackages: ["@formulate/shopify", "@formulate/tokens"],
+  transpilePackages: ["@formulate/analytics", "@formulate/shopify", "@formulate/tokens"],
 
   images: {
     remotePatterns: [{ protocol: "https", hostname: "cdn.shopify.com" }],

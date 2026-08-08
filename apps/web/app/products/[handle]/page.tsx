@@ -1,3 +1,4 @@
+import { viewedProduct } from "@formulate/analytics";
 import { DEFAULT_COLLECTION_HANDLE, ProductByHandleQuery } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import Link from "next/link";
@@ -5,6 +6,7 @@ import { notFound } from "next/navigation";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { storefront } from "@/lib/storefront";
 
 interface PageProps {
@@ -23,6 +25,14 @@ const ProductPage = async ({ params }: PageProps) => {
 
   return (
     <article className="grid gap-8 md:grid-cols-2">
+      {/*
+        Built here, on the server, so the store domain never reaches the client
+        bundle — only the emitting needs a browser.
+      */}
+      <TrackViewedProduct
+        payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
+      />
+
       <div className="overflow-hidden rounded-lg border border-border bg-surface-muted">
         {product.featuredImage ? (
           <Image
