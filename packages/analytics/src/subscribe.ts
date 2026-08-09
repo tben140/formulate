@@ -48,6 +48,23 @@ export const subscriptionsUrl = (publicKey: string): string =>
   `https://a.klaviyo.com/client/subscriptions/?company_id=${encodeURIComponent(publicKey)}`;
 
 /**
+ * Where a profile is created or updated client-side.
+ *
+ * ⚠️ This is what `_learnq.push(["identify"])` calls under the hood on web.
+ * Surfaces with `klaviyo.js` never touch it directly — the script owns it, and
+ * calling it alongside would duplicate work and fight over the cookie. A
+ * surface **without** the script has to call it itself or no profile is
+ * created at all.
+ *
+ * Note what it does not do: record consent. Marketing consent comes from
+ * `/client/subscriptions/` and only from there. Creating a profile is saying
+ * "this person exists"; subscribing is saying "and they agreed to be emailed".
+ * Conflating the two is how people end up emailing someone who never opted in.
+ */
+export const profilesUrl = (publicKey: string): string =>
+  `https://a.klaviyo.com/client/profiles/?company_id=${encodeURIComponent(publicKey)}`;
+
+/**
  * ⚠️ Klaviyo silently discards addresses it judges fake.
  *
  * `@example.com`, `@test.com`, and anything containing `test`, `invalid` or
@@ -234,6 +251,74 @@ export const submitSubscription = async ({
     // A network failure, an offline browser, or — the one that caught this
     // project out — an `http://` page, where Klaviyo's own URLs are derived
     // from the page protocol and the request never completes.
+    return { ok: false, reason: "network" };
+  }
+};
+
+/**
+ * Builds the profile document.
+ *
+ * Deliberately carries the email and nothing else. Klaviyo accepts names,
+ * addresses and arbitrary properties here, and a form that asked for none of
+ * them has no business inventing them.
+ */
+export const profilePayload = (email: string) => ({
+  data: {
+    type: "profile",
+    attributes: { email: email.trim() },
+  },
+});
+
+/**
+ * Creates or updates a profile — the half of "identify" that is not about
+ * flushing.
+ *
+ * ⚠️ **Only for surfaces without `klaviyo.js`.** On web and theme the script
+ * owns this endpoint and calls it as part of `_learnq.push(["identify"])`;
+ * calling it alongside would duplicate the write and fight over the cookie.
+ * On native there is no script, so nothing calls it unless we do.
+ *
+ * That distinction is easy to miss, and missing it has a specific symptom:
+ * subscribe alone creates **no visible profile** when the target list uses
+ * double opt-in, because nothing joins the list until a confirmation link is
+ * clicked. The surfaces that also identify get a profile immediately and look
+ * fine; the one that does not looks broken. Which is exactly how this was
+ * found.
+ *
+ * Reuses `SubscribeResult` rather than defining a near-identical type — the
+ * failure modes are the same ones, for the same reasons.
+ *
+ * ⚠️ This does **not** record consent, and must never be treated as though it
+ * does. Marketing consent comes from `submitSubscription` alone.
+ */
+export const submitProfile = async ({
+  publicKey,
+  email,
+}: {
+  readonly publicKey: string;
+  readonly email: string;
+}): Promise<SubscribeResult> => {
+  if (email.trim() === "") return { ok: false, reason: "empty" };
+  if (!isPlausibleEmail(email)) return { ok: false, reason: "invalid-email" };
+  if (!publicKey) return { ok: false, reason: "not-configured" };
+
+  try {
+    const response = await fetch(profilesUrl(publicKey), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/vnd.api+json",
+        revision: KLAVIYO_REVISION,
+      },
+      body: JSON.stringify(profilePayload(email)),
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      return { ok: false, reason: "rejected", status: response.status, detail };
+    }
+
+    return { ok: true };
+  } catch {
     return { ok: false, reason: "network" };
   }
 };
