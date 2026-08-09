@@ -24,6 +24,7 @@
     "expo-router": "~57.0.8",
     "expo-secure-store": "^57.0.1",
     "expo-status-bar": "~57.0.1",
+    "klaviyo-react-native-sdk": "^2.4.1",
     "nativewind": "5.0.0-preview.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",

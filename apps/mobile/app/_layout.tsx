@@ -5,8 +5,19 @@ import { useState } from "react";
 
 import { CartButton } from "../components/cart-button";
 import { CartProvider } from "../components/cart-provider";
+import { initKlaviyo } from "../lib/klaviyo";
 
 import "../global.css";
+
+/*
+ * Started once, at module scope rather than in an effect.
+ *
+ * Every other `Klaviyo.*` call is a no-op until this has run, and it fails
+ * quietly rather than throwing — so initialising inside an effect would leave a
+ * window where early calls vanish, which is exactly the silent-failure shape
+ * this integration keeps producing. Module scope runs before any render.
+ */
+initKlaviyo();
 
 const RootLayout = () => {
   // Created in state so the client survives Fast Refresh but is never shared

@@ -1,142 +1,119 @@
-import {
-  looksFakeToKlaviyo,
-  submitProfile,
-  submitSubscription,
-  type SubscribeResult,
-} from "@formulate/analytics";
-import * as SecureStore from "expo-secure-store";
+import { looksFakeToKlaviyo, isPlausibleEmail } from "@formulate/analytics";
+import { Klaviyo } from "klaviyo-react-native-sdk";
 
 /**
  * Klaviyo for the Expo app.
  *
- * ⚠️ **The second half of this works differently here, and it is the only
- * genuinely interesting thing about the mobile implementation.**
+ * ⚠️ **This surface uses the native SDK, not the `/client/` HTTP endpoints the
+ * other two use.** That is not a preference — it is forced.
  *
- * On web and theme, subscribing is followed by `_learnq.push(["identify"])` —
- * a call into the copy of `klaviyo.js` running in the page, which is what
- * releases the events it has been caching all session. That call is the whole
- * reason email capture blocks the analytics work on those surfaces.
+ * Klaviyo fronts `a.klaviyo.com` with Cloudflare bot protection. A React
+ * Native `fetch` sends no `Origin`, no `Referer` and a `CFNetwork/Darwin` user
+ * agent, so it is challenged and served a 403 HTML interstitial rather than a
+ * Klaviyo response. Measured on one machine within the same minute, a browser
+ * got `202` on the identical endpoints. See docs/integration-klaviyo.md.
  *
- * None of that exists on native. There is no `klaviyo.js`, no `__kla_id`
- * cookie, and therefore nothing caching events and nothing to flush. Klaviyo
- * ships a React Native SDK, but adopting it means another native module and
- * another development build to demonstrate what plain HTTP already does — see
- * docs/integration-klaviyo.md.
+ * The SDK's native networking is not subject to that, which is a large part of
+ * why the SDK exists at all.
  *
- * So identification is **ours to store**. The subscribed address is what a
- * later `POST /client/events/` will attach its events to (SHO-109); without it
- * persisted, every event this app sends would create an orphan profile, which
- * is the native equivalent of the same silent failure.
+ * ⚠️ **What the SDK does not do: consent.** There is no subscribe method and
+ * no consent field on `Profile` — identity and events only. That is a
+ * deliberate vendor decision, and a defensible one: a marketing consent record
+ * carries legal weight, so Klaviyo does not let an arbitrary mobile client
+ * write one. Recording consent needs either Klaviyo's own in-app forms
+ * (designed in their dashboard, rendered by `registerForInAppForms`) or a
+ * server-side call.
  *
- * Same endpoint, same payload, same shared code as the other two surfaces.
- * Only the identity mechanism diverges, because the platform gives us nothing
- * to hand it to.
+ * So `identify` below establishes **who someone is**, and says nothing about
+ * whether they agreed to be emailed. Do not conflate the two.
  */
 
 /**
- * Public by design, and inlined into the bundle by Metro at build time.
- *
- * `EXPO_PUBLIC_` is required rather than stylistic: the bundle *is* the
- * client. Klaviyo's onsite key is scoped to writing events and subscriptions
- * for one account, which is exactly what may ship this way. A Klaviyo
- * **private** key must never appear in this app — there is no server here to
- * hide it behind, so it would reach every device.
+ * Public by design, inlined by Metro at build time. `EXPO_PUBLIC_` is required
+ * rather than stylistic: the bundle *is* the client. A Klaviyo **private** key
+ * must never appear in this app — there is no server to hide it behind.
  */
 export const KLAVIYO_PUBLIC_KEY = process.env.EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY ?? "";
-export const KLAVIYO_LIST_ID = process.env.EXPO_PUBLIC_KLAVIYO_LIST_ID ?? "";
 
 /**
- * Where the identified address lives on device.
+ * Starts the SDK. Called once, from the root layout.
  *
- * The OS keychain, alongside the cart id. Not because an email is a bearer
- * token — it is not — but because it is personal data, `expo-secure-store` is
- * already a dependency, and the alternative would mean adding AsyncStorage to
- * store one string less carefully.
+ * Everything else on `Klaviyo` is a no-op until this has run, and it fails
+ * quietly rather than throwing — so a missing key produces an app that works
+ * and collects nothing, which is the failure mode this integration specialises
+ * in. Hence the explicit guard and the warning.
  */
-const EMAIL_KEY = "formulate.klaviyo.email";
+export const initKlaviyo = (): void => {
+  if (!KLAVIYO_PUBLIC_KEY) {
+    if (__DEV__) {
+      console.warn(
+        "[klaviyo] EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY is unset — the SDK is inert " +
+          "and nothing will be recorded.",
+      );
+    }
+    return;
+  }
+
+  Klaviyo.initialize(KLAVIYO_PUBLIC_KEY);
+};
 
 /**
- * The address this device is identified as, if any.
+ * Reads back the identity the SDK is holding.
  *
- * Read by whatever sends events (SHO-109), so they attach to a real profile
- * rather than creating an anonymous one per event.
+ * The SDK persists this itself across launches, which is why this app no
+ * longer keeps the address in `expo-secure-store` — a second copy would be one
+ * more thing to keep in step, and the SDK's copy is the one its own events
+ * attach to. The hand-rolled version is deleted rather than kept "just in
+ * case".
+ *
+ * ⚠️ **It is not readable immediately after `initialize()`.** Measured on a
+ * cold start:
+ *
+ *     t=0ms     ""
+ *     t=3000ms  "someone@example-domain.co.uk"
+ *
+ * The identity is not lost — the native side simply has not restored it yet.
+ * So treating an empty result at startup as "anonymous" would be wrong, and
+ * wrong in the quiet way: the app would look like it had forgotten the shopper
+ * and would keep working. Nothing in this app reads it during boot for that
+ * reason. If something needs to, it must tolerate the empty first answer
+ * rather than branch on it.
  */
 export const readIdentifiedEmail = (): Promise<string | null> =>
-  SecureStore.getItemAsync(EMAIL_KEY);
-
-export const clearIdentifiedEmail = (): Promise<void> =>
-  SecureStore.deleteItemAsync(EMAIL_KEY);
+  new Promise((resolve) => {
+    Klaviyo.getEmail((email: string | null) => resolve(email ?? null));
+  });
 
 /**
- * Subscribes an address, then records it as this device's identity.
+ * Associates this device with an email address.
  *
- * The write happens only on success, for the same reason web identifies only
- * after a successful subscribe: a stored address that Klaviyo rejected would
- * attach every future event to a profile that does not exist, and keychain
- * entries survive app updates — so one bad value written once keeps coming
- * back long after the bug is fixed. Same reasoning as `readCartId` in
- * lib/cart-storage.ts.
+ * ⚠️ **This is identification, not subscription.** It creates or updates the
+ * Klaviyo profile and gives subsequent events something to attach to. It
+ * records **no marketing consent** — see the note at the top of this file.
+ *
+ * Returns whether the address was usable at all. The SDK's methods are
+ * fire-and-forget with no result, so there is nothing further to report: a
+ * network failure is retried natively rather than surfaced here.
  */
-export const subscribe = async (email: string): Promise<SubscribeResult> => {
+export const identify = (email: string): boolean => {
+  const trimmed = email.trim();
+  if (!isPlausibleEmail(trimmed)) return false;
+
   /*
-   * A warning, never a rejection.
-   *
-   * Klaviyo discards addresses it judges fake — anything on example.com or
-   * test.com, or containing test/fake/invalid — and returns 202 anyway. We
-   * cannot reproduce their filter well enough to block a real shopper over it,
-   * so this only speaks up in development, where the person reading the log is
-   * the one who needs it.
+   * A warning, never a rejection. Klaviyo discards addresses it judges fake —
+   * anything on example.com or test.com, or containing test/fake/invalid — and
+   * reports nothing. We cannot reproduce their filter well enough to reject a
+   * real shopper over it, so this only speaks up in development.
    */
-  if (__DEV__ && looksFakeToKlaviyo(email)) {
+  if (__DEV__ && looksFakeToKlaviyo(trimmed)) {
     console.warn(
-      `[klaviyo] "${email}" looks like test data. Klaviyo silently discards ` +
-        `addresses containing test/fake/invalid or on example.com and test.com, ` +
-        `and still returns 202. Use a plausible address, or nothing will appear ` +
-        `in the dashboard. See docs/integration-klaviyo.md.`,
+      `[klaviyo] "${trimmed}" looks like test data. Klaviyo silently discards ` +
+        `addresses containing test/fake/invalid or on example.com and test.com. ` +
+        `Use a plausible address, or nothing will appear in the dashboard. ` +
+        `See docs/integration-klaviyo.md.`,
     );
   }
 
-  const result = await submitSubscription({
-    publicKey: KLAVIYO_PUBLIC_KEY,
-    listId: KLAVIYO_LIST_ID,
-    email,
-    source: "Formulate mobile",
-  });
-
-  /*
-   * Klaviyo's own words, in the log. The shopper gets something human; whoever
-   * is configuring this needs the actual cause, and this is the one endpoint in
-   * the integration that reports one — a wrong list id says exactly that:
-   * {"errors":[{"detail":"List not found"}]}.
-   */
-  if (!result.ok && result.reason === "rejected") {
-    console.error(`[klaviyo] subscription rejected (${result.status}):`, result.detail);
-  }
-
-  if (!result.ok) return result;
-
-  /*
-   * The other half of "identify", which native has to do for itself.
-   *
-   * ⚠️ Not redundant with the subscription above, and assuming it was is how
-   * this was originally missed. `_learnq.push(["identify"])` on web is not only
-   * a cache flush — it also fires `POST /client/profiles/`, which is what
-   * actually creates the profile. That came free as a side effect there, so
-   * skipping it here looked harmless.
-   *
-   * It is not. When the target list uses **double opt-in**, subscribing alone
-   * produces no visible profile until someone clicks a confirmation link — so
-   * the surfaces that also identify looked fine while this one looked broken.
-   *
-   * Best-effort on purpose. Consent is already recorded by the time we get
-   * here, so a failure now must not tell the shopper their sign-up failed —
-   * and SHO-109's first event would create the profile anyway.
-   */
-  const identified = await submitProfile({ publicKey: KLAVIYO_PUBLIC_KEY, email });
-  if (!identified.ok) {
-    console.error("[klaviyo] profile write failed:", identified.reason, identified.detail);
-  }
-
-  await SecureStore.setItemAsync(EMAIL_KEY, email.trim());
-  return result;
+  Klaviyo.setEmail(trimmed);
+  return true;
 };
