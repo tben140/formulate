@@ -28,12 +28,13 @@ Online Store to say anything about the headless surfaces), and Customer.io
 | One or two lifecycle flows                      | Full segmentation strategy       |
 | Recharge subscription events → Klaviyo flows    | B2B / company-level segmentation |
 
-Klaviyo's **SDK** is excluded on mobile: it would need another native module and
+Klaviyo's **SDK** was excluded on mobile: it needs another native module and
 another development build to demonstrate roughly what the web integration
-already does. The **events** are not excluded — `/client/events/` is plain HTTP
-and needs no SDK at all, so mobile can emit the same payloads over `fetch`
-(SHO-109). The one piece with no web equivalent is the anonymous profile id,
-because there is no `__kla_id` cookie on native; it goes in `expo-secure-store`.
+already does.
+
+⚠️ **That reasoning assumed the `/client/` endpoints were reachable from a
+native app. They are not** — see below. The conclusion stands for the SDK's
+*features*, but not as a route to the same endpoints over plain `fetch`.
 
 ## Events we intend to emit
 
@@ -215,6 +216,52 @@ mechanism and is in fact two:
 
 Verified by killing the app and cold-starting it: the address survives, which
 is the property SHO-109 depends on.
+
+### ⚠️ `/client/` endpoints are browser-only in practice, not just by docs
+
+**Cloudflare blocks them from a native app.** Klaviyo fronts `a.klaviyo.com`
+with bot protection, and a React Native `fetch` sends no `Origin`, no `Referer`
+and a `CFNetwork/Darwin` user agent — so it is challenged and refused.
+
+The response is not a Klaviyo error at all. It is an HTML interstitial:
+
+```
+403  <!DOCTYPE html> … "You are unable to access klaviyo.com" … Ray ID
+```
+
+Measured on one machine, one IP, within the same minute:
+
+| Client         | `/client/profiles/` | `/client/subscriptions/` |
+| -------------- | ------------------- | ------------------------ |
+| Browser        | **202**             | **202**                  |
+| React Native   | —                   | **403, Cloudflare HTML** |
+
+So it is the shape of the client, not the address of it. Reproduced twice, and
+note it did **not** fail on the first attempt hours earlier — Cloudflare's
+challenge appears to escalate with repetition, which makes this exactly the
+kind of thing that passes a demo and fails a user.
+
+**Consequences:**
+
+1. **SHO-109 cannot be "the same payloads over `fetch`".** The plan said
+   `/client/events/` needs no SDK because it is plain HTTP. True of the
+   protocol, false of the gateway.
+2. Klaviyo's React Native SDK exists **for this reason**, not merely as
+   convenience packaging. That reframes it from optional to load-bearing.
+3. ⚠️ Do **not** work around this by spoofing a browser user agent. Defeating
+   bot protection to reach an endpoint the vendor points elsewhere is both
+   wrong and fragile.
+
+**The two honest options**, in preference order:
+
+| Option | Cost | Notes |
+| --- | --- | --- |
+| **Server-side proxy** — a route handler on `apps/web` that takes the email and calls Klaviyo's server API | A private key in Vercel env, never committed | Dodges Cloudflare because the call comes from a server. Also the architecturally correct answer: the app gets a real backend, and it is how this is done in production. Fits the existing rule that Admin-flavoured work lives behind a route handler. |
+| **Klaviyo React Native SDK** | Another native module and dev build | The vendor-supported path. Heavier, and demonstrates packaging rather than understanding. |
+
+Until one lands, mobile's form fails honestly: the shopper sees "Something went
+wrong at our end", their address is preserved, and the Cloudflare body is
+logged in full.
 
 ### ⚠️ There is no already-subscribed state
 

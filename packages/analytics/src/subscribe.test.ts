@@ -4,6 +4,9 @@ import {
   KLAVIYO_REVISION,
   isPlausibleEmail,
   looksFakeToKlaviyo,
+  profilePayload,
+  profilesUrl,
+  submitProfile,
   submitSubscription,
   subscriptionPayload,
   subscriptionsUrl,
@@ -207,5 +210,76 @@ describe("submitSubscription", () => {
     // page down over a newsletter form.
     stubFetch(new TypeError("Failed to fetch"));
     expect(await submitSubscription(input)).toEqual({ ok: false, reason: "network" });
+  });
+});
+
+describe("submitProfile", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const stubFetch = (response: Partial<Response> | Error) => {
+    const fetchMock = vi.fn(() =>
+      response instanceof Error ? Promise.reject(response) : Promise.resolve(response),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  };
+
+  it("posts to the profiles endpoint, not the subscriptions one", () => {
+    expect(profilesUrl(PUBLIC_KEY)).toBe(
+      "https://a.klaviyo.com/client/profiles/?company_id=X2g4U5",
+    );
+  });
+
+  it("carries the email and nothing invented alongside it", () => {
+    // Klaviyo accepts names, addresses and arbitrary properties here. A form
+    // that asked for none of them has no business sending any.
+    expect(profilePayload("  ben@bentaylordemo.co.uk ")).toEqual({
+      data: { type: "profile", attributes: { email: "ben@bentaylordemo.co.uk" } },
+    });
+  });
+
+  it("records no consent — that is the subscription's job alone", () => {
+    // Guards the boundary that keeps us from emailing someone who never
+    // opted in: creating a profile says "this person exists", nothing more.
+    const attributes = profilePayload("ben@bentaylordemo.co.uk").data.attributes;
+    expect(attributes).not.toHaveProperty("subscriptions");
+  });
+
+  it("succeeds on 202", async () => {
+    stubFetch({ ok: true, status: 202 });
+    expect(await submitProfile({ publicKey: PUBLIC_KEY, email: "ben@x.co" })).toEqual({
+      ok: true,
+    });
+  });
+
+  it("needs no list id, unlike subscribing", async () => {
+    // The reason it still works when the list is misconfigured — and why a
+    // profile appears even when the subscription is rejected outright.
+    const fetchMock = stubFetch({ ok: true, status: 202 });
+    await submitProfile({ publicKey: PUBLIC_KEY, email: "ben@x.co" });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a bad address without calling the network", async () => {
+    const fetchMock = stubFetch({ ok: true, status: 202 });
+    expect(await submitProfile({ publicKey: PUBLIC_KEY, email: "ben@" })).toEqual({
+      ok: false,
+      reason: "invalid-email",
+    });
+    expect(await submitProfile({ publicKey: PUBLIC_KEY, email: " " })).toEqual({
+      ok: false,
+      reason: "empty",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a network result rather than throwing", async () => {
+    stubFetch(new TypeError("Failed to fetch"));
+    expect(await submitProfile({ publicKey: PUBLIC_KEY, email: "ben@x.co" })).toEqual({
+      ok: false,
+      reason: "network",
+    });
   });
 });

@@ -122,6 +122,24 @@ judges fake and returns `202` regardless. The list id must be a **list**, never
 a segment — Klaviyo's URL reads `/list/` for both. See
 [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
 
+### ⚠️ Klaviyo's `/client/` endpoints do not work from this app
+
+Cloudflare blocks them. A React Native `fetch` sends no `Origin`, no `Referer`
+and a `CFNetwork/Darwin` user agent, so `a.klaviyo.com` serves a **403 HTML
+interstitial** instead of a Klaviyo response. Measured on one machine within
+the same minute, a browser got `202` on the same endpoints.
+
+It did **not** fail on the first attempt — the challenge escalates with
+repetition, which is why this looked fine initially. Assume it will fail.
+
+Do **not** work around it by spoofing a browser user agent. The two honest
+routes are a server-side proxy on `apps/web` (preferred — the app gains a real
+backend and the private key stays server-side) or Klaviyo's React Native SDK.
+
+The form is wired and correct; only the transport is blocked. It fails
+honestly — the shopper's address is preserved and the Cloudflare body is
+logged in full.
+
 ## Forms need four props web gets for free
 
 `components/email-capture.tsx` is the reference. On a `TextInput` taking an

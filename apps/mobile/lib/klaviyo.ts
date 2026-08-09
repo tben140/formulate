@@ -1,5 +1,6 @@
 import {
   looksFakeToKlaviyo,
+  submitProfile,
   submitSubscription,
   type SubscribeResult,
 } from "@formulate/analytics";
@@ -112,6 +113,30 @@ export const subscribe = async (email: string): Promise<SubscribeResult> => {
     console.error(`[klaviyo] subscription rejected (${result.status}):`, result.detail);
   }
 
-  if (result.ok) await SecureStore.setItemAsync(EMAIL_KEY, email.trim());
+  if (!result.ok) return result;
+
+  /*
+   * The other half of "identify", which native has to do for itself.
+   *
+   * ⚠️ Not redundant with the subscription above, and assuming it was is how
+   * this was originally missed. `_learnq.push(["identify"])` on web is not only
+   * a cache flush — it also fires `POST /client/profiles/`, which is what
+   * actually creates the profile. That came free as a side effect there, so
+   * skipping it here looked harmless.
+   *
+   * It is not. When the target list uses **double opt-in**, subscribing alone
+   * produces no visible profile until someone clicks a confirmation link — so
+   * the surfaces that also identify looked fine while this one looked broken.
+   *
+   * Best-effort on purpose. Consent is already recorded by the time we get
+   * here, so a failure now must not tell the shopper their sign-up failed —
+   * and SHO-109's first event would create the profile anyway.
+   */
+  const identified = await submitProfile({ publicKey: KLAVIYO_PUBLIC_KEY, email });
+  if (!identified.ok) {
+    console.error("[klaviyo] profile write failed:", identified.reason, identified.detail);
+  }
+
+  await SecureStore.setItemAsync(EMAIL_KEY, email.trim());
   return result;
 };
