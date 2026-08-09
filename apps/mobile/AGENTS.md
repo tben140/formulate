@@ -132,9 +132,11 @@ the same minute, a browser got `202` on the same endpoints.
 It did **not** fail on the first attempt — the challenge escalates with
 repetition, which is why this looked fine initially. Assume it will fail.
 
-Do **not** work around it by spoofing a browser user agent. The two honest
-routes are a server-side proxy on `apps/web` (preferred — the app gains a real
-backend and the private key stays server-side) or Klaviyo's React Native SDK.
+Do **not** work around it by spoofing a browser user agent. The route is
+Klaviyo's React Native SDK with the official `klaviyo-expo-plugin`, which
+configures the native projects during `expo prebuild`. This app already
+requires a development build for Checkout Sheet Kit, so that cost is paid; no
+Apple Developer account is needed unless push notifications are added.
 
 The form is wired and correct; only the transport is blocked. It fails
 honestly — the shopper's address is preserved and the Cloudflare body is

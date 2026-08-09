@@ -252,12 +252,30 @@ kind of thing that passes a demo and fails a user.
    bot protection to reach an endpoint the vendor points elsewhere is both
    wrong and fragile.
 
-**The two honest options**, in preference order:
+**Use Klaviyo's React Native SDK**, with the official
+[`klaviyo-expo-plugin`](https://github.com/klaviyo/klaviyo-expo-plugin), which
+configures the native projects during `expo prebuild`.
 
-| Option | Cost | Notes |
-| --- | --- | --- |
-| **Server-side proxy** — a route handler on `apps/web` that takes the email and calls Klaviyo's server API | A private key in Vercel env, never committed | Dodges Cloudflare because the call comes from a server. Also the architecturally correct answer: the app gets a real backend, and it is how this is done in production. Fits the existing rule that Admin-flavoured work lives behind a route handler. |
-| **Klaviyo React Native SDK** | Another native module and dev build | The vendor-supported path. Heavier, and demonstrates packaging rather than understanding. |
+The objection that mattered — another native module and another development
+build — **this app has already paid**. `@shopify/checkout-sheet-kit` is a
+native module, Expo Go is already ruled out, and `expo prebuild` is already the
+workflow. One more autolinked module is incremental. No Apple Developer account
+is needed either: only push notifications require APNs, and identify and events
+do not.
+
+⚠️ Risk worth stating: the SDK is developed and tested against **React Native
+0.78**, and this app is on **0.86**. It claims 0.70+ support, but this repo has
+twice been bitten by version incompatibilities that failed only at Metro bundle
+time with errors naming something else entirely — see ADR 0003 and ADR 0004.
+Treat adopting it as a spike with a build-or-don't outcome.
+
+A **server-side proxy** on `apps/web` was considered and rejected. It would
+dodge Cloudflare, but it needs a Klaviyo private key with broad account access
+sitting behind an unauthenticated public route handler — anyone finding the URL
+could write arbitrary profiles and events. Securing that properly means rate
+limiting, origin checks and probably app attestation: real work, to reimplement
+worse what a supported SDK already does, while coupling the mobile app to the
+web deployment.
 
 Until one lands, mobile's form fails honestly: the shopper sees "Something went
 wrong at our end", their address is preserved, and the Cloudflare body is
