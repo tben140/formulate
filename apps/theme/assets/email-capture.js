@@ -167,6 +167,15 @@ class EmailCapture extends Component {
       );
 
       if (!response.ok) {
+        /*
+         * Klaviyo's own words, in the console. The shopper gets something
+         * human; whoever is configuring this needs the actual cause, and this
+         * is the one endpoint in the integration that gives one. A wrong list
+         * id says exactly that: {"detail":"List not found"}.
+         */
+        const detail = await response.text().catch(() => "");
+        console.error(`[klaviyo] subscription rejected (${response.status}):`, detail);
+
         this.#report(this.dataset.errorFailed ?? "", true);
         return;
       }
