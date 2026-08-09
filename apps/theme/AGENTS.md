@@ -140,8 +140,29 @@ Push to `_learnq`, never to `window.klaviyo` — the latter is owned by
 `klaviyo.js`, and pushing to it silently does nothing.
 
 ⚠️ Never test with an `@example.com` address. Klaviyo discards addresses it
-judges fake and returns `202` regardless. See
+judges fake and returns `202` regardless. `klaviyo_list_id` must also be a
+**list**, never a segment — Klaviyo's URL reads `/list/` for both. See
 [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
+
+## ⚠️ Theme settings are direct children of `current`
+
+In `config/settings_data.json` there is **no `settings` object** to nest them
+in. `blocks` is a reserved key that sits *alongside* the settings, which makes
+it look like a sibling of some wrapper. It is not:
+
+```jsonc
+{ "current": { "my_setting": "value", "blocks": { … } } }   // correct
+{ "current": { "settings": { "my_setting": "value" } } }    // resolves to nothing
+```
+
+The wrong shape pushes without complaint, passes `theme check`, and round-trips
+through the Admin API unchanged — so every check says the value is on the store.
+Liquid then resolves `settings.my_setting` to `blank`, and a `{% if %}` guarding
+on it renders empty with no error anywhere.
+
+Diagnose it by reading the **rendered HTML**, not the file: an `{% if %}` that
+collapsed to whitespace is the signal. `window.Shopify.theme.id` confirms which
+theme you are actually looking at, which rules out the other likely cause.
 
 ## Verification
 

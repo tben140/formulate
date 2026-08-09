@@ -8,26 +8,39 @@
  * ------------------------------------------------------------
  */
 {
+  /*
+   * ⚠️ Theme settings are DIRECT children of `current`.
+   *
+   * There is no `settings` object to nest them in — `blocks` below is a
+   * reserved key that sits *alongside* the settings, not a sibling of some
+   * wrapper. Nesting them under `"settings": { … }` looks right, pushes
+   * without complaint, survives `theme check`, and round-trips through the
+   * Admin API unchanged. Liquid then resolves `settings.klaviyo_public_key`
+   * to nothing, and any `{% if %}` guarding on it silently renders empty.
+   */
+
   "current": {
-    "settings": {
-      /*
-       * Klaviyo onsite credentials for the footer email capture form.
-       *
-       * Committed rather than set in the theme editor, for the same reason the
-       * app embed below is: `.shopifyignore` does not exclude this file, so a
-       * `shopify theme push` overwrites whatever the editor set.
-       *
-       * ⚠️ Both values are public by design. The onsite key is scoped to
-       * writing events and subscriptions for one account and is *meant* to
-       * ship in client code — it is the same key `NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY`
-       * carries on apps/web. A list id names a destination, not a permission.
-       *
-       * A Klaviyo **private** key must never appear here, or anywhere in this
-       * repository — see the root AGENTS.md.
-       */
-      "klaviyo_public_key": "X2g4U5",
-      "klaviyo_list_id": "XPJ8ic"
-    },
+    /*
+     * Klaviyo onsite credentials for the footer email capture form.
+     *
+     * Committed rather than set in the theme editor, for the same reason the
+     * app embed below is: `.shopifyignore` does not exclude this file, so a
+     * `shopify theme push` overwrites whatever the editor set.
+     *
+     * ⚠️ Both values are public by design. The onsite key is scoped to
+     * writing events and subscriptions for one account and is *meant* to ship
+     * in client code — it is the same key `NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY`
+     * carries on apps/web. A list id names a destination, not a permission.
+     *
+     * ⚠️ `klaviyo_list_id` must be a **list**, never a segment. Only a list
+     * can be subscribed to, and Klaviyo's URL says `/list/` for both — see
+     * docs/integration-klaviyo.md.
+     *
+     * A Klaviyo **private** key must never appear here, or anywhere in this
+     * repository — see the root AGENTS.md.
+     */
+    "klaviyo_public_key": "X2g4U5",
+    "klaviyo_list_id": "XPJ8ic",
 
     /*
      * App embeds. Committed rather than enabled through the theme editor,
