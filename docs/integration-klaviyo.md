@@ -181,6 +181,9 @@ which reimplements them in plain JavaScript because it ships ES modules with no
 build step and cannot import a TypeScript workspace package. Same boundary as
 the cart.
 
+Mobile has it too (`apps/mobile/components/email-capture.tsx`), sharing the same
+package — see the identity note below for the one part that differs.
+
 **Two steps, and the second is the one that matters:**
 
 | Step                         | Effect                                                   |
@@ -191,6 +194,27 @@ the cart.
 Step 1 alone leaves the session anonymous, so every event cached during it
 stays cached. The profile appears in Klaviyo with no history attached, which
 reads as a working integration that collects nothing.
+
+### Step 2 has no equivalent on native
+
+There is no `klaviyo.js` in the Expo app, no `__kla_id` cookie, and therefore
+nothing caching events and nothing to flush. The identity is **ours to store**:
+`apps/mobile/lib/klaviyo.ts` writes the subscribed address to the OS keychain,
+and that is what a later `POST /client/events/` (SHO-109) attaches events to.
+
+So the same two-step shape holds on all three surfaces, but the second step is
+a call into someone else's script on two of them and a write to our own storage
+on the third. Worth stating plainly, because "identify" reads like one
+mechanism and is in fact two:
+
+| Surface | Identity lives in                    | Releases cached events? |
+| ------- | ------------------------------------ | ----------------------- |
+| Web     | `klaviyo.js` + `__kla_id` cookie      | **Yes** — that is the point |
+| Theme   | `klaviyo.js` + `__kla_id` cookie      | **Yes**                 |
+| Mobile  | `expo-secure-store` (OS keychain)     | Nothing to release      |
+
+Verified by killing the app and cold-starting it: the address survives, which
+is the property SHO-109 depends on.
 
 ### ⚠️ There is no already-subscribed state
 

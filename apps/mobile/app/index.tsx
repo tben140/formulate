@@ -47,6 +47,13 @@ const CollectionScreen = () => {
       data={collection.products.nodes}
       keyExtractor={(product) => product.id}
       contentContainerClassName="p-4 gap-3"
+      /*
+        The footer's email field is the last thing in this list, so the
+        software keyboard covers it the moment it opens. A browser scrolls a
+        focused input into view for free; nothing here does.
+      */
+      automaticallyAdjustKeyboardInsets
+      keyboardDismissMode="on-drag"
       ListHeaderComponent={
         <View className="mb-2">
           <Text className="text-2xl font-semibold text-foreground">

@@ -44,7 +44,16 @@ const ProductScreen = () => {
   }
 
   return (
-    <ScrollView contentContainerClassName="p-4 gap-4">
+    <ScrollView
+      contentContainerClassName="p-4 gap-4"
+      /*
+        The footer's email field is the last thing in this view, so the
+        software keyboard covers it the moment it opens. A browser scrolls a
+        focused input into view for free; nothing here does.
+      */
+      automaticallyAdjustKeyboardInsets
+      keyboardDismissMode="on-drag"
+    >
       <Stack.Screen options={{ title: product.title }} />
 
       <Image

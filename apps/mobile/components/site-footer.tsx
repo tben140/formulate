@@ -1,5 +1,7 @@
 import { Text, View } from "react-native";
 
+import { EmailCapture } from "./email-capture";
+
 /**
  * Site footer, mirroring apps/web's app/layout.tsx and apps/theme's
  * sections/footer.liquid so the three surfaces share the same chrome.
@@ -17,7 +19,20 @@ import { Text, View } from "react-native";
  */
 export const SiteFooter = () => (
   <View className="-mx-4 mt-8 border-t border-border px-4 py-6">
-    <Text className="text-sm text-foreground-muted">
+    {/*
+      Email capture lives here, as it does on the other two surfaces — in the
+      footer, so it appears on every screen from one place rather than being
+      remembered per screen.
+
+      ⚠️ Both callers need `automaticallyAdjustKeyboardInsets` on their scroll
+      container because of this. The footer is the last thing in a scroll view,
+      so the software keyboard covers the field it belongs to the moment it
+      opens. On web the browser scrolls the focused input into view for free;
+      here nothing does.
+    */}
+    <EmailCapture />
+
+    <Text className="mt-6 text-sm text-foreground-muted">
       &copy; {new Date().getFullYear()} Formulate
     </Text>
   </View>
