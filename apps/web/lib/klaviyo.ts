@@ -149,6 +149,21 @@ export const subscribe = async (email: string): Promise<SubscribeResult> => {
     source: "Formulate web",
   });
 
+  /*
+   * Klaviyo's own words, in the console.
+   *
+   * The shopper gets "Something went wrong at our end", which is all they can
+   * act on. Whoever is configuring this needs the actual cause — and this is
+   * the one endpoint in the integration that gives one, so it should not be
+   * swallowed. A wrong list id says exactly that:
+   *
+   *     {"errors":[{"detail":"List not found",
+   *       "source":{"pointer":"/data/relationships/list"}}]}
+   */
+  if (!result.ok && result.reason === "rejected") {
+    console.error(`[klaviyo] subscription rejected (${result.status}):`, result.detail);
+  }
+
   if (result.ok) identify(email);
   return result;
 };

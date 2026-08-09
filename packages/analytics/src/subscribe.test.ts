@@ -172,12 +172,32 @@ describe("submitSubscription", () => {
     });
   });
 
-  it("surfaces the status when Klaviyo refuses", async () => {
-    stubFetch({ ok: false, status: 400 });
+  it("carries Klaviyo's error body through, verbatim", async () => {
+    // The one endpoint here that reports a real cause. Discarding it wastes
+    // the only diagnostic the integration gets — a wrong list id is otherwise
+    // indistinguishable from any other failure.
+    const body =
+      '{"errors":[{"detail":"List not found","source":{"pointer":"/data/relationships/list"}}]}';
+    stubFetch({ ok: false, status: 400, text: () => Promise.resolve(body) });
+
     expect(await submitSubscription(input)).toEqual({
       ok: false,
       reason: "rejected",
       status: 400,
+      detail: body,
+    });
+  });
+
+  it("still reports a rejection when the error body cannot be read", async () => {
+    // A gateway error or empty body must not turn a diagnosable rejection
+    // into the catch-all network case.
+    stubFetch({ ok: false, status: 502, text: () => Promise.reject(new Error("nope")) });
+
+    expect(await submitSubscription(input)).toEqual({
+      ok: false,
+      reason: "rejected",
+      status: 502,
+      detail: "",
     });
   });
 

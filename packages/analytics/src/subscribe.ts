@@ -151,6 +151,21 @@ export type SubscribeResult =
         | "rejected"
         | "network";
       readonly status?: number;
+      /**
+       * Klaviyo's error body, verbatim, when it sends one.
+       *
+       * Carried through rather than discarded because this is the **one**
+       * endpoint in the integration that reports a real cause, and throwing it
+       * away wastes the only diagnostic the API offers. A misconfigured list
+       * returns:
+       *
+       *     {"errors":[{"code":"invalid","detail":"List not found",
+       *       "source":{"pointer":"/data/relationships/list"}}]}
+       *
+       * Never rendered to a shopper — "List not found" is not their problem.
+       * The surfaces log it and show something human.
+       */
+      readonly detail?: string;
     };
 
 interface SubmitInput extends SubscriptionInput {
@@ -206,7 +221,14 @@ export const submitSubscription = async ({
       body: JSON.stringify(subscriptionPayload({ email, listId, source })),
     });
 
-    if (!response.ok) return { ok: false, reason: "rejected", status: response.status };
+    if (!response.ok) {
+      // `.text()` rather than `.json()`: a gateway error or an empty body
+      // would throw on parse, turning a diagnosable rejection into the
+      // catch-all network case below.
+      const detail = await response.text().catch(() => "");
+      return { ok: false, reason: "rejected", status: response.status, detail };
+    }
+
     return { ok: true };
   } catch {
     // A network failure, an offline browser, or — the one that caught this
