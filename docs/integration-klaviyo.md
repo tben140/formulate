@@ -252,9 +252,37 @@ kind of thing that passes a demo and fails a user.
    bot protection to reach an endpoint the vendor points elsewhere is both
    wrong and fragile.
 
-**Use Klaviyo's React Native SDK**, with the official
-[`klaviyo-expo-plugin`](https://github.com/klaviyo/klaviyo-expo-plugin), which
-configures the native projects during `expo prebuild`.
+**Adopted: Klaviyo's React Native SDK.** Shipped and verified — the native
+networking is not challenged by Cloudflare, and identification works from the
+app.
+
+No config plugin was needed. `klaviyo-expo-plugin` exists but only automates
+**push notification** setup, which this app does not want; autolinking picks
+the SDK up through `expo prebuild` exactly as it does Checkout Sheet Kit. The
+React Native 0.86 risk did not materialise — pods install and the app builds,
+despite the SDK being tested against 0.78.
+
+### ⚠️ But the SDK cannot record consent
+
+`Profile` has no subscriptions field and there is no subscribe method —
+identity and events only. This is deliberate on Klaviyo's part, and defensible:
+a marketing consent record carries legal weight, so an arbitrary mobile client
+is not allowed to write one.
+
+**So mobile identifies but does not subscribe**, and its copy says so. Web and
+theme offer a newsletter because they send an explicit consent block; the
+mobile form promises only what it delivers. Restoring the marketing wording
+before a consent route lands would be collecting an address under a promise
+nothing has recorded.
+
+Two routes remain for consent on mobile, and neither is chosen yet:
+
+| Route | Trade |
+| --- | --- |
+| **Klaviyo in-app forms** (`registerForInAppForms`) | Vendor's answer. Handles consent properly, but the form is designed in Klaviyo's dashboard, so our custom UI is replaced by theirs. |
+| **Server-side call** from `apps/web` | Keeps our UI. Needs a private key and an authenticated endpoint — see the rejection note below, which applies with less force now that it would be a *complement* to the SDK rather than a replacement for it. |
+
+### Prior recommendation, superseded
 
 The objection that mattered — another native module and another development
 build — **this app has already paid**. `@shopify/checkout-sheet-kit` is a

@@ -132,11 +132,42 @@ the same minute, a browser got `202` on the same endpoints.
 It did **not** fail on the first attempt — the challenge escalates with
 repetition, which is why this looked fine initially. Assume it will fail.
 
-Do **not** work around it by spoofing a browser user agent. The route is
-Klaviyo's React Native SDK with the official `klaviyo-expo-plugin`, which
-configures the native projects during `expo prebuild`. This app already
-requires a development build for Checkout Sheet Kit, so that cost is paid; no
-Apple Developer account is needed unless push notifications are added.
+Do **not** work around it by spoofing a browser user agent. This app uses
+`klaviyo-react-native-sdk` instead, whose native networking is not challenged.
+
+**No config plugin is needed.** `klaviyo-expo-plugin` exists but only automates
+**push notification** setup — APNs entitlements, a dev team, a notification
+service extension — none of which this app wants. Autolinking picks the SDK up
+through `expo prebuild` exactly as it does Checkout Sheet Kit. Verified: pods
+install and the app builds on React Native 0.86, despite the SDK being tested
+against 0.78.
+
+⚠️ **The SDK has no consent API.** `Profile` has no subscriptions field and
+there is no subscribe method — identity and events only. That is deliberate on
+Klaviyo's part: a marketing consent record carries legal weight, so an
+arbitrary mobile client cannot write one. Consent needs either Klaviyo's in-app
+forms (`registerForInAppForms`, designed in their dashboard) or a server call.
+
+**So `identify()` here is not a newsletter sign-up**, and the mobile copy
+deliberately promises no marketing email where web and theme do. Do not restore
+that wording until a consent route lands.
+
+⚠️ `Klaviyo.getEmail()` returns `""` immediately after `initialize()` on a cold
+start, and the real value about three seconds later. The identity is not lost,
+just not restored yet — so never branch on an empty result at boot. Nothing
+here reads it during startup for that reason.
+
+## `pod install` needs a UTF-8 locale
+
+CocoaPods 1.17 on Ruby 4.0 dies with `Unicode Normalization not appropriate for
+ASCII-8BIT` unless `LANG` and `LC_ALL` are set:
+
+```bash
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install
+```
+
+`pod` also may not be on `PATH` — it installs to
+`/opt/homebrew/lib/ruby/gems/*/bin`.
 
 The form is wired and correct; only the transport is blocked. It fails
 honestly — the shopper's address is preserved and the Cloudflare body is
