@@ -98,10 +98,63 @@ the assumption rather than the symptom.
 Style props that Tailwind cannot express — `aspectRatio`, `borderRadius` on
 `expo-image` — use inline `style`, which is correct and not a smell.
 
+## Klaviyo
+
+Env: `EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY`, `EXPO_PUBLIC_KLAVIYO_LIST_ID`. Both are
+public by design. A Klaviyo **private** key must never appear here — there is
+no server to hide it behind, so it would ship to every device.
+
+⚠️ **Identity works differently here, and it is the only real divergence.**
+
+Web and theme follow a subscribe with `_learnq.push(["identify"])`, which
+releases the events `klaviyo.js` has been caching. None of that exists on
+native: no script, no `__kla_id` cookie, nothing caching, nothing to flush. So
+`lib/klaviyo.ts` **stores the address in the keychain** instead. That value is
+what a later `POST /client/events/` attaches events to (SHO-109); without it,
+every event would create an orphan profile.
+
+Written only on success, and only after the request resolves. Keychain entries
+survive app updates, so one bad value written once keeps coming back long after
+the bug is fixed — the same reasoning as `readCartId` in `lib/cart-storage.ts`.
+
+⚠️ Never test with an `@example.com` address. Klaviyo discards addresses it
+judges fake and returns `202` regardless. The list id must be a **list**, never
+a segment — Klaviyo's URL reads `/list/` for both. See
+[`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
+
+## Forms need four props web gets for free
+
+`components/email-capture.tsx` is the reference. On a `TextInput` taking an
+email address:
+
+- `autoCapitalize="none"` and `autoCorrect={false}` — without them iOS
+  capitalises the first letter and autocorrects the local part, handing back
+  `Ben@gmail.con`. The capitalisation is survivable; the autocorrect is not.
+- `textContentType` drives **iOS** autofill, `autoComplete` drives **Android**.
+  Neither platform reads the other's prop, so both are required.
+
+⚠️ **`accessibilityLiveRegion` is Android-only.** It does nothing on iOS, which
+is the platform this app is verified on — so a form relying on it alone ships
+errors that VoiceOver never announces. iOS needs an imperative
+`AccessibilityInfo.announceForAccessibility()` call. Wire up both.
+
+There is no `aria-invalid` either, so an error state has to be carried
+visually as well as announced.
+
+Any screen with a text input near the bottom of a scroll container needs
+`automaticallyAdjustKeyboardInsets` on that container. A browser scrolls a
+focused input into view for free; nothing here does.
+
 ## Verification
 
 Screens are verified on an **iPhone 17 Pro simulator**. "It typechecks" is not
 verification for anything visual.
+
+⚠️ **Kill every Metro process before trusting what you see.** A stale bundler
+serves the old bundle, the app renders happily, and the change appears simply
+not to work — no error anywhere. This has now cost time twice: once on
+NativeWind classes, once on a new component that rendered as if it did not
+exist. `lsof -ti:8081` returning more than one pid is the tell.
 
 `pnpm --filter @formulate/mobile build` runs `expo export`, which bundles through
 Metro — so it is the check that would catch a bad `lightningcss`.
