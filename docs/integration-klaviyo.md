@@ -221,6 +221,40 @@ whatever the editor set.
 The theme renders the form only when both are present, so a store without
 Klaviyo configured gets a clean footer rather than a form that cannot work.
 
+### ⚠️ A segment's URL also says `/list/`
+
+Only a **list** can be subscribed to. A segment is a dynamic query — a
+description of who matches, evaluated continuously — so there is nothing to add
+anyone to, and `/client/subscriptions/` rejects it.
+
+Klaviyo files both under *Lists & Segments*, and — the part that costs the time
+— **the URL is `www.klaviyo.com/list/<id>` for both.** There is no way to tell
+them apart from the browser bar. Checking the URL is a natural instinct and it
+gives the wrong answer with total confidence.
+
+What it looks like when you get it wrong:
+
+```
+POST /client/subscriptions/  →  400
+{"errors":[{"code":"invalid","detail":"List not found",
+  "source":{"pointer":"/data/relationships/list"}}]}
+```
+
+⚠️ **That message is identical for a segment id and for an id that does not
+exist at all** — verified by probing a real segment and an invented `ZZZZZZ`
+side by side. So it reads as "wrong account" or "typo" long before it reads as
+"that's a segment", which is exactly the wrong trail.
+
+Tell them apart inside Klaviyo instead: a list offers subscribe/unsubscribe
+controls and an import button; a segment shows its definition rules and cannot
+be added to.
+
+Worth noting what this endpoint got *right*, given the rest of this document.
+It is the only part of the integration that reports a real cause: a wrong id
+returns a 400 naming the field, where `/client/events/` and `/client/profiles/`
+return `202` and discard the data. Both surfaces log the body for that reason —
+throwing it away is discarding the only diagnostic Klaviyo offers anywhere.
+
 ### Identity, in general
 
 A browser session is anonymous until something identifies it. Klaviyo's onsite
