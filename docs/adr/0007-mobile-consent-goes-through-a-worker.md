@@ -80,11 +80,61 @@ Controls, in order of how much they actually buy:
 | Payload constructed, never forwarded | Caller supplies an address and nothing else. The list id is worker config. Prevents choosing the destination list, setting arbitrary profile properties, or forging `custom_source`. |
 | Scoped key — Lists and Profiles only | A leaked key adds addresses to a list. It cannot read the customer database. |
 | Double opt-in on the list | Nobody is subscribed until they click a confirmation email, so abuse costs unsent confirmations rather than list poisoning. |
-| Rate limit, 5/min per IP | Cloudflare's native binding, keyed on `CF-Connecting-IP` — edge-set and unspoofable, unlike `X-Forwarded-For`. |
+| Rate limit, 5/min per IP | A **Durable Object**, keyed on `CF-Connecting-IP` — edge-set and unspoofable, unlike `X-Forwarded-For`. See below: this is the second attempt. |
 | Generic error responses | Klaviyo's errors describe the account. Forwarding them would make this an information-disclosure endpoint. |
 | No CORS headers | A native caller needs none, and their absence stops browsers using it cross-origin. |
 | No dependencies | Nothing in the supply chain to compromise. |
 | No addresses in logs | Emails are personal data; outcomes and statuses are enough to diagnose with. |
+
+### ⚠️ The first rate limiter did nothing
+
+Cloudflare's `ratelimits` binding was used initially. It deployed cleanly,
+appeared in the deploy output as `env.SUBSCRIBE_LIMITER (5 requests/60s)`, and
+**enforced nothing** — `{"success":true}` on every call, verified across 30+
+requests against a limit of 5/60s, in parallel bursts and in sequential runs
+minutes apart.
+
+Cloudflare's own documentation explains it: that API is *"permissive,
+eventually consistent, and intentionally designed to not be used as an accurate
+accounting system"*, with counters cached per-location and updated
+asynchronously. A rate limiter **is** an accounting system. The primitive was
+wrong for the job, a sentence in the docs said so, and only measuring the
+behaviour revealed it.
+
+A **Durable Object** replaced it. A DO is single-threaded and serialised — only
+one request runs against a given object at a time — so strong consistency comes
+from the execution model rather than configuration. That is exactly the
+property the binding lacks. Verified after the change: five requests through,
+`429` from the sixth, and the limit holds under a parallel burst.
+
+Two things worth carrying forward:
+
+1. **Every signal short of counting responses said it worked.** Config valid,
+   binding present, deploy output confirming the limit, well-formed return
+   value. A control that has not been observed *failing closed* has not been
+   tested.
+2. **A free native rate limiter was one of two reasons for choosing Cloudflare
+   over Vercel.** That reason evaporated. The decision stands on the remaining
+   one — runtime familiarity with `workerd`, which Shopify's Oxygen is built on
+   — plus the sunk work, but it now rests on one leg rather than two.
+
+### Considered: Firebase App Check
+
+The idiomatic React Native answer is **Firebase App Check**, which attests that
+a request comes from a genuine instance of your app — a stronger control than
+rate limiting, because it answers "is this my app?" rather than "is this too
+many requests?".
+
+It was not taken for two reasons. Adopting one Firebase service means absorbing
+the whole integration — native modules, `useFrameworks: "static"` on iOS
+alongside two existing native modules, config files, a third vendor — for a
+single endpoint, serving none of the other two surfaces. And more decisively:
+App Check on iOS wraps App Attest, which requires an **Apple Developer
+account** this project has deliberately deferred. The same gate applies to
+`expo-app-integrity`, so attestation is unavailable here regardless of vendor.
+
+On a team that already had Firebase, a Cloud Function with App Check would be
+the obvious choice and this ADR would be much shorter.
 
 ### Deliberately not done
 
