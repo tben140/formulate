@@ -57,7 +57,14 @@ second React copy would break hooks here.
 EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN
 EXPO_PUBLIC_SHOPIFY_STOREFRONT_TOKEN
 EXPO_PUBLIC_SHOPIFY_API_VERSION
+EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY
+EXPO_PUBLIC_KLAVIYO_LIST_ID
+EXPO_PUBLIC_API_BASE_URL
 ```
+
+`EXPO_PUBLIC_API_BASE_URL` points at `apps/api`, the consent proxy. It is the
+one real coupling this app has to another deployment: if the Worker is down,
+sign-up fails and nothing else does.
 
 The `EXPO_PUBLIC_` prefix is **required**, not a stylistic choice: Metro inlines
 these at bundle time and the bundle _is_ the client. A public Storefront access
@@ -108,14 +115,12 @@ no server to hide it behind, so it would ship to every device.
 
 Web and theme follow a subscribe with `_learnq.push(["identify"])`, which
 releases the events `klaviyo.js` has been caching. None of that exists on
-native: no script, no `__kla_id` cookie, nothing caching, nothing to flush. So
-`lib/klaviyo.ts` **stores the address in the keychain** instead. That value is
-what a later `POST /client/events/` attaches events to (SHO-109); without it,
-every event would create an orphan profile.
+native: no script, no `__kla_id` cookie, nothing caching, nothing to flush.
 
-Written only on success, and only after the request resolves. Keychain entries
-survive app updates, so one bad value written once keeps coming back long after
-the bug is fixed — the same reasoning as `readCartId` in `lib/cart-storage.ts`.
+The SDK holds the identity instead, and persists it across launches — which is
+why this app does **not** keep a second copy in `expo-secure-store`. An earlier
+hand-rolled version was deleted rather than kept: the SDK's copy is the one its
+own events attach to, so a second would only be something else to keep in step.
 
 ⚠️ Never test with an `@example.com` address. Klaviyo discards addresses it
 judges fake and returns `202` regardless. The list id must be a **list**, never
@@ -143,14 +148,20 @@ install and the app builds on React Native 0.86, despite the SDK being tested
 against 0.78.
 
 ⚠️ **The SDK has no consent API.** `Profile` has no subscriptions field and
-there is no subscribe method — identity and events only. That is deliberate on
-Klaviyo's part: a marketing consent record carries legal weight, so an
-arbitrary mobile client cannot write one. Consent needs either Klaviyo's in-app
-forms (`registerForInAppForms`, designed in their dashboard) or a server call.
+there is no subscribe method — identity and events only. Klaviyo's in-app forms
+cannot collect consent either, by their own documentation.
 
-**So `identify()` here is not a newsletter sign-up**, and the mobile copy
-deliberately promises no marketing email where web and theme do. Do not restore
-that wording until a consent route lands.
+So consent goes to **`apps/api`**, a Cloudflare Worker holding a scoped private
+key — see [ADR 0007](../../docs/adr/0007-mobile-consent-goes-through-a-worker.md).
+
+Two functions in `lib/klaviyo.ts`, and the distinction is load-bearing:
+
+- `identify()` — **who someone is.** Events attach to this. Records no consent.
+- `subscribe()` — **that they agreed to be emailed.** Legal weight. Calls the
+  Worker, then identifies only on success.
+
+Do not let one imply the other, and do not make the form's copy promise
+marketing email through a path that does not record consent.
 
 ⚠️ `Klaviyo.getEmail()` returns `""` immediately after `initialize()` on a cold
 start, and the real value about three seconds later. The identity is not lost,
