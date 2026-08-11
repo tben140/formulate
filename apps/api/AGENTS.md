@@ -82,6 +82,18 @@ Secrets are per-environment and set from the CLI:
 pnpm --filter @formulate/api exec wrangler secret put KLAVIYO_PRIVATE_KEY
 ```
 
+## The rate limiter is a Durable Object, not the binding
+
+⚠️ Cloudflare's `ratelimits` binding was tried and **enforced nothing** —
+`{"success":true}` on every call, across 30+ requests against a limit of 5/60s.
+It is documented as "permissive, eventually consistent, and intentionally
+designed to not be used as an accurate accounting system". Do not reinstate it.
+
+A Durable Object replaces it: single-threaded and serialised, so the
+read-modify-write cannot interleave. The *rule* lives in
+`src/rate-limit-policy.ts` as a pure function so it can be tested without a
+runtime; the DO is a storage shell.
+
 ## Verification
 
 `202` from Klaviyo means queued, never recorded — and with a double opt-in list
