@@ -14,16 +14,27 @@ import worker from "./index";
 const PRIVATE_KEY = "pk_not_a_real_key";
 const LIST_ID = "XPJ8ic";
 
-const env = (allowed = true) => ({
+/**
+ * The Durable Object is stubbed here. Its *rule* is tested exhaustively in
+ * rate-limit-policy.test.ts, and the wiring between them is verified against
+ * the deployed Worker — see vitest.config.ts for why not in-process.
+ */
+const testEnv = (allowed = true) => ({
   KLAVIYO_PRIVATE_KEY: PRIVATE_KEY,
   KLAVIYO_LIST_ID: LIST_ID,
-  SUBSCRIBE_LIMITER: { limit: () => Promise.resolve({ success: allowed }) },
+  RATE_LIMITER: {
+    idFromName: (name: string) => name,
+    get: () => ({ limit: () => Promise.resolve({ success: allowed }) }),
+  },
 });
 
 const post = (body: unknown, headers: Record<string, string> = {}) =>
   new Request("https://api.example/", {
     method: "POST",
-    headers: { "content-type": "application/json", ...headers },
+    headers: {
+      "content-type": "application/json",
+      ...headers,
+    },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 
@@ -33,8 +44,8 @@ const stubKlaviyo = (response: Partial<Response>) => {
   return mock;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double for the Worker Env
-const run = (request: Request, e: unknown = env()) => worker.fetch(request, e as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Env is supplied by the pool
+const run = (request: Request, e: unknown = testEnv()) => worker.fetch(request, e as any);
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -81,8 +92,10 @@ describe("validation", () => {
 
 describe("rate limiting", () => {
   it("returns 429 without contacting Klaviyo", async () => {
+    // The rule itself is covered in rate-limit-policy.test.ts; this only
+    // checks the handler short-circuits before any upstream call.
     const klaviyo = stubKlaviyo({ ok: true, status: 202 });
-    const res = await run(post({ email: "ben@bentaylordemo.co.uk" }), env(false));
+    const res = await run(post({ email: "ben@example-domain.co.uk" }), testEnv(false));
 
     expect(res.status).toBe(429);
     expect(await res.json()).toEqual({ ok: false, reason: "rate-limited" });
@@ -101,7 +114,7 @@ describe("⚠️ injection resistance", () => {
 
     await run(
       post({
-        email: "ben@bentaylordemo.co.uk",
+        email: "ben@example-domain.co.uk",
         listId: "ATTACKER",
         data: { type: "evil" },
         custom_source: "spoofed",
@@ -119,7 +132,7 @@ describe("⚠️ injection resistance", () => {
 
   it("always sends the list id from config", async () => {
     const klaviyo = stubKlaviyo({ ok: true, status: 202 });
-    await run(post({ email: "ben@bentaylordemo.co.uk", listId: "ATTACKER" }));
+    await run(post({ email: "ben@example-domain.co.uk", listId: "ATTACKER" }));
 
     const [, init] = klaviyo.mock.calls[0] as unknown as [string, RequestInit];
     const sent = JSON.parse(String(init.body)) as {
@@ -136,7 +149,7 @@ describe("⚠️ information disclosure", () => {
     const upstream = '{"errors":[{"detail":"List not found"}]}';
     stubKlaviyo({ ok: false, status: 400, text: () => Promise.resolve(upstream) });
 
-    const res = await run(post({ email: "ben@bentaylordemo.co.uk" }));
+    const res = await run(post({ email: "ben@example-domain.co.uk" }));
     const body = await res.text();
 
     expect(res.status).toBe(502);
@@ -146,7 +159,7 @@ describe("⚠️ information disclosure", () => {
 
   it("never echoes the private key", async () => {
     stubKlaviyo({ ok: false, status: 401, text: () => Promise.resolve("bad key") });
-    const res = await run(post({ email: "ben@bentaylordemo.co.uk" }));
+    const res = await run(post({ email: "ben@example-domain.co.uk" }));
     expect(await res.text()).not.toContain(PRIVATE_KEY);
   });
 });
@@ -154,7 +167,7 @@ describe("⚠️ information disclosure", () => {
 describe("upstream call", () => {
   it("authenticates with the private key and pinned revision", async () => {
     const klaviyo = stubKlaviyo({ ok: true, status: 202 });
-    await run(post({ email: "ben@bentaylordemo.co.uk" }));
+    await run(post({ email: "ben@example-domain.co.uk" }));
 
     const [url, init] = klaviyo.mock.calls[0] as unknown as [string, RequestInit];
     const headers = init.headers as Record<string, string>;
@@ -166,7 +179,7 @@ describe("upstream call", () => {
 
   it("returns 202 on success", async () => {
     stubKlaviyo({ ok: true, status: 202 });
-    const res = await run(post({ email: "ben@bentaylordemo.co.uk" }));
+    const res = await run(post({ email: "ben@example-domain.co.uk" }));
 
     expect(res.status).toBe(202);
     expect(await res.json()).toEqual({ ok: true });
@@ -178,7 +191,7 @@ describe("⚠️ CORS", () => {
     // Deliberate. A native caller needs none, and their absence means an
     // application/json POST fails its preflight from any other origin.
     stubKlaviyo({ ok: true, status: 202 });
-    const res = await run(post({ email: "ben@bentaylordemo.co.uk" }));
+    const res = await run(post({ email: "ben@example-domain.co.uk" }));
 
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });

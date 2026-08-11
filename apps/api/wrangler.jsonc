@@ -5,6 +5,29 @@
   "compatibility_date": "2026-08-09",
 
   /*
+   * Serve on `<name>.<subdomain>.workers.dev`, stated explicitly rather than
+   * relying on the default.
+   *
+   * The URL is public and guessable, which is fine — this endpoint is public
+   * by design. Worth knowing rather than assuming, though: it means the
+   * rate limit and the payload construction below are the only things standing
+   * between an anonymous caller and the Klaviyo key's authority.
+   */
+  "workers_dev": true,
+
+  /*
+   * ⚠️ Off deliberately. Wrangler enables these by default alongside a
+   * workers.dev route, and warns about it on every deploy.
+   *
+   * A preview URL is an additional public entry point per version, each
+   * reaching the same worker with the same Klaviyo key bound. For a
+   * credential-bearing endpoint that is extra attack surface buying nothing:
+   * there is no front end to preview, and the one caller is a mobile app
+   * pointed at the stable URL.
+   */
+  "preview_urls": false,
+
+  /*
    * ⚠️ `vars` is NOT for secrets.
    *
    * Everything here is plaintext: committed to the repository and visible in
@@ -22,28 +45,22 @@
   },
 
   /*
-   * Rate limiting, as a platform primitive rather than a library.
+   * ⚠️ Cloudflare's `ratelimits` binding was here and has been removed. It
+   * deployed cleanly, showed in the deploy output, and enforced NOTHING —
+   * `{"success":true}` on every call, verified across 30+ requests against a
+   * limit of 5/60s. It is documented as "permissive, eventually consistent,
+   * and intentionally designed to not be used as an accurate accounting
+   * system". Do not reinstate it.
    *
-   * ⚠️ This is the whole reason it is trustworthy. An in-memory counter would
-   * be worthless here: isolates are created and discarded per request, so the
-   * count would reset constantly and the control would enforce nothing while
-   * appearing to work. On Vercel this same requirement would mean standing up
-   * Redis.
-   *
-   * `period` accepts only 10 or 60 seconds. 5 requests/minute per IP is far
-   * above what a person filling in a form produces and far below what abuse
-   * needs to be worthwhile.
+   * A Durable Object replaces it: single-threaded and serialised, so strong
+   * consistency comes from the execution model rather than configuration.
+   * `new_sqlite_classes` is required — the SQLite backend is the only one
+   * available on the Workers Free plan.
    */
-  "ratelimits": [
-    {
-      "name": "SUBSCRIBE_LIMITER",
-      "namespace_id": "1001",
-      "simple": {
-        "limit": 5,
-        "period": 60
-      }
-    }
-  ],
+  "durable_objects": {
+    "bindings": [{ "name": "RATE_LIMITER", "class_name": "RateLimiter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RateLimiter"] }],
 
   /*
    * Logs are opt-in and deliberately kept. They record outcomes and status

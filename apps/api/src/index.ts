@@ -1,3 +1,7 @@
+import type { RateLimiter } from "./rate-limiter";
+
+export { RateLimiter } from "./rate-limiter";
+
 import {
   KLAVIYO_REVISION,
   SERVER_SUBSCRIBE_URL,
@@ -28,7 +32,11 @@ interface Env {
   /** Set with `wrangler secret put`. Never in `vars`, never in the repo. */
   readonly KLAVIYO_PRIVATE_KEY: string;
   readonly KLAVIYO_LIST_ID: string;
-  readonly SUBSCRIBE_LIMITER: RateLimit;
+  /**
+   * One Durable Object per IP. Not Cloudflare's `ratelimits` binding — see
+   * src/rate-limiter.ts for why that one was removed.
+   */
+  readonly RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
 }
 
 /**
@@ -95,7 +103,9 @@ export default {
      * would make this control trivially bypassable.
      */
     const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-    const { success } = await env.SUBSCRIBE_LIMITER.limit({ key: ip });
+    const { success } = await env.RATE_LIMITER.get(
+      env.RATE_LIMITER.idFromName(ip),
+    ).limit();
     if (!success) {
       return json({ ok: false, reason: "rate-limited" }, 429);
     }
