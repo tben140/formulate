@@ -4,8 +4,10 @@ import {
   KLAVIYO_REVISION,
   isPlausibleEmail,
   looksFakeToKlaviyo,
+  SERVER_SUBSCRIBE_URL,
   profilePayload,
   profilesUrl,
+  serverSubscriptionPayload,
   submitProfile,
   submitSubscription,
   subscriptionPayload,
@@ -281,5 +283,44 @@ describe("submitProfile", () => {
       ok: false,
       reason: "network",
     });
+  });
+});
+
+describe("serverSubscriptionPayload", () => {
+  const payload = serverSubscriptionPayload({
+    email: "  ben@bentaylordemo.co.uk ",
+    listId: LIST_ID,
+    source: "Formulate mobile",
+  });
+
+  it("targets the server endpoint, not the client one", () => {
+    // Different endpoint, different auth, different shape. Confusing them
+    // means either a private key in a browser or a 401 in a worker.
+    expect(SERVER_SUBSCRIBE_URL).toBe(
+      "https://a.klaviyo.com/api/profile-subscription-bulk-create-jobs",
+    );
+    expect(SERVER_SUBSCRIBE_URL).not.toContain("/client/");
+  });
+
+  it("nests the profile inside the bulk job's profiles array", () => {
+    const profile = payload.data.attributes.profiles.data[0];
+    expect(payload.data.type).toBe("profile-subscription-bulk-create-job");
+    expect(profile?.attributes.email).toBe("ben@bentaylordemo.co.uk");
+  });
+
+  it("records explicit marketing consent", () => {
+    expect(payload.data.attributes.profiles.data[0]?.attributes.subscriptions).toEqual({
+      email: { marketing: { consent: "SUBSCRIBED" } },
+    });
+  });
+
+  it("puts the list in relationships, where the worker controls it", () => {
+    // The list id comes from the worker's own config and never from the
+    // request — otherwise any caller could pick the destination list.
+    expect(payload.data.relationships.list.data).toEqual({ type: "list", id: LIST_ID });
+  });
+
+  it("tags the surface so mobile signups are distinguishable", () => {
+    expect(payload.data.attributes.custom_source).toBe("Formulate mobile");
   });
 });

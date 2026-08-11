@@ -8,7 +8,34 @@ import {
   View,
 } from "react-native";
 
-import { identify } from "../lib/klaviyo";
+import type { SubscribeResult } from "@formulate/analytics";
+
+import { subscribe } from "../lib/klaviyo";
+
+/**
+ * Turns a failure into something a shopper can act on.
+ *
+ * Wording matched to apps/web's `errorMessage` — three surfaces disagreeing
+ * about what a failure is called reads as three different products.
+ */
+const errorMessage = (result: Extract<SubscribeResult, { ok: false }>): string => {
+  switch (result.reason) {
+    case "empty":
+      return "Enter your email address.";
+    case "invalid-email":
+      return "That doesn't look like an email address. Check it and try again.";
+    case "rate-limited":
+      // Deliberately not "you have been rate limited". The shopper did nothing
+      // wrong and does not care about our controls; they need to know to wait.
+      return "Too many attempts. Please wait a minute and try again.";
+    case "not-configured":
+      return "Sign-up isn't available at the moment.";
+    case "network":
+      return "We couldn't reach our email service. Check your connection and try again.";
+    case "rejected":
+      return "Something went wrong at our end. Please try again.";
+  }
+};
 
 /**
  * Announces a message to a screen reader.
@@ -34,13 +61,13 @@ type Status = { readonly kind: "idle" } | { readonly kind: "done"; readonly mess
  * Email capture, the mobile counterpart to apps/web's <EmailCapture /> and the
  * theme's <email-capture> element.
  *
- * ⚠️ **It does less than they do, on purpose.** Those two record marketing
- * consent through `/client/subscriptions/`. This surface cannot reach that
- * endpoint — Cloudflare blocks Klaviyo's `/client/` APIs from a native app —
- * and the SDK that replaces them has no consent API at all.
+ * Identical copy and behaviour, reached by a different route. Web and theme
+ * record consent straight from the client; this surface cannot — Cloudflare
+ * blocks Klaviyo's `/client/` APIs from a native app, and the SDK has no
+ * consent API — so it goes through `apps/api`, a worker holding a private key.
  *
- * So this identifies and nothing more, and the copy says so. When the consent
- * route lands, the marketing wording comes back with it. See lib/klaviyo.ts.
+ * The divergence is entirely below this component. That is the point: three
+ * runtimes, three transports, one shopper-facing promise. See lib/klaviyo.ts.
  */
 export const EmailCapture = () => {
   const [email, setEmail] = useState("");
@@ -48,47 +75,31 @@ export const EmailCapture = () => {
   const [failed, setFailed] = useState(false);
   const [pending, setPending] = useState(false);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (pending) return;
     setPending(true);
 
-    if (email.trim() === "") {
-      const message = "Enter your email address.";
+    const result = await subscribe(email);
+
+    if (result.ok) {
+      /*
+       * "You're on the list", matching web and theme — now truthful here too,
+       * because the worker records an actual consent record. Before that
+       * existed this form said only "Saved", since claiming a subscription
+       * nothing had recorded was the one thing it must never do.
+       */
+      const message = "You're on the list. Check your inbox.";
+      setStatus({ kind: "done", message });
+      setFailed(false);
+      setEmail("");
+      announce(message);
+    } else {
+      const message = errorMessage(result);
       setStatus({ kind: "done", message });
       setFailed(true);
       announce(message);
-      setPending(false);
-      return;
     }
 
-    if (!identify(email)) {
-      const message = "That doesn't look like an email address. Check it and try again.";
-      setStatus({ kind: "done", message });
-      setFailed(true);
-      announce(message);
-      setPending(false);
-      return;
-    }
-
-    /*
-     * ⚠️ "Saved", not "You're on the list" — and the difference is not
-     * pedantry.
-     *
-     * The SDK identifies the profile and records **no marketing consent**;
-     * it has no API that can. Telling someone they are subscribed when no
-     * consent record exists is the one claim this form must never make,
-     * because it is the claim with legal weight behind it.
-     *
-     * The other two surfaces say "You're on the list" because they call
-     * `/client/subscriptions/` with an explicit consent block. Mobile cannot
-     * reach that endpoint — Cloudflare blocks it — so until the consent route
-     * is decided, this form promises only what it delivers.
-     */
-    const message = "Saved. We'll use this to personalise your app.";
-    setStatus({ kind: "done", message });
-    setFailed(false);
-    setEmail("");
-    announce(message);
     setPending(false);
   };
 
@@ -101,7 +112,7 @@ export const EmailCapture = () => {
         why the label text is repeated rather than referenced.
       */}
       <Text className="text-sm font-semibold text-foreground">
-        Personalise your app
+        Get restock and subscription news
       </Text>
 
       <View className="mt-2 flex-row gap-2">
@@ -134,8 +145,8 @@ export const EmailCapture = () => {
           autoComplete="email"
           returnKeyType="go"
           placeholder="you@company.com"
-          accessibilityLabel="Email address"
-          accessibilityHint="Links your orders across devices. We won't email you without asking first."
+          accessibilityLabel="Email address for restock and subscription news"
+          accessibilityHint="Signs you up for marketing emails. Unsubscribe any time."
           className={`min-w-0 flex-1 rounded-md border px-3 py-2 text-sm text-foreground ${
             failed ? "border-danger" : "border-border"
           }`}
@@ -149,23 +160,18 @@ export const EmailCapture = () => {
           className={`rounded-md px-4 py-2 ${pending ? "bg-ink-300" : "bg-brand-600"}`}
         >
           <Text className="text-sm font-semibold text-surface">
-            {pending ? "Saving…" : "Save"}
+            {pending ? "Signing up…" : "Sign up"}
           </Text>
         </Pressable>
       </View>
 
       {/*
-        ⚠️ Deliberately does NOT promise marketing email, unlike web and theme.
-
-        Those two record explicit consent through `/client/subscriptions/`, so
-        their copy can offer a newsletter. This surface cannot reach that
-        endpoint and the SDK has no consent API, so offering one here would be
-        collecting an address under a promise nothing has recorded.
-
-        Restore the marketing copy when the consent route lands — not before.
+        An explicit statement of what is being consented to. Recording
+        SUBSCRIBED against someone who was never told is the real GDPR problem
+        — the cookie question is the lesser one, and does not arise here.
       */}
       <Text className="mt-2 text-xs text-foreground-muted">
-        Links your orders across devices. We won&apos;t email you without asking first.
+        Marketing emails about restocks and subscription offers. Unsubscribe any time.
       </Text>
 
       {/*

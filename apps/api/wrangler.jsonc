@@ -1,0 +1,56 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "formulate-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-09",
+
+  /*
+   * ⚠️ `vars` is NOT for secrets.
+   *
+   * Everything here is plaintext: committed to the repository and visible in
+   * the Cloudflare dashboard. That is fine for the list id — it names a
+   * destination, not a permission — and correct for it, because the list must
+   * never be selectable by the caller.
+   *
+   * KLAVIYO_PRIVATE_KEY is deliberately absent. It is set with
+   * `wrangler secret put KLAVIYO_PRIVATE_KEY`, which encrypts it and never
+   * writes it to disk. Putting a key in `vars` is the most common way to leak
+   * one on this platform, and it looks identical in code.
+   */
+  "vars": {
+    "KLAVIYO_LIST_ID": "XPJ8ic"
+  },
+
+  /*
+   * Rate limiting, as a platform primitive rather than a library.
+   *
+   * ⚠️ This is the whole reason it is trustworthy. An in-memory counter would
+   * be worthless here: isolates are created and discarded per request, so the
+   * count would reset constantly and the control would enforce nothing while
+   * appearing to work. On Vercel this same requirement would mean standing up
+   * Redis.
+   *
+   * `period` accepts only 10 or 60 seconds. 5 requests/minute per IP is far
+   * above what a person filling in a form produces and far below what abuse
+   * needs to be worthwhile.
+   */
+  "ratelimits": [
+    {
+      "name": "SUBSCRIBE_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    }
+  ],
+
+  /*
+   * Logs are opt-in and deliberately kept. They record outcomes and status
+   * codes — never the email address, which is personal data, and never the
+   * key. See src/index.ts.
+   */
+  "observability": {
+    "enabled": true
+  }
+}

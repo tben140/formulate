@@ -18,6 +18,15 @@ const errorMessage = (result: Extract<SubscribeResult, { ok: false }>): string =
       return "That doesn't look like an email address. Check it and try again.";
     case "empty":
       return "Enter your email address.";
+    /*
+     * Unreachable here — this surface calls Klaviyo directly, and only the
+     * mobile consent proxy rate limits. Handled anyway because the shared
+     * union covers all three surfaces, and an exhaustive switch is what makes
+     * adding a reason to that union a compile error rather than a silent gap.
+     * Which is exactly how this case came to be written.
+     */
+    case "rate-limited":
+      return "Too many attempts. Please wait a minute and try again.";
     case "not-configured":
       return "Sign-up isn't available at the moment.";
     case "network":

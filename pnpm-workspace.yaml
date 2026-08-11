@@ -10,6 +10,9 @@ allowBuilds:
   # Image processing used by Next.js and Expo tooling; ships prebuilt binaries.
   sharp: true
   unrs-resolver: true
+  # Cloudflare's Workers runtime, used by wrangler to run apps/api locally.
+  # Ships a platform binary and needs its postinstall step to unpack it.
+  workerd: true
 
 minimumReleaseAgeExclude:
   - eslint@10.8.0

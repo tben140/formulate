@@ -17,11 +17,13 @@ export type {
 
 export {
   KLAVIYO_REVISION,
+  SERVER_SUBSCRIBE_URL,
   isPlausibleEmail,
   looksFakeToKlaviyo,
   profilePayload,
   profilesUrl,
   submitProfile,
+  serverSubscriptionPayload,
   submitSubscription,
   subscriptionPayload,
   subscriptionsUrl,
