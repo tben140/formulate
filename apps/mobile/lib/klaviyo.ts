@@ -1,4 +1,8 @@
-import { looksFakeToKlaviyo, isPlausibleEmail } from "@formulate/analytics";
+import {
+  isPlausibleEmail,
+  looksFakeToKlaviyo,
+  type SubscribeResult,
+} from "@formulate/analytics";
 import { Klaviyo } from "klaviyo-react-native-sdk";
 
 /**
@@ -17,15 +21,20 @@ import { Klaviyo } from "klaviyo-react-native-sdk";
  * why the SDK exists at all.
  *
  * ⚠️ **What the SDK does not do: consent.** There is no subscribe method and
- * no consent field on `Profile` — identity and events only. That is a
- * deliberate vendor decision, and a defensible one: a marketing consent record
- * carries legal weight, so Klaviyo does not let an arbitrary mobile client
- * write one. Recording consent needs either Klaviyo's own in-app forms
- * (designed in their dashboard, rendered by `registerForInAppForms`) or a
- * server-side call.
+ * no consent field on `Profile` — identity and events only. Klaviyo's in-app
+ * forms cannot collect consent yet either, by their own documentation.
  *
- * So `identify` below establishes **who someone is**, and says nothing about
- * whether they agreed to be emailed. Do not conflate the two.
+ * So consent goes through `apps/api`, a Cloudflare Worker holding a scoped
+ * private key. That is what Klaviyo's own documentation prescribes for
+ * server-side subscription, and it is the standard mobile pattern: a client in
+ * the user's hands cannot hold a credential, so it delegates to a backend.
+ *
+ * Two functions, and the distinction is load-bearing:
+ *
+ * - `identify` — who someone is. Events attach to this.
+ * - `subscribe` — that they agreed to be emailed. Legal weight.
+ *
+ * Do not conflate them, and do not let one imply the other.
  */
 
 /**
@@ -34,6 +43,15 @@ import { Klaviyo } from "klaviyo-react-native-sdk";
  * must never appear in this app — there is no server to hide it behind.
  */
 export const KLAVIYO_PUBLIC_KEY = process.env.EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY ?? "";
+
+/**
+ * Our own consent proxy — see apps/api.
+ *
+ * ⚠️ Not a Klaviyo URL. Consent is the one thing neither the SDK nor the
+ * client endpoints can do from a native app, so it goes through a worker that
+ * holds a private key. Only an address is sent; the list is chosen server-side.
+ */
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
 /**
  * Starts the SDK. Called once, from the root layout.
@@ -116,4 +134,58 @@ export const identify = (email: string): boolean => {
 
   Klaviyo.setEmail(trimmed);
   return true;
+};
+
+/**
+ * Records marketing consent, then identifies the device.
+ *
+ * ⚠️ Two different systems, on purpose, and the order matters.
+ *
+ * Consent goes to our own worker, because Klaviyo offers this app no way to
+ * write one: the SDK has no consent API, `/client/subscriptions/` is blocked
+ * by Cloudflare from a native client, and in-app forms cannot collect consent
+ * yet. Identity goes to the SDK, which is the only thing that can attach
+ * future events to the profile.
+ *
+ * Identity is set only after consent succeeds — the same rule the other two
+ * surfaces follow. A device identified against a profile that was never
+ * created would attach every later event to nothing.
+ */
+export const subscribe = async (email: string): Promise<SubscribeResult> => {
+  const trimmed = email.trim();
+
+  if (trimmed === "") return { ok: false, reason: "empty" };
+  if (!isPlausibleEmail(trimmed)) return { ok: false, reason: "invalid-email" };
+  if (!API_BASE_URL) return { ok: false, reason: "not-configured" };
+
+  if (__DEV__ && looksFakeToKlaviyo(trimmed)) {
+    console.warn(
+      `[klaviyo] "${trimmed}" looks like test data. Klaviyo silently discards ` +
+        `addresses containing test/fake/invalid or on example.com and test.com. ` +
+        `Use a plausible address, or nothing will appear in the dashboard.`,
+    );
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      // Only the address. The worker builds the Klaviyo payload and chooses
+      // the list — see apps/api/src/index.ts for why that is structural.
+      body: JSON.stringify({ email: trimmed }),
+    });
+
+    if (response.status === 429) return { ok: false, reason: "rate-limited" };
+
+    if (!response.ok) {
+      console.error("[klaviyo] consent proxy rejected", response.status);
+      return { ok: false, reason: "rejected", status: response.status };
+    }
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+
+  // Consent recorded, so the device may now be associated with the profile.
+  identify(trimmed);
+  return { ok: true };
 };

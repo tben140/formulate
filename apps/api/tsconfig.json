@@ -1,0 +1,11 @@
+{
+  "extends": "@formulate/typescript-config/base.json",
+  "compilerOptions": {
+    // The Workers runtime is not Node. It provides web-standard APIs — fetch,
+    // Request, Response, URL, crypto.subtle — and nothing from Node's stdlib.
+    // Typing it as anything else would let code compile that cannot run.
+    "types": ["@cloudflare/workers-types"],
+    "lib": ["ES2023"]
+  },
+  "include": ["src/**/*.ts"]
+}

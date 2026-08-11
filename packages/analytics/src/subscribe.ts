@@ -164,6 +164,7 @@ export type SubscribeResult =
       readonly reason:
         | "empty"
         | "invalid-email"
+        | "rate-limited"
         | "not-configured"
         | "rejected"
         | "network";
@@ -322,3 +323,56 @@ export const submitProfile = async ({
     return { ok: false, reason: "network" };
   }
 };
+
+/**
+ * The **server-side** subscribe endpoint.
+ *
+ * ⚠️ Different endpoint, different auth, different payload shape from
+ * `subscriptionsUrl` above — they are not interchangeable. This one takes a
+ * **private** key in an `Authorization` header and must therefore never be
+ * called from a browser, an app bundle, or anywhere else a client can read.
+ *
+ * It exists because mobile has no other route: the SDK has no consent API, and
+ * `/client/subscriptions/` is unreachable from a native app (Cloudflare serves
+ * a 403 interstitial). See docs/adr/0007.
+ */
+export const SERVER_SUBSCRIBE_URL =
+  "https://a.klaviyo.com/api/profile-subscription-bulk-create-jobs";
+
+/**
+ * Builds the server-side bulk-subscribe document.
+ *
+ * ⚠️ **Every field here is constructed, never forwarded.** The caller supplies
+ * an email and nothing else; the list id comes from the worker's own config.
+ * That is deliberate and structural: a proxy that merged a client-supplied
+ * object into this payload would let anyone choose the list, set arbitrary
+ * profile properties, or forge `custom_source`. Validating such a body is
+ * harder than never accepting one.
+ *
+ * "Bulk" with a single profile is not a misuse — it is the only server-side
+ * subscribe endpoint Klaviyo offers.
+ */
+export const serverSubscriptionPayload = ({ email, listId, source }: SubscriptionInput) => ({
+  data: {
+    type: "profile-subscription-bulk-create-job",
+    attributes: {
+      custom_source: source,
+      profiles: {
+        data: [
+          {
+            type: "profile",
+            attributes: {
+              email: email.trim(),
+              subscriptions: {
+                email: { marketing: { consent: "SUBSCRIBED" } },
+              },
+            },
+          },
+        ],
+      },
+    },
+    relationships: {
+      list: { data: { type: "list", id: listId } },
+    },
+  },
+});

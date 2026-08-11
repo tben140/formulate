@@ -1,0 +1,25 @@
+{
+  "name": "@formulate/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@formulate/analytics": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "@formulate/eslint-config": "workspace:*",
+    "@formulate/typescript-config": "workspace:*",
+    "eslint": "^10.8.0",
+    "typescript": "~6.0.3",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.0.0"
+  }
+}
