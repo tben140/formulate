@@ -205,6 +205,25 @@ export const addedToCart = (
   CheckoutURL: cart.checkoutUrl,
 });
 
+/**
+ * ⚠️ **This is not the abandoned-cart trigger. Do not wire a flow to it.**
+ *
+ * Klaviyo's Shopify integration emits its own `Checkout Started` — note the
+ * reversed word order — server-side, from Shopify. That one covers all three
+ * surfaces, because every surface hands off to Shopify's checkout, and it
+ * cannot be blocked. This one fires client-side from apps/web only, so a
+ * theme or mobile shopper abandoning a cart would produce nothing.
+ *
+ * It is kept for two reasons the platform metric cannot serve:
+ *
+ * 1. **`SellingPlanName` per line.** Shopify's `Checkout Started` does not
+ *    distinguish a subscription line from a one-off, and the entire Recharge
+ *    story depends on that distinction.
+ * 2. Parity of the emitted event stream across the three surfaces, which is
+ *    what makes the headless surfaces legible in Klaviyo at all.
+ *
+ * See docs/integration-klaviyo.md — "Which checkout metric".
+ */
 export const startedCheckout = (
   cart: CartLike,
   storeDomain: string,
