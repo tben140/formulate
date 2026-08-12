@@ -393,11 +393,49 @@ Design position:
 
 Two, chosen because they exercise different trigger types:
 
-1. **Abandoned cart** — triggered by `started checkout` with no subsequent order.
-   Tests that our own emitted events are well-formed enough for Klaviyo to reason
-   about timing.
+1. **Abandoned cart** — triggered by Shopify's `Checkout Started` with no
+   subsequent order. See the decision below.
 2. **Subscription upcoming charge** — triggered from Recharge. Tests the
    cross-system path, with no code of ours in the trigger at all.
+
+### ⚠️ Which checkout metric — and why not ours
+
+Two metrics exist with confusingly similar names, and picking the wrong one
+produces a flow that looks correct and covers a third of the traffic.
+
+| | Source | Covers | Reliability |
+| --- | --- | --- | --- |
+| `Started Checkout` (ours) | Client-side, `apps/web` only | **Web only** | Blockable — ad blockers, ITP |
+| `Checkout Started` (Shopify → Klaviyo) | Server-side, from Shopify | **All three surfaces** | Server-to-server |
+
+**The flow triggers on Shopify's `Checkout Started`.**
+
+This inverts the logic used everywhere else in this project, which is the
+interesting part. `Viewed Product` *had* to be ours, because Shopify has no
+idea a headless page was viewed — the platform is blind there. At checkout the
+opposite holds: Shopify owns the transaction, observes it from all three
+surfaces, and reports it server-side. Our client-side version is strictly worse
+on both coverage and reliability.
+
+The rule: **emit your own events where the platform is blind, and use the
+platform's where it is not.** Preferring a signal because you built it is the
+same instinct that reaches for a familiar primitive over a correct one.
+
+`startedCheckout` in `packages/analytics` is kept regardless, because it
+carries **`SellingPlanName` per line** and Shopify's metric does not — which is
+the distinction the Recharge work depends on. It is annotated so nobody wires a
+flow to it by mistake.
+
+### Testing an abandoned cart is not what it looks like
+
+⚠️ Clicking "Checkout" on any surface does **not** create an abandoned
+checkout. Shopify only records one once its checkout page has actually loaded
+and captured an email address. A click that never reaches Shopify — or a
+navigation that is blocked — produces nothing to abandon.
+
+So triggering this flow for real means: add to cart, follow through to
+Shopify's checkout, enter an email at the contact step, then leave without
+paying. Anything short of that tests the flow builder, not the flow.
 
 ## Recharge → Klaviyo
 
