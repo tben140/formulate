@@ -77,3 +77,32 @@ export const getCart = async (): Promise<Cart | null> => {
   const result = await cartClient.get(id);
   return result.ok ? result.data : null;
 };
+
+const BUYER_EMAIL_COOKIE = "formulate_buyer_email";
+
+/**
+ * The buyer's email, once they have given us one.
+ *
+ * ⚠️ Exists because the email is known **client-side** (the capture form runs
+ * in the browser) while the cart is created **server-side**. Without somewhere
+ * to put it, the two never meet, and every cart is created anonymous even for a
+ * shopper who signed up thirty seconds earlier.
+ *
+ * httpOnly like the cart id, and for a weaker but real version of the same
+ * reason: it is the shopper's personal data, and nothing in the browser needs
+ * to read it back. Same ten-day lifetime, so a stale email and a dead cart
+ * expire together.
+ */
+export const readBuyerEmail = async (): Promise<string | null> =>
+  (await cookies()).get(BUYER_EMAIL_COOKIE)?.value ?? null;
+
+/** Only callable from a Server Action or Route Handler. */
+export const writeBuyerEmail = async (email: string): Promise<void> => {
+  (await cookies()).set(BUYER_EMAIL_COOKIE, email, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: CART_COOKIE_MAX_AGE,
+  });
+};

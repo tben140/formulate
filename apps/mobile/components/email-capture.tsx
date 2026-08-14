@@ -11,6 +11,7 @@ import {
 import type { SubscribeResult } from "@formulate/analytics";
 
 import { subscribe } from "../lib/klaviyo";
+import { useIdentifyBuyer } from "../lib/use-cart";
 
 /**
  * Turns a failure into something a shopper can act on.
@@ -74,6 +75,7 @@ export const EmailCapture = () => {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [failed, setFailed] = useState(false);
   const [pending, setPending] = useState(false);
+  const identifyBuyer = useIdentifyBuyer();
 
   const onSubmit = async () => {
     if (pending) return;
@@ -82,6 +84,16 @@ export const EmailCapture = () => {
     const result = await subscribe(email);
 
     if (result.ok) {
+      /*
+       * Carry the address to the cart as well as to Klaviyo.
+       *
+       * Klaviyo now knows who this is; Shopify does not, and Shopify is what
+       * records the abandoned checkout the lifecycle flow triggers on. Two
+       * systems, one shopper — identity has to be propagated at each handoff,
+       * not just established once.
+       */
+      identifyBuyer.mutate(email);
+
       /*
        * "You're on the list", matching web and theme — now truthful here too,
        * because the worker records an actual consent record. Before that

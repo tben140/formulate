@@ -7,6 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { clearCartId, readCartId, writeCartId } from "./cart-storage";
+import { readIdentifiedEmail } from "./klaviyo";
 import { storefront } from "./storefront";
 
 /**
@@ -59,9 +60,21 @@ export const useAddToCart = () => {
     mutationFn: async (line: CartLineInput): Promise<Cart> => {
       const existingId = await readCartId();
 
+      /*
+       * A cart created for a shopper we already know carries their email from
+       * the start, which is what lets Shopify record an *attributable*
+       * abandoned checkout if they leave without buying.
+       *
+       * The address comes from the Klaviyo SDK rather than local storage — it
+       * is the same value the SDK attaches events to, so there is one identity
+       * rather than two that can drift.
+       */
       const result = existingId
         ? await cartClient.addLines(existingId, [line])
-        : await cartClient.create({ lines: [line] });
+        : await cartClient.create({
+            lines: [line],
+            email: (await readIdentifiedEmail()) ?? undefined,
+          });
 
       if (!result.ok) {
         // A stored cart can expire or have been completed, in which case
@@ -113,5 +126,39 @@ export const useClearCart = () => {
   return useMutation({
     mutationFn: clearCartId,
     onSuccess: () => queryClient.setQueryData(CART_KEY, null),
+  });
+};
+
+/**
+ * Attaches the buyer's email to an existing cart.
+ *
+ * ⚠️ Covers the cart created **before** sign-up. A cart created after it picks
+ * the address up in `useAddToCart`; this is the other half, and it is the
+ * common case — shoppers usually add to cart and *then* subscribe.
+ *
+ * Without it, exactly the shoppers we know most about are the ones Shopify
+ * cannot attribute an abandoned checkout to.
+ *
+ * Resolves rather than throwing when there is no cart, and swallows Storefront
+ * failures: attribution is an enhancement to a sign-up that has already
+ * succeeded, so it must never turn one into a visible error.
+ */
+export const useIdentifyBuyer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (email: string): Promise<Cart | null> => {
+      const trimmed = email.trim();
+      const cartId = await readCartId();
+      if (!trimmed || !cartId) return null;
+
+      const result = await cartClient.setBuyerIdentity(cartId, { email: trimmed });
+      return result.ok ? result.data : null;
+    },
+    onSuccess: (cart) => {
+      if (cart) queryClient.setQueryData(CART_KEY, cart);
+    },
+    // Deliberately silent — see above.
+    onError: () => undefined,
   });
 };
