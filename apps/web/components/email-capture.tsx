@@ -3,6 +3,7 @@
 import type { SubscribeResult } from "@formulate/analytics";
 import { useId, useState, useTransition } from "react";
 
+import { identifyBuyer } from "@/app/actions/cart";
 import { subscribe } from "@/lib/klaviyo";
 
 /**
@@ -68,6 +69,19 @@ export const EmailCapture = () => {
       const result = await subscribe(email);
 
       if (result.ok) {
+        /*
+         * Carry the address to the cart as well as to Klaviyo.
+         *
+         * Klaviyo now knows who this is; Shopify does not, and Shopify is what
+         * records the abandoned checkout the lifecycle flow triggers on. Two
+         * systems, one shopper — identity has to be propagated at each handoff,
+         * not just established once.
+         *
+         * Not awaited before showing success: attribution is an enhancement,
+         * and the sign-up itself already succeeded.
+         */
+        void identifyBuyer(email);
+
         /*
          * "You're on the list", not "Thanks for subscribing".
          *

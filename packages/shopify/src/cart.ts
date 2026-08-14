@@ -117,6 +117,19 @@ export interface CartClient {
   readonly create: (options?: {
     readonly lines?: readonly CartLineInput[];
     readonly countryCode?: CountryCode;
+    /**
+     * The buyer's email, when one is already known.
+     *
+     * ⚠️ This is what makes an abandoned cart *attributable*. Shopify only
+     * records an abandoned checkout it can act on once it has an address, and
+     * without this the shopper has to type one at the contact step — so anyone
+     * who leaves before that is invisible to a Klaviyo abandoned cart flow,
+     * even when we already know exactly who they are.
+     *
+     * Setting it here also pre-fills Shopify's checkout, which is the same fact
+     * seen from the shopper's side.
+     */
+    readonly email?: string;
   }) => Promise<StorefrontResult<Cart>>;
 
   readonly addLines: (
@@ -153,6 +166,8 @@ export const createCartClient = (storefront: StorefrontClient): CartClient => ({
         lines: options?.lines ? [...options.lines] : undefined,
         buyerIdentity: {
           countryCode: options?.countryCode ?? (DEFAULT_COUNTRY_CODE as CountryCode),
+          // Omitted rather than sent empty — Shopify rejects "" as an address.
+          ...(options?.email ? { email: options.email } : {}),
         },
       },
     });

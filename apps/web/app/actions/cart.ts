@@ -3,7 +3,14 @@
 import { describeError, type Cart, type CartLineInput } from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
 
-import { cartClient, clearCartId, readCartId, writeCartId } from "@/lib/cart";
+import {
+  cartClient,
+  clearCartId,
+  readBuyerEmail,
+  readCartId,
+  writeBuyerEmail,
+  writeCartId,
+} from "@/lib/cart";
 
 /**
  * Cart mutations, as Server Actions.
@@ -86,9 +93,17 @@ export const addToCart = async (
 
   const existingId = await readCartId();
 
+  /*
+   * A cart created for a shopper we already know carries their email from the
+   * start. That is what lets Shopify record an *attributable* abandoned
+   * checkout if they leave without buying — see `create` in packages/shopify.
+   */
   const result = existingId
     ? await cartClient.addLines(existingId, [line])
-    : await cartClient.create({ lines: [line] });
+    : await cartClient.create({
+        lines: [line],
+        email: (await readBuyerEmail()) ?? undefined,
+      });
 
   if (!result.ok) {
     // A cart the shopper still has a cookie for can expire or be completed, in
@@ -136,5 +151,37 @@ export const removeCartLine = async (formData: FormData): Promise<void> => {
   if (!cartId || !lineId) return;
 
   await cartClient.removeLines(cartId, [lineId]);
+  revalidate();
+};
+
+/**
+ * Records the buyer's email and attaches it to their cart.
+ *
+ * Called after a successful newsletter sign-up, which is the moment an
+ * anonymous session becomes a known shopper. Two things happen, and both
+ * matter:
+ *
+ * 1. The address is stored, so a cart created **later** starts out attributed.
+ * 2. If a cart already exists, it is updated, so a cart created **earlier** is
+ *    not left anonymous.
+ *
+ * Without the second, the common case fails: shoppers usually add to cart
+ * before they subscribe.
+ *
+ * ⚠️ Deliberately silent on failure. This is an enhancement to attribution, not
+ * something the shopper asked for — a Storefront hiccup must not turn a
+ * successful sign-up into a visible error. The subscription itself is already
+ * recorded by the time this runs.
+ */
+export const identifyBuyer = async (email: string): Promise<void> => {
+  const trimmed = email.trim();
+  if (!trimmed) return;
+
+  await writeBuyerEmail(trimmed);
+
+  const cartId = await readCartId();
+  if (!cartId) return;
+
+  await cartClient.setBuyerIdentity(cartId, { email: trimmed });
   revalidate();
 };
