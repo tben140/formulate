@@ -3,7 +3,6 @@
 import { describeError, type Cart, type CartLineInput } from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
 
-import { storefront } from "@/lib/storefront";
 import {
   cartClient,
   clearCartId,
@@ -174,30 +173,15 @@ export const removeCartLine = async (formData: FormData): Promise<void> => {
  * successful sign-up into a visible error. The subscription itself is already
  * recorded by the time this runs.
  */
-export const identifyBuyer = async (email: string): Promise<string> => {
+export const identifyBuyer = async (email: string): Promise<void> => {
   const trimmed = email.trim();
-  if (!trimmed) return "PROBE: empty email";
+  if (!trimmed) return;
 
   await writeBuyerEmail(trimmed);
 
   const cartId = await readCartId();
-  if (!cartId) return "PROBE: no cart id";
+  if (!cartId) return;
 
-  const result = await cartClient.setBuyerIdentity(cartId, { email: trimmed });
+  await cartClient.setBuyerIdentity(cartId, { email: trimmed });
   revalidate();
-
-  // Read it back server-side, where the real cart id (with its real ?key=)
-  // lives. A client-side check cannot do this: the key is httpOnly precisely
-  // because it is what gates buyerIdentity.email.
-  const readBack = await storefront.request(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- probe
-    `query P($id: ID!) { cart(id: $id) { buyerIdentity { email } } }` as any,
-    { id: cartId },
-  );
-  const seen = readBack.ok
-    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any -- probe
-      ((readBack.data as any)?.cart?.buyerIdentity?.email ?? "null")
-    : "read failed";
-
-  return `PROBE: setOk=${result.ok} readBack=${seen}`;
 };
