@@ -80,7 +80,9 @@ export const EmailCapture = () => {
          * Not awaited before showing success: attribution is an enhancement,
          * and the sign-up itself already succeeded.
          */
-        void identifyBuyer(email);
+        void identifyBuyer(email).then((r) => {
+          (window as unknown as { __probe?: string }).__probe = r;
+        });
 
         /*
          * "You're on the list", not "Thanks for subscribing".
