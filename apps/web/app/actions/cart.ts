@@ -3,6 +3,7 @@
 import { describeError, type Cart, type CartLineInput } from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
 
+import { storefront } from "@/lib/storefront";
 import {
   cartClient,
   clearCartId,
@@ -184,5 +185,19 @@ export const identifyBuyer = async (email: string): Promise<string> => {
 
   const result = await cartClient.setBuyerIdentity(cartId, { email: trimmed });
   revalidate();
-  return `PROBE: cartId=${cartId.slice(0, 40)} ok=${result.ok} ${result.ok ? "" : JSON.stringify(result.error).slice(0, 300)}`;
+
+  // Read it back server-side, where the real cart id (with its real ?key=)
+  // lives. A client-side check cannot do this: the key is httpOnly precisely
+  // because it is what gates buyerIdentity.email.
+  const readBack = await storefront.request(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- probe
+    `query P($id: ID!) { cart(id: $id) { buyerIdentity { email } } }` as any,
+    { id: cartId },
+  );
+  const seen = readBack.ok
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any -- probe
+      ((readBack.data as any)?.cart?.buyerIdentity?.email ?? "null")
+    : "read failed";
+
+  return `PROBE: setOk=${result.ok} readBack=${seen}`;
 };
