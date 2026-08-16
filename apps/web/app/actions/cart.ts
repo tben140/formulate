@@ -173,15 +173,16 @@ export const removeCartLine = async (formData: FormData): Promise<void> => {
  * successful sign-up into a visible error. The subscription itself is already
  * recorded by the time this runs.
  */
-export const identifyBuyer = async (email: string): Promise<void> => {
+export const identifyBuyer = async (email: string): Promise<string> => {
   const trimmed = email.trim();
-  if (!trimmed) return;
+  if (!trimmed) return "PROBE: empty email";
 
   await writeBuyerEmail(trimmed);
 
   const cartId = await readCartId();
-  if (!cartId) return;
+  if (!cartId) return "PROBE: no cart id";
 
-  await cartClient.setBuyerIdentity(cartId, { email: trimmed });
+  const result = await cartClient.setBuyerIdentity(cartId, { email: trimmed });
   revalidate();
+  return `PROBE: cartId=${cartId.slice(0, 40)} ok=${result.ok} ${result.ok ? "" : JSON.stringify(result.error).slice(0, 300)}`;
 };
