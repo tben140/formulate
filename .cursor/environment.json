@@ -1,0 +1,15 @@
+{
+  "name": "Formulate",
+  "install": "pnpm install --frozen-lockfile",
+  "ports": [
+    { "name": "web", "port": 3000 },
+    { "name": "api", "port": 8787 }
+  ],
+  "terminals": [
+    {
+      "name": "web",
+      "command": "export PATH=\"$NVM_BIN:$PATH\"; pnpm --filter @formulate/web dev",
+      "description": "Next.js storefront dev server on http://localhost:3000. Without a Storefront token in apps/web/.env.local it still boots and renders the readable error state; add the token to see the real catalogue."
+    }
+  ]
+}
