@@ -2,9 +2,11 @@ import { ShopifyCheckoutSheetProvider } from "@shopify/checkout-sheet-kit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useState } from "react";
+import { View } from "react-native";
 
 import { CartButton } from "../components/cart-button";
 import { CartProvider } from "../components/cart-provider";
+import { DemoNotice } from "../components/demo-notice";
 import { initKlaviyo } from "../lib/klaviyo";
 
 import "../global.css";
@@ -49,6 +51,14 @@ const RootLayout = () => {
       <ShopifyCheckoutSheetProvider>
         <CartProvider>
           <Stack
+            // Wraps every screen below its native header, including screens
+            // added later — so the demo notice cannot be forgotten on one.
+            screenLayout={({ children }) => (
+              <View className="flex-1">
+                <DemoNotice />
+                {children}
+              </View>
+            )}
             screenOptions={{
               headerStyle: { backgroundColor: "#ffffff" },
               headerTintColor: "#0f172a",
