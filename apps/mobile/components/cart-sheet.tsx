@@ -13,6 +13,8 @@ import {
 
 import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
 
+import { FreeShippingBar } from "./free-shipping-bar";
+
 /**
  * The cart, as a bottom sheet.
  *
@@ -135,6 +137,11 @@ export const CartSheet = ({
             <Text className="text-sm text-foreground-muted">Close</Text>
           </Pressable>
         </View>
+
+        {/* Above the lines, so VoiceOver reaches it before the list. */}
+        <FreeShippingBar
+          subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
+        />
 
         {isPending ? (
           <View className="flex-1 items-center justify-center">
