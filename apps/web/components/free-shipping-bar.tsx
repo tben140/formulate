@@ -30,7 +30,7 @@ export const FreeShippingBar = ({ subtotal }: { subtotal: MoneyLike | null }) =>
             className={`h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none ${
               progress.kind === "unlocked" ? "bg-success" : "bg-brand-600"
             }`}
-            style={{ width: `${Math.round(progress.fraction * 100)}%` }}
+            style={{ width: `${Math.floor(progress.fraction * 100)}%` }}
           />
         </div>
       ) : null}

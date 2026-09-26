@@ -54,7 +54,7 @@ export const FreeShippingBar = ({
           className={`h-full rounded-full ${
             progress.kind === "unlocked" ? "bg-success" : "bg-brand-600"
           }`}
-          style={{ width: `${Math.round(progress.fraction * 100)}%` }}
+          style={{ width: `${Math.floor(progress.fraction * 100)}%` }}
         />
       </View>
     </View>

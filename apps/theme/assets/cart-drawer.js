@@ -137,9 +137,15 @@ class CartDrawer extends Component {
   /** @type {string} */
   #lastAnnounced = "";
 
-  /** @param {string} message */
+  /**
+   * An empty message (the cart was emptied, so the bar is gone) clears the
+   * region without announcing anything. Otherwise the old sentence would linger
+   * for a screen reader moving through the drawer.
+   *
+   * @param {string} message
+   */
   #announce(message) {
-    if (!this.#announcer || !message || message === this.#lastAnnounced) return;
+    if (!this.#announcer || message === this.#lastAnnounced) return;
     this.#lastAnnounced = message;
     this.#announcer.textContent = message;
   }
