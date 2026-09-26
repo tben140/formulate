@@ -213,6 +213,17 @@ export const AddToCart = ({
           {addToCart.error.message}
         </Text>
       ) : null}
+
+      {/*
+        Fewer were added than chosen, because that is all there is. Shown in
+        the neutral colour: the add worked, but the quantity is not what the
+        shopper picked, so it must not read as a plain success.
+      */}
+      {addToCart.isSuccess && addToCart.data.notice ? (
+        <Text accessibilityLiveRegion="polite" className="text-sm text-foreground">
+          {addToCart.data.notice}
+        </Text>
+      ) : null}
     </View>
   );
 };

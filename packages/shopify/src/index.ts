@@ -4,7 +4,7 @@ export type { StorefrontClient, StorefrontClientConfig } from "./client";
 export { createCartClient, isCartGone, isCartId } from "./cart";
 export type { AddLinesOutcome, Cart, CartClient } from "./cart";
 
-export { describeError } from "./errors";
+export { describeError, describeForShopper } from "./errors";
 export type {
   GraphQLErrorShape,
   StorefrontError,

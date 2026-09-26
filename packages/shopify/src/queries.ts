@@ -284,6 +284,13 @@ export const CartCreateMutation = graphql(`
         message
         code
       }
+      # Stock problems arrive here, not in userErrors: a sold-out or short add
+      # "succeeds" with a warning naming the cart line. See addLinesOrCreate.
+      warnings {
+        code
+        message
+        target
+      }
     }
   }
 `);
@@ -298,6 +305,13 @@ export const CartLinesAddMutation = graphql(`
         field
         message
         code
+      }
+      # Stock problems arrive here, not in userErrors: a sold-out or short add
+      # "succeeds" with a warning naming the cart line. See addLinesOrCreate.
+      warnings {
+        code
+        message
+        target
       }
     }
   }
