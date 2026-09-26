@@ -40,6 +40,7 @@ export {
 export {
   DEFAULT_API_VERSION,
   DEFAULT_COLLECTION_HANDLE,
+  DEMO_STORE_NOTICE,
   DEFAULT_COUNTRY_CODE,
 } from "./config";
 
