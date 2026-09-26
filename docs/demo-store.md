@@ -25,6 +25,19 @@ Web and mobile read `DEMO_STORE_NOTICE` from `packages/shopify/src/config.ts`.
 The theme cannot import it, so its section settings default to a copy. Change
 both together.
 
+Klaviyo flow emails carry it too, as a dark bar at the top of the body between
+`<!-- demo-notice:start -->` and `<!-- demo-notice:end -->`. That is a third
+copy, and it lives in Klaviyo rather than git. It is in every live flow email
+except two:
+
+- **Abandoned checkout** is still a placeholder.
+- **Back in stock** uses Klaviyo's drag-and-drop editor, which the API cannot
+  edit as HTML.
+
+⚠️ Klaviyo will not let a flow's own template be edited through the API. To
+change the notice, create a new template and point the flow action's
+`template_id` at it; Klaviyo clones it into the flow.
+
 It is not dismissible: it states what happens to an order, so it has to be
 there on the page someone checks out from. Shopify's own checkout pages are out
 of reach; they show a "Testing instruction" panel instead.
