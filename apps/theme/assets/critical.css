@@ -686,6 +686,84 @@ a:hover {
   font-weight: 600;
 }
 
+/* Sticky add to cart (SHO-117). Small screens only, matching apps/web's
+   md:hidden at 768px. Slides up from below; product-form.js adds
+   .is-visible and removes `inert` while the main button is off screen. */
+.product-form__sticky {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  transform: translateY(100%);
+  transition: transform 200ms;
+}
+
+.product-form__sticky.is-visible {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-form__sticky {
+    transition: none;
+  }
+}
+
+@media (min-width: 48rem) {
+  .product-form__sticky {
+    display: none;
+  }
+}
+
+.product-form__sticky-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-form__sticky-title,
+.product-form__sticky-detail {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.product-form__sticky-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.product-form__sticky-detail {
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
+
+.product-form__sticky-submit {
+  flex-shrink: 0;
+  padding: var(--spacing-2) var(--spacing-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-600);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-surface);
+  cursor: pointer;
+}
+
+.product-form__sticky-submit:hover {
+  background-color: var(--color-brand-700);
+}
+
+.product-form__sticky-submit:disabled {
+  background-color: var(--color-ink-300);
+  cursor: not-allowed;
+}
+
 .product-form__status {
   margin-block-start: var(--spacing-3);
   font-size: var(--text-sm);
