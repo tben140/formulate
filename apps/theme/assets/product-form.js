@@ -28,6 +28,9 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLInputElement | HTMLInputElement[]} [optionInput]
  * @property {HTMLFieldSetElement} [plans]
  * @property {HTMLElement} [planList]
+ * @property {HTMLElement} [stickyBar]
+ * @property {HTMLElement} [stickyDetail]
+ * @property {HTMLButtonElement} [stickySubmit]
  */
 
 /**
@@ -83,6 +86,37 @@ class ProductForm extends Component {
     const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
     this.#plansBuiltFor = rendered ? Number(this.refs.variantId?.value) || null : null;
     this.#sync();
+    this.#observeMainButton();
+  }
+
+  /**
+   * Shows the sticky bar while the main button is off screen, above or below.
+   *
+   * An IntersectionObserver rather than a scroll threshold, which silently goes
+   * wrong when content above the button changes height. Either direction,
+   * because on a phone this page is image first with the button near the end;
+   * see `useOffScreen` in apps/web's add-to-cart-form, where this was measured.
+   */
+  #observeMainButton() {
+    const { submit, stickyBar } = this.refs;
+    if (!submit || !stickyBar) return;
+
+    const small = window.matchMedia("(max-width: 47.99rem)");
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry) return;
+      const show = !entry.isIntersecting;
+      stickyBar.classList.toggle("is-visible", show);
+      stickyBar.inert = !show;
+      // Pad the page so the bar never covers the last of it. Only where the
+      // bar exists at all; CSS hides it from 48rem up.
+      document.body.style.paddingBottom =
+        show && small.matches ? `${stickyBar.offsetHeight}px` : "";
+    });
+    observer.observe(submit);
+    this.signal.addEventListener("abort", () => {
+      observer.disconnect();
+      document.body.style.paddingBottom = "";
+    });
   }
 
   /** The option pills, as a flat array regardless of how many there are. */
@@ -140,14 +174,18 @@ class ProductForm extends Component {
     // (SHO-124). The per-option prices in the list were always right.
     if (price && match) price.textContent = effectivePlan?.price ?? match.price;
 
+    const label = !match
+      ? (submit?.dataset.unavailableLabel ?? "Unavailable")
+      : match.available
+        ? (submit?.dataset.addLabel ?? "Add to cart")
+        : (submit?.dataset.soldOutLabel ?? "Sold out");
+
     if (submit) {
       submit.disabled = !match || !match.available;
-      submit.textContent = !match
-        ? (submit.dataset.unavailableLabel ?? "Unavailable")
-        : match.available
-          ? (submit.dataset.addLabel ?? "Add to cart")
-          : (submit.dataset.soldOutLabel ?? "Sold out");
+      submit.textContent = label;
     }
+
+    this.#syncSticky(match, effectivePlan, label);
 
     if ((match?.id ?? null) !== this.#plansBuiltFor) {
       this.#buildPlans(match, plans, effectivePlan);
@@ -231,6 +269,39 @@ class ProductForm extends Component {
     }
   }
 
+  /**
+   * The sticky bar mirrors the main control from the same #sync call, so it
+   * cannot hold a stale copy of the selection.
+   *
+   * @param {VariantData | undefined} match
+   * @param {PlanData | undefined} effectivePlan
+   * @param {string} label
+   */
+  #syncSticky(match, effectivePlan, label) {
+    const { stickyBar, stickyDetail, stickySubmit } = this.refs;
+    if (!stickyBar) return;
+
+    const title = stickyBar.dataset.productTitle ?? "";
+    const variantTitle =
+      match && match.options.join(" / ") !== "Default Title"
+        ? match.options.join(" / ")
+        : "";
+    const detail = [variantTitle, effectivePlan?.name].filter(Boolean).join(" · ");
+    const priceText = match ? (effectivePlan?.price ?? match.price) : "";
+
+    if (stickyDetail) {
+      stickyDetail.textContent = [detail, priceText].filter(Boolean).join(" — ");
+    }
+    if (stickySubmit) {
+      stickySubmit.disabled = !match || !match.available;
+      stickySubmit.textContent = label;
+      stickySubmit.setAttribute(
+        "aria-label",
+        [label, title, variantTitle].filter(Boolean).join(", "),
+      );
+    }
+  }
+
   /** @param {SubmitEvent} event */
   #onSubmit = async (event) => {
     event.preventDefault();
@@ -242,8 +313,9 @@ class ProductForm extends Component {
     const variantId = String(data.get("id") ?? "");
     if (!variantId) return;
 
-    const { submit, status } = this.refs;
+    const { submit, stickySubmit, status } = this.refs;
     if (submit) submit.disabled = true;
+    if (stickySubmit) stickySubmit.disabled = true;
     if (status) status.textContent = "";
 
     try {
@@ -268,7 +340,9 @@ class ProductForm extends Component {
           error instanceof Error ? error.message : "Could not update your cart.";
       }
     } finally {
-      if (submit) submit.disabled = false;
+      // Back to whatever the selection allows, for both buttons, rather than
+      // a blanket re-enable.
+      this.#sync();
     }
   };
 }
