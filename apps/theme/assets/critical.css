@@ -556,6 +556,11 @@ a:hover {
   background-color: var(--color-brand-700);
 }
 
+.product-form__submit[aria-disabled="true"],
+.product-form__sticky-submit[aria-disabled="true"] {
+  cursor: wait;
+}
+
 .product-form__submit:disabled {
   background-color: var(--color-ink-300);
   cursor: not-allowed;
