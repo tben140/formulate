@@ -114,7 +114,16 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
   const stickyVisible = useOffScreen(primaryButton);
 
   return (
-    <form action={formAction} className="mt-6">
+    <form
+      action={formAction}
+      // A second submit while one is in flight would add the item twice. The
+      // buttons can't be `disabled` to prevent it (see below), so it is
+      // stopped here; React skips the action when onSubmit prevents default.
+      onSubmit={(event) => {
+        if (pending) event.preventDefault();
+      }}
+      className="mt-6"
+    >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
 
@@ -222,11 +231,19 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         <p className="mb-4 text-2xl font-semibold">{formatMoney(displayPrice)}</p>
       ) : null}
 
+      {/*
+        ⚠️ `aria-disabled`, not `disabled`, while an add is in flight (SHO-134).
+        A focused button that becomes disabled drops focus to <body>, so the
+        cart drawer, which returns focus to whatever had it when it opened,
+        would send a keyboard user back to the top of the page on close.
+        `disabled` stays for states the shopper can't act on at all.
+      */}
       <button
         ref={primaryButton}
         type="submit"
-        disabled={!variant || soldOut || pending}
-        className="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-surface hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+        disabled={!variant || soldOut}
+        aria-disabled={pending || undefined}
+        className="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-surface hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-ink-300 aria-disabled:cursor-wait"
       >
         {buttonLabel}
       </button>
@@ -249,7 +266,8 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         planName={chosenAllocation?.sellingPlan.name ?? null}
         price={displayPrice ? formatMoney(displayPrice) : null}
         buttonLabel={buttonLabel}
-        disabled={!variant || soldOut || pending}
+        disabled={!variant || soldOut}
+        busy={pending}
       />
 
       <p role="status" aria-live="polite" className="mt-3 text-sm">
@@ -311,6 +329,7 @@ const StickyAddToCart = ({
   price,
   buttonLabel,
   disabled,
+  busy,
 }: {
   readonly visible: boolean;
   readonly title: string;
@@ -319,6 +338,8 @@ const StickyAddToCart = ({
   readonly price: string | null;
   readonly buttonLabel: string;
   readonly disabled: boolean;
+  /** An add is in flight: aria-disabled, never disabled. See the main button. */
+  readonly busy: boolean;
 }) => {
   const bar = useRef<HTMLDivElement>(null);
 
@@ -360,11 +381,12 @@ const StickyAddToCart = ({
         <button
           type="submit"
           disabled={disabled}
+          aria-disabled={busy || undefined}
           // Starts with the visible text, so voice control users can say what
           // they see (WCAG 2.5.3), and adds the product so a screen reader's
           // list of buttons can tell this one from the main button.
           aria-label={`${buttonLabel}, ${title}${variantTitle ? `, ${variantTitle}` : ""}`}
-          className="shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-surface hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+          className="shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-surface hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-ink-300 aria-disabled:cursor-wait"
         >
           {buttonLabel}
         </button>
