@@ -59,3 +59,8 @@ pnpm-debug.log*
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
+
+# Playwright output (apps/web/e2e)
+test-results/
+playwright-report/
+blob-report/
