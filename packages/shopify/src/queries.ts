@@ -48,6 +48,13 @@ export const ProductByHandleQuery = graphql(`
       # Both exist for the Klaviyo payload, which must match what the theme's
       # app embed already emits — see packages/analytics/src/events.ts.
       vendor
+      # Klaviyo Categories. Sorted by title in events.ts, because this comes
+      # back in creation order and the theme's list is alphabetical. SHO-126.
+      collections(first: 50) {
+        nodes {
+          title
+        }
+      }
       compareAtPriceRange {
         minVariantPrice {
           amount
