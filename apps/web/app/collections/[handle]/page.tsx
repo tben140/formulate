@@ -1,26 +1,52 @@
-import { CollectionProductsQuery, formatMoney } from "@formulate/shopify";
+import { formatMoney } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { JsonLd } from "@/components/json-ld";
 import { StorefrontErrorState } from "@/components/storefront-error";
-import { storefront } from "@/lib/storefront";
+import { getCollection } from "@/lib/catalogue";
+import { breadcrumbJsonLd, metaDescription } from "@/lib/structured-data";
 
 interface PageProps {
   /** Next 15+ passes route params as a Promise. */
   readonly params: Promise<{ handle: string }>;
 }
 
-export const metadata: Metadata = { title: "Collection — Formulate" };
+/**
+ * The canonical is always the bare collection URL. Today there is one page of
+ * results (see COLLECTION_PAGE_SIZE), so every variant of this URL (tracking
+ * parameters, sort parameters) points back to it. When pagination arrives
+ * (SHO-44), each page must be its own canonical, not page 1: pointing page 2
+ * at page 1 tells search engines to ignore the products only page 2 lists.
+ */
+export const generateMetadata = async ({ params }: PageProps): Promise<Metadata> => {
+  const { handle } = await params;
+  const result = await getCollection(handle);
+  const collection = result.ok ? result.data.collection : null;
+  if (!collection) return {};
+
+  const description = metaDescription(
+    collection.seo.description ?? collection.description,
+  );
+
+  return {
+    title: collection.seo.title ?? collection.title,
+    ...(description ? { description } : {}),
+    alternates: { canonical: `/collections/${handle}` },
+    openGraph: {
+      url: `/collections/${handle}`,
+      title: collection.title,
+      ...(description ? { description } : {}),
+    },
+  };
+};
 
 const CollectionPage = async ({ params }: PageProps) => {
   const { handle } = await params;
 
-  const result = await storefront.request(CollectionProductsQuery, {
-    handle,
-    first: 24,
-  });
+  const result = await getCollection(handle);
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
@@ -29,6 +55,13 @@ const CollectionPage = async ({ params }: PageProps) => {
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: collection.title, path: `/collections/${handle}` },
+        ])}
+      />
+
       <header className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">{collection.title}</h1>
         {collection.description ? (

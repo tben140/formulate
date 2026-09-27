@@ -15,6 +15,10 @@ export const CollectionProductsQuery = graphql(`
       id
       title
       description
+      seo {
+        title
+        description
+      }
       # COLLECTION_DEFAULT is the merchant's configured sort for this
       # collection, the same order Liquid's collection.products uses, so the
       # three surfaces agree. It is also the API default: stated here so it is a
@@ -49,6 +53,12 @@ export const ProductByHandleQuery = graphql(`
       handle
       title
       description
+      # The merchant's search-engine overrides from the admin. Either can be
+      # null, in which case apps/web falls back to the title and description.
+      seo {
+        title
+        description
+      }
       # Both exist for the Klaviyo payload, which must match what the theme's
       # app embed already emits — see packages/analytics/src/events.ts.
       vendor
@@ -125,6 +135,8 @@ export const ProductByHandleQuery = graphql(`
           id
           title
           availableForSale
+          # For the Product structured data on apps/web. Can be null.
+          sku
           selectedOptions {
             name
             value
@@ -375,6 +387,49 @@ export const CartBuyerIdentityUpdateMutation = graphql(`
         field
         message
         code
+      }
+    }
+  }
+`);
+
+/**
+ * Everything apps/web's sitemap lists, one page at a time.
+ *
+ * Only what the Headless channel can see, which is exactly what the web app
+ * can render. `products(first: 1)` on each collection is there to leave empty
+ * collections out: a sitemap entry for a page with nothing on it is worse than
+ * none.
+ */
+export const SitemapProductsQuery = graphql(`
+  query SitemapProducts($after: String) {
+    products(first: 250, after: $after) {
+      nodes {
+        handle
+        updatedAt
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`);
+
+export const SitemapCollectionsQuery = graphql(`
+  query SitemapCollections($after: String) {
+    collections(first: 250, after: $after) {
+      nodes {
+        handle
+        updatedAt
+        products(first: 1) {
+          nodes {
+            id
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
       }
     }
   }

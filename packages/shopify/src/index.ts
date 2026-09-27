@@ -42,6 +42,8 @@ export {
   CollectionProductsQuery,
   ProductByHandleQuery,
   ShopNameQuery,
+  SitemapCollectionsQuery,
+  SitemapProductsQuery,
 } from "./queries";
 
 export {
