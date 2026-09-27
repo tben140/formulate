@@ -38,20 +38,51 @@ native app. They are not** — see below. The conclusion stands for the SDK's
 
 ## Events we intend to emit
 
-| Event              | Fires from | Status                             |
-| ------------------ | ---------- | ---------------------------------- |
-| Viewed product     | Web, theme | Shipped                            |
-| Added to cart      | Web, theme | Shipped                            |
-| Started checkout   | Web, theme | Shipped                            |
-| Subscribed to list | Web, theme | Shipped — see Email capture below  |
+Where each metric in the Klaviyo account really comes from, as observed in the
+account on 2026-09-27. Two pairs have near-identical names, so the id matters.
 
-The theme emits the first three automatically through Klaviyo's app embed, with
+| Klaviyo metric (id)         | Integration | Fed by                                                                  | Flows that use it                                 |
+| --------------------------- | ----------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
+| Viewed Product (`RXYrJ4`)   | API         | Web (`_learnq`), theme (Klaviyo app embed)                              | Browse abandonment                                |
+| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed), iOS app (SDK). **Canonical**, see below         | Cart abandonment                                  |
+| Added to Cart (`UNszvd`)    | Shopify     | Shopify's web pixel, theme only. **Not used**, see below                | none                                              |
+| Started Checkout (`SqEBQ9`) | API         | Web only (`apps/web`, on the checkout link). The theme does not emit it | none                                              |
+| Checkout Started (`UprmRa`) | Shopify     | Shopify, server-side, from every surface                                | Abandoned checkout                                |
+| Subscribed to List          | Klaviyo     | Web, theme (email capture, see below)                                   | none (Welcome series triggers on the list itself) |
+
+The theme's Viewed Product and Added to Cart come from Klaviyo's app embed, with
 no code from us. The headless surfaces build the same payloads by hand in
 `packages/analytics`, which exists precisely so the two cannot drift: its tests
 assert against a payload captured from the running theme. A `ProductID` sent as
 a Storefront gid rather than a legacy numeric id would produce events that look
 correct in Klaviyo and never match a theme-generated one, splitting every
 segment in two with no error anywhere.
+
+For checkout, see "Which checkout metric" below: the flow uses Shopify's
+server-side `Checkout Started`, not our `Started Checkout`.
+
+### ⚠️ Which Added to Cart metric
+
+**`W7zpiE` (API) is canonical.** It is the only Added to Cart metric every
+surface feeds, and Cart abandonment already triggers on it. Build flows and
+segments on it, and never on a sum of the two.
+
+`UNszvd` appeared on 2026-09-21 at 14:43, 14 seconds after its first event. Its
+events carry `$extra.standard.event_type: "product_added_to_cart"`, a `shop_id`
+and a `Client ID`: the shape of Shopify's Customer Events web pixel, which
+Klaviyo's Shopify integration can subscribe to. So it comes from the Shopify
+integration, not from the theme's code, and it would fire on any theme. On
+2026-09-21 it recorded **two** events for each add, a second apart with
+different event ids, and it has recorded nothing since.
+
+Two consequences if it is left on:
+
+- A flow or segment on `UNszvd` sees theme shoppers only.
+- Anything that adds the two together counts theme adds two or three times.
+
+It cannot be reproduced from a headless browser: Klaviyo treats automated
+browsers as robots and drops their events entirely, including Viewed Product.
+Check it from a real browser.
 
 Order and refund events come from Shopify's own Klaviyo integration rather than
 from our code. Emitting them ourselves would duplicate what the platform already
