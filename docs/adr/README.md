@@ -18,14 +18,16 @@ from neglect.
 
 ## The records
 
-| #                                                       | Decision                             | Status   | Date       |
-| ------------------------------------------------------- | ------------------------------------ | -------- | ---------- |
-| [0001](0001-monorepo-over-separate-theme-repository.md) | Monorepo, including the Liquid theme | Accepted | 2026-08-05 |
-| [0002](0002-typescript-6-over-7.md)                     | TypeScript `~6.0.3`, not 7           | Accepted | 2026-07-26 |
-| [0003](0003-nativewind-v5-and-tailwind-v4.md)           | NativeWind v5 preview + Tailwind v4  | Accepted | 2026-07-26 |
-| [0004](0004-pin-lightningcss-to-1-30-1.md)              | Pin `lightningcss` to 1.30.1         | Accepted | 2026-07-26 |
-| [0005](0005-parity-means-design-not-data.md)            | Parity means design, not data        | Accepted | 2026-08-05 |
-| [0006](0006-checkout-handoff-differs-per-surface.md)    | Checkout handoff differs per surface | Accepted | 2026-07-26 |
+| #                                                       | Decision                              | Status   | Date       |
+| ------------------------------------------------------- | ------------------------------------- | -------- | ---------- |
+| [0001](0001-monorepo-over-separate-theme-repository.md) | Monorepo, including the Liquid theme  | Accepted | 2026-08-05 |
+| [0002](0002-typescript-6-over-7.md)                     | TypeScript `~6.0.3`, not 7            | Accepted | 2026-07-26 |
+| [0003](0003-nativewind-v5-and-tailwind-v4.md)           | NativeWind v5 preview + Tailwind v4   | Accepted | 2026-07-26 |
+| [0004](0004-pin-lightningcss-to-1-30-1.md)              | Pin `lightningcss` to 1.30.1          | Accepted | 2026-07-26 |
+| [0005](0005-parity-means-design-not-data.md)            | Parity means design, not data         | Accepted | 2026-08-05 |
+| [0006](0006-checkout-handoff-differs-per-surface.md)    | Checkout handoff differs per surface  | Accepted | 2026-07-26 |
+| [0007](0007-mobile-consent-goes-through-a-worker.md)    | Mobile marketing consent via a Worker | Accepted | 2026-08-11 |
+| [0008](0008-headless-tracking-consent-is-our-own.md)    | Headless tracking consent is our own  | Accepted | 2026-09-23 |
 
 ## Writing a new one
 
