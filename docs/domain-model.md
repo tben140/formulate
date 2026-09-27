@@ -28,8 +28,12 @@ A product is not simply "in the store". It is published to specific _sales
 channels_, and each surface sees a different catalogue as a result. This is the
 single most surprising thing about the store, so it is worth stating precisely.
 
-The storefront opens on `automated-collection`, a smart collection with the rule
-`variant price > 200 AND < 800`. Shopify's admin counts **8** products in it:
+The storefront now opens on `best-sellers`, from the Double Helix catalogue. Its
+per-channel counts have not been re-measured. The table below is the original
+measurement, taken on 2026-08-05 against the snowboard seed catalogue, when the
+storefront opened on `automated-collection`, a smart collection with the rule
+`variant price > 200 AND < 800` that is now empty. Shopify's admin counted **8**
+products in it:
 
 | Product                            | Online Store  | Headless | Visible in        |
 | ---------------------------------- | ------------- | -------- | ----------------- |
@@ -42,8 +46,8 @@ The storefront opens on `automated-collection`, a smart collection with the rule
 | The Hidden Snowboard               | **no**        | yes      | web + mobile only |
 | The Archived Snowboard             | no (archived) | no       | nowhere           |
 
-So the Liquid theme renders **6** products and the two headless surfaces render
-**7**, from the same collection handle. That is correct behaviour, not drift —
+So the Liquid theme rendered **6** products and the two headless surfaces
+rendered **7**, from the same collection handle. That is correct behaviour, not drift —
 see [ADR 0005](adr/0005-parity-means-design-not-data.md).
 
 Anyone comparing the surfaces side by side will notice this within seconds, so
