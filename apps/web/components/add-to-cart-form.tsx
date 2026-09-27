@@ -123,9 +123,12 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                 );
 
                 return (
+                  // The radio is sr-only, so the global :focus-visible outline
+                  // would draw on a clipped 1px box. The label shows it instead,
+                  // matching the theme's .product-form__pill (WCAG 2.4.7).
                   <label
                     key={value.name}
-                    className={`cursor-pointer rounded-md border px-3 py-2 text-sm ${
+                    className={`cursor-pointer rounded-md border px-3 py-2 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 ${
                       checked
                         ? "border-brand-600 bg-brand-50 font-medium"
                         : "border-border hover:border-foreground-muted"
