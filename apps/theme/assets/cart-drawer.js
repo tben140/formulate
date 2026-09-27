@@ -9,6 +9,16 @@ import { changeItem } from "@theme/cart-api";
 const DRAWER_SECTION = "cart-drawer";
 
 /**
+ * The free-delivery sentence in rendered drawer markup, or "" when the bar is
+ * not showing.
+ *
+ * @param {ParentNode | null} root
+ * @returns {string}
+ */
+const freeShippingMessage = (root) =>
+  root?.querySelector("[data-free-shipping-message]")?.textContent?.trim() ?? "";
+
+/**
  * The slide-in cart.
  *
  * The panel itself is a native `<dialog>` opened with `showModal()`, exactly as
@@ -24,11 +34,34 @@ class CartDrawer extends Component {
   /** @type {HTMLDialogElement | null} */
   #dialog = null;
 
+  /**
+   * A polite live region that lives for as long as the drawer does.
+   *
+   * The drawer's contents are replaced wholesale on every change, and a live
+   * region that arrives already filled in is often not announced. So the
+   * free-delivery sentence is copied into this one, which is never replaced,
+   * and only its text changes.
+   *
+   * @type {HTMLParagraphElement | null}
+   */
+  #announcer = null;
+
   /** @override */
   connectedCallback() {
     super.connectedCallback();
 
     this.#dialog = this.querySelector("dialog");
+
+    // Inside the dialog, not beside it: a modal dialog makes everything outside
+    // it inert, live regions included.
+    this.#announcer = document.createElement("p");
+    this.#announcer.className = "visually-hidden";
+    this.#announcer.setAttribute("role", "status");
+    this.#dialog?.prepend(this.#announcer);
+
+    // Seeded silently from the first render, so only a later *change* is
+    // announced — never the message that was already there on page load.
+    this.#lastAnnounced = freeShippingMessage(this.#dialog);
 
     this.addEventListener("click", this.#onClick, { signal: this.signal });
     this.addEventListener("submit", this.#onSubmit, { signal: this.signal });
@@ -83,8 +116,13 @@ class CartDrawer extends Component {
 
     // The dialog element itself survives, so its open state, its position in
     // the top layer and any running transition are all preserved — only the
-    // contents change.
-    dialog.replaceChildren(document.importNode(next, true));
+    // section changes. The announcer beside it is left alone on purpose.
+    const current = dialog.querySelector(".cart-drawer-section");
+    const imported = document.importNode(next, true);
+    if (current) current.replaceWith(imported);
+    else dialog.append(imported);
+
+    this.#announce(freeShippingMessage(imported));
 
     // The count lives in the swapped markup, so the header updates from the
     // same response. No second request for a number already in hand.
@@ -94,6 +132,22 @@ class CartDrawer extends Component {
         new CustomEvent("cart:updated", { detail: { itemCount: Number(count) } }),
       );
     }
+  }
+
+  /** @type {string} */
+  #lastAnnounced = "";
+
+  /**
+   * An empty message (the cart was emptied, so the bar is gone) clears the
+   * region without announcing anything. Otherwise the old sentence would linger
+   * for a screen reader moving through the drawer.
+   *
+   * @param {string} message
+   */
+  #announce(message) {
+    if (!this.#announcer || message === this.#lastAnnounced) return;
+    this.#lastAnnounced = message;
+    this.#announcer.textContent = message;
   }
 
   /** @param {Event} event */
