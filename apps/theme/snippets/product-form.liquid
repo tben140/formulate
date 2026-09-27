@@ -48,15 +48,20 @@
             <div class="product-form__values">
               {% for value in option.values %}
                 {% comment %}
-                  `value` is a product_option_value: `exists` and `available`
-                  describe the combination this pill would produce with the
-                  other axes as currently selected, which is exactly the rule
-                  web uses. A combination that doesn't exist is not "sold out",
-                  matching web. product-form.js keeps this in step after the
-                  shopper changes an axis.
+                  `value` is a product_option_value, and `value.variant` is the
+                  variant this pill would produce with the other axes as
+                  currently selected, or nil when that combination doesn't
+                  exist. That is exactly web's findVariantByOptions rule, so a
+                  missing combination is not "sold out", matching web.
+
+                  Not `value.available`: that is Shopify's top-down rule, which
+                  only looks at the options *before* this one.
+
+                  product-form.js keeps this in step after the shopper changes
+                  an axis.
                 {% endcomment %}
                 {% assign pill_sold_out = false %}
-                {% if value.exists and value.available == false %}
+                {% if value.variant and value.variant.available == false %}
                   {% assign pill_sold_out = true %}
                 {% endif %}
                 <label class="product-form__pill{% if pill_sold_out %} product-form__pill--sold-out{% endif %}">
