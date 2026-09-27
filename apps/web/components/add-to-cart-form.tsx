@@ -235,7 +235,13 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         {state.status === "error" ? (
           <span className="text-danger">{state.message}</span>
         ) : state.status === "success" ? (
-          <span className="text-success">Added to your cart.</span>
+          // A message on success means fewer were added than asked for, which
+          // the shopper needs to notice — so it is not styled as a success.
+          state.message ? (
+            <span className="text-foreground">{state.message}</span>
+          ) : (
+            <span className="text-success">Added to your cart.</span>
+          )
         ) : null}
       </p>
     </form>

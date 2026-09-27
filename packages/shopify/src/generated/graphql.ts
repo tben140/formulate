@@ -420,6 +420,43 @@ export type CartSelectableAddressInput = {
   validationStrategy?: DeliveryAddressValidationStrategy | null | undefined;
 };
 
+/** The code for the cart warning. */
+export type CartWarningCode =
+  /** The discount code cannot be honored. */
+  | 'DISCOUNT_CODE_NOT_HONOURED'
+  /** The discount is currently inactive. */
+  | 'DISCOUNT_CURRENTLY_INACTIVE'
+  /** The customer is not eligible for this discount. */
+  | 'DISCOUNT_CUSTOMER_NOT_ELIGIBLE'
+  /** The customer's discount usage limit has been reached. */
+  | 'DISCOUNT_CUSTOMER_USAGE_LIMIT_REACHED'
+  /** An eligible customer is missing for this discount. */
+  | 'DISCOUNT_ELIGIBLE_CUSTOMER_MISSING'
+  /** The purchase type is incompatible with this discount. */
+  | 'DISCOUNT_INCOMPATIBLE_PURCHASE_TYPE'
+  /** The discount was not found. */
+  | 'DISCOUNT_NOT_FOUND'
+  /** There are no entitled line items for this discount. */
+  | 'DISCOUNT_NO_ENTITLED_LINE_ITEMS'
+  /** There are no entitled shipping lines for this discount. */
+  | 'DISCOUNT_NO_ENTITLED_SHIPPING_LINES'
+  /** The purchase is not in range for this discount. */
+  | 'DISCOUNT_PURCHASE_NOT_IN_RANGE'
+  /** The quantity is not in range for this discount. */
+  | 'DISCOUNT_QUANTITY_NOT_IN_RANGE'
+  /** The discount usage limit has been reached. */
+  | 'DISCOUNT_USAGE_LIMIT_REACHED'
+  /** A delivery address with the same details already exists on this cart. */
+  | 'DUPLICATE_DELIVERY_ADDRESS'
+  /** The merchandise does not have enough stock. */
+  | 'MERCHANDISE_NOT_ENOUGH_STOCK'
+  /** The merchandise is out of stock. */
+  | 'MERCHANDISE_OUT_OF_STOCK'
+  /** Only one-time purchase is available for B2B orders. */
+  | 'MERCHANDISE_SELLING_PLAN_NOT_APPLICABLE_ON_COMPANY_LOCATION'
+  /** Gift cards are not available as a payment method. */
+  | 'PAYMENTS_GIFT_CARDS_UNAVAILABLE';
+
 /**
  * The code designating a country/region, which generally follows ISO 3166-1 alpha-2 guidelines.
  * If a territory doesn't have a country code value in the `CountryCode` enum, then it might be considered a subdivision
@@ -1317,7 +1354,7 @@ export type CartCreateMutationVariables = Exact<{
 export type CartCreateMutation = { cartCreate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
           | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
           | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
-        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }> } | null };
+        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }>, warnings: Array<{ code: CartWarningCode, message: string, target: string }> } | null };
 
 export type CartLinesAddMutationVariables = Exact<{
   cartId: string | number;
@@ -1328,7 +1365,7 @@ export type CartLinesAddMutationVariables = Exact<{
 export type CartLinesAddMutation = { cartLinesAdd: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
           | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
           | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
-        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }> } | null };
+        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }>, warnings: Array<{ code: CartWarningCode, message: string, target: string }> } | null };
 
 export type CartLinesUpdateMutationVariables = Exact<{
   cartId: string | number;
@@ -1665,6 +1702,11 @@ export const CartCreateDocument = new TypedDocumentString(`
       message
       code
     }
+    warnings {
+      code
+      message
+      target
+    }
   }
 }
     fragment CartFields on Cart {
@@ -1742,6 +1784,11 @@ export const CartLinesAddDocument = new TypedDocumentString(`
       field
       message
       code
+    }
+    warnings {
+      code
+      message
+      target
     }
   }
 }

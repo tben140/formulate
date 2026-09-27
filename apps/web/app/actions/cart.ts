@@ -1,6 +1,11 @@
 "use server";
 
-import { describeError, type Cart, type CartLineInput } from "@formulate/shopify";
+import {
+  describeError,
+  describeForShopper,
+  type Cart,
+  type CartLineInput,
+} from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -39,6 +44,11 @@ import {
  */
 export interface CartActionState {
   readonly status: "idle" | "success" | "error";
+  /**
+   * Shown to the shopper: an error on failure, or on success a note that fewer
+   * were added than asked for (see `notice` in packages/shopify). Always
+   * shopper-facing text — never `describeError`, which is for logs.
+   */
   readonly message?: string;
   /**
    * Bumped on every successful add.
@@ -101,7 +111,7 @@ export const addToCart = async (
    * cart is still fine, and clearing it would silently lose everything in it.
    * See `addLinesOrCreate` and `isCartGone` in packages/shopify (SHO-122).
    */
-  const { result, storedCartGone } = await cartClient.addLinesOrCreate({
+  const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
     cartId: await readCartId(),
     lines: [line],
     email: readBuyerEmail,
@@ -109,7 +119,10 @@ export const addToCart = async (
 
   if (!result.ok) {
     if (storedCartGone) await clearCartId();
-    return { status: "error", message: describeError(result.error) };
+    // The detail for whoever reads the logs; the shopper gets something
+    // they can act on, not "Storefront rejected the operation: …gid://…".
+    console.error(`[cart] add failed: ${describeError(result.error)}`);
+    return { status: "error", message: describeForShopper(result.error) };
   }
 
   await writeCartId(result.data.id);
@@ -126,6 +139,7 @@ export const addToCart = async (
 
   return {
     status: "success",
+    ...(notice ? { message: notice } : {}),
     token: Date.now(),
     cart: result.data,
     addedLineId: addedLine?.id,
