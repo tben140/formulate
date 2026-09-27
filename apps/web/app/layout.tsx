@@ -11,12 +11,25 @@ import { CartProvider } from "@/components/cart-provider";
 import { EmailCapture } from "@/components/email-capture";
 import { getCart } from "@/lib/cart";
 import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
+import { isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
 
 import "./globals.css";
 
+/**
+ * Site-wide defaults. Each route overrides title, description and canonical.
+ *
+ * `metadataBase` is what turns every relative URL below (canonicals, Open
+ * Graph) into an absolute one. `robots` is the per-page half of keeping
+ * previews out of search results; `app/robots.ts` is the other half.
+ */
 export const metadata: Metadata = {
-  title: "Formulate",
-  description: "A headless Shopify storefront built on Next.js and Expo.",
+  metadataBase: siteUrl,
+  title: { default: SITE_NAME, template: `%s — ${SITE_NAME}` },
+  description: "Supplements built around a 30-day rhythm, from Double Helix.",
+  applicationName: SITE_NAME,
+  openGraph: { siteName: SITE_NAME, locale: "en_GB", type: "website" },
+  twitter: { card: "summary_large_image" },
+  robots: isIndexable ? { index: true, follow: true } : { index: false, follow: false },
 };
 
 /**
