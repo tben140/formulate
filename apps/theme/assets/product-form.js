@@ -76,9 +76,12 @@ class ProductForm extends Component {
     const checkedPlan = this.querySelector('input[name="selling_plan"]:checked');
     this.#planId = checkedPlan instanceof HTMLInputElement ? checkedPlan.value : "";
 
-    // Liquid rendered the plans for the initial variant, so they need no
-    // rebuild; only the sold-out marks and price are brought into step.
-    this.#plansBuiltFor = Number(this.refs.variantId?.value) || null;
+    // When Liquid rendered plans for the initial variant they are already
+    // right and are left alone. An empty list (this variant has none) is built
+    // here, so the one-time radio exists for when the shopper moves to one that
+    // does.
+    const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
+    this.#plansBuiltFor = rendered ? Number(this.refs.variantId?.value) || null : null;
     this.#sync();
   }
 
