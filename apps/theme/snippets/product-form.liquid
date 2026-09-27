@@ -47,7 +47,19 @@
             <legend class="product-form__legend">{{ option.name }}</legend>
             <div class="product-form__values">
               {% for value in option.values %}
-                <label class="product-form__pill">
+                {% comment %}
+                  `value` is a product_option_value: `exists` and `available`
+                  describe the combination this pill would produce with the
+                  other axes as currently selected, which is exactly the rule
+                  web uses. A combination that doesn't exist is not "sold out",
+                  matching web. product-form.js keeps this in step after the
+                  shopper changes an axis.
+                {% endcomment %}
+                {% assign pill_sold_out = false %}
+                {% if value.exists and value.available == false %}
+                  {% assign pill_sold_out = true %}
+                {% endif %}
+                <label class="product-form__pill{% if pill_sold_out %} product-form__pill--sold-out{% endif %}">
                   <input
                     ref="optionInput"
                     type="radio"
@@ -58,6 +70,10 @@
                     {% if option.selected_value == value %}checked{% endif %}
                   >
                   <span>{{ value }}</span>
+                  {%- comment -%} Sold-out combinations stay selectable, as on web. {%- endcomment -%}
+                  <span class="visually-hidden" data-sold-out-note{% unless pill_sold_out %} hidden{% endunless %}>
+                    ({{- 'product.sold_out' | t | downcase -}})
+                  </span>
                 </label>
               {% endfor %}
             </div>
@@ -90,7 +106,24 @@
       </noscript>
     {% endif %}
 
-    {% comment %} Purchase options, filtered to app-managed groups. {% endcomment %}
+    {% comment %}
+      Purchase options, filtered to app-managed groups.
+
+      Rendered for the current variant, which is what a no-JavaScript form
+      submits against. The fieldset exists whenever any variant has a plan, and
+      is hidden while the current one has none, so product-form.js can rebuild
+      it for whichever variant the shopper picks (SHO-123).
+    {% endcomment %}
+    {% assign product_has_plans = false %}
+    {% for variant in product.variants %}
+      {% for allocation in variant.selling_plan_allocations %}
+        {% assign group_key = allocation.selling_plan_group_id | append: ',' %}
+        {% if owned_group_ids contains group_key %}
+          {% assign product_has_plans = true %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+
     {% assign has_plans = false %}
     {% for allocation in current_variant.selling_plan_allocations %}
       {% assign group_key = allocation.selling_plan_group_id | append: ',' %}
@@ -99,10 +132,14 @@
       {% endif %}
     {% endfor %}
 
-    {% if has_plans %}
-      <fieldset class="product-form__option">
+    {% if product_has_plans %}
+      <fieldset ref="plans" class="product-form__option" {% unless has_plans %}hidden{% endunless %}>
         <legend class="product-form__legend">{{ 'product.purchase_options' | t }}</legend>
-        <div class="product-form__plans">
+        <div
+          ref="planList"
+          class="product-form__plans"
+          data-one-time-label="{{ 'product.one_time' | t | escape }}"
+        >
           <label class="product-form__plan">
             <span>
               <input type="radio" name="selling_plan" value="" checked>
@@ -176,7 +213,22 @@
         "id": {{ variant.id | json }},
         "available": {{ variant.available | json }},
         "options": {{ variant.options | json }},
-        "price": {{ variant.price | money | json }}
+        "price": {{ variant.price | money | json }},
+        "plans": [
+          {%- assign first_plan = true -%}
+          {%- for allocation in variant.selling_plan_allocations -%}
+            {%- assign group_key = allocation.selling_plan_group_id | append: ',' -%}
+            {%- if owned_group_ids contains group_key -%}
+              {%- unless first_plan -%},{%- endunless -%}
+              {%- assign first_plan = false -%}
+              {
+                "id": {{ allocation.selling_plan.id | json }},
+                "name": {{ allocation.selling_plan.name | json }},
+                "price": {{ allocation.price | money | json }}
+              }
+            {%- endif -%}
+          {%- endfor -%}
+        ]
       }{% unless forloop.last %},{% endunless %}
     {%- endfor -%}
   ]
