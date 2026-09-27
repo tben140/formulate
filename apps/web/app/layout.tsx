@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
+import { DemoNotice } from "@/components/demo-notice";
 import { EmailCapture } from "@/components/email-capture";
 import {
   CookiePreferencesButton,
@@ -57,6 +58,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         */}
         <TrackingConsentProvider initialConsent={consent}>
           <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
+            <DemoNotice />
             <header className="border-b border-border">
               <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
                 <Link
