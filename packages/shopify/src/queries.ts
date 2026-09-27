@@ -258,6 +258,9 @@ export const CartFields = graphql(`
               value
             }
             product {
+              # For excluding what is already in the cart from
+              # recommendations, and as the source product for them.
+              id
               handle
               title
             }
@@ -430,6 +433,47 @@ export const SitemapCollectionsQuery = graphql(`
       pageInfo {
         hasNextPage
         endCursor
+      }
+    }
+  }
+`);
+
+/**
+ * Products to suggest in the cart drawer (SHO-116).
+ *
+ * RELATED, not COMPLEMENTARY, measured on this store on 2026-09-27:
+ * COMPLEMENTARY returned nothing for every product tried (it needs the Search
+ * & Discovery app and hand-configured pairings), while RELATED returned five
+ * sensible products each time. The documented behaviour is a silent fallback
+ * to RELATED; here it was an empty list instead, so the intent is stated.
+ *
+ * `variants(first: 2)` is only there to tell single-variant products, which
+ * can be added in one tap, from ones that need a choice made on their page.
+ */
+export const ProductRecommendationsQuery = graphql(`
+  query ProductRecommendations($productId: ID!) {
+    productRecommendations(productId: $productId, intent: RELATED) {
+      id
+      handle
+      title
+      availableForSale
+      featuredImage {
+        url
+        altText
+        width
+        height
+      }
+      priceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      variants(first: 2) {
+        nodes {
+          id
+          availableForSale
+        }
       }
     }
   }

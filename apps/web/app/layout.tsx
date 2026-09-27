@@ -17,6 +17,7 @@ import {
 import { getCart } from "@/lib/cart";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 import { isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
+import { getCartSuggestions } from "@/lib/recommendations";
 
 import "./globals.css";
 
@@ -52,6 +53,9 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   const cart = await getCart();
+  // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
+  // no request at all.
+  const suggestions = await getCartSuggestions(cart);
 
   // Read on the server so the first render is already right: no banner flash
   // for someone who has decided, and no script tag for someone who declined.
@@ -102,7 +106,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
               </div>
             </footer>
 
-            <CartDrawer cart={cart} />
+            <CartDrawer cart={cart} suggestions={suggestions} />
           </CartProvider>
         </TrackingConsentProvider>
 

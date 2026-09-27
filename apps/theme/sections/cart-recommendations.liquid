@@ -1,0 +1,95 @@
+{% comment %}
+  "You might also like" in the cart drawer (SHO-116). The theme's counterpart of
+  apps/web's CartSuggestions.
+
+  Only rendered through the recommendations endpoint, which is what fills the
+  `recommendations` object:
+
+    /recommendations/products?product_id=…&intent=related&section_id=cart-recommendations
+
+  assets/cart-drawer.js fetches it and places the result in the drawer. The
+  source product is the cart's first line, which Shopify orders newest first.
+
+  The rule is `selectCartSuggestions` in packages/shopify, restated here
+  because Liquid cannot import it:
+    - nothing already in the cart, nothing unavailable
+    - at most three, in Shopify's order
+    - one-tap add only for a single-variant product; otherwise a link, because
+      choosing a variant for the shopper would be a guess
+
+  Intent is `related`. `complementary` returned nothing at all on this store
+  (it needs the Search & Discovery app and hand-made pairings).
+{% endcomment %}
+
+{%- liquid
+  assign in_cart = cart.items | map: 'product_id' | join: ','
+  assign in_cart = ',' | append: in_cart | append: ','
+  assign shown = 0
+-%}
+
+{%- capture suggestion_items -%}
+  {%- for product in recommendations.products -%}
+    {%- liquid
+      assign key = ',' | append: product.id | append: ','
+      if shown >= 3 or product.available == false
+        continue
+      endif
+      if in_cart contains key
+        continue
+      endif
+      assign shown = shown | plus: 1
+      assign only_variant = product.selected_or_first_available_variant
+    -%}
+    <li class="cart-suggestion">
+      {%- if product.featured_image -%}
+        <img
+          class="cart-suggestion__image"
+          src="{{ product.featured_image | image_url: width: 96, height: 96, crop: 'center' }}"
+          alt=""
+          width="48"
+          height="48"
+          loading="lazy"
+        >
+      {%- endif -%}
+      <div class="cart-suggestion__body">
+        <p class="cart-suggestion__title">{{ product.title }}</p>
+        <p class="cart-suggestion__price">{{ product.price | money }}</p>
+      </div>
+      {%- if product.variants.size == 1 and only_variant.available -%}
+        <form action="{{ routes.cart_add_url }}" method="post" data-cart-suggestion-add>
+          <input type="hidden" name="id" value="{{ only_variant.id }}">
+          <input type="hidden" name="quantity" value="1">
+          <button type="submit" class="cart-suggestion__add">
+            {{- 'cart.suggestions.add' | t -}}
+            <span class="visually-hidden"> {{ 'cart.suggestions.add_for' | t: title: product.title }}</span>
+          </button>
+        </form>
+      {%- else -%}
+        <a class="cart-suggestion__view" href="{{ product.url }}">
+          {{- 'cart.suggestions.choose' | t -}}
+          <span class="visually-hidden"> {{ 'cart.suggestions.choose_for' | t: title: product.title }}</span>
+        </a>
+      {%- endif -%}
+    </li>
+  {%- endfor -%}
+{%- endcapture -%}
+
+<div class="cart-suggestions-section">
+  {%- if shown > 0 -%}
+    <section class="cart-suggestions" aria-labelledby="cart-suggestions-title">
+      <h3 id="cart-suggestions-title" class="cart-suggestions__title">
+        {{ 'cart.suggestions.title' | t }}
+      </h3>
+      <ul class="cart-suggestions__list" role="list">
+        {{ suggestion_items }}
+      </ul>
+    </section>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:general.cart_suggestions",
+  "settings": []
+}
+{% endschema %}

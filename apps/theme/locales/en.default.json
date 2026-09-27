@@ -36,6 +36,13 @@
     "free_shipping": {
       "away": "You're {{ amount }} away from free standard delivery",
       "unlocked": "You've unlocked free standard delivery"
+    },
+    "suggestions": {
+      "title": "You might also like",
+      "add": "Add",
+      "add_for": "{{ title }} to cart",
+      "choose": "Choose options",
+      "choose_for": "for {{ title }}"
     }
   },
   "collections": {

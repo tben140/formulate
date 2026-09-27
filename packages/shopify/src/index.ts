@@ -20,6 +20,8 @@ export {
   freeShippingProgress,
 } from "./free-shipping";
 export type { FreeShippingProgress } from "./free-shipping";
+export { RECOMMENDATION_LIMIT, selectCartSuggestions } from "./recommendations";
+export type { CartSuggestion } from "./recommendations";
 export type { MoneyLike } from "./format-money";
 
 export {
@@ -41,6 +43,7 @@ export {
   CartQuery,
   CollectionProductsQuery,
   ProductByHandleQuery,
+  ProductRecommendationsQuery,
   ShopNameQuery,
   SitemapCollectionsQuery,
   SitemapProductsQuery,
