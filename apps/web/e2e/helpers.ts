@@ -26,6 +26,16 @@ export const addToCart = async (page: Page) => {
   await expect(drawer(page)).toBeVisible();
 };
 
-/** The product titles of the drawer's lines, top to bottom. */
+/**
+ * The product titles of the drawer's lines, top to bottom.
+ *
+ * A line is a list item with its own Remove button. Matching on that rather
+ * than on list position keeps other lists in the drawer (suggestions, SHO-116)
+ * out of it.
+ */
 export const lineTitles = (page: Page) =>
-  drawer(page).locator("ul > li p.truncate").allTextContents();
+  drawer(page)
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: /^Remove .+ from cart$/ }) })
+    .locator("p.truncate")
+    .allTextContents();

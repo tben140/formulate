@@ -38,7 +38,11 @@ test("a sold-out option is marked and cannot be bought", async ({ page }) => {
   await expect(page.locator("label", { hasText: "200 mg" })).toHaveClass(/line-through/);
 
   await page.locator("label", { hasText: "200 mg" }).click();
-  await expect(page.getByRole("button", { name: "Sold out" })).toBeDisabled();
+  // `exact`: on a phone the sticky bar (SHO-117) adds a second, differently
+  // named "Sold out, …" button.
+  await expect(
+    page.getByRole("button", { name: "Sold out", exact: true }),
+  ).toBeDisabled();
 });
 
 test("an unknown product is a 404", async ({ page }) => {
