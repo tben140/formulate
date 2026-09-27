@@ -8,6 +8,15 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {boolean} available
  * @property {string[]} options Option values, in the product's option order.
  * @property {string} price Already formatted by Liquid's `money` filter.
+ * @property {PlanData[]} [plans] App-owned selling plans only. See the filter
+ *   in snippets/product-form.liquid.
+ */
+
+/**
+ * @typedef {Object} PlanData
+ * @property {number} id
+ * @property {string} name
+ * @property {string} price Already formatted by Liquid's `money` filter.
  */
 
 /**
@@ -17,6 +26,8 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLButtonElement} [submit]
  * @property {HTMLElement} [status]
  * @property {HTMLInputElement | HTMLInputElement[]} [optionInput]
+ * @property {HTMLFieldSetElement} [plans]
+ * @property {HTMLElement} [planList]
  */
 
 /**
@@ -32,6 +43,21 @@ class ProductForm extends Component {
   /** @type {VariantData[]} */
   #variants = [];
 
+  /**
+   * The plan the shopper chose, kept across variant changes.
+   *
+   * Mirrors `planId` versus `effectivePlanId` in apps/web's add-to-cart-form:
+   * moving to a variant that doesn't offer this plan falls back to one-time
+   * *without forgetting the choice*, so moving back restores it. "" is one-time.
+   */
+  #planId = "";
+
+  /** The variant the plan list was last built for, so it is rebuilt only on a
+   * real change. Rebuilding on a plan click would destroy the radio the shopper
+   * just focused. */
+  /** @type {number | null} */
+  #plansBuiltFor = null;
+
   /** @override */
   connectedCallback() {
     super.connectedCallback();
@@ -46,6 +72,17 @@ class ProductForm extends Component {
     // anything by hand. See assets/component.js.
     this.addEventListener("change", this.#onChange, { signal: this.signal });
     this.addEventListener("submit", this.#onSubmit, { signal: this.signal });
+
+    const checkedPlan = this.querySelector('input[name="selling_plan"]:checked');
+    this.#planId = checkedPlan instanceof HTMLInputElement ? checkedPlan.value : "";
+
+    // When Liquid rendered plans for the initial variant they are already
+    // right and are left alone. An empty list (this variant has none) is built
+    // here, so the one-time radio exists for when the shopper moves to one that
+    // does.
+    const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
+    this.#plansBuiltFor = rendered ? Number(this.refs.variantId?.value) || null : null;
+    this.#sync();
   }
 
   /** The option pills, as a flat array regardless of how many there are. */
@@ -55,34 +92,53 @@ class ProductForm extends Component {
     return Array.isArray(refs) ? refs : [refs];
   }
 
+  /** The checked option values, in the product's option order. */
+  get #chosen() {
+    return this.#optionInputs
+      .filter((input) => input.checked)
+      .sort((a, b) => Number(a.dataset.optionPosition) - Number(b.dataset.optionPosition))
+      .map((input) => input.value);
+  }
+
   /**
-   * Resolves the checked pills to a variant and updates the form.
-   *
    * Mirrors `findVariantByOptions` in packages/shopify: an exact match on every
    * axis, and no match rather than a guess. A combination that does not exist
    * disables the button instead of silently adding something else.
    *
-   * @param {Event} event
+   * @param {string[]} chosen
+   * @returns {VariantData | undefined}
    */
-  #onChange = (event) => {
-    if (!(event.target instanceof HTMLInputElement)) return;
-    if (event.target.name === "selling_plan") return;
-
-    const chosen = this.#optionInputs
-      .filter((input) => input.checked)
-      .sort((a, b) => Number(a.dataset.optionPosition) - Number(b.dataset.optionPosition))
-      .map((input) => input.value);
-
-    const match = this.#variants.find(
+  #find(chosen) {
+    return this.#variants.find(
       (variant) =>
         variant.options.length === chosen.length &&
         variant.options.every((value, index) => value === chosen[index]),
     );
+  }
+
+  /** @param {Event} event */
+  #onChange = (event) => {
+    if (!(event.target instanceof HTMLInputElement)) return;
+    if (event.target.name === "selling_plan") this.#planId = event.target.value;
+    this.#sync();
+  };
+
+  /** Brings every dependent part of the form into step with the selection. */
+  #sync() {
+    const chosen = this.#chosen;
+    // A product with only Shopify's default variant renders no pills, so there
+    // is nothing to resolve: its one variant is the match.
+    const match = this.#optionInputs.length ? this.#find(chosen) : this.#variants[0];
+    const plans = match?.plans ?? [];
+    const effectivePlan = plans.find((plan) => String(plan.id) === this.#planId);
 
     const { variantId, price, submit } = this.refs;
 
     if (variantId) variantId.value = match ? String(match.id) : "";
-    if (price && match) price.textContent = match.price;
+
+    // The headline price follows the purchase option, as on web and mobile
+    // (SHO-124). The per-option prices in the list were always right.
+    if (price && match) price.textContent = effectivePlan?.price ?? match.price;
 
     if (submit) {
       submit.disabled = !match || !match.available;
@@ -92,7 +148,88 @@ class ProductForm extends Component {
           ? (submit.dataset.addLabel ?? "Add to cart")
           : (submit.dataset.soldOutLabel ?? "Sold out");
     }
-  };
+
+    if ((match?.id ?? null) !== this.#plansBuiltFor) {
+      this.#buildPlans(match, plans, effectivePlan);
+      this.#plansBuiltFor = match?.id ?? null;
+    }
+
+    this.#markSoldOut(chosen);
+  }
+
+  /**
+   * Rebuilds the purchase options for a variant (SHO-123).
+   *
+   * Built from JSON with `textContent`, never HTML strings: plan names are
+   * merchant data. A variant with no app-owned plans hides the fieldset, and
+   * because a hidden radio is still submitted, one-time is re-checked first.
+   *
+   * @param {VariantData | undefined} match
+   * @param {PlanData[]} plans
+   * @param {PlanData | undefined} effectivePlan
+   */
+  #buildPlans(match, plans, effectivePlan) {
+    const { plans: fieldset, planList } = this.refs;
+    if (!fieldset || !planList) return;
+
+    /**
+     * @param {string} value
+     * @param {string} name
+     * @param {string} priceText
+     */
+    const option = (value, name, priceText) => {
+      const label = document.createElement("label");
+      label.className = "product-form__plan";
+
+      const text = document.createElement("span");
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "selling_plan";
+      input.value = value;
+      input.checked = value === (effectivePlan ? String(effectivePlan.id) : "");
+      text.append(input, " ", name);
+
+      const cost = document.createElement("span");
+      cost.className = "product-form__plan-price";
+      cost.textContent = priceText;
+
+      label.append(text, cost);
+      return label;
+    };
+
+    planList.replaceChildren(
+      option(
+        "",
+        planList.dataset.oneTimeLabel ?? "One-time purchase",
+        match?.price ?? "",
+      ),
+      ...plans.map((plan) => option(String(plan.id), plan.name, plan.price)),
+    );
+    fieldset.hidden = plans.length === 0;
+  }
+
+  /**
+   * Strikes through each pill whose combination, with the other axes as
+   * currently chosen, is a real variant that is sold out. The same rule as
+   * web; a combination that doesn't exist is not marked (SHO-124).
+   *
+   * @param {string[]} chosen
+   */
+  #markSoldOut(chosen) {
+    for (const input of this.#optionInputs) {
+      const position = Number(input.dataset.optionPosition) - 1;
+      const candidate = chosen.map((value, index) =>
+        index === position ? input.value : value,
+      );
+      const variant = this.#find(candidate);
+      const soldOut = Boolean(variant && !variant.available);
+
+      const label = input.closest(".product-form__pill");
+      label?.classList.toggle("product-form__pill--sold-out", soldOut);
+      const note = label?.querySelector("[data-sold-out-note]");
+      if (note instanceof HTMLElement) note.hidden = !soldOut;
+    }
+  }
 
   /** @param {SubmitEvent} event */
   #onSubmit = async (event) => {
