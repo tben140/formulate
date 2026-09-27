@@ -1491,7 +1491,7 @@ export const CollectionProductsDocument = new TypedDocumentString(`
     id
     title
     description
-    products(first: $first) {
+    products(first: $first, sortKey: COLLECTION_DEFAULT) {
       nodes {
         id
         handle

@@ -65,6 +65,27 @@ Two kinds, and the difference matters for anything cache-flavoured.
 Because smart collections re-evaluate server-side, a storefront cannot treat
 collection membership as stable between requests.
 
+### Sort order is the merchant's
+
+Every surface shows a collection in the order set on the collection in the
+Shopify admin, and none of them sorts on its own:
+
+| Surface     | How                                                             |
+| ----------- | --------------------------------------------------------------- |
+| Web, mobile | `products(sortKey: COLLECTION_DEFAULT)` in `CollectionProducts` |
+| Theme       | `collection.products`, which follows the collection's sort      |
+
+`COLLECTION_DEFAULT` is also the Storefront API's default. It is written out
+anyway so the order is a decision rather than an accident (SHO-111).
+
+Changing the order is therefore a merchant task: admin → Collections → Sort.
+As of 2026-09-27, Best Sellers sorts by best selling and the other Double Helix
+collections are manual.
+
+A collection can still differ in _which_ products it shows, because each
+surface sees only products published to its own sales channel (see
+[ADR 0005](adr/0005-parity-means-design-not-data.md)).
+
 ## Cart
 
 A Storefront cart ID is `gid://shopify/Cart/{token}?key={secret}`. **The whole
