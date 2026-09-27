@@ -61,6 +61,10 @@ class ProductForm extends Component {
   /** @type {number | null} */
   #plansBuiltFor = null;
 
+  /** An add is in flight. Guards against a double add now that the buttons
+   * stay enabled while it runs (see #onSubmit). */
+  #adding = false;
+
   /** @override */
   connectedCallback() {
     super.connectedCallback();
@@ -313,9 +317,19 @@ class ProductForm extends Component {
     const variantId = String(data.get("id") ?? "");
     if (!variantId) return;
 
+    if (this.#adding) return;
+    this.#adding = true;
+
+    /*
+     * ⚠️ aria-disabled, not disabled, while the add runs (SHO-134). A focused
+     * button that becomes disabled drops focus to <body>, and the cart drawer
+     * returns focus to whatever had it when it opened, so a keyboard user
+     * would land back at the top of the page on closing it. The #adding flag
+     * does the job `disabled` used to: no second add.
+     */
     const { submit, stickySubmit, status } = this.refs;
-    if (submit) submit.disabled = true;
-    if (stickySubmit) stickySubmit.disabled = true;
+    const buttons = [submit, stickySubmit].filter((button) => button !== undefined);
+    for (const button of buttons) button.setAttribute("aria-disabled", "true");
     if (status) status.textContent = "";
 
     try {
@@ -340,6 +354,8 @@ class ProductForm extends Component {
           error instanceof Error ? error.message : "Could not update your cart.";
       }
     } finally {
+      this.#adding = false;
+      for (const button of buttons) button.removeAttribute("aria-disabled");
       // Back to whatever the selection allows, for both buttons, rather than
       // a blanket re-enable.
       this.#sync();
