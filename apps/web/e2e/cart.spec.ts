@@ -37,7 +37,10 @@ test("the variant chosen is the variant added", async ({ page }) => {
   await page.locator("label", { hasText: "Chocolate" }).click();
   await page.locator("label", { hasText: "Unsweetened" }).click();
   await addToCart(page);
-  await expect(drawer(page).locator("ul > li").first()).toContainText(
-    "Chocolate / Unsweetened",
-  );
+  const line = drawer(page)
+    .getByRole("listitem")
+    .filter({
+      has: page.getByRole("button", { name: /^Remove Whey Protein from cart$/ }),
+    });
+  await expect(line).toContainText("Chocolate / Unsweetened");
 });
