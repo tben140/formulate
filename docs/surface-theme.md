@@ -135,6 +135,20 @@ password belongs to _one store_, not to a machine. A shell profile would make it
 global state leaking into every project, and would need permanently excluding
 from synced dotfiles.
 
+### Lighthouse in CI
+
+`.github/workflows/lighthouse-theme.yml` runs Shopify's
+[`lighthouse-ci-action`](https://github.com/Shopify/lighthouse-ci-action) on PRs
+that touch `apps/theme/` and weekly on main. It pushes the theme as a temporary
+development theme, audits the home, `magnesium-glycinate` and `best-sellers`
+pages through the storefront password, then deletes the theme. Floors are the
+same as web: performance ≥ 0.5, accessibility ≥ 0.95.
+
+It needs four repository secrets, and skips with a notice until they exist:
+`SHOP_STORE`, `SHOP_CLIENT_ID` and `SHOP_CLIENT_SECRET` (a Dev Dashboard app
+with `read_products` and `write_themes`), and `SHOP_PASSWORD`, the storefront
+password.
+
 ## Scope
 
 Read-only browse, matching the other two surfaces. No add-to-cart yet — cart

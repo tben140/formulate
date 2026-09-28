@@ -1,0 +1,81 @@
+name: Lighthouse (web)
+
+# Lab Core Web Vitals for apps/web (SHO-23). Budgets and URLs live in
+# apps/web/lighthouserc.cjs; the baseline they were set against is in
+# docs/surface-web.md. Field data (real visitors) comes from Vercel Speed
+# Insights, not from here.
+
+on:
+  # Vercel reports every deployment to GitHub. Waiting for its `success` status
+  # means the audit runs against the exact build a PR will ship, rather than a
+  # second build made on the runner.
+  deployment_status:
+  # Weekly check of production, so a regression that lands without a PR (a
+  # store content change, a slow third-party script) still shows up.
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Base URL to audit
+        required: true
+        default: https://web-six-murex-18.vercel.app
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.deployment.sha || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse (web)
+    if: github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      LHCI_BASE_URL: ${{ github.event.deployment_status.environment_url || inputs.url || 'https://web-six-murex-18.vercel.app' }}
+      # Empty on forks and until the secret is added. Production needs no
+      # bypass; previews do, and fail with a Vercel login page without it.
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # Chrome is preinstalled on ubuntu-latest. The CLI is pinned so a
+      # Lighthouse release can't move the scores between two runs of one PR.
+      - name: Collect (3 runs per page)
+        run: npx --yes @lhci/cli@0.15.1 collect --config=apps/web/lighthouserc.cjs
+
+      - name: Save reports
+        if: always()
+        run: npx --yes @lhci/cli@0.15.1 upload --config=apps/web/lighthouserc.cjs
+
+      # The preview URLs in every report carry the bypass secret on their query
+      # string. Strip it before anything leaves the runner.
+      - name: Redact the bypass secret from reports
+        if: always() && env.VERCEL_AUTOMATION_BYPASS_SECRET != ''
+        run: |
+          find .lighthouseci -type f -print0 \
+            | xargs -0 sed -i "s/${VERCEL_AUTOMATION_BYPASS_SECRET}/REDACTED/g"
+
+      - name: Summary
+        if: always()
+        run: node apps/web/scripts/lighthouse-summary.mjs .lighthouseci/reports >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-web
+          path: .lighthouseci/reports
+          retention-days: 14
+
+      # Last, so the reports and summary exist even when a budget fails.
+      - name: Assert budgets
+        run: npx --yes @lhci/cli@0.15.1 assert --config=apps/web/lighthouserc.cjs

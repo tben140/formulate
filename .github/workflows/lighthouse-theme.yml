@@ -1,0 +1,64 @@
+name: Lighthouse (theme)
+
+# Shopify's own Lighthouse CI action for apps/theme. It pushes the PR's theme to
+# the store as a temporary development theme, audits the home, product and
+# collection pages through the storefront password, then deletes the theme.
+
+on:
+  pull_request:
+    paths:
+      - "apps/theme/**"
+      - ".github/workflows/lighthouse-theme.yml"
+  # Weekly run against main, so the theme is still measured when nobody is
+  # changing it (app embeds, store content and Shopify itself all move).
+  schedule:
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse (theme)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # Credentials for a Dev Dashboard app with read_products and write_themes.
+      # All empty on forks and until they are added, and the job then skips
+      # rather than failing.
+      SHOP_STORE: ${{ secrets.SHOP_STORE }}
+      SHOP_CLIENT_ID: ${{ secrets.SHOP_CLIENT_ID }}
+      SHOP_CLIENT_SECRET: ${{ secrets.SHOP_CLIENT_SECRET }}
+
+    steps:
+      - name: Skip when store credentials are not configured
+        if: env.SHOP_CLIENT_ID == '' || env.SHOP_CLIENT_SECRET == '' || env.SHOP_STORE == ''
+        run: echo "::notice::Theme Lighthouse skipped - SHOP_STORE, SHOP_CLIENT_ID and SHOP_CLIENT_SECRET secrets are not set."
+
+      - uses: actions/checkout@v5
+        if: env.SHOP_CLIENT_ID != '' && env.SHOP_CLIENT_SECRET != '' && env.SHOP_STORE != ''
+
+      # Pinned to the commit behind the v1 tag (2026-04-13). The action receives
+      # credentials that can write themes, so a moved tag should not be able to
+      # change what runs with them.
+      - uses: shopify/lighthouse-ci-action@988f0eeb44ad5f298bd47150e5b9b01c27ead975 # v1
+        if: env.SHOP_CLIENT_ID != '' && env.SHOP_CLIENT_SECRET != '' && env.SHOP_STORE != ''
+        with:
+          store: ${{ secrets.SHOP_STORE }}
+          client_id: ${{ secrets.SHOP_CLIENT_ID }}
+          client_secret: ${{ secrets.SHOP_CLIENT_SECRET }}
+          # Development stores are always password protected.
+          password: ${{ secrets.SHOP_PASSWORD }}
+          theme_root: apps/theme
+          # The same product and a listing page the web workflow audits.
+          product_handle: magnesium-glycinate
+          collection_handle: best-sellers
+          # Same generous floor as web; ratchets at phase exit (SHO-68).
+          lhci_min_score_performance: 0.5
+          lhci_min_score_accessibility: 0.95
