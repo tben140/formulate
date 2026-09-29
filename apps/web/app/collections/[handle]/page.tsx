@@ -43,6 +43,9 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   };
 };
 
+/** Products per row at the widest breakpoint (`lg:grid-cols-3`). */
+const FIRST_ROW = 3;
+
 const CollectionPage = async ({ params }: PageProps) => {
   const { handle } = await params;
 
@@ -70,7 +73,7 @@ const CollectionPage = async ({ params }: PageProps) => {
       </header>
 
       <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {collection.products.nodes.map((product) => (
+        {collection.products.nodes.map((product, index) => (
           <li key={product.id}>
             <Link
               href={`/products/${product.handle}`}
@@ -82,6 +85,12 @@ const CollectionPage = async ({ params }: PageProps) => {
                     data={product.featuredImage}
                     sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
                     className="h-full w-full object-cover"
+                    // The first row is on screen at load, and its first image
+                    // is the Largest Contentful Paint on a phone. Hydrogen's
+                    // Image defaults to lazy, which delayed it (SHO-143).
+                    // Three is the widest row; everything below stays lazy.
+                    loading={index < FIRST_ROW ? "eager" : "lazy"}
+                    fetchPriority={index === 0 ? "high" : "auto"}
                   />
                 ) : (
                   <div
