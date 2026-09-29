@@ -1,82 +1,40 @@
-import {
-  defaultSelectedOptions,
-  findVariantByOptions,
-  formatMoney,
-  purchasableAllocations,
-  withOption,
-  type ProductByHandleResult,
-  type SelectedOption,
-} from "@formulate/shopify";
-import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { findVariantByOptions, formatMoney, withOption } from "@formulate/shopify";
+import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 
-import { useAddToCart } from "../lib/use-cart";
-
-type Product = NonNullable<ProductByHandleResult["product"]>;
-
-/** Sentinel for "buy it once". Not a plan id, so it is never sent. */
-const ONE_TIME = "";
+import type { Product, Purchase } from "../lib/use-purchase";
 
 /**
  * Variant pickers, subscribe-and-save, and add to cart.
  *
- * The selection rules come from `packages/shopify` and are the same ones
- * apps/web renders — `findVariantByOptions`, `withOption`,
- * `purchasableAllocations`. Only the rendering differs, which is the whole
- * point of keeping them as pure functions over plain data.
+ * The state lives in `usePurchase`, owned by the product screen, because the
+ * sticky bar renders the same selection (SHO-117). This component only draws
+ * it. `onButtonLayout` reports where the button sits, so the screen can show
+ * the bar while it is scrolled out of view.
  */
 export const AddToCart = ({
   product,
+  purchase,
   onAdded,
+  onButtonLayout,
 }: {
   readonly product: Product;
+  readonly purchase: Purchase;
   readonly onAdded: () => void;
+  readonly onButtonLayout?: (event: LayoutChangeEvent) => void;
 }) => {
-  const addToCart = useAddToCart();
-
-  const [selected, setSelected] = useState<readonly SelectedOption[]>(() =>
-    defaultSelectedOptions(product.variants.nodes),
-  );
-  const [planId, setPlanId] = useState<string>(ONE_TIME);
-
-  const variant = findVariantByOptions(product.variants.nodes, selected);
-
-  /*
-   * ⚠️ Only plans whose group is owned by an installed app.
-   *
-   * This store's ski wax allocates three plans to its variant and two of them
-   * are Shopify seed data that nothing manages. They add to the cart and
-   * complete at checkout, then never charge or ship again.
-   */
-  const allocations = variant
-    ? purchasableAllocations(
-        product.sellingPlanGroups.nodes,
-        variant.sellingPlanAllocations.nodes,
-      )
-    : [];
-
-  // Derived rather than reset in an effect, so moving to a variant that does
-  // not offer the plan falls back to one-time without destroying the choice —
-  // moving back restores it.
-  const effectivePlanId = allocations.some((a) => a.sellingPlan.id === planId)
-    ? planId
-    : ONE_TIME;
-
-  const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
-  const displayPrice =
-    chosenAllocation?.priceAdjustments[0]?.price ?? variant?.price ?? null;
-
-  const soldOut = Boolean(variant && !variant.availableForSale);
-  const disabled = !variant || soldOut || addToCart.isPending;
-
-  const choices = [
-    { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
-    ...allocations.map((allocation) => ({
-      id: allocation.sellingPlan.id,
-      label: allocation.sellingPlan.name,
-      price: allocation.priceAdjustments[0]?.price,
-    })),
-  ];
+  const {
+    addToCart,
+    selected,
+    setSelected,
+    setPlanId,
+    allocations,
+    effectivePlanId,
+    displayPrice,
+    disabled,
+    choices,
+    label,
+    add,
+  } = purchase;
 
   return (
     <View className="mt-2 gap-5">
@@ -175,28 +133,11 @@ export const AddToCart = ({
         disabled={disabled}
         accessibilityRole="button"
         accessibilityState={{ disabled }}
-        onPress={() => {
-          if (!variant) return;
-          addToCart.mutate(
-            {
-              merchandiseId: variant.id,
-              quantity: 1,
-              ...(effectivePlanId ? { sellingPlanId: effectivePlanId } : {}),
-            },
-            { onSuccess: onAdded },
-          );
-        }}
+        onPress={() => add(onAdded)}
+        onLayout={onButtonLayout}
         className={`rounded-md px-4 py-3 ${disabled ? "bg-ink-300" : "bg-brand-600"}`}
       >
-        <Text className="text-center text-sm font-semibold text-surface">
-          {addToCart.isPending
-            ? "Adding…"
-            : soldOut
-              ? "Sold out"
-              : !variant
-                ? "Unavailable in this combination"
-                : "Add to cart"}
-        </Text>
+        <Text className="text-center text-sm font-semibold text-surface">{label}</Text>
       </Pressable>
 
       {/*
