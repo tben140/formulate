@@ -5,6 +5,8 @@ import {
 } from "@formulate/analytics";
 import { Klaviyo } from "klaviyo-react-native-sdk";
 
+import { isExpoGo } from "./expo-go";
+
 /**
  * Klaviyo for the Expo app.
  *
@@ -62,6 +64,16 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
  * in. Hence the explicit guard and the warning.
  */
 export const initKlaviyo = (): void => {
+  /*
+   * Expo Go has no Klaviyo native module, and the SDK throws on first use
+   * without it. Skipping `initialize` makes every other call here a no-op too,
+   * because each one checks `isExpoGo` before touching the SDK.
+   */
+  if (isExpoGo) {
+    if (__DEV__) console.warn("[klaviyo] Expo Go: the SDK is not available, so tracking is off.");
+    return;
+  }
+
   if (!KLAVIYO_PUBLIC_KEY) {
     if (__DEV__) {
       console.warn(
@@ -99,6 +111,10 @@ export const initKlaviyo = (): void => {
  */
 export const readIdentifiedEmail = (): Promise<string | null> =>
   new Promise((resolve) => {
+    if (isExpoGo) {
+      resolve(null);
+      return;
+    }
     Klaviyo.getEmail((email: string | null) => resolve(email ?? null));
   });
 
@@ -132,7 +148,7 @@ export const identify = (email: string): boolean => {
     );
   }
 
-  Klaviyo.setEmail(trimmed);
+  if (!isExpoGo) Klaviyo.setEmail(trimmed);
   return true;
 };
 
