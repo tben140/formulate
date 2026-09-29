@@ -152,9 +152,12 @@ const ProductBody = ({ product }: { product: Product }) => {
         <SiteFooter />
       </ScrollView>
 
-      {showBar ? (
-        <StickyAddToCart product={product} purchase={purchase} onAdded={openCart} />
-      ) : null}
+      <StickyAddToCart
+        product={product}
+        purchase={purchase}
+        visible={showBar}
+        onAdded={openCart}
+      />
     </View>
   );
 };
