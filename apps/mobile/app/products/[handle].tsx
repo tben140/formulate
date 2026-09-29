@@ -96,12 +96,20 @@ const ProductBody = ({ product }: { product: Product }) => {
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode="on-drag"
         scrollEventThrottle={32}
-        onLayout={(e) =>
-          setView((v) => ({ ...v, height: e.nativeEvent.layout.height }))
-        }
-        onScroll={(e) =>
-          setView((v) => ({ ...v, offset: e.nativeEvent.contentOffset.y }))
-        }
+        /*
+          ⚠️ Read the event before calling setView. React Native recycles the
+          event object once the handler returns, and the updater function runs
+          later, so reading `e.nativeEvent` inside it fails on the first scroll
+          ("cannot read property contentOffset").
+        */
+        onLayout={(e) => {
+          const { height } = e.nativeEvent.layout;
+          setView((v) => ({ ...v, height }));
+        }}
+        onScroll={(e) => {
+          const offset = e.nativeEvent.contentOffset.y;
+          setView((v) => ({ ...v, offset }));
+        }}
       >
         <Stack.Screen options={{ title: product.title }} />
 
