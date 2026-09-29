@@ -21,7 +21,7 @@
   </header>
 
   {% paginate collection.products by 24 %}
-    {% render 'product-grid', products: collection.products %}
+    {% render 'product-grid', products: collection.products, section_index: section.index %}
     {{ paginate | default_pagination }}
   {% endpaginate %}
 </div>
