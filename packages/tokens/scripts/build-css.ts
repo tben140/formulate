@@ -24,7 +24,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { colours, fontSize, radius, spacing } from "../src/tokens.ts";
+import { colours, fontFaces, fontFamily, fontSize, radius, spacing } from "../src/tokens.ts";
 
 const isColourScale = (value: unknown): value is Record<string, string> =>
   typeof value === "object" && value !== null;
@@ -55,7 +55,34 @@ const declarations: string[] = [
   "",
   "  /* Type scale */",
   ...namespaceLines("text", fontSize),
+  "",
+  // `--font-*` is Tailwind's font-family namespace, so these become the
+  // `font-sans` and `font-mono` utilities, and `--font-sans` is also the page
+  // default through Tailwind's preflight.
+  "  /* Typefaces */",
+  ...Object.entries(fontFamily).map(([key, { stack }]) => `  --font-${key}: ${stack};`),
 ];
+
+/**
+ * `@font-face` for every file in `fontFaces`. The URLs are relative to this
+ * package, and each consumer resolves them its own way: Next's CSS pipeline
+ * bundles them, and the theme's sync script copies the files flat into
+ * `assets/` and drops the `fonts/` prefix.
+ *
+ * `font-display: swap` shows text in the fallback immediately rather than
+ * hiding it while the font loads.
+ */
+const fontFaceRules = fontFaces
+  .map(
+    ({ family, weight, file }) => `@font-face {
+  font-family: "${family}";
+  font-style: normal;
+  font-weight: ${weight};
+  font-display: swap;
+  src: url("./fonts/${file}") format("woff2");
+}`,
+  )
+  .join("\n\n");
 
 const banner = (consumer: string) => `/*
  * GENERATED FILE — DO NOT EDIT.
@@ -74,6 +101,13 @@ const outputs: { file: string; contents: string }[] = [
 @theme {
 ${declarations.join("\n")}
 }
+`,
+  },
+  {
+    file: "fonts.css",
+    contents: `${banner("apps/web (bundled by Next) and apps/theme (as assets/fonts.css)")}
+
+${fontFaceRules}
 `,
   },
   {
