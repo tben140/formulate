@@ -3,7 +3,23 @@ import {
   looksFakeToKlaviyo,
   type SubscribeResult,
 } from "@formulate/analytics";
-import { Klaviyo } from "klaviyo-react-native-sdk";
+
+import { isExpoGo } from "./expo-go";
+
+type KlaviyoSdk = typeof import("klaviyo-react-native-sdk");
+
+/**
+ * The Klaviyo SDK, or `null` in Expo Go.
+ *
+ * ⚠️ Required lazily, never imported. The SDK reads its native module's
+ * constants while the module loads, and in Expo Go that module does not exist,
+ * so a static import throws before the first screen renders. Every function
+ * below checks for `null` before touching the SDK.
+ */
+const Klaviyo: KlaviyoSdk["Klaviyo"] | null = isExpoGo
+  ? null
+  : // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require("klaviyo-react-native-sdk") as KlaviyoSdk).Klaviyo;
 
 /**
  * Klaviyo for the Expo app.
@@ -62,6 +78,14 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
  * in. Hence the explicit guard and the warning.
  */
 export const initKlaviyo = (): void => {
+  /*
+   * `null` in Expo Go, which has no Klaviyo native module (see above).
+   */
+  if (!Klaviyo) {
+    if (__DEV__) console.warn("[klaviyo] Expo Go: the SDK is not available, so tracking is off.");
+    return;
+  }
+
   if (!KLAVIYO_PUBLIC_KEY) {
     if (__DEV__) {
       console.warn(
@@ -99,6 +123,10 @@ export const initKlaviyo = (): void => {
  */
 export const readIdentifiedEmail = (): Promise<string | null> =>
   new Promise((resolve) => {
+    if (!Klaviyo) {
+      resolve(null);
+      return;
+    }
     Klaviyo.getEmail((email: string | null) => resolve(email ?? null));
   });
 
@@ -132,7 +160,7 @@ export const identify = (email: string): boolean => {
     );
   }
 
-  Klaviyo.setEmail(trimmed);
+  Klaviyo?.setEmail(trimmed);
   return true;
 };
 
