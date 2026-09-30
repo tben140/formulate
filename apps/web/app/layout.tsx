@@ -9,8 +9,10 @@ import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
 import { EmailCapture } from "@/components/email-capture";
+import { SiteNav } from "@/components/site-nav";
 import { getCart } from "@/lib/cart";
 import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
+import { getNavLinks } from "@/lib/nav";
 
 import "./globals.css";
 
@@ -33,7 +35,8 @@ export const metadata: Metadata = {
  * state on the interaction a shopper cares most about.
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
-  const cart = await getCart();
+  // In parallel: neither depends on the other, and both are on every page.
+  const [cart, navLinks] = await Promise.all([getCart(), getNavLinks()]);
 
   return (
     <html lang="en-GB">
@@ -44,14 +47,25 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
       <body className="flex min-h-screen flex-col">
         <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
           <header className="border-b border-border">
-            <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+            {/*
+              One row from md up: wordmark, collections, cart. Below that the
+              collections drop to their own scrolling row, via `order`, so the
+              wordmark and cart keep their places.
+            */}
+            <nav
+              aria-label="Main"
+              className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-8 gap-y-3 px-4 py-4"
+            >
               <Link
                 href="/"
-                className="text-lg font-semibold tracking-tight text-foreground"
+                className="order-1 text-lg font-semibold tracking-tight text-foreground"
               >
                 Formulate
               </Link>
-              <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
+              <SiteNav links={navLinks} />
+              <div className="order-2 ml-auto md:order-3">
+                <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
+              </div>
             </nav>
           </header>
 

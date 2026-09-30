@@ -13,7 +13,9 @@
   "sections": {
     "header": {
       "type": "header",
-      "settings": {}
+      "settings": {
+        "menu": "shop"
+      }
     }
   },
   "order": [
