@@ -1,4 +1,5 @@
 import {
+  CollectionCardsQuery,
   CollectionProductsQuery,
   NAV_MENU_HANDLE,
   NavMenuQuery,
@@ -31,11 +32,12 @@ const unwrap = <T>(
   return result.data;
 };
 
-export const useCollection = (handle: string) =>
+export const useCollection = (handle: string, options: { enabled?: boolean } = {}) =>
   useQuery({
     queryKey: ["collection", handle],
     queryFn: async () =>
       unwrap(await storefront.request(CollectionProductsQuery, { handle, first: 24 })),
+    enabled: options.enabled ?? true,
   });
 
 export const useProduct = (handle: string) =>
@@ -59,5 +61,14 @@ export const useNavLinks = () =>
         unwrap(await storefront.request(NavMenuQuery, { handle: NAV_MENU_HANDLE })).menu
           ?.items,
       ),
+    staleTime: 10 * 60_000,
+  });
+
+/** Collections with an image each, for the home screen's category cards. */
+export const useCollectionCards = () =>
+  useQuery({
+    queryKey: ["collection-cards"],
+    queryFn: async () =>
+      unwrap(await storefront.request(CollectionCardsQuery, {})).collections.nodes,
     staleTime: 10 * 60_000,
   });

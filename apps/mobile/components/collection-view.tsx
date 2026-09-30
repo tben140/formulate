@@ -1,10 +1,9 @@
-import { formatMoney } from "@formulate/shopify";
-import { Image } from "expo-image";
-import { Link, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
 import { useCollection } from "../lib/queries";
 import { CollectionNav } from "./collection-nav";
+import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
 
 /**
@@ -84,29 +83,7 @@ export const CollectionView = ({
         </View>
       }
       ListFooterComponent={<SiteFooter />}
-      renderItem={({ item }) => (
-        <Link href={`/products/${item.handle}`} asChild>
-          <View
-            accessibilityRole="link"
-            accessibilityLabel={`${item.title}, ${formatMoney(item.priceRange.minVariantPrice)}`}
-            className="flex-row items-center gap-3 rounded-lg border border-border p-3"
-          >
-            <Image
-              source={item.featuredImage?.url}
-              contentFit="cover"
-              transition={150}
-              style={{ width: 64, height: 64, borderRadius: 8 }}
-              accessibilityIgnoresInvertColors
-            />
-            <View className="flex-1">
-              <Text className="text-base font-medium text-foreground">{item.title}</Text>
-              <Text className="mt-1 text-sm text-foreground-muted">
-                {formatMoney(item.priceRange.minVariantPrice)}
-              </Text>
-            </View>
-          </View>
-        </Link>
-      )}
+      renderItem={({ item }) => <ProductRow product={item} />}
     />
   );
 };

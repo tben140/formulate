@@ -24,7 +24,7 @@
 <div class="container featured">
   {% if featured != blank and featured.products.size > 0 %}
     <header class="featured__header">
-      <h1 class="featured__title">{{ featured.title }}</h1>
+      <h2 class="featured__title">{{ featured.title }}</h2>
       {% if featured.description != blank %}
         <p class="featured__description">{{ featured.description }}</p>
       {% endif %}
@@ -43,12 +43,14 @@
     padding-block: var(--spacing-8);
   }
 
+  /* Below the home introduction and category cards, so an h2 like theirs. */
   .featured__header {
-    margin-block-end: var(--spacing-8);
+    margin-block: var(--spacing-16) var(--spacing-6);
   }
 
   .featured__title {
-    font-size: var(--text-3xl);
+    margin: 0;
+    font-size: var(--text-2xl);
     font-weight: 600;
     letter-spacing: -0.02em;
     color: var(--color-foreground);

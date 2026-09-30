@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toNavLinks } from "./nav";
+import { breadcrumbCollection, toNavLinks } from "./nav";
 
 const item = (url: string | null, title = "Item") => ({ id: `id-${title}`, title, url });
 
@@ -26,6 +26,19 @@ describe("toNavLinks", () => {
         handle: "magnesium-glycinate",
         path: "/products/magnesium-glycinate",
       },
+    ]);
+  });
+
+  it("keeps store policies Shopify can serve, and drops unknown ones", () => {
+    expect(
+      toNavLinks([
+        item("/policies/privacy-policy", "Privacy"),
+        item("/policies/subscription-policy", "Subscriptions"),
+        item("/policies/contact-information", "Contact"),
+      ]).map((link) => [link.kind, link.path]),
+    ).toEqual([
+      ["policy", "/policies/privacy-policy"],
+      ["policy", "/policies/subscription-policy"],
     ]);
   });
 
@@ -58,5 +71,32 @@ describe("toNavLinks", () => {
   it("returns nothing for a missing menu", () => {
     expect(toNavLinks(null)).toEqual([]);
     expect(toNavLinks(undefined)).toEqual([]);
+  });
+});
+
+describe("breadcrumbCollection", () => {
+  const nav = toNavLinks([
+    item("/collections/best-sellers", "Best Sellers"),
+    item("/collections/gut-health", "Gut Health"),
+    item("/products/fibre", "Fibre"),
+  ]);
+
+  it("picks the first menu collection the product is in, in menu order", () => {
+    expect(
+      breadcrumbCollection([{ handle: "gut-health" }, { handle: "best-sellers" }], nav)
+        ?.handle,
+    ).toBe("best-sellers");
+  });
+
+  it("ignores collections that aren't in the menu", () => {
+    expect(
+      breadcrumbCollection([{ handle: "frontpage" }, { handle: "gut-health" }], nav)
+        ?.handle,
+    ).toBe("gut-health");
+  });
+
+  it("is null when none match, and never picks a product link", () => {
+    expect(breadcrumbCollection([{ handle: "frontpage" }], nav)).toBeNull();
+    expect(breadcrumbCollection([{ handle: "fibre" }], nav)).toBeNull();
   });
 });

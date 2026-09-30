@@ -32,14 +32,23 @@ export {
   CartLinesRemoveMutation,
   CartLinesUpdateMutation,
   CartQuery,
+  CollectionCardsQuery,
   CollectionProductsQuery,
   NavMenuQuery,
   ProductByHandleQuery,
   ShopNameQuery,
+  ShopPoliciesQuery,
 } from "./queries";
 
-export { NAV_MENU_HANDLE, toNavLinks } from "./nav";
-export type { NavLink } from "./nav";
+export {
+  LEGAL_MENU_HANDLE,
+  NAV_MENU_HANDLE,
+  POLICY_HANDLES,
+  breadcrumbCollection,
+  isPolicyHandle,
+  toNavLinks,
+} from "./nav";
+export type { NavLink, PolicyHandle } from "./nav";
 
 export {
   DEFAULT_API_VERSION,
