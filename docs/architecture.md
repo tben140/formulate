@@ -59,6 +59,15 @@ block for the React surfaces and a plain `:root` block for the theme. The
 declaration list is built once and shared by both writers, so the two outputs
 cannot drift.
 
+**Typefaces are tokens too** (SHO-110): DM Sans for everything, DM Mono for
+prices. The font files live in `packages/tokens/fonts/` and a generated
+`fonts.css` declares them under their real family names. Web bundles that file
+through Next's CSS pipeline, and the theme's sync script copies it and the files
+into `assets/`. Web deliberately avoids `next/font`, which renames the family to
+a hash. React Native can't use a CSS font stack, so `fontFamily` also carries a
+bare `family` name for it. The mobile app still uses the platform font until the
+fonts are bundled with `expo-font`.
+
 **UI components are deliberately not shared.** A React Native `<View>` and a
 Liquid `<div>` are not the same thing, and forcing an abstraction over three
 rendering models produces something that fits none of them well. Parity is
