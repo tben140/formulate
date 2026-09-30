@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddToCart } from "../../components/add-to-cart";
@@ -10,6 +10,22 @@ import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
 import { useProduct } from "../../lib/queries";
 import { usePurchase, type Product } from "../../lib/use-purchase";
+
+/** Whether the software keyboard is showing. The "did" events fire on both platforms. */
+const useKeyboardOpen = () => {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const shown = Keyboard.addListener("keyboardDidShow", () => setOpen(true));
+    const hidden = Keyboard.addListener("keyboardDidHide", () => setOpen(false));
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
+
+  return open;
+};
 
 const ProductScreen = () => {
   const { handle } = useLocalSearchParams<{ handle: string }>();
@@ -76,7 +92,13 @@ const ProductBody = ({ product }: { product: Product }) => {
     button !== null &&
     buttonTop + button.height > view.offset &&
     buttonTop < view.offset + view.height;
-  const showBar = button !== null && view.height > 0 && !buttonOnScreen;
+  /*
+   * Hidden while the keyboard is up. The only field on this screen is the
+   * footer's email input, and on Android (adjustResize) the bar would sit on
+   * the keyboard, exactly where the focused field is scrolled to.
+   */
+  const keyboardOpen = useKeyboardOpen();
+  const showBar = button !== null && view.height > 0 && !buttonOnScreen && !keyboardOpen;
 
   return (
     <View className="flex-1">
@@ -137,7 +159,9 @@ const ProductBody = ({ product }: { product: Product }) => {
           The static variant list is gone for the same reason: it listed every
           price at once next to a picker that changes the price.
         */}
-        <View onLayout={(e) => setFormY(e.nativeEvent.layout.y)}>
+        {/* The margin lives here, outside the measured box: onLayout's y is
+            after it, so buttonTop is exact. */}
+        <View className="mt-2" onLayout={(e) => setFormY(e.nativeEvent.layout.y)}>
           <AddToCart
             product={product}
             purchase={purchase}

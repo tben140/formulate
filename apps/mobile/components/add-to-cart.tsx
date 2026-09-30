@@ -37,7 +37,9 @@ export const AddToCart = ({
   } = purchase;
 
   return (
-    <View className="mt-2 gap-5">
+    // No outer margin here: the product screen measures this view's top to
+    // place the button, and a margin inside it would put that 8px out.
+    <View className="gap-5">
       {product.options.map((option) =>
         // A single option called "Title" with one value is Shopify's stand-in
         // for "this product has no options".

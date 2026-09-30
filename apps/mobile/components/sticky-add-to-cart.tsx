@@ -62,7 +62,7 @@ export const StickyAddToCart = ({
 }) => {
   const { bottom } = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
-  const { variant, displayPrice, disabled, label, add } = purchase;
+  const { variant, displayPrice, disabled, label, add, addToCart } = purchase;
 
   // 0 = off screen below, 1 = in place. Starts where `visible` says, so the
   // first render never animates. Held in state rather than a ref, so render
@@ -133,35 +133,49 @@ export const StickyAddToCart = ({
       }}
     >
       <View
-        className="flex-row items-center gap-3 border-t border-border bg-surface px-4 pt-3"
+        className="gap-2 border-t border-border bg-surface px-4 pt-3"
         style={{ paddingBottom: Math.max(bottom, 12) }}
       >
-        <View className="min-w-0 flex-1">
-          <Text numberOfLines={1} className="text-sm font-medium text-foreground">
-            {variantTitle ?? product.title}
-          </Text>
-          {displayPrice ? (
-            <Text className="text-sm text-foreground-muted">{formatMoney(displayPrice)}</Text>
-          ) : null}
-        </View>
+        {/*
+          A failed add from the bar shows here too. The form's own message is
+          off screen whenever the bar is showing, so without this the tap looks
+          like it did nothing. Not a live region: the form's message already is,
+          and two would announce it twice.
+        */}
+        {addToCart.isError ? (
+          <Text className="text-sm text-danger">{addToCart.error.message}</Text>
+        ) : null}
 
-        <Pressable
-          disabled={disabled}
-          onPress={() => add(onAdded)}
-          accessibilityRole="button"
-          accessibilityState={{ disabled }}
-          // Distinct from the in-page button, so a screen reader's list of
-          // buttons does not show two identical "Add to cart" entries.
-          accessibilityLabel={
-            label === "Add to cart"
-              ? `Add ${product.title}${variantTitle ? `, ${variantTitle},` : ""} to cart`
-              : label
-          }
-          accessibilityHint="Quick add from the bar at the bottom of the screen"
-          className={`rounded-md px-5 py-3 ${disabled ? "bg-ink-300" : "bg-brand-600"}`}
-        >
-          <Text className="text-sm font-semibold text-surface">{label}</Text>
-        </Pressable>
+        <View className="flex-row items-center gap-3">
+          <View className="min-w-0 flex-1">
+            <Text numberOfLines={1} className="text-sm font-medium text-foreground">
+              {variantTitle ?? product.title}
+            </Text>
+            {displayPrice ? (
+              <Text className="text-sm text-foreground-muted">
+                {formatMoney(displayPrice)}
+              </Text>
+            ) : null}
+          </View>
+
+          <Pressable
+            disabled={disabled}
+            onPress={() => add(onAdded)}
+            accessibilityRole="button"
+            accessibilityState={{ disabled }}
+            // Distinct from the in-page button, so a screen reader's list of
+            // buttons does not show two identical "Add to cart" entries.
+            accessibilityLabel={
+              label === "Add to cart"
+                ? `Add ${product.title}${variantTitle ? `, ${variantTitle},` : ""} to cart`
+                : label
+            }
+            accessibilityHint="Quick add from the bar at the bottom of the screen"
+            className={`rounded-md px-5 py-3 ${disabled ? "bg-ink-300" : "bg-brand-600"}`}
+          >
+            <Text className="text-sm font-semibold text-surface">{label}</Text>
+          </Pressable>
+        </View>
       </View>
     </Animated.View>
   );
