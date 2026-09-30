@@ -31,24 +31,27 @@ jobs:
     env:
       # Credentials for a Dev Dashboard app with read_products and write_themes.
       # All empty on forks and until they are added, and the job then skips
-      # rather than failing.
+      # rather than failing. SHOP_PASSWORD (below) is required as well.
       SHOP_STORE: ${{ secrets.SHOP_STORE }}
       SHOP_CLIENT_ID: ${{ secrets.SHOP_CLIENT_ID }}
       SHOP_CLIENT_SECRET: ${{ secrets.SHOP_CLIENT_SECRET }}
+      # Development stores are always password protected, so without this the
+      # audit reaches the password page and fails rather than skipping.
+      SHOP_PASSWORD: ${{ secrets.SHOP_PASSWORD }}
 
     steps:
       - name: Skip when store credentials are not configured
-        if: env.SHOP_CLIENT_ID == '' || env.SHOP_CLIENT_SECRET == '' || env.SHOP_STORE == ''
-        run: echo "::notice::Theme Lighthouse skipped - SHOP_STORE, SHOP_CLIENT_ID and SHOP_CLIENT_SECRET secrets are not set."
+        if: env.SHOP_CLIENT_ID == '' || env.SHOP_CLIENT_SECRET == '' || env.SHOP_STORE == '' || env.SHOP_PASSWORD == ''
+        run: echo "::notice::Theme Lighthouse skipped - SHOP_STORE, SHOP_CLIENT_ID, SHOP_CLIENT_SECRET and SHOP_PASSWORD secrets are not all set."
 
       - uses: actions/checkout@v5
-        if: env.SHOP_CLIENT_ID != '' && env.SHOP_CLIENT_SECRET != '' && env.SHOP_STORE != ''
+        if: env.SHOP_CLIENT_ID != '' && env.SHOP_CLIENT_SECRET != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
 
       # Pinned to the commit behind the v1 tag (2026-04-13). The action receives
       # credentials that can write themes, so a moved tag should not be able to
       # change what runs with them.
       - uses: shopify/lighthouse-ci-action@988f0eeb44ad5f298bd47150e5b9b01c27ead975 # v1
-        if: env.SHOP_CLIENT_ID != '' && env.SHOP_CLIENT_SECRET != '' && env.SHOP_STORE != ''
+        if: env.SHOP_CLIENT_ID != '' && env.SHOP_CLIENT_SECRET != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
         with:
           store: ${{ secrets.SHOP_STORE }}
           client_id: ${{ secrets.SHOP_CLIENT_ID }}

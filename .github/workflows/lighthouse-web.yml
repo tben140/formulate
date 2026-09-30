@@ -22,7 +22,9 @@ on:
         default: https://web-six-murex-18.vercel.app
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.deployment.sha || github.ref }}
+  # The deployment state is in the group so a later non-success status for the
+  # same commit doesn't cancel an audit already running against a ready deploy.
+  group: ${{ github.workflow }}-${{ github.event.deployment.sha || github.ref }}-${{ github.event.deployment_status.state || 'manual' }}
   cancel-in-progress: true
 
 permissions:
