@@ -1,4 +1,5 @@
 import Constants, { ExecutionEnvironment } from "expo-constants";
+import { Platform } from "react-native";
 
 /**
  * Whether the app is running inside the Expo Go app from the App Store.
@@ -19,3 +20,12 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
  * `storeClient`, so nothing changes for them.
  */
 export const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+/**
+ * Whether the native SDKs (Checkout Sheet Kit, Klaviyo) can load: not in Expo
+ * Go, and not on web either. The app has a web target, and something as simple
+ * as a request for the dev server's page renders it server-side, which threw
+ * "klaviyo-react-native-sdk doesn't seem to be linked" in the Metro log. Both
+ * loaders check this rather than `isExpoGo`, and fall back the same way.
+ */
+export const hasNativeSdks = !isExpoGo && Platform.OS !== "web";
