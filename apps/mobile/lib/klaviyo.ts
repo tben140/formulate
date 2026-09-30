@@ -4,22 +4,22 @@ import {
   type SubscribeResult,
 } from "@formulate/analytics";
 
-import { isExpoGo } from "./expo-go";
+import { hasNativeSdks } from "./expo-go";
 
 type KlaviyoSdk = typeof import("klaviyo-react-native-sdk");
 
 /**
- * The Klaviyo SDK, or `null` in Expo Go.
+ * The Klaviyo SDK, or `null` in Expo Go and on web (`hasNativeSdks`).
  *
  * ⚠️ Required lazily, never imported. The SDK reads its native module's
  * constants while the module loads, and in Expo Go that module does not exist,
  * so a static import throws before the first screen renders. Every function
  * below checks for `null` before touching the SDK.
  */
-const Klaviyo: KlaviyoSdk["Klaviyo"] | null = isExpoGo
-  ? null
-  : // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require("klaviyo-react-native-sdk") as KlaviyoSdk).Klaviyo;
+const Klaviyo: KlaviyoSdk["Klaviyo"] | null = hasNativeSdks
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require("klaviyo-react-native-sdk") as KlaviyoSdk).Klaviyo
+  : null;
 
 /**
  * Klaviyo for the Expo app.
@@ -79,10 +79,10 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
  */
 export const initKlaviyo = (): void => {
   /*
-   * `null` in Expo Go, which has no Klaviyo native module (see above).
+   * `null` in Expo Go and on web, which have no Klaviyo native module (see above).
    */
   if (!Klaviyo) {
-    if (__DEV__) console.warn("[klaviyo] Expo Go: the SDK is not available, so tracking is off.");
+    if (__DEV__) console.warn("[klaviyo] Expo Go or web: the native SDK is not available, so tracking is off.");
     return;
   }
 
