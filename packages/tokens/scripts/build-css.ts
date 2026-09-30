@@ -74,9 +74,9 @@ const declarations: string[] = [
  */
 const fontFaceRules = fontFaces
   .map(
-    ({ family, weight, file }) => `@font-face {
+    ({ family, weight, style, file }) => `@font-face {
   font-family: "${family}";
-  font-style: normal;
+  font-style: ${style};
   font-weight: ${weight};
   font-display: swap;
   src: url("./fonts/${file}") format("woff2");

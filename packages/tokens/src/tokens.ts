@@ -131,14 +131,21 @@ export const fontFamily = {
 /**
  * The font files behind `fontFamily`, one per weight actually used. The
  * surfaces use 400, 500 and 600 only (checked 2026-09-29), so nothing else
- * ships. Latin subset, from Fontsource's build of the Google Fonts release.
+ * ships. Latin subset, from Fontsource's build of the Google Fonts release
+ * (@fontsource/dm-sans 5.3.0).
+ *
+ * Bold is 600, not 700: the theme maps `<b>`, `<strong>` and h3–h6 to 600 so
+ * no browser fakes a heavier weight. The 400 italic exists for `<em>` in
+ * merchant rich text (product descriptions in the theme). Browsers only
+ * download a face when text uses it, so the web app pays nothing for it.
  */
 export const fontFaces = [
-  { family: fontFamily.sans.family, weight: 400, file: "dm-sans-latin-400-normal.woff2" },
-  { family: fontFamily.sans.family, weight: 500, file: "dm-sans-latin-500-normal.woff2" },
-  { family: fontFamily.sans.family, weight: 600, file: "dm-sans-latin-600-normal.woff2" },
-  { family: fontFamily.mono.family, weight: 400, file: "dm-mono-latin-400-normal.woff2" },
-  { family: fontFamily.mono.family, weight: 500, file: "dm-mono-latin-500-normal.woff2" },
+  { family: fontFamily.sans.family, weight: 400, style: "normal", file: "dm-sans-latin-400-normal.woff2" },
+  { family: fontFamily.sans.family, weight: 400, style: "italic", file: "dm-sans-latin-400-italic.woff2" },
+  { family: fontFamily.sans.family, weight: 500, style: "normal", file: "dm-sans-latin-500-normal.woff2" },
+  { family: fontFamily.sans.family, weight: 600, style: "normal", file: "dm-sans-latin-600-normal.woff2" },
+  { family: fontFamily.mono.family, weight: 400, style: "normal", file: "dm-mono-latin-400-normal.woff2" },
+  { family: fontFamily.mono.family, weight: 500, style: "normal", file: "dm-mono-latin-500-normal.woff2" },
 ] as const;
 
 export const tokens = { colours, spacing, radius, fontSize, fontFamily } as const;
