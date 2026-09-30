@@ -45,6 +45,14 @@ export const ProductByHandleQuery = graphql(`
       handle
       title
       description
+      # Aliased so it can't collide with other fields reading collections: the
+      # breadcrumb picks the first of these that's in the navigation menu.
+      breadcrumbCollections: collections(first: 20) {
+        nodes {
+          handle
+          title
+        }
+      }
       # Both exist for the Klaviyo payload, which must match what the theme's
       # app embed already emits — see packages/analytics/src/events.ts.
       vendor
@@ -168,6 +176,76 @@ export const NavMenuQuery = graphql(`
         title
         type
         url
+      }
+    }
+  }
+`);
+
+/**
+ * Collections as cards for the home page's "Shop by category" (SHO-61). There's
+ * no image on the collections themselves, so each card shows its first
+ * product's. Callers keep the ones in the navigation menu, in menu order.
+ */
+export const CollectionCardsQuery = graphql(`
+  query CollectionCards {
+    collections(first: 50) {
+      nodes {
+        id
+        handle
+        title
+        description
+        image {
+          url
+          altText
+          width
+          height
+        }
+        products(first: 1) {
+          nodes {
+            featuredImage {
+              url
+              altText
+              width
+              height
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+/**
+ * Every store policy at once: there are five, the Storefront API has no
+ * by-handle lookup, and a missing one is simply null.
+ */
+export const ShopPoliciesQuery = graphql(`
+  query ShopPolicies {
+    shop {
+      privacyPolicy {
+        title
+        handle
+        body
+      }
+      refundPolicy {
+        title
+        handle
+        body
+      }
+      termsOfService {
+        title
+        handle
+        body
+      }
+      shippingPolicy {
+        title
+        handle
+        body
+      }
+      subscriptionPolicy {
+        title
+        handle
+        body
       }
     }
   }

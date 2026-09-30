@@ -1316,7 +1316,7 @@ export type ProductByHandleQueryVariables = Exact<{
 }>;
 
 
-export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, vendor: string, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
+export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, vendor: string, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
 
 export type NavMenuQueryVariables = Exact<{
   handle: string;
@@ -1324,6 +1324,16 @@ export type NavMenuQueryVariables = Exact<{
 
 
 export type NavMenuQuery = { menu: { items: Array<{ id: string, title: string, type: MenuItemType, url: string | null }> } | null };
+
+export type CollectionCardsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type CollectionCardsQuery = { collections: { nodes: Array<{ id: string, handle: string, title: string, description: string, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, products: { nodes: Array<{ featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null }> } }> } };
+
+export type ShopPoliciesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ShopPoliciesQuery = { shop: { privacyPolicy: { title: string, handle: string, body: string } | null, refundPolicy: { title: string, handle: string, body: string } | null, termsOfService: { title: string, handle: string, body: string } | null, shippingPolicy: { title: string, handle: string, body: string } | null, subscriptionPolicy: { title: string, handle: string, body: string } | null } };
 
 export type ShopNameQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1519,6 +1529,12 @@ export const ProductByHandleDocument = new TypedDocumentString(`
     handle
     title
     description
+    breadcrumbCollections: collections(first: 20) {
+      nodes {
+        handle
+        title
+      }
+    }
     vendor
     compareAtPriceRange {
       minVariantPrice {
@@ -1621,6 +1637,65 @@ export const NavMenuDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<NavMenuQuery, NavMenuQueryVariables>;
+export const CollectionCardsDocument = new TypedDocumentString(`
+    query CollectionCards {
+  collections(first: 50) {
+    nodes {
+      id
+      handle
+      title
+      description
+      image {
+        url
+        altText
+        width
+        height
+      }
+      products(first: 1) {
+        nodes {
+          featuredImage {
+            url
+            altText
+            width
+            height
+          }
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<CollectionCardsQuery, CollectionCardsQueryVariables>;
+export const ShopPoliciesDocument = new TypedDocumentString(`
+    query ShopPolicies {
+  shop {
+    privacyPolicy {
+      title
+      handle
+      body
+    }
+    refundPolicy {
+      title
+      handle
+      body
+    }
+    termsOfService {
+      title
+      handle
+      body
+    }
+    shippingPolicy {
+      title
+      handle
+      body
+    }
+    subscriptionPolicy {
+      title
+      handle
+      body
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ShopPoliciesQuery, ShopPoliciesQueryVariables>;
 export const ShopNameDocument = new TypedDocumentString(`
     query ShopName {
   shop {

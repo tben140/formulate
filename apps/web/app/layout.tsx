@@ -12,7 +12,7 @@ import { EmailCapture } from "@/components/email-capture";
 import { SiteNav } from "@/components/site-nav";
 import { getCart } from "@/lib/cart";
 import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
-import { getNavLinks } from "@/lib/nav";
+import { getLegalLinks, getNavLinks } from "@/lib/nav";
 
 import "./globals.css";
 
@@ -36,7 +36,11 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   // In parallel: neither depends on the other, and both are on every page.
-  const [cart, navLinks] = await Promise.all([getCart(), getNavLinks()]);
+  const [cart, navLinks, legalLinks] = await Promise.all([
+    getCart(),
+    getNavLinks(),
+    getLegalLinks(),
+  ]);
 
   return (
     <html lang="en-GB">
@@ -78,9 +82,29 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           <footer className="border-t border-border">
             <div className="mx-auto max-w-5xl px-4 py-6">
               <EmailCapture />
-              <p className="mt-6 text-sm text-foreground-muted">
-                &copy; {new Date().getFullYear()} Formulate
-              </p>
+              {/*
+                The footer's links come from the Shopify menu "Legal" (SHO-60),
+                the same menu the theme's footer reads.
+              */}
+              <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-foreground-muted">
+                <p>&copy; {new Date().getFullYear()} Formulate</p>
+                {legalLinks.length > 0 ? (
+                  <nav aria-label="Legal">
+                    <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                      {legalLinks.map((link) => (
+                        <li key={link.id}>
+                          <Link
+                            href={link.path}
+                            className="underline-offset-4 hover:text-foreground hover:underline"
+                          >
+                            {link.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
+                ) : null}
+              </div>
             </div>
           </footer>
 
