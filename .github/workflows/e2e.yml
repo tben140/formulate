@@ -18,7 +18,10 @@ on:
         default: https://web-six-murex-18.vercel.app
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.deployment.sha || github.ref }}
+  # The deployment state is in the group so that a later non-success status for
+  # the same commit (pending, in_progress, a redeploy starting) doesn't cancel a
+  # run that's already testing a ready deployment. Its own job is skipped anyway.
+  group: ${{ github.workflow }}-${{ github.event.deployment.sha || github.ref }}-${{ github.event.deployment_status.state || 'manual' }}
   cancel-in-progress: true
 
 permissions:

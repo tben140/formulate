@@ -29,7 +29,24 @@ const globalSetup = async () => {
     const url = new URL("/collections/best-sellers", baseURL);
     url.searchParams.set("x-vercel-protection-bypass", secret);
     url.searchParams.set("x-vercel-set-bypass-cookie", "true");
-    const response = await page.goto(url.toString());
+    /*
+     * ⚠️ Never let this navigation's own error escape. Playwright's message
+     * includes the full URL, secret and all, and the HTML report stores setup
+     * errors base64-encoded where the workflow's redaction can't see them. So a
+     * timeout or network error is rethrown with only the error's kind.
+     */
+    let response;
+    try {
+      response = await page.goto(url.toString());
+    } catch (error) {
+      const kind = error instanceof Error ? error.name : "unknown error";
+      // No `cause`: attaching the original error is exactly what leaks the URL.
+      // eslint-disable-next-line preserve-caught-error
+      throw new Error(
+        `Vercel bypass failed: navigation to ${url.origin} threw (${kind}). ` +
+          "The preview may still be starting, or be unreachable. Details omitted: the URL carries the bypass secret.",
+      );
+    }
 
     // Fail here, once and clearly, rather than in every test with a login page.
     if (!response?.ok() || new URL(page.url()).hostname.endsWith("vercel.com")) {
