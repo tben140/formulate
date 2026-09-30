@@ -37,7 +37,6 @@ export const SiteNav = ({ links }: { links: readonly NavLink[] }) => {
   return (
     <ul
       ref={list}
-      role="list"
       aria-label="Collections"
       className="order-3 -mx-4 flex w-full gap-5 overflow-x-auto px-4 pb-1 text-sm whitespace-nowrap md:order-2 md:mx-0 md:w-auto md:flex-1 md:px-0 md:pb-0 max-md:[mask-image:linear-gradient(to_right,black_85%,transparent)]"
     >
