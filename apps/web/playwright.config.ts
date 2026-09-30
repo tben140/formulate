@@ -41,7 +41,20 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL,
-    ...(behindVercelProtection ? { storageState: VERCEL_AUTH_STATE } : {}),
+    ...(behindVercelProtection
+      ? {
+          storageState: VERCEL_AUTH_STATE,
+          /*
+           * Previews inject the Vercel Toolbar, which keeps a connection open,
+           * so `waitUntil: "networkidle"` never resolves and every test times
+           * out (the first CI run did exactly that). This header is Vercel's
+           * documented switch for automation. It isn't sensitive, so sending
+           * it everywhere is fine; the one side effect is that third-party
+           * XHRs (Klaviyo) need a CORS preflight, and no test depends on them.
+           */
+          extraHTTPHeaders: { "x-vercel-skip-toolbar": "1" },
+        }
+      : {}),
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
