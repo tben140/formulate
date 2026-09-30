@@ -19,15 +19,22 @@ export type ProductCardData = {
 /**
  * A product in a grid: image, title and starting price, linking to the product
  * page. `headingLevel` keeps the page outline right wherever the grid sits.
+ *
+ * `loading` and `fetchPriority` pass through to the image, for a grid's first
+ * row, which is on screen at load (SHO-143). Hydrogen's Image defaults to lazy.
  */
 export const ProductCard = ({
   product,
   sizes,
   headingLevel = "h2",
+  loading,
+  fetchPriority,
 }: {
   readonly product: ProductCardData;
   readonly sizes: string;
   readonly headingLevel?: "h2" | "h3";
+  readonly loading?: "eager" | "lazy";
+  readonly fetchPriority?: "high" | "auto";
 }) => {
   const Heading = headingLevel;
   return (
@@ -41,6 +48,8 @@ export const ProductCard = ({
             data={product.featuredImage}
             sizes={sizes}
             className="h-full w-full object-cover"
+            loading={loading}
+            fetchPriority={fetchPriority}
           />
         ) : (
           <div
