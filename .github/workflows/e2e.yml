@@ -1,0 +1,83 @@
+name: E2E (web)
+
+# The Playwright suite in apps/web/e2e (storefront, cart, keyboard, WCAG 2.2 AA
+# via axe), run against every Vercel deployment once Vercel reports it ready
+# (SHO-140). Running against the deployment rather than a build on the runner
+# means CI tests exactly what the PR ships, and needs no Storefront token.
+#
+# The suite creates throwaway carts on the real demo store. That is harmless,
+# and it is why this is its own job rather than part of `turbo test`.
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Base URL to test
+        required: true
+        default: https://web-six-murex-18.vercel.app
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.deployment.sha || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E (web)
+    if: github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      E2E_BASE_URL: ${{ github.event.deployment_status.environment_url || inputs.url }}
+      # Previews sit behind Deployment Protection; e2e/global-setup.ts trades
+      # this for a cookie on the preview's domain only.
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The browser build must match the pinned @playwright/test exactly.
+      - name: Install Chromium
+        run: pnpm --filter @formulate/web exec playwright install --with-deps chromium
+
+      - name: Run the suite
+        run: pnpm --filter @formulate/web test:e2e
+
+      # Traces and the HTML report record URLs and cookies. Strip the bypass
+      # secret before anything is uploaded, as the Lighthouse job does.
+      - name: Redact the bypass secret from reports
+        if: failure() && env.VERCEL_AUTOMATION_BYPASS_SECRET != ''
+        working-directory: apps/web
+        run: |
+          rm -rf e2e/.auth
+          for dir in playwright-report test-results; do
+            [ -d "$dir" ] || continue
+            find "$dir" -type f -print0 | xargs -0 -r sed -i "s/${VERCEL_AUTOMATION_BYPASS_SECRET}/REDACTED/g"
+            # Traces are zip files, which sed can't rewrite. Drop any that
+            # still contain the secret rather than upload it.
+            find "$dir" -name "*.zip" -print0 | while IFS= read -r -d '' zip; do
+              if unzip -p "$zip" | grep -q "${VERCEL_AUTOMATION_BYPASS_SECRET}"; then rm "$zip"; fi
+            done
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14
