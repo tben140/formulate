@@ -156,6 +156,24 @@ export const ProductByHandleQuery = graphql(`
 `);
 
 /**
+ * The storefront navigation menu (SHO-60). Only the top level is used: nested
+ * items would need a disclosure menu, and the store's menu is flat.
+ * `toNavLinks` turns the result into routes every surface can use.
+ */
+export const NavMenuQuery = graphql(`
+  query NavMenu($handle: String!) {
+    menu(handle: $handle) {
+      items {
+        id
+        title
+        type
+        url
+      }
+    }
+  }
+`);
+
+/**
  * Used by the smoke-test script to prove a token works before any UI exists.
  */
 export const ShopNameQuery = graphql(`
