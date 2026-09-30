@@ -13,6 +13,8 @@
 {% endcomment %}
 
 <div class="container collection">
+  {% render 'breadcrumbs', current: collection.title %}
+
   <header class="collection__header">
     <h1 class="collection__title">{{ collection.title }}</h1>
     {% if collection.description != blank %}
