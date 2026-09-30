@@ -16,10 +16,8 @@
     "dependencies"
   ],
   "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": [
-      "before 6am on the first day of the month"
-    ]
+    "enabled": false,
+    "description": "Off on purpose. Lock-file maintenance re-resolves every range in the lockfile and ignores the per-package rules below, so it would move react-native-css within ^3.0.7 (only 3.0.7 reads lightningcss 1.30.1's output, a failure that shows only at Metro bundle time) and @types/react within ^19.2.0. Re-enable only once those are pinned exactly."
   },
   "packageRules": [
     {
@@ -48,14 +46,11 @@
       "enabled": false
     },
     {
-      "description": "TypeScript stays on 6.x. See docs/adr/0002-typescript-6-over-7.md.",
+      "description": "TypeScript stays on 6.0.x: typescript-eslint caps its peer range at <6.1.0, so the pin is ~6.0.3 (patches only). Blocks 6.1+ and 7. See docs/adr/0002-typescript-6-over-7.md.",
       "matchPackageNames": [
         "typescript"
       ],
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "enabled": false
+      "allowedVersions": "<6.1.0"
     },
     {
       "description": "Every other non-major devDependency update in one weekly PR. Listed before the specific groups so they override it (later rules win).",
@@ -69,7 +64,7 @@
       "groupName": "dev dependencies (non-major)"
     },
     {
-      "description": "Expo SDK packages and React Native must match the versions the SDK expects, which Renovate cannot know. Grouped, and held on the Dependency Dashboard for a human to approve; apply with `npx expo install --fix` and check with `npx expo install --check`.",
+      "description": "Expo SDK packages and React Native must match the versions the SDK expects, which Renovate cannot know. Grouped (eslint-config-expo too: its major tracks the SDK), and held on the Dependency Dashboard for a human to approve; apply with `npx expo install --fix` and check with `npx expo install --check`.",
       "matchPackageNames": [
         "expo",
         "expo-*",
@@ -77,7 +72,8 @@
         "react-native",
         "react-native-*",
         "@react-native/*",
-        "jest-expo"
+        "jest-expo",
+        "eslint-config-expo"
       ],
       "groupName": "Expo SDK",
       "dependencyDashboardApproval": true
@@ -100,10 +96,11 @@
       "groupName": "Next.js"
     },
     {
-      "description": "Lint tooling, grouped so one PR carries a coordinated bump.",
+      "description": "Lint tooling, grouped so one PR carries a coordinated bump. eslint-config-expo is excluded: it moves with the Expo SDK group above.",
       "matchPackageNames": [
         "eslint",
         "eslint-*",
+        "!eslint-config-expo",
         "@eslint/*",
         "typescript-eslint",
         "@typescript-eslint/*",
