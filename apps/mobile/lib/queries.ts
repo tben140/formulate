@@ -1,5 +1,6 @@
 import {
   CollectionProductsQuery,
+  ComplementaryProductsQuery,
   ProductByHandleQuery,
   describeError,
 } from "@formulate/shopify";
@@ -41,4 +42,21 @@ export const useProduct = (handle: string) =>
     queryFn: async () =>
       unwrap(await storefront.request(ProductByHandleQuery, { handle })),
     enabled: handle.length > 0,
+  });
+
+/**
+ * "Pairs well with": the complementary products set in Search & Discovery.
+ * Slow to change, so cached for ten minutes.
+ */
+export const useComplementaryProducts = (productId: string | undefined) =>
+  useQuery({
+    queryKey: ["complementary", productId],
+    queryFn: async () =>
+      unwrap(
+        await storefront.request(ComplementaryProductsQuery, {
+          productId: productId ?? "",
+        }),
+      ).productRecommendations ?? [],
+    enabled: Boolean(productId),
+    staleTime: 10 * 60_000,
   });
