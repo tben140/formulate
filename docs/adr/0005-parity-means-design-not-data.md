@@ -50,8 +50,10 @@ thing to break when any surface needed something specific.
 
 **The three surfaces show different numbers of products, and that is correct.**
 
-The storefront opens on `automated-collection`, a smart collection with the rule
-`variant price > 200 AND < 800`. Shopify's admin counts 8 products in it:
+When this was decided the storefront opened on `automated-collection` (it has
+opened on `best-sellers` since September 2026; see the domain model). The
+example still makes the point. It is a smart collection with the rule
+`variant price > 200 AND < 800`, and Shopify's admin counted 8 products in it:
 
 - 6 are published to both **Online Store** and **Headless**.
 - **The Hidden Snowboard** is published to Headless but _not_ Online Store.
