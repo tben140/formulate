@@ -275,16 +275,29 @@ const settleStock = async (
   const short = requestedLines.find(
     (line) => warningFor(line.id)?.code === "MERCHANDISE_NOT_ENOUGH_STOCK",
   );
-  return short
-    ? {
-        result,
-        storedCartGone,
-        // Our wording, not Shopify's "Only 3 items were added": that is false
-        // when all 3 were already in the cart and nothing was added this time.
-        notice: `Only ${short.quantity} are available, and all ${short.quantity} are in your cart.`,
-      }
-    : { result, storedCartGone };
+  if (!short) return { result, storedCartGone };
+
+  // The stock is per variant, and one variant can sit on two lines: one-time
+  // and on a subscription. So the total is every line for this merchandise,
+  // not just the line that was short (review of #25).
+  const inCart = cart.lines.nodes
+    .filter((line) => line.merchandise.id === short.merchandise.id)
+    .reduce((sum, line) => sum + line.quantity, 0);
+
+  return {
+    result,
+    storedCartGone,
+    // Our wording, not Shopify's "Only 3 items were added": that is false
+    // when all 3 were already in the cart and nothing was added this time.
+    notice: stockNotice(inCart),
+  };
 };
+
+/** "Only 3 are available, and all 3 are in your cart", singular for one. */
+export const stockNotice = (available: number): string =>
+  available === 1
+    ? "Only 1 is available, and it's in your cart."
+    : `Only ${available} are available, and all ${available} are in your cart.`;
 
 export const createCartClient = (storefront: StorefrontClient): CartClient => {
   const requestCreate = (options: Parameters<CartClient["create"]>[0]) =>
