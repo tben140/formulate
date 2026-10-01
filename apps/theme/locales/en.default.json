@@ -35,7 +35,20 @@
     "remove_for": "{{ title }} from cart"
   },
   "collections": {
-    "title": "Collections"
+    "title": "Collections",
+    "filter": "Filter",
+    "active": "active",
+    "apply": "Apply",
+    "clear_all": "Clear all",
+    "price_from": "From",
+    "price_to": "To",
+    "active_filters": "Active filters",
+    "remove_filter": "remove filter",
+    "no_matches": "No products match these filters.",
+    "product_count": {
+      "one": "{{ count }} product",
+      "other": "{{ count }} products"
+    }
   },
   "customers": {
     "login": {

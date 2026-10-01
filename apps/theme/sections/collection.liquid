@@ -20,7 +20,12 @@
     {% endif %}
   </header>
 
+  {% render 'collection-filters', collection: collection %}
+
   {% paginate collection.products by 24 %}
+    {% if collection.products.size == 0 and collection.filters.size > 0 %}
+      <p class="collection__empty">{{ 'collections.no_matches' | t }}</p>
+    {% endif %}
     {% render 'product-grid', products: collection.products %}
     {{ paginate | default_pagination }}
   {% endpaginate %}
@@ -40,6 +45,12 @@
     font-weight: 600;
     letter-spacing: -0.02em;
     color: var(--color-foreground);
+  }
+
+  .collection__empty {
+    padding-block: var(--spacing-12);
+    text-align: center;
+    color: var(--color-foreground-muted);
   }
 
   .collection__description {
