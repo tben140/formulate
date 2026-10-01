@@ -86,6 +86,13 @@ Events go to `window._learnq`, **never** to `window.klaviyo`. The latter is
 owned by `klaviyo.js`; assigning an array to it shadows the object the script
 installs, and every event lands somewhere nothing drains — silently.
 
+⚠️ **`klaviyo.js` loads only after tracking consent.** It is rendered by
+`components/tracking-consent.tsx`, never directly in a layout or page. Before
+consent `_learnq` is a plain array that nothing transmits. Loading the script
+anywhere else would set `__kla_id` for shoppers who declined. Signing up for
+emails does not grant tracking consent. See
+[ADR 0008](../../docs/adr/0008-headless-tracking-consent-is-our-own.md).
+
 Two things make this integration hard to verify, and both look like broken code:
 
 - **Klaviyo does not transmit events for anonymous visitors.** They are cached
