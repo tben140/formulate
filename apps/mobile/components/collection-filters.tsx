@@ -194,9 +194,11 @@ const FilterSheet = ({
                       accessibilityLabel={`${value.label}, ${value.count} ${value.count === 1 ? "product" : "products"}`}
                       className="flex-row items-center gap-3 py-2"
                     >
+                      {/* ink-500, not the hairline border colour: a checkbox's
+                          outline needs 3:1 against white (WCAG 1.4.11). */}
                       <View
                         className={`h-5 w-5 items-center justify-center rounded border ${
-                          checked ? "border-brand-600 bg-brand-600" : "border-border"
+                          checked ? "border-brand-600 bg-brand-600" : "border-ink-500"
                         }`}
                       >
                         {checked ? (
