@@ -28,9 +28,25 @@ pnpm install --frozen-lockfile
 # image already ships one via nvm; we point at the newest installed, falling
 # back to installing Node 22 if for some reason none qualifies.
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-# shellcheck source=/dev/null
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
+# nvm is not written for `set -eu`: an unset variable or a non-zero internal
+# check inside nvm.sh would end this script before any Node is pinned. So the
+# strict modes are lifted around every nvm call, and restored after.
+with_nvm() {
+  set +eu
+  "$@"
+  local status=$?
+  set -eu
+  return "$status"
+}
+
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  # shellcheck source=/dev/null
+  with_nvm . "$NVM_DIR/nvm.sh"
+fi
+
+# Native type stripping is on by default from 22.18 on the 22 line, and from
+# 23.6 on the 23 line (23.0 to 23.5 only had it behind a flag).
 node_supports_type_stripping() {
   local version major minor
   version="$("$1" -v 2>/dev/null)" || return 1
@@ -38,19 +54,32 @@ node_supports_type_stripping() {
   major="${version%%.*}"
   minor="${version#*.}"
   minor="${minor%%.*}"
-  [ "$major" -gt 22 ] || { [ "$major" -eq 22 ] && [ "$minor" -ge 18 ]; }
+  [ "$major" -ge 24 ] ||
+    { [ "$major" -eq 23 ] && [ "$minor" -ge 6 ]; } ||
+    { [ "$major" -eq 22 ] && [ "$minor" -ge 18 ]; }
 }
 
-# Newest Node that nvm has on disk (sort -V handles the version ordering).
-target="$(ls -d "$NVM_DIR"/versions/node/v*/bin/node 2>/dev/null | sort -V | tail -n1 || true)"
+# The newest Node that nvm has on disk *and* that qualifies; not simply the
+# newest, which could be an early 23.x (sort -V handles version ordering).
+target=""
+while IFS= read -r candidate; do
+  if node_supports_type_stripping "$candidate"; then
+    target="$candidate"
+    break
+  fi
+done < <(ls -d "$NVM_DIR"/versions/node/v*/bin/node 2>/dev/null | sort -rV || true)
 
-if [ -z "$target" ] || ! node_supports_type_stripping "$target"; then
-  nvm install 22 >/dev/null
-  target="$(nvm which 22)"
+if [ -z "$target" ]; then
+  if ! command -v nvm >/dev/null 2>&1; then
+    echo "install.sh: no Node >= 22.18 installed, and nvm isn't available to install one" >&2
+    exit 1
+  fi
+  with_nvm nvm install 22 >/dev/null
+  target="$(with_nvm nvm which 22)"
 fi
 
 if ! node_supports_type_stripping "$target"; then
-  echo "install.sh: could not find a Node >= 22.18 for the tokens build" >&2
+  echo "install.sh: could not find a Node >= 22.18 (or >= 23.6) for the tokens build" >&2
   exit 1
 fi
 
