@@ -30,6 +30,18 @@
       JavaScript it navigates to the cart page, which is a real page — so the
       cart is reachable either way.
     {% endcomment %}
+    {% comment %}
+      Search, matching apps/web's header link: a link to the search page,
+      styled like the cart link beside it. Works without JavaScript.
+    {% endcomment %}
+    <a class="site-header__search site-header__cart-link" href="{{ routes.search_url }}">
+      <svg aria-hidden="true" focusable="false" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="8.5" cy="8.5" r="5.5" />
+        <path d="m13 13 4 4" stroke-linecap="round" />
+      </svg>
+      {{- 'general.search_link' | t -}}
+    </a>
+
     <cart-count class="site-header__cart">
       <a
         ref="link"
