@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useState } from "react";
 
+import { CartButton } from "../components/cart-button";
 import { HeaderActions } from "../components/header-actions";
 import { CartProvider } from "../components/cart-provider";
 import { initKlaviyo } from "../lib/klaviyo";
@@ -58,7 +59,11 @@ const RootLayout = () => {
           >
             <Stack.Screen name="index" options={{ title: "Formulate" }} />
             <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
-            <Stack.Screen name="search" options={{ title: "Search" }} />
+            {/* Cart only: a Search button on the search screen goes nowhere. */}
+            <Stack.Screen
+              name="search"
+              options={{ title: "Search", headerRight: () => <CartButton /> }}
+            />
           </Stack>
         </CartProvider>
       </ShopifyCheckoutSheetProvider>
