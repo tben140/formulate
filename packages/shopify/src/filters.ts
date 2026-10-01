@@ -23,11 +23,11 @@ import type { ProductFilter } from "./generated/graphql";
  * Anything that isn't a filter parameter is left alone, and an unrecognised
  * `filter.*` parameter is ignored rather than sent: the API would reject it.
  *
- * ⚠️ The API silently ignores a filter type that isn't switched on in Search &
- * Discovery: no error, just unfiltered results. Measured 2026-10-01 on
- * `performance`, where only Availability and Price were configured: price
- * ranges narrowed 6 products to 2, while `filter.p.tag` and
- * `filter.v.option.flavour` still returned all 6. If a filter "does nothing",
+ * ⚠️ A filter that isn't switched on in Search & Discovery fails silently, and
+ * not always the same way. Measured 2026-10-01: with only Availability and
+ * Price on, `filter.p.tag` and `filter.v.option.flavour` were ignored (all 6
+ * products came back), while a product-metafield filter not yet on offer
+ * matched nothing at all. If a filter "does nothing" or empties the page,
  * check the app's Filters page before the code.
  */
 
@@ -70,12 +70,32 @@ const toAmount = (raw: string | null): number | null => {
 };
 
 /**
- * The query-string value that selects `value` of `filter`: the part of the
- * value's id after the filter's id. `filter.v.availability.1` → `1`, as in
- * Liquid's `?filter.v.availability=1`.
+ * The query-string value that selects `value` of `filter`, as Liquid writes
+ * it: `?filter.v.availability=1`, `?filter.v.option.flavour=Vanilla`.
+ *
+ * ⚠️ Taken from the value's own input, not its id. The id is lowercased
+ * (`filter.v.option.flavour.vanilla`), but the API matches option and
+ * metafield values case-sensitively: measured 2026-10-01, `vanilla` returned
+ * nothing where `Vanilla` returned the right products. The id suffix is only
+ * the fallback.
  */
-export const paramValue = (filter: FilterLike, value: FilterValueLike): string =>
-  value.id.startsWith(`${filter.id}.`) ? value.id.slice(filter.id.length + 1) : value.id;
+export const paramValue = (filter: FilterLike, value: FilterValueLike): string => {
+  const input = parseInput(value.input);
+  if (input) {
+    if (typeof input.available === "boolean") return input.available ? "1" : "0";
+    const exact =
+      input.variantOption?.value ??
+      input.productMetafield?.value ??
+      input.variantMetafield?.value ??
+      input.productType ??
+      input.productVendor ??
+      input.tag;
+    if (typeof exact === "string") return exact;
+  }
+  return value.id.startsWith(`${filter.id}.`)
+    ? value.id.slice(filter.id.length + 1)
+    : value.id;
+};
 
 const matches = (
   selected: string,

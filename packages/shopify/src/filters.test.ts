@@ -46,7 +46,7 @@ const price: FilterLike = {
   ],
 };
 
-/** The shape an option filter takes once configured in Search & Discovery. */
+/** As the API returned it once Flavour was switched on (2026-10-01). */
 const flavour: FilterLike = {
   id: "filter.v.option.flavour",
   label: "Flavour",
@@ -56,13 +56,13 @@ const flavour: FilterLike = {
       id: "filter.v.option.flavour.vanilla",
       label: "Vanilla",
       count: 2,
-      input: '{"variantOption":{"name":"Flavour","value":"Vanilla"}}',
+      input: '{"variantOption":{"name":"flavour","value":"Vanilla"}}',
     },
     {
       id: "filter.v.option.flavour.chocolate",
       label: "Chocolate",
       count: 2,
-      input: '{"variantOption":{"name":"Flavour","value":"Chocolate"}}',
+      input: '{"variantOption":{"name":"flavour","value":"Chocolate"}}',
     },
   ],
 };
@@ -93,10 +93,11 @@ describe("productFiltersFromParams", () => {
   });
 
   it("uses a known value's own input when the available filters are given", () => {
-    // Exact option name ("Flavour"), whatever case the URL used.
+    // The exact value ("Vanilla"), whatever case the URL used: the API
+    // matches values case-sensitively.
     expect(
       productFiltersFromParams(q("filter.v.option.flavour=vanilla"), available),
-    ).toEqual([{ variantOption: { name: "Flavour", value: "Vanilla" } }]);
+    ).toEqual([{ variantOption: { name: "flavour", value: "Vanilla" } }]);
   });
 
   it("sends one filter per selected value", () => {
@@ -129,8 +130,19 @@ describe("productFiltersFromParams", () => {
 });
 
 describe("building the next query string", () => {
-  it("maps a value to Liquid's parameter value", () => {
+  it("maps a value to Liquid's parameter value, in the case the API needs", () => {
     expect(paramValue(availability, availability.values[0]!)).toBe("1");
+    expect(paramValue(availability, availability.values[1]!)).toBe("0");
+    // Not "vanilla" from the lowercased id: that matched nothing, live.
+    expect(paramValue(flavour, flavour.values[0]!)).toBe("Vanilla");
+  });
+
+  it("writes a toggled option so the name-only parser sends the exact value", () => {
+    const next = withValueToggled(q(""), flavour, flavour.values[0]!);
+    expect(next.toString()).toBe("filter.v.option.flavour=Vanilla");
+    expect(productFiltersFromParams(next)).toEqual([
+      { variantOption: { name: "flavour", value: "Vanilla" } },
+    ]);
   });
 
   it("toggles a value on and off, keeping other parameters and dropping the page", () => {
