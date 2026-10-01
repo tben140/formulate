@@ -78,7 +78,21 @@ class CartDrawer extends Component {
   }
 
   open() {
-    if (this.#dialog && !this.#dialog.open) this.#dialog.showModal();
+    if (!this.#dialog || this.#dialog.open) return;
+    this.#dialog.showModal();
+
+    // A change made while the drawer was closed (the product page updates it
+    // and then opens it) is spoken now. Cleared and set a frame later, so the
+    // live region sees a real change once the dialog is in the
+    // accessibility tree.
+    const pending = this.#pendingAnnouncement;
+    if (pending === null || !this.#announcer) return;
+    this.#pendingAnnouncement = null;
+    const announcer = this.#announcer;
+    announcer.textContent = "";
+    requestAnimationFrame(() => {
+      announcer.textContent = pending;
+    });
   }
 
   close() {
@@ -147,8 +161,25 @@ class CartDrawer extends Component {
   #announce(message) {
     if (!this.#announcer || message === this.#lastAnnounced) return;
     this.#lastAnnounced = message;
+
+    // A closed dialog is hidden, so a live region inside it isn't announced,
+    // and the message would then count as said (review of #27). Held until
+    // open() instead.
+    if (!this.#dialog?.open) {
+      this.#pendingAnnouncement = message;
+      return;
+    }
+    this.#pendingAnnouncement = null;
     this.#announcer.textContent = message;
   }
+
+  /**
+   * A message from a change made while the drawer was closed, waiting for
+   * open().
+   *
+   * @type {string | null}
+   */
+  #pendingAnnouncement = null;
 
   /** @param {Event} event */
   #onClick = (event) => {
