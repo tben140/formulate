@@ -205,6 +205,53 @@
       aria-live="polite"
       data-added-label="{{ 'product.added' | t | escape }}"
     ></p>
+
+    {% comment %}
+      Sticky add to cart on small screens (SHO-117), the counterpart of
+      apps/web's StickyAddToCart. Inside this form, so its button submits the
+      same variant and plan as the main one; product-form.js fills the text in
+      from the same #sync that drives the main controls, so the two cannot
+      drift.
+
+      `inert` until the main button leaves the screen: out of the tab order and
+      the accessibility tree while hidden. The accessible name starts with the
+      visible text and adds the product, so a screen reader's list of buttons
+      can tell the two apart (WCAG 2.5.3 keeps the visible words first).
+    {% endcomment %}
+    {%- liquid
+      assign sticky_variant = ''
+      unless current_variant.title == 'Default Title'
+        assign sticky_variant = current_variant.title
+      endunless
+      if current_variant.available
+        assign sticky_label = 'product.add_to_cart' | t
+      else
+        assign sticky_label = 'product.sold_out' | t
+      endif
+    -%}
+    <div
+      ref="stickyBar"
+      class="product-form__sticky"
+      data-product-title="{{ product.title | escape }}"
+      inert
+    >
+      <p ref="stickyError" class="product-form__sticky-error" hidden></p>
+      <div class="product-form__sticky-info">
+        <p class="product-form__sticky-title">{{ product.title }}</p>
+        <p ref="stickyDetail" class="product-form__sticky-detail">
+          {%- if sticky_variant != '' %}{{ sticky_variant }} — {% endif %}{{ current_variant.price | money -}}
+        </p>
+      </div>
+      <button
+        ref="stickySubmit"
+        type="submit"
+        class="product-form__sticky-submit"
+        aria-label="{{ sticky_label | escape }}, {{ product.title | escape }}{% if sticky_variant != '' %}, {{ sticky_variant | escape }}{% endif %}"
+        {% unless current_variant.available %}disabled{% endunless %}
+      >
+        {{ sticky_label }}
+      </button>
+    </div>
   </form>
 </product-form>
 
