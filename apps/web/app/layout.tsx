@@ -11,7 +11,7 @@ import { CartProvider } from "@/components/cart-provider";
 import { EmailCapture } from "@/components/email-capture";
 import { getCart } from "@/lib/cart";
 import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
-import { isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
+import { baseOpenGraph, isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
 
 import "./globals.css";
 
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   title: { default: SITE_NAME, template: `%s — ${SITE_NAME}` },
   description: "Supplements built around a 30-day rhythm, from Double Helix.",
   applicationName: SITE_NAME,
-  openGraph: { siteName: SITE_NAME, locale: "en_GB", type: "website" },
+  openGraph: baseOpenGraph,
   twitter: { card: "summary_large_image" },
   robots: isIndexable ? { index: true, follow: true } : { index: false, follow: false },
 };

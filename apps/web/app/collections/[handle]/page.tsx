@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/json-ld";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { getCollection } from "@/lib/catalogue";
+import { baseOpenGraph } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription } from "@/lib/structured-data";
 
 interface PageProps {
@@ -36,6 +37,7 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
     ...(description ? { description } : {}),
     alternates: { canonical: `/collections/${handle}` },
     openGraph: {
+      ...baseOpenGraph,
       url: `/collections/${handle}`,
       title: collection.title,
       ...(description ? { description } : {}),

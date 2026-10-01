@@ -10,6 +10,7 @@ import { JsonLd } from "@/components/json-ld";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
+import { baseOpenGraph } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "@/lib/structured-data";
 
 interface PageProps {
@@ -37,6 +38,7 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
     // purpose: tracking parameters must not create duplicate URLs.
     alternates: { canonical: `/products/${product.handle}` },
     openGraph: {
+      ...baseOpenGraph,
       url: `/products/${product.handle}`,
       title: product.title,
       ...(description ? { description } : {}),
