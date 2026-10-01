@@ -1,8 +1,10 @@
 import {
   createCartClient,
   describeError,
+  describeForShopper,
   type Cart,
   type CartLineInput,
+  type StorefrontError,
 } from "@formulate/shopify";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -28,6 +30,23 @@ const cartClient = createCartClient(storefront);
 const CART_KEY = ["cart"] as const;
 
 /**
+ * An Error whose message a shopper can read, with the developer detail logged.
+ *
+ * These errors surface in the UI, so they carry `describeForShopper` rather
+ * than `describeError` — which names transports and ids, and reads as a crash.
+ */
+const shopperError = (error: StorefrontError): Error => {
+  if (__DEV__) console.warn(`[cart] ${describeError(error)}`);
+  return new Error(describeForShopper(error));
+};
+
+/** What an add returns: the cart, plus a note when fewer were added than asked. */
+export interface AddToCartResult {
+  readonly cart: Cart;
+  readonly notice?: string;
+}
+
+/**
  * The current cart, or null when there isn't one.
  *
  * A completed cart resolves to null — Shopify stops returning it once the order
@@ -43,7 +62,7 @@ export const useCart = () =>
       if (!id) return null;
 
       const result = await cartClient.get(id);
-      if (!result.ok) throw new Error(describeError(result.error));
+      if (!result.ok) throw shopperError(result.error);
 
       if (!result.data) await clearCartId();
       return result.data;
@@ -57,7 +76,7 @@ export const useAddToCart = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (line: CartLineInput): Promise<Cart> => {
+    mutationFn: async (line: CartLineInput): Promise<AddToCartResult> => {
       /*
        * A cart created for a shopper we already know carries their email from
        * the start, which is what lets Shopify record an *attributable*
@@ -72,7 +91,7 @@ export const useAddToCart = () => {
        * fine, and clearing it would silently lose everything in it. See
        * `addLinesOrCreate` in packages/shopify (SHO-122).
        */
-      const { result, storedCartGone } = await cartClient.addLinesOrCreate({
+      const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
         cartId: await readCartId(),
         lines: [line],
         email: readIdentifiedEmail,
@@ -80,16 +99,16 @@ export const useAddToCart = () => {
 
       if (!result.ok) {
         if (storedCartGone) await clearCartId();
-        throw new Error(describeError(result.error));
+        throw shopperError(result.error);
       }
 
       await writeCartId(result.data.id);
-      return result.data;
+      return { cart: result.data, ...(notice ? { notice } : {}) };
     },
     // Every mutation returns the complete cart, so the cache is seeded directly
     // rather than invalidated — no refetch, and no window where the badge and
     // the sheet disagree.
-    onSuccess: (cart) => queryClient.setQueryData(CART_KEY, cart),
+    onSuccess: ({ cart }) => queryClient.setQueryData(CART_KEY, cart),
   });
 };
 
@@ -110,7 +129,7 @@ export const useUpdateCartLine = () => {
       // Quantity zero is how Shopify expresses removal on an update, so the
       // caller never has to choose between two mutations.
       const result = await cartClient.updateLines(id, [{ id: lineId, quantity }]);
-      if (!result.ok) throw new Error(describeError(result.error));
+      if (!result.ok) throw shopperError(result.error);
 
       return result.data;
     },
