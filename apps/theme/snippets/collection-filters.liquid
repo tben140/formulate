@@ -7,12 +7,20 @@
   string the headless surfaces read (`filter.v.option.flavour=Vanilla`,
   `filter.v.price.lte=20`), so a filtered URL is the same everywhere.
 
-  @param {object} collection - The collection being listed.
+  Shared by collections and search (Liquid's `search` object has the same
+  filters), so the two can't drift.
+
+  @param {object[]} filters - `collection.filters` or `search.filters`.
+  @param {string} action - Where the form submits: the listing's own URL.
+  @param {string} clear_url - The listing with every filter removed.
+  @param {number} count - How many products match.
+  @param {string} [terms] - The search terms, kept when filters change.
+  @param {string} [sort_by] - The current sort, kept when filters change.
 {% enddoc %}
 
 {%- liquid
   assign active_count = 0
-  for filter in collection.filters
+  for filter in filters
     if filter.type == 'price_range'
       if filter.min_value.value != null
         assign active_count = active_count | plus: 1
@@ -26,7 +34,7 @@
   endfor
 -%}
 
-{%- if collection.filters.size > 0 -%}
+{%- if filters.size > 0 -%}
   <div class="collection-filters">
     <div class="collection-filters__bar">
       <details class="collection-filters__panel">
@@ -41,12 +49,16 @@
           <span aria-hidden="true" class="collection-filters__chevron">▾</span>
         </summary>
 
-        <form class="collection-filters__form" method="get" action="{{ collection.url }}">
-          {%- if collection.sort_by != blank -%}
-            <input type="hidden" name="sort_by" value="{{ collection.sort_by | escape }}">
+        <form class="collection-filters__form" method="get" action="{{ action }}">
+          {%- if terms != blank -%}
+            <input type="hidden" name="q" value="{{ terms | escape }}">
+            <input type="hidden" name="type" value="product">
+          {%- endif -%}
+          {%- if sort_by != blank -%}
+            <input type="hidden" name="sort_by" value="{{ sort_by | escape }}">
           {%- endif -%}
 
-          {%- for filter in collection.filters -%}
+          {%- for filter in filters -%}
             <fieldset class="collection-filters__group">
               <legend class="collection-filters__legend">{{ filter.label | escape }}</legend>
               {%- if filter.type == 'price_range' -%}
@@ -111,20 +123,20 @@
           <div class="collection-filters__actions">
             <button type="submit" class="collection-filters__apply">{{ 'collections.apply' | t }}</button>
             {%- if active_count > 0 -%}
-              <a class="collection-filters__clear" href="{{ collection.url }}">{{ 'collections.clear_all' | t }}</a>
+              <a class="collection-filters__clear" href="{{ clear_url }}">{{ 'collections.clear_all' | t }}</a>
             {%- endif -%}
           </div>
         </form>
       </details>
 
       <p class="collection-filters__count-total">
-        {{ 'collections.product_count' | t: count: collection.products_count }}
+        {{ 'collections.product_count' | t: count: count }}
       </p>
     </div>
 
     {%- if active_count > 0 -%}
       <ul class="collection-filters__chips" role="list" aria-label="{{ 'collections.active_filters' | t }}">
-        {%- for filter in collection.filters -%}
+        {%- for filter in filters -%}
           {%- if filter.type == 'price_range' -%}
             {%- if filter.min_value.value != null or filter.max_value.value != null -%}
               <li>
@@ -151,7 +163,7 @@
           {%- endif -%}
         {%- endfor -%}
         <li>
-          <a class="collection-filters__clear" href="{{ collection.url }}">{{ 'collections.clear_all' | t }}</a>
+          <a class="collection-filters__clear" href="{{ clear_url }}">{{ 'collections.clear_all' | t }}</a>
         </li>
       </ul>
     {%- endif -%}

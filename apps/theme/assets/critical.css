@@ -263,6 +263,15 @@ a:hover {
   margin-inline-start: auto;
 }
 
+/* The search link now takes the push to the right; the cart sits beside it. */
+.site-header__search {
+  margin-inline-start: auto;
+}
+
+.site-header__search + .site-header__cart {
+  margin-inline-start: 0;
+}
+
 .site-header__cart-link {
   display: inline-flex;
   align-items: center;

@@ -20,7 +20,13 @@
     {% endif %}
   </header>
 
-  {% render 'collection-filters', collection: collection %}
+  {% render 'collection-filters',
+    filters: collection.filters,
+    action: collection.url,
+    clear_url: collection.url,
+    count: collection.products_count,
+    sort_by: collection.sort_by
+  %}
 
   {% paginate collection.products by 24 %}
     {% if collection.products.size == 0 and collection.filters.size > 0 %}

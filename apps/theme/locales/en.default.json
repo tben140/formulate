@@ -98,6 +98,12 @@
     "placeholder": "Search articles, pages, or products",
     "submit": "Search",
     "no_results_html": "No results found for {{ terms }}",
-    "results_for_html": "{{ count }} results found for {{ terms }}"
+    "results_for_html": "{{ count }} results found for {{ terms }}",
+    "label": "Search products",
+    "results": "Results",
+    "no_products": "No products match “{{ terms }}”. Try a different word, or browse the collections."
+  },
+  "general": {
+    "search_link": "Search"
   }
 }
