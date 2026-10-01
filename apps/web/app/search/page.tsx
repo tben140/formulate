@@ -67,8 +67,6 @@ const SearchPage = async ({ searchParams }: PageProps) => {
           name="q"
           defaultValue={term}
           placeholder="Search products"
-          // Arriving here from the header means the shopper wants to type.
-          autoFocus={!term}
           autoComplete="off"
           enterKeyHint="search"
           className="min-w-0 flex-1 rounded-md border border-ink-400 px-3 py-2"
