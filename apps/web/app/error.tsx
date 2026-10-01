@@ -7,8 +7,9 @@ import { ErrorState } from "@/components/error-state";
  * and footer stay in place around it, so a failing page never becomes a
  * white screen or strands the shopper's cart.
  */
-const RouteError = (props: { error: Error & { digest?: string }; reset: () => void }) => (
-  <ErrorState {...props} />
-);
+const RouteError = (props: {
+  error: Error & { digest?: string };
+  unstable_retry: () => void;
+}) => <ErrorState {...props} />;
 
 export { RouteError as default };
