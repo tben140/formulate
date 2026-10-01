@@ -2,6 +2,7 @@ import {
   CollectionProductsQuery,
   ComplementaryProductsQuery,
   ProductByHandleQuery,
+  SearchProductsQuery,
   describeError,
   productFiltersFromParams,
 } from "@formulate/shopify";
@@ -73,4 +74,24 @@ export const useComplementaryProducts = (productId: string | undefined) =>
       ).productRecommendations ?? [],
     enabled: Boolean(productId),
     staleTime: 10 * 60_000,
+  });
+
+/**
+ * Product search, as Search & Discovery tunes it, with the same filter query
+ * string as collections. Off until the term is at least two characters, and
+ * previous results stay on screen while the next ones load.
+ */
+export const useSearch = (term: string, filterQuery = "") =>
+  useQuery({
+    queryKey: ["search", term, filterQuery],
+    queryFn: async () =>
+      unwrap(
+        await storefront.request(SearchProductsQuery, {
+          query: term,
+          first: 24,
+          filters: productFiltersFromParams(new URLSearchParams(filterQuery)),
+        }),
+      ).search,
+    enabled: term.trim().length >= 2,
+    placeholderData: keepPreviousData,
   });
