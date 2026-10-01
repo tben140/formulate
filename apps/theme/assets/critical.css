@@ -611,6 +611,13 @@ a:hover {
   outline-offset: 2px;
 }
 
+/* Matches apps/web: struck through and muted, but still selectable. The
+   visually hidden "(sold out)" inside the label says it for screen readers. */
+.product-form__pill--sold-out {
+  color: var(--color-foreground-muted);
+  text-decoration: line-through;
+}
+
 .product-form__select {
   width: 100%;
   padding: var(--spacing-2) var(--spacing-3);
