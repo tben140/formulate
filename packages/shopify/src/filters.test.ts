@@ -5,6 +5,7 @@ import {
   isSelected,
   paramValue,
   productFiltersFromParams,
+  withoutEmptyFilters,
   withoutFilters,
   withPriceRange,
   withValueToggled,
@@ -176,5 +177,16 @@ describe("building the next query string", () => {
     const params = q("sort=price&filter.v.availability=1&filter.v.price.gte=5");
     expect(activeFilterCount(params)).toBe(2);
     expect(withoutFilters(params).toString()).toBe("sort=price");
+  });
+
+  it("ignores empty values a GET form submits, and can drop them", () => {
+    const params = q(
+      "filter.v.price.gte=&filter.v.price.lte=&filter.v.option.flavour=Vanilla&sort=price",
+    );
+    expect(activeFilterCount(params)).toBe(1);
+    expect(withoutEmptyFilters(params)?.toString()).toBe(
+      "filter.v.option.flavour=Vanilla&sort=price",
+    );
+    expect(withoutEmptyFilters(q("filter.v.option.flavour=Vanilla"))).toBeNull();
   });
 });

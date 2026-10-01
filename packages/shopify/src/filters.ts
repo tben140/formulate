@@ -231,4 +231,18 @@ export const withoutFilters = (params: URLSearchParams): URLSearchParams => {
 
 /** How many filter values (and price bounds) the query string selects. */
 export const activeFilterCount = (params: URLSearchParams): number =>
-  [...params.keys()].filter((name) => name.startsWith(PREFIX)).length;
+  [...params].filter(([name, value]) => name.startsWith(PREFIX) && value.trim() !== "")
+    .length;
+
+/**
+ * The query string without empty filter parameters, or `null` if there were
+ * none to drop. A GET form submits its empty fields too
+ * (`filter.v.price.gte=`), so a page can redirect once to the tidy URL.
+ */
+export const withoutEmptyFilters = (params: URLSearchParams): URLSearchParams | null => {
+  const entries = [...params];
+  const kept = entries.filter(
+    ([name, value]) => !name.startsWith(PREFIX) || value.trim() !== "",
+  );
+  return kept.length === entries.length ? null : new URLSearchParams(kept);
+};

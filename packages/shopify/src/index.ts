@@ -60,6 +60,7 @@ export {
   isSelected,
   paramValue,
   productFiltersFromParams,
+  withoutEmptyFilters,
   withoutFilters,
   withPriceRange,
   withValueToggled,
