@@ -9,8 +9,10 @@
   Payment icons from the skeleton are omitted: they advertise a checkout this
   surface does not yet reach, and return with P1 — Cart & selling plans.
 
-  The copyright name is the same `wordmark` setting as the header, not
-  `shop.name`, which is the dev store's handle rather than the project brand.
+  The copyright name is the theme-wide `wordmark` setting (Theme settings →
+  Brand), the same one the header reads, not `shop.name`, which is the dev
+  store's handle rather than the project brand. One setting, so renaming the
+  brand can't leave the two disagreeing.
 {% endcomment %}
 
 <footer class="site-footer">
@@ -103,7 +105,7 @@
 
     <div class="site-footer__inner">
       <p class="site-footer__copyright">
-        &copy; {{ 'now' | date: '%Y' }} {{ section.settings.wordmark | default: shop.name }}
+        &copy; {{ 'now' | date: '%Y' }} {{ settings.wordmark | default: shop.name }}
       </p>
 
       {% if section.settings.menu != blank %}
@@ -244,12 +246,6 @@
 {
   "name": "t:general.footer",
   "settings": [
-    {
-      "type": "text",
-      "id": "wordmark",
-      "label": "Wordmark",
-      "default": "Formulate"
-    },
     {
       "type": "link_list",
       "id": "menu",
