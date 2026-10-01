@@ -53,6 +53,20 @@ jobs:
       - uses: actions/checkout@v5
         if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
 
+      # The action is meant to delete its temporary theme on exit, but its
+      # cleanup never runs: it tests `${theme+x}` while the script stores the
+      # theme in `preview_id` (988f0ee, found 2026-10-01). So this job notes the
+      # development themes that exist before, and deletes the new one after.
+      - name: Record development themes before the audit
+        id: themes-before
+        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+        env:
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+          SHOPIFY_CLI_NO_ANALYTICS: "1"
+        run: >-
+          npx --yes @shopify/cli@4.6.0 theme list --store "$SHOP_STORE"
+          --role development --json > "$RUNNER_TEMP/themes-before.json"
+
       # Pinned to the commit behind the v1 tag (2026-04-13). The action receives
       # credentials that can write themes, so a moved tag should not be able to
       # change what runs with them.
@@ -72,3 +86,24 @@ jobs:
           # Same generous floor as web; ratchets at phase exit (SHO-68).
           lhci_min_score_performance: 0.5
           lhci_min_score_accessibility: 0.95
+
+      # Only a theme that is new since the step above AND named the way the
+      # action's CLI names it, "Development (<hash>-<12-hex container id>)".
+      # A developer's own `theme dev` theme (named after their machine) can't
+      # match, even if one appears mid-run.
+      - name: Delete the development theme this run created
+        if: always() && steps.themes-before.outcome == 'success'
+        env:
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+          SHOPIFY_CLI_NO_ANALYTICS: "1"
+        run: |
+          cli() { npx --yes @shopify/cli@4.6.0 "$@" --store "$SHOP_STORE"; }
+          cli theme list --role development --json > "$RUNNER_TEMP/themes-after.json"
+          ids=$(jq -r --slurpfile before "$RUNNER_TEMP/themes-before.json" '
+            [.[] | select(.name | test("^Development \\([0-9a-f]+-[0-9a-f]{12}\\)$")) | .id]
+            - [$before[0][].id] | .[]' "$RUNNER_TEMP/themes-after.json")
+          if [ -z "$ids" ]; then echo "No temporary theme to delete."; exit 0; fi
+          for id in $ids; do
+            echo "Deleting temporary development theme $id"
+            cli theme delete --theme "$id" --force
+          done
