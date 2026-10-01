@@ -31,6 +31,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLElement} [stickyBar]
  * @property {HTMLElement} [stickyDetail]
  * @property {HTMLButtonElement} [stickySubmit]
+ * @property {HTMLElement} [stickyError]
  */
 
 /**
@@ -102,19 +103,38 @@ class ProductForm extends Component {
     if (!submit || !stickyBar) return;
 
     const small = window.matchMedia("(max-width: 47.99rem)");
+    let shown = false;
+
+    // Pad the page so the bar never covers the last of it, only where the bar
+    // exists at all (CSS hides it from 48rem up). Re-run when the viewport
+    // crosses 48rem (rotating a phone) and when the bar's height changes (an
+    // error line), not only when it shows or hides.
+    const pad = () => {
+      document.body.style.paddingBottom =
+        shown && small.matches ? `${stickyBar.offsetHeight}px` : "";
+    };
+
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry) return;
-      const show = !entry.isIntersecting;
-      stickyBar.classList.toggle("is-visible", show);
-      stickyBar.inert = !show;
-      // Pad the page so the bar never covers the last of it. Only where the
-      // bar exists at all; CSS hides it from 48rem up.
-      document.body.style.paddingBottom =
-        show && small.matches ? `${stickyBar.offsetHeight}px` : "";
+      shown = !entry.isIntersecting;
+      // Going inert drops focus to <body>, the top of the page, if the bar's
+      // button had it. The main button is on screen by now, so hand it over.
+      if (!shown && stickyBar.contains(document.activeElement)) {
+        submit.focus({ preventScroll: true });
+      }
+      stickyBar.classList.toggle("is-visible", shown);
+      stickyBar.inert = !shown;
+      pad();
     });
     observer.observe(submit);
+
+    const resize = new ResizeObserver(pad);
+    resize.observe(stickyBar);
+    small.addEventListener("change", pad, { signal: this.signal });
+
     this.signal.addEventListener("abort", () => {
       observer.disconnect();
+      resize.disconnect();
       document.body.style.paddingBottom = "";
     });
   }
@@ -313,10 +333,14 @@ class ProductForm extends Component {
     const variantId = String(data.get("id") ?? "");
     if (!variantId) return;
 
-    const { submit, stickySubmit, status } = this.refs;
+    const { submit, stickySubmit, status, stickyError } = this.refs;
     if (submit) submit.disabled = true;
     if (stickySubmit) stickySubmit.disabled = true;
     if (status) status.textContent = "";
+    if (stickyError) {
+      stickyError.textContent = "";
+      stickyError.hidden = true;
+    }
 
     try {
       const result = await addItem(
@@ -335,9 +359,14 @@ class ProductForm extends Component {
     } catch (error) {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
-      if (status) {
-        status.textContent =
-          error instanceof Error ? error.message : "Could not update your cart.";
+      const message = error instanceof Error ? error.message : "Could not update your cart.";
+      if (status) status.textContent = message;
+      // The status line sits by the main button, off screen whenever the bar
+      // is up, so the bar shows the message too. Not a live region: the
+      // status line already announces it.
+      if (stickyError) {
+        stickyError.textContent = message;
+        stickyError.hidden = false;
       }
     } finally {
       // Back to whatever the selection allows, for both buttons, rather than

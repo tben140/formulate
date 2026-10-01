@@ -235,6 +235,7 @@
       data-product-title="{{ product.title | escape }}"
       inert
     >
+      <p ref="stickyError" class="product-form__sticky-error" hidden></p>
       <div class="product-form__sticky-info">
         <p class="product-form__sticky-title">{{ product.title }}</p>
         <p ref="stickyDetail" class="product-form__sticky-detail">
