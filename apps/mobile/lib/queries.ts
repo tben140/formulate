@@ -3,8 +3,9 @@ import {
   ComplementaryProductsQuery,
   ProductByHandleQuery,
   describeError,
+  productFiltersFromParams,
 } from "@formulate/shopify";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { storefront } from "./storefront";
 
@@ -29,11 +30,24 @@ const unwrap = <T>(
   return result.data;
 };
 
-export const useCollection = (handle: string) =>
+/**
+ * A collection's products, filtered by a Liquid-style filter query string
+ * (`filter.v.option.flavour=Vanilla`), the same format web and the theme use.
+ * The previous results stay on screen while a new filter loads, rather than
+ * the list flashing to a spinner on every change.
+ */
+export const useCollection = (handle: string, filterQuery = "") =>
   useQuery({
-    queryKey: ["collection", handle],
+    queryKey: ["collection", handle, filterQuery],
     queryFn: async () =>
-      unwrap(await storefront.request(CollectionProductsQuery, { handle, first: 24 })),
+      unwrap(
+        await storefront.request(CollectionProductsQuery, {
+          handle,
+          first: 24,
+          filters: productFiltersFromParams(new URLSearchParams(filterQuery)),
+        }),
+      ),
+    placeholderData: keepPreviousData,
   });
 
 export const useProduct = (handle: string) =>
