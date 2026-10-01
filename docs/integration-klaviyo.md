@@ -1,8 +1,12 @@
 # Integration: Klaviyo
 
-**Status as of 2026-08-08:** onsite tracking and the three commerce events are
-live on web and theme and verified in Klaviyo's own feed. Email capture ships
-on both surfaces. Mobile events and the lifecycle flows are outstanding.
+**Status as of 2026-10-01:** onsite tracking, Viewed Product and Added to Cart
+are live on web and theme and verified in Klaviyo's own feed. Started Checkout
+is sent by web only; the theme leaves checkout to Shopify's own Checkout Started
+(see [Which checkout metric](#-which-checkout-metric--and-why-not-ours)). Email
+capture ships on web, theme and mobile. Nine lifecycle flows are live (see
+[Flows](#flows)). Mobile sends no events yet, and the Recharge flows wait on
+the Recharge connection (SHO-108).
 
 ## Why Klaviyo
 
@@ -44,11 +48,11 @@ account on 2026-09-27. Two pairs have near-identical names, so the id matters.
 | Klaviyo metric (id)         | Integration | Fed by                                                                  | Flows that use it                                 |
 | --------------------------- | ----------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
 | Viewed Product (`RXYrJ4`)   | API         | Web (`_learnq`), theme (Klaviyo app embed)                              | Browse abandonment                                |
-| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed), iOS app (SDK). **Canonical**, see below         | Cart abandonment                                  |
+| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed). **Canonical**, see below. Mobile sends none yet | Cart abandonment                                  |
 | Added to Cart (`UNszvd`)    | Shopify     | Shopify's web pixel, theme only. **Not used**, see below                | none                                              |
 | Started Checkout (`SqEBQ9`) | API         | Web only (`apps/web`, on the checkout link). The theme does not emit it | none                                              |
 | Checkout Started (`UprmRa`) | Shopify     | Shopify, server-side, from every surface                                | Abandoned checkout                                |
-| Subscribed to List          | Klaviyo     | Web, theme (email capture, see below)                                   | none (Welcome series triggers on the list itself) |
+| Subscribed to List          | Klaviyo     | Web, theme, mobile through the `apps/api` Worker (email capture, below) | none (Welcome series triggers on the list itself) |
 
 The theme's Viewed Product and Added to Cart come from Klaviyo's app embed, with
 no code from us. The headless surfaces build the same payloads by hand in
@@ -63,8 +67,9 @@ server-side `Checkout Started`, not our `Started Checkout`.
 
 ### ⚠️ Which Added to Cart metric
 
-**`W7zpiE` (API) is canonical.** It is the only Added to Cart metric every
-surface feeds, and Cart abandonment already triggers on it. Build flows and
+**`W7zpiE` (API) is canonical.** It is the only Added to Cart metric both
+sending surfaces feed (web and theme; the app sends no events yet), and Cart
+abandonment already triggers on it. Build flows and
 segments on it, and never on a sum of the two.
 
 `UNszvd` appeared on 2026-09-21 at 14:43, 14 seconds after its first event. Its
@@ -422,12 +427,30 @@ Design position:
 
 ## Flows
 
-Two, chosen because they exercise different trigger types:
+Nine flows are live, read from the account on 2026-10-01. Each email carries
+the demo-store notice.
 
-1. **Abandoned cart** — triggered by Shopify's `Checkout Started` with no
-   subsequent order. See the decision below.
-2. **Subscription upcoming charge** — triggered from Recharge. Tests the
-   cross-system path, with no code of ours in the trigger at all.
+| Flow | Trigger | Source of the trigger |
+| --- | --- | --- |
+| Welcome series | Added to the newsletter list | Email capture on every surface |
+| Browse abandonment | Viewed Product (`RXYrJ4`) | Ours: web, theme app embed |
+| Cart abandonment | Added to Cart (`W7zpiE`) | Ours: web, theme app embed |
+| Abandoned checkout | Checkout Started (`UprmRa`) | Shopify, server-side, every surface. See the decision below |
+| Back in stock | Subscribed to Back in Stock (`WbRfmD`) | Klaviyo's back-in-stock form |
+| Post-purchase | Placed Order (`V2sqtM`) | Shopify |
+| Replenishment | Placed Order (`V2sqtM`), after a delay | Shopify |
+| Review request | Fulfilled Order (`QNzAQc`) | Shopify |
+| Cancelled order | Cancelled Order (`WNShYg`) | Shopify |
+
+The cart and checkout pair is deliberate. **Cart abandonment** catches a shopper
+who added something and never reached checkout; **Abandoned checkout** catches
+one who reached checkout and didn't pay. They use different metrics for the
+reason below.
+
+Still to come: the **Recharge subscription flows** (upcoming order, payment
+failed, cancelled and the rest), triggered from Recharge's own metrics with no
+code of ours in the trigger. The templates exist; the flows need Recharge
+connected first. See SHO-108.
 
 ### ⚠️ Which checkout metric — and why not ours
 
