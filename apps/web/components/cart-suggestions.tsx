@@ -3,12 +3,12 @@
 import { EVENTS, addedToCart } from "@formulate/analytics";
 import { formatMoney, type CartSuggestion } from "@formulate/shopify";
 import Link from "next/link";
-import { useActionState, useEffect, useId } from "react";
+import { useActionState, useId } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 
-import { useCartUi } from "./cart-provider";
+import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
 
 const IDLE: CartActionState = { status: "idle" };
 
@@ -44,17 +44,30 @@ export const CartSuggestions = ({
 const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
   const { product } = suggestion;
   const { closeCart, storeDomain } = useCartUi();
-  const [state, formAction, pending] = useActionState(addToCart, IDLE);
-
-  // The same Klaviyo event as the product page's add, so a drawer add counts
-  // as an add. The drawer stays open: the layout re-renders with the new line.
-  useEffect(() => {
-    if (state.status !== "success") return;
-    const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
-    if (state.cart && line) {
-      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
-    }
-  }, [state.token, state.status, state.cart, state.addedLineId, storeDomain]);
+  /*
+   * The add, wrapped so the follow-up runs when the server answers, not in an
+   * effect. A successful add revalidates the layout, which drops this product
+   * from the suggestions in the same render, so this component unmounts before
+   * an effect could run: the Klaviyo event never fired (review of #38), and
+   * the focused button vanished, leaving focus nowhere inside the modal.
+   */
+  const [state, formAction, pending] = useActionState(
+    async (previous: CartActionState, data: FormData) => {
+      const next = await addToCart(previous, data);
+      if (next.status === "success") {
+        // The same Klaviyo event as the product page's add, so a drawer add
+        // counts as an add.
+        const line = next.cart?.lines.nodes.find((l) => l.id === next.addedLineId);
+        if (next.cart && line)
+          track(EVENTS.addedToCart, addedToCart(next.cart, line, storeDomain));
+        // The drawer's heading survives the re-render and announces the new
+        // count, which is also the confirmation a screen reader needs.
+        document.getElementById(CART_DRAWER_TITLE_ID)?.focus();
+      }
+      return next;
+    },
+    IDLE,
+  );
 
   return (
     <li className="flex items-center gap-3">

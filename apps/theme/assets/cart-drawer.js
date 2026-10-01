@@ -260,9 +260,32 @@ class CartDrawer extends Component {
     try {
       const result = await addItem(variantId, 1, "");
       this.replace(result.sections?.[DRAWER_SECTION] ?? "");
-    } catch {
-      // As with quantity changes: the drawer still shows the true state.
+      // The re-render replaced the button that had focus, which would leave
+      // focus nowhere inside the modal. The drawer's heading takes it: it
+      // states the new count, which is also the confirmation a screen reader
+      // needs. Matches apps/web's cart-suggestions.tsx.
+      const title = this.querySelector(".cart-drawer__title");
+      if (title instanceof HTMLElement) {
+        title.tabIndex = -1;
+        title.focus();
+      }
+    } catch (error) {
+      // The drawer still shows the true state, but the shopper needs to know
+      // the tap failed (sold out, a quantity rule): Shopify's description is
+      // written for shoppers, as on the product page.
       button?.removeAttribute("aria-disabled");
+      const body = form.closest(".cart-suggestion")?.querySelector(".cart-suggestion__body");
+      if (body) {
+        let message = body.querySelector(".cart-suggestion__error");
+        if (!message) {
+          message = document.createElement("p");
+          message.className = "cart-suggestion__error";
+          message.setAttribute("role", "alert");
+          body.append(message);
+        }
+        message.textContent =
+          error instanceof Error ? error.message : "Could not add this to your cart.";
+      }
     }
   }
 }
