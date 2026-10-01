@@ -216,6 +216,8 @@ export const SearchProductsQuery = graphql(`
         ...FilterFields
       }
       nodes {
+        # Search results are a union; the type name lets callers keep products.
+        __typename
         ... on Product {
           ...ProductCardFields
         }

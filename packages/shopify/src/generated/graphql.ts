@@ -1404,8 +1404,9 @@ export type SearchProductsQueryVariables = Exact<{
 
 
 export type SearchProductsQuery = { search: { totalCount: number, productFilters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<
-      | { id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }
-      | Record<PropertyKey, never>
+      | { __typename: 'Article' }
+      | { __typename: 'Page' }
+      | { __typename: 'Product', id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }
     > } };
 
 export type PredictiveSearchQueryVariables = Exact<{
@@ -1760,6 +1761,7 @@ export const SearchProductsDocument = new TypedDocumentString(`
       ...FilterFields
     }
     nodes {
+      __typename
       ... on Product {
         ...ProductCardFields
       }
