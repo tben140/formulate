@@ -77,7 +77,8 @@
     "added": "Added to your cart.",
     "purchase_options": "Purchase options",
     "one_time": "One-time purchase",
-    "variant": "Variant"
+    "variant": "Variant",
+    "pairs_well_with": "Pairs well with"
   },
   "search": {
     "title": "Search",
