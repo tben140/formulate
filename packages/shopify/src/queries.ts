@@ -10,12 +10,17 @@ import { graphql } from "./generated";
  */
 
 export const CollectionProductsQuery = graphql(`
-  query CollectionProducts($handle: String!, $first: Int!) {
+  query CollectionProducts($handle: String!, $first: Int!, $filters: [ProductFilter!]) {
     collection(handle: $handle) {
       id
       title
       description
-      products(first: $first) {
+      products(first: $first, filters: $filters) {
+        # The filters Search & Discovery offers for this collection, with counts
+        # for the current selection. See src/filters.ts.
+        filters {
+          ...FilterFields
+        }
         nodes {
           id
           handle
@@ -151,6 +156,105 @@ export const ProductByHandleQuery = graphql(`
           }
         }
       }
+    }
+  }
+`);
+
+/* -------------------------------------------------------------------------- */
+/*  Search & Discovery                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A filter as Shopify's Search & Discovery app configures it. Which filters
+ * exist (availability, price, options, metafields...) is set in that app, not
+ * here; `src/filters.ts` turns them into URL state and back.
+ */
+export const FilterFields = graphql(`
+  fragment FilterFields on Filter {
+    id
+    label
+    type
+    values {
+      id
+      label
+      count
+      input
+    }
+  }
+`);
+
+/** The fields a product card needs, shared by search and recommendations. */
+export const ProductCardFields = graphql(`
+  fragment ProductCardFields on Product {
+    id
+    handle
+    title
+    featuredImage {
+      url
+      altText
+      width
+      height
+    }
+    priceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+  }
+`);
+
+/**
+ * Full search, as Search & Discovery tunes it (synonyms, boosts). Products
+ * only for now; `productFilters` are the filters for these results.
+ */
+export const SearchProductsQuery = graphql(`
+  query SearchProducts($query: String!, $first: Int!, $filters: [ProductFilter!]) {
+    search(query: $query, first: $first, types: [PRODUCT], productFilters: $filters) {
+      totalCount
+      productFilters {
+        ...FilterFields
+      }
+      nodes {
+        ... on Product {
+          ...ProductCardFields
+        }
+      }
+    }
+  }
+`);
+
+/**
+ * Type-ahead. Products, collections and suggested queries for a partial term.
+ */
+export const PredictiveSearchQuery = graphql(`
+  query PredictiveSearch($query: String!, $limit: Int!) {
+    predictiveSearch(query: $query, limit: $limit, types: [PRODUCT, COLLECTION, QUERY]) {
+      queries {
+        text
+        styledText
+      }
+      products {
+        ...ProductCardFields
+      }
+      collections {
+        id
+        handle
+        title
+      }
+    }
+  }
+`);
+
+/**
+ * "Pairs well with": the complementary products set per product in Search &
+ * Discovery (Product recommendations → Complementary). Empty until a merchant
+ * sets them; Shopify does not infer these the way it does RELATED.
+ */
+export const ComplementaryProductsQuery = graphql(`
+  query ComplementaryProducts($productId: ID!) {
+    productRecommendations(productId: $productId, intent: COMPLEMENTARY) {
+      ...ProductCardFields
     }
   }
 `);
