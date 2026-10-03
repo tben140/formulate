@@ -10,7 +10,7 @@ import {
   type ProductByHandleResult,
   type SelectedOption,
 } from "@formulate/shopify";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
@@ -268,6 +268,8 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         buttonLabel={buttonLabel}
         disabled={!variant || soldOut}
         busy={pending}
+        error={state.status === "error" ? (state.message ?? null) : null}
+        returnFocusTo={primaryButton}
       />
 
       <p role="status" aria-live="polite" className="mt-3 text-sm">
@@ -321,6 +323,22 @@ const useOffScreen = (target: React.RefObject<HTMLElement | null>): boolean => {
 /** Tailwind's `md`. The bar is a small-viewport affordance only. */
 const SMALL_VIEWPORT = "(max-width: 767px)";
 
+/**
+ * Whether a media query matches, kept current: rotating a phone or tablet can
+ * cross `md`, and the bar's page padding has to follow.
+ */
+const useMediaQuery = (query: string): boolean =>
+  useSyncExternalStore(
+    (onChange) => {
+      const list = window.matchMedia(query);
+      list.addEventListener("change", onChange);
+      return () => list.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(query).matches,
+    // On the server there is no viewport: no bar, so no padding.
+    () => false,
+  );
+
 const StickyAddToCart = ({
   visible,
   title,
@@ -330,6 +348,8 @@ const StickyAddToCart = ({
   buttonLabel,
   disabled,
   busy,
+  error,
+  returnFocusTo,
 }: {
   readonly visible: boolean;
   readonly title: string;
@@ -340,24 +360,49 @@ const StickyAddToCart = ({
   readonly disabled: boolean;
   /** An add is in flight: aria-disabled, never disabled. See the main button. */
   readonly busy: boolean;
+  /** A failed add's message, shown in the bar too: the form's own is off screen. */
+  readonly error: string | null;
+  /** Where focus goes if the bar hides while it holds focus. */
+  readonly returnFocusTo: React.RefObject<HTMLElement | null>;
 }) => {
   const bar = useRef<HTMLDivElement>(null);
+  const small = useMediaQuery(SMALL_VIEWPORT);
 
   /*
    * Pads the page by the bar's height while it shows, so it never sits on top
    * of the last line of content (the footer's sign-up). Only on small
-   * viewports, where the bar exists at all.
+   * viewports, where the bar exists at all. Follows the viewport crossing `md`
+   * (rotation) and the bar's own height (an error line), not just `visible`.
    */
   useEffect(() => {
     const element = bar.current;
-    if (!visible || !element || !window.matchMedia(SMALL_VIEWPORT).matches) return;
+    if (!visible || !small || !element) return;
 
     const previous = document.body.style.paddingBottom;
-    document.body.style.paddingBottom = `${element.offsetHeight}px`;
+    const pad = () => {
+      document.body.style.paddingBottom = `${element.offsetHeight}px`;
+    };
+    pad();
+    const observer = new ResizeObserver(pad);
+    observer.observe(element);
     return () => {
+      observer.disconnect();
       document.body.style.paddingBottom = previous;
     };
-  }, [visible]);
+  }, [visible, small]);
+
+  /*
+   * The bar goes inert as it hides. If its button had focus (a keyboard or
+   * screen reader user who just used it), focus would fall back to <body>, the
+   * top of the page. The main button is on screen by then, by definition, so
+   * focus moves there instead.
+   */
+  useEffect(() => {
+    if (visible) return;
+    if (bar.current?.contains(document.activeElement)) {
+      returnFocusTo.current?.focus({ preventScroll: true });
+    }
+  }, [visible, returnFocusTo]);
 
   const detail = [variantTitle, planName].filter(Boolean).join(" · ");
 
@@ -371,6 +416,12 @@ const StickyAddToCart = ({
         visible ? "translate-y-0" : "translate-y-full"
       }`}
     >
+      {/*
+        Not a live region: the form's status line already announces the error,
+        and two would read it twice. This is for sighted shoppers, who can't
+        see that line while the bar is up.
+      */}
+      {error ? <p className="mb-2 text-sm text-danger">{error}</p> : null}
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{title}</p>
