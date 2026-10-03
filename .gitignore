@@ -64,3 +64,6 @@ pnpm-debug.log*
 test-results/
 playwright-report/
 blob-report/
+
+# Lighthouse CI output (apps/web/lighthouserc.cjs)
+.lighthouseci/
