@@ -42,14 +42,24 @@ const forgetKlaviyo = (): void => {
   const expired = "Max-Age=0; Path=/";
   const host = window.location.hostname;
 
+  /*
+   * A cookie can only be removed with the domain it was set with, and the
+   * script may have used any parent of this host: on www.example.com it sets
+   * `__kla_id` on .example.com. So every suffix down to two labels is tried.
+   * (`Domain=x` and `Domain=.x` are the same thing, so one each.) A browser
+   * ignores a Domain that is a public suffix, such as vercel.app, so trying
+   * one is harmless.
+   */
+  const labels = host.split(".");
+  const domains =
+    labels.length < 2 ? [] : labels.slice(0, -1).map((_, i) => labels.slice(i).join("."));
+
   for (const pair of document.cookie.split("; ")) {
     const name = pair.split("=")[0] ?? "";
     if (!name.startsWith("__kla")) continue;
-    // The script may set the cookie on the host or on the parent domain, and a
-    // cookie can only be removed with the domain it was set with.
     document.cookie = `${name}=; ${expired}`;
-    document.cookie = `${name}=; ${expired}; Domain=${host}`;
-    document.cookie = `${name}=; ${expired}; Domain=.${host}`;
+    for (const domain of domains)
+      document.cookie = `${name}=; ${expired}; Domain=${domain}`;
   }
 
   /*
