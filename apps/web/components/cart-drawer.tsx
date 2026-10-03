@@ -64,11 +64,7 @@ export const CartDrawer = ({
     >
       <div className="flex h-full flex-col">
         <header className="flex items-center justify-between border-b border-border px-4 py-4">
-          {/*
-            Focusable from script only: a one-tap suggestion add moves focus
-            here, because the button that had it disappears from the list.
-          */}
-          <h2 id={CART_DRAWER_TITLE_ID} tabIndex={-1} className="text-lg font-semibold">
+          <h2 id={CART_DRAWER_TITLE_ID} className="text-lg font-semibold">
             Cart{/* A real space: the margin alone reads "Cart2 items". */}{" "}
             {cart?.totalQuantity ? (
               <span className="ml-2 text-sm font-normal text-foreground-muted">
