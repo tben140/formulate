@@ -41,13 +41,29 @@ export {
   CartLinesRemoveMutation,
   CartLinesUpdateMutation,
   CartQuery,
+  CollectionCardsQuery,
   CollectionProductsQuery,
+  ComplementaryProductsQuery,
+  PredictiveSearchQuery,
+  SearchProductsQuery,
+  NavMenuQuery,
   ProductByHandleQuery,
   ProductRecommendationsQuery,
   ShopNameQuery,
   SitemapCollectionsQuery,
   SitemapProductsQuery,
+  ShopPoliciesQuery,
 } from "./queries";
+
+export {
+  LEGAL_MENU_HANDLE,
+  NAV_MENU_HANDLE,
+  POLICY_HANDLES,
+  breadcrumbCollection,
+  isPolicyHandle,
+  toNavLinks,
+} from "./nav";
+export type { NavLink, PolicyHandle } from "./nav";
 
 export {
   DEFAULT_API_VERSION,
@@ -64,3 +80,16 @@ export type {
   CollectionProductsQuery as CollectionProductsResult,
   ProductByHandleQuery as ProductByHandleResult,
 } from "./generated/graphql";
+
+export {
+  activeFilterCount,
+  isSelected,
+  paramValue,
+  productFiltersFromParams,
+  withoutEmptyFilters,
+  withoutFilters,
+  withPriceRange,
+  withValueToggled,
+} from "./filters";
+export type { FilterLike, FilterValueLike } from "./filters";
+export type { ProductFilter } from "./generated/graphql";

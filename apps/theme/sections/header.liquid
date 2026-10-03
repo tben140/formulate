@@ -17,12 +17,43 @@
       {{ section.settings.wordmark | default: shop.name }}
     </a>
 
+    {% comment %}
+      The same Shopify menu the web and mobile apps read (handle `shop`,
+      SHO-60), chosen in header-group.json. `link.current` marks the page
+      you're on, as `aria-current` for screen readers and underlined.
+    {% endcomment %}
     {% if section.settings.menu != blank %}
-      <ul class="site-header__menu" role="list">
+      <ul class="site-header__menu" role="list" aria-label="{{ 'collections.nav_label' | t }}">
         {% for link in section.settings.menu.links %}
-          <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+          <li>
+            <a
+              href="{{ link.url }}"
+              {% if link.current %}
+                aria-current="page"
+              {% endif %}
+            >
+              {{- link.title -}}
+            </a>
+          </li>
         {% endfor %}
       </ul>
+      {% comment %}
+        On narrow screens the menu scrolls sideways and the current collection
+        may be past the edge, so bring it into view (as apps/web's SiteNav
+        does). scrollLeft rather than scrollIntoView, which could also scroll
+        the page. Without JavaScript the menu still scrolls by hand.
+      {% endcomment %}
+      <script>
+        (() => {
+          const menu = document.currentScript.previousElementSibling;
+          const current = menu.querySelector('[aria-current="page"]');
+          if (!current || menu.scrollWidth <= menu.clientWidth) return;
+          const left = current.offsetLeft - menu.offsetLeft;
+          if (left < menu.scrollLeft || left + current.offsetWidth > menu.scrollLeft + menu.clientWidth) {
+            menu.scrollLeft = left - (menu.clientWidth - current.offsetWidth) / 2;
+          }
+        })();
+      </script>
     {% endif %}
 
     {% comment %}
@@ -30,6 +61,18 @@
       JavaScript it navigates to the cart page, which is a real page — so the
       cart is reachable either way.
     {% endcomment %}
+    {% comment %}
+      Search, matching apps/web's header link: a link to the search page,
+      styled like the cart link beside it. Works without JavaScript.
+    {% endcomment %}
+    <a class="site-header__search site-header__cart-link" href="{{ routes.search_url }}">
+      <svg aria-hidden="true" focusable="false" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="8.5" cy="8.5" r="5.5" />
+        <path d="m13 13 4 4" stroke-linecap="round" />
+      </svg>
+      {{- 'general.search_link' | t -}}
+    </a>
+
     <cart-count class="site-header__cart">
       <a
         ref="link"
@@ -71,22 +114,70 @@
     text-decoration: none;
   }
 
+  /*
+   * Matches apps/web's header: one row from 48rem up, and below that the menu
+   * drops to its own sideways-scrolling row, so the wordmark and cart keep
+   * their places however many collections the menu holds.
+   */
+  .site-header__nav {
+    flex-wrap: wrap;
+    row-gap: var(--spacing-3);
+  }
+
   .site-header__menu {
+    order: 3;
     display: flex;
-    gap: var(--spacing-4);
+    gap: var(--spacing-5);
+    inline-size: 100%;
     margin: 0;
-    padding: 0;
+    padding: 0 0 var(--spacing-1);
+    overflow-x: auto;
     list-style: none;
     font-size: var(--text-sm);
+    white-space: nowrap;
+    mask-image: linear-gradient(to right, black 85%, transparent);
+  }
+
+  .site-header__cart {
+    order: 2;
+    margin-inline-start: auto;
+  }
+
+  /* Search sits just before the cart, at the same order on each width. */
+  .site-header__search {
+    order: 2;
+  }
+
+  @media (min-width: 48rem) {
+    .site-header__menu {
+      order: 2;
+      flex: 1;
+      inline-size: auto;
+      padding: 0;
+      mask-image: none;
+    }
+
+    .site-header__cart,
+    .site-header__search {
+      order: 3;
+    }
   }
 
   .site-header__menu a {
     color: var(--color-foreground-muted);
     text-decoration: none;
+    text-underline-offset: 4px;
   }
 
   .site-header__menu a:hover {
     color: var(--color-foreground);
+    text-decoration: underline;
+  }
+
+  .site-header__menu a[aria-current='page'] {
+    color: var(--color-foreground);
+    font-weight: 500;
+    text-decoration: underline;
   }
 {% endstylesheet %}
 

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddToCart } from "../../components/add-to-cart";
 import { useCartUi } from "../../components/cart-provider";
+import { PairsWellWith } from "../../components/pairs-well-with";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
 import { useProduct } from "../../lib/queries";
@@ -81,13 +82,21 @@ const ProductBody = ({ product }: { product: Product }) => {
   return (
     <View className="flex-1">
       <ScrollView
-        contentContainerClassName="p-4 gap-4"
         /*
           Room for the sticky bar at all times, not only while it shows, so the
           content never jumps as it appears. Without it the bar would cover the
           end of the footer.
+
+          ⚠️ The padding and gap live here too, not in contentContainerClassName
+          ("p-4 gap-4"): NativeWind maps that class onto this same prop, and an
+          explicit contentContainerStyle replaced it, so the content lost its
+          side padding and the description ran to the screen's edges.
         */
-        contentContainerStyle={{ paddingBottom: STICKY_BAR_HEIGHT + bottom + 16 }}
+        contentContainerStyle={{
+          padding: 16,
+          gap: 16,
+          paddingBottom: STICKY_BAR_HEIGHT + bottom + 16,
+        }}
         /*
           The footer's email field is the last thing in this view, so the
           software keyboard covers it the moment it opens. A browser scrolls a
@@ -148,6 +157,8 @@ const ProductBody = ({ product }: { product: Product }) => {
             }}
           />
         </View>
+
+        <PairsWellWith productId={product.id} />
 
         <SiteFooter />
       </ScrollView>

@@ -13,6 +13,8 @@
 {% endcomment %}
 
 <div class="container collection">
+  {% render 'breadcrumbs', current: collection.title %}
+
   <header class="collection__header">
     <h1 class="collection__title">{{ collection.title }}</h1>
     {% if collection.description != blank %}
@@ -20,7 +22,18 @@
     {% endif %}
   </header>
 
+  {% render 'collection-filters',
+    filters: collection.filters,
+    action: collection.url,
+    clear_url: collection.url,
+    count: collection.products_count,
+    sort_by: collection.sort_by
+  %}
+
   {% paginate collection.products by 24 %}
+    {% if collection.products.size == 0 and collection.filters.size > 0 %}
+      <p class="collection__empty">{{ 'collections.no_matches' | t }}</p>
+    {% endif %}
     {% render 'product-grid', products: collection.products, section_index: section.index %}
     {{ paginate | default_pagination }}
   {% endpaginate %}
@@ -40,6 +53,12 @@
     font-weight: 600;
     letter-spacing: -0.02em;
     color: var(--color-foreground);
+  }
+
+  .collection__empty {
+    padding-block: var(--spacing-12);
+    text-align: center;
+    color: var(--color-foreground-muted);
   }
 
   .collection__description {

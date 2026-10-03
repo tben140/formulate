@@ -458,6 +458,15 @@ export type CartWarningCode =
   | 'PAYMENTS_GIFT_CARDS_UNAVAILABLE';
 
 /**
+ * A filter used to view a subset of products in a collection matching a specific category value.
+ *
+ */
+export type CategoryFilter = {
+  /** The id of the category to filter on. */
+  id: string;
+};
+
+/**
  * The code designating a country/region, which generally follows ISO 3166-1 alpha-2 guidelines.
  * If a territory doesn't have a country code value in the `CountryCode` enum, then it might be considered a subdivision
  * of another country. For example, the territories associated with Spain are represented by the country code `ES`,
@@ -1302,6 +1311,65 @@ export type DeliveryAddressValidationStrategy =
    */
   | 'STRICT';
 
+/**
+ * The type of data that the filter group represents.
+ *
+ * For more information, refer to [Filter products in a collection with the Storefront API]
+ * (https://shopify.dev/custom-storefronts/products-collections/filter-products).
+ *
+ */
+export type FilterType =
+  /** A boolean value. */
+  | 'BOOLEAN'
+  /** A list of selectable values. */
+  | 'LIST'
+  /** A range of prices. */
+  | 'PRICE_RANGE';
+
+/** A menu item type. */
+export type MenuItemType =
+  /** An article link. */
+  | 'ARTICLE'
+  /** A blog link. */
+  | 'BLOG'
+  /** A catalog link. */
+  | 'CATALOG'
+  /** A collection link. */
+  | 'COLLECTION'
+  /** A collection link. */
+  | 'COLLECTIONS'
+  /** A customer account page link. */
+  | 'CUSTOMER_ACCOUNT_PAGE'
+  /** A frontpage link. */
+  | 'FRONTPAGE'
+  /** An http link. */
+  | 'HTTP'
+  /** A metaobject page link. */
+  | 'METAOBJECT'
+  /** A page link. */
+  | 'PAGE'
+  /** A product link. */
+  | 'PRODUCT'
+  /** A search link. */
+  | 'SEARCH'
+  /** A shop policy link. */
+  | 'SHOP_POLICY';
+
+/**
+ * Filters products in a collection by matching a specific metafield value. Used by the [`ProductFilter`](https://shopify.dev/docs/api/storefront/current/input-objects/ProductFilter) input's `productMetafield` and `variantMetafield` fields.
+ *
+ * Supports the following metafield types: `number_integer`, `number_decimal`, `single_line_text_field`, and `boolean`.
+ *
+ */
+export type MetafieldFilter = {
+  /** The key of the metafield to filter on. */
+  key: string;
+  /** The namespace of the metafield to filter on. */
+  namespace: string;
+  /** The value of the metafield. */
+  value: string;
+};
+
 /** The preferred delivery methods such as shipping, local pickup or through pickup points. */
 export type PreferenceDeliveryMethodType =
   /** A delivery method used to let buyers collect purchases at designated locations like parcel lockers. */
@@ -1311,20 +1379,133 @@ export type PreferenceDeliveryMethodType =
   /** A delivery method used to send items directly to a buyer’s specified address. */
   | 'SHIPPING';
 
+/**
+ * A price range for filtering products in a collection. Used by the [`ProductFilter`](https://shopify.dev/docs/api/storefront/current/input-objects/ProductFilter) input's [`price`](https://shopify.dev/docs/api/storefront/current/input-objects/ProductFilter#fields-price) field.
+ *
+ * > Note: Omitting the [maximum](https://shopify.dev/docs/api/storefront/currents/input-objects/PriceRangeFilter#fields-max) returns all products above the [minimum](https://shopify.dev/docs/api/storefront/current/input-objects/PriceRangeFilter#fields-min).
+ *
+ */
+export type PriceRangeFilter = {
+  /** The maximum price in the range. Empty indicates no max price. */
+  max?: number | null | undefined;
+  /** The minimum price in the range. Defaults to zero. */
+  min?: number | null | undefined;
+};
+
+/**
+ * The input fields for a filter used to view a subset of products in a collection.
+ * By default, the `available` and `price` filters are enabled. Filters are customized with the Shopify Search & Discovery app.
+ * Learn more about [customizing storefront filtering](https://help.shopify.com/manual/online-store/themes/customizing-themes/storefront-filters).
+ *
+ */
+export type ProductFilter = {
+  /** Filter on if the product is available for sale. */
+  available?: boolean | null | undefined;
+  /** A product category to filter on. */
+  category?: CategoryFilter | null | undefined;
+  /** A range of prices to filter with-in. */
+  price?: PriceRangeFilter | null | undefined;
+  /** A product metafield to filter on. */
+  productMetafield?: MetafieldFilter | null | undefined;
+  /** The product type to filter on. */
+  productType?: string | null | undefined;
+  /** The product vendor to filter on. */
+  productVendor?: string | null | undefined;
+  /** A product tag to filter on. */
+  tag?: string | null | undefined;
+  /** A standard product attribute metafield to filter on. */
+  taxonomyMetafield?: TaxonomyMetafieldFilter | null | undefined;
+  /** A variant metafield to filter on. */
+  variantMetafield?: MetafieldFilter | null | undefined;
+  /** A variant option to filter on. */
+  variantOption?: VariantOptionFilter | null | undefined;
+};
+
+/**
+ * A filter used to view a subset of products in a collection matching a specific taxonomy metafield value.
+ *
+ */
+export type TaxonomyMetafieldFilter = {
+  /** The key of the metafield to filter on. */
+  key: string;
+  /** The namespace of the metafield to filter on. */
+  namespace: string;
+  /** The value of the metafield. */
+  value: string;
+};
+
+/** The input fields for a filter used to view a subset of products in a collection matching a specific variant option. */
+export type VariantOptionFilter = {
+  /** The name of the variant option to filter on. */
+  name: string;
+  /** The value of the variant option to filter on. */
+  value: string;
+};
+
 export type CollectionProductsQueryVariables = Exact<{
   handle: string;
   first: number;
+  filters?: Array<ProductFilter> | ProductFilter | null | undefined;
 }>;
 
 
-export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } } | null };
+export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } } | null };
 
 export type ProductByHandleQueryVariables = Exact<{
   handle: string;
 }>;
 
 
-export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, vendor: string, seo: { title: string | null, description: string | null }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
+export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, vendor: string, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
+
+export type FilterFieldsFragment = { id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> };
+
+export type ProductCardFieldsFragment = { id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } };
+
+export type SearchProductsQueryVariables = Exact<{
+  query: string;
+  first: number;
+  filters?: Array<ProductFilter> | ProductFilter | null | undefined;
+}>;
+
+
+export type SearchProductsQuery = { search: { totalCount: number, productFilters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<
+      | { __typename: 'Article' }
+      | { __typename: 'Page' }
+      | { __typename: 'Product', id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }
+    > } };
+
+export type PredictiveSearchQueryVariables = Exact<{
+  query: string;
+  limit: number;
+}>;
+
+
+export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text: string, styledText: string }>, products: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }>, collections: Array<{ id: string, handle: string, title: string }> } | null };
+
+export type ComplementaryProductsQueryVariables = Exact<{
+  productId: string | number;
+}>;
+
+
+export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> | null };
+
+export type NavMenuQueryVariables = Exact<{
+  handle: string;
+}>;
+
+
+export type NavMenuQuery = { menu: { items: Array<{ id: string, title: string, type: MenuItemType, url: string | null }> } | null };
+
+export type CollectionCardsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type CollectionCardsQuery = { collections: { nodes: Array<{ id: string, handle: string, title: string, description: string, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, products: { nodes: Array<{ featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null }> } }> } };
+
+export type ShopPoliciesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ShopPoliciesQuery = { shop: { privacyPolicy: { title: string, handle: string, body: string } | null, refundPolicy: { title: string, handle: string, body: string } | null, termsOfService: { title: string, handle: string, body: string } | null, shippingPolicy: { title: string, handle: string, body: string } | null, subscriptionPolicy: { title: string, handle: string, body: string } | null } };
 
 export type ShopNameQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1439,6 +1620,38 @@ export class TypedDocumentString<TResult, TVariables>
     return this.value;
   }
 }
+export const FilterFieldsFragmentDoc = new TypedDocumentString(`
+    fragment FilterFields on Filter {
+  id
+  label
+  type
+  values {
+    id
+    label
+    count
+    input
+  }
+}
+    `, {"fragmentName":"FilterFields"}) as unknown as TypedDocumentString<FilterFieldsFragment, unknown>;
+export const ProductCardFieldsFragmentDoc = new TypedDocumentString(`
+    fragment ProductCardFields on Product {
+  id
+  handle
+  title
+  featuredImage {
+    url
+    altText
+    width
+    height
+  }
+  priceRange {
+    minVariantPrice {
+      amount
+      currencyCode
+    }
+  }
+}
+    `, {"fragmentName":"ProductCardFields"}) as unknown as TypedDocumentString<ProductCardFieldsFragment, unknown>;
 export const CartFieldsFragmentDoc = new TypedDocumentString(`
     fragment CartFields on Cart {
   id
@@ -1508,7 +1721,7 @@ export const CartFieldsFragmentDoc = new TypedDocumentString(`
 }
     `, {"fragmentName":"CartFields"}) as unknown as TypedDocumentString<CartFieldsFragment, unknown>;
 export const CollectionProductsDocument = new TypedDocumentString(`
-    query CollectionProducts($handle: String!, $first: Int!) {
+    query CollectionProducts($handle: String!, $first: Int!, $filters: [ProductFilter!]) {
   collection(handle: $handle) {
     id
     title
@@ -1517,7 +1730,10 @@ export const CollectionProductsDocument = new TypedDocumentString(`
       title
       description
     }
-    products(first: $first, sortKey: COLLECTION_DEFAULT) {
+    products(first: $first, sortKey: COLLECTION_DEFAULT, filters: $filters) {
+      filters {
+        ...FilterFields
+      }
       nodes {
         id
         handle
@@ -1538,7 +1754,17 @@ export const CollectionProductsDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<CollectionProductsQuery, CollectionProductsQueryVariables>;
+    fragment FilterFields on Filter {
+  id
+  label
+  type
+  values {
+    id
+    label
+    count
+    input
+  }
+}`) as unknown as TypedDocumentString<CollectionProductsQuery, CollectionProductsQueryVariables>;
 export const ProductByHandleDocument = new TypedDocumentString(`
     query ProductByHandle($handle: String!) {
   product(handle: $handle) {
@@ -1549,6 +1775,12 @@ export const ProductByHandleDocument = new TypedDocumentString(`
     seo {
       title
       description
+    }
+    breadcrumbCollections: collections(first: 20) {
+      nodes {
+        handle
+        title
+      }
     }
     vendor
     collections(first: 50) {
@@ -1646,6 +1878,181 @@ export const ProductByHandleDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<ProductByHandleQuery, ProductByHandleQueryVariables>;
+export const SearchProductsDocument = new TypedDocumentString(`
+    query SearchProducts($query: String!, $first: Int!, $filters: [ProductFilter!]) {
+  search(query: $query, first: $first, types: [PRODUCT], productFilters: $filters) {
+    totalCount
+    productFilters {
+      ...FilterFields
+    }
+    nodes {
+      __typename
+      ... on Product {
+        ...ProductCardFields
+      }
+    }
+  }
+}
+    fragment FilterFields on Filter {
+  id
+  label
+  type
+  values {
+    id
+    label
+    count
+    input
+  }
+}
+fragment ProductCardFields on Product {
+  id
+  handle
+  title
+  featuredImage {
+    url
+    altText
+    width
+    height
+  }
+  priceRange {
+    minVariantPrice {
+      amount
+      currencyCode
+    }
+  }
+}`) as unknown as TypedDocumentString<SearchProductsQuery, SearchProductsQueryVariables>;
+export const PredictiveSearchDocument = new TypedDocumentString(`
+    query PredictiveSearch($query: String!, $limit: Int!) {
+  predictiveSearch(
+    query: $query
+    limit: $limit
+    types: [PRODUCT, COLLECTION, QUERY]
+  ) {
+    queries {
+      text
+      styledText
+    }
+    products {
+      ...ProductCardFields
+    }
+    collections {
+      id
+      handle
+      title
+    }
+  }
+}
+    fragment ProductCardFields on Product {
+  id
+  handle
+  title
+  featuredImage {
+    url
+    altText
+    width
+    height
+  }
+  priceRange {
+    minVariantPrice {
+      amount
+      currencyCode
+    }
+  }
+}`) as unknown as TypedDocumentString<PredictiveSearchQuery, PredictiveSearchQueryVariables>;
+export const ComplementaryProductsDocument = new TypedDocumentString(`
+    query ComplementaryProducts($productId: ID!) {
+  productRecommendations(productId: $productId, intent: COMPLEMENTARY) {
+    ...ProductCardFields
+  }
+}
+    fragment ProductCardFields on Product {
+  id
+  handle
+  title
+  featuredImage {
+    url
+    altText
+    width
+    height
+  }
+  priceRange {
+    minVariantPrice {
+      amount
+      currencyCode
+    }
+  }
+}`) as unknown as TypedDocumentString<ComplementaryProductsQuery, ComplementaryProductsQueryVariables>;
+export const NavMenuDocument = new TypedDocumentString(`
+    query NavMenu($handle: String!) {
+  menu(handle: $handle) {
+    items {
+      id
+      title
+      type
+      url
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<NavMenuQuery, NavMenuQueryVariables>;
+export const CollectionCardsDocument = new TypedDocumentString(`
+    query CollectionCards {
+  collections(first: 50) {
+    nodes {
+      id
+      handle
+      title
+      description
+      image {
+        url
+        altText
+        width
+        height
+      }
+      products(first: 1) {
+        nodes {
+          featuredImage {
+            url
+            altText
+            width
+            height
+          }
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<CollectionCardsQuery, CollectionCardsQueryVariables>;
+export const ShopPoliciesDocument = new TypedDocumentString(`
+    query ShopPolicies {
+  shop {
+    privacyPolicy {
+      title
+      handle
+      body
+    }
+    refundPolicy {
+      title
+      handle
+      body
+    }
+    termsOfService {
+      title
+      handle
+      body
+    }
+    shippingPolicy {
+      title
+      handle
+      body
+    }
+    subscriptionPolicy {
+      title
+      handle
+      body
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ShopPoliciesQuery, ShopPoliciesQueryVariables>;
 export const ShopNameDocument = new TypedDocumentString(`
     query ShopName {
   shop {

@@ -14,6 +14,25 @@
   https://shopify.dev/docs/storefronts/themes/architecture/templates/product
 {% endcomment %}
 
+{% comment %}
+  The breadcrumb goes through the first collection in the Shop menu that this
+  product belongs to, the same rule as apps/web (breadcrumbCollection in
+  packages/shopify/src/nav.ts), so both surfaces show the same trail.
+{% endcomment %}
+{% liquid
+  assign crumb_collection = nil
+  assign product_collection_handles = product.collections | map: 'handle'
+  for link in linklists.shop.links
+    if link.type == 'collection_link' and product_collection_handles contains link.object.handle
+      assign crumb_collection = link.object
+      break
+    endif
+  endfor
+%}
+<div class="container product-breadcrumbs">
+  {% render 'breadcrumbs', current: product.title, parent: crumb_collection %}
+</div>
+
 <article class="container product">
   <media-gallery class="product__gallery">
     <div class="product__media">
@@ -69,6 +88,16 @@
 </article>
 
 {% stylesheet %}
+  /* The trail sits above the product grid, in its own container, so it takes
+     the top padding and leaves the gap below it to .product's own. */
+  .product-breadcrumbs {
+    padding-block-start: var(--spacing-8);
+  }
+
+  .product-breadcrumbs .breadcrumbs {
+    margin-block-end: 0;
+  }
+
   .product {
     display: grid;
     gap: var(--spacing-8);

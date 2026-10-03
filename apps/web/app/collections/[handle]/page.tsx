@@ -1,17 +1,21 @@
-import { formatMoney } from "@formulate/shopify";
-import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { withoutEmptyFilters } from "@formulate/shopify";
+import { notFound, redirect } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { CollectionFilters } from "@/components/collection-filters";
+import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { getCollection } from "@/lib/catalogue";
+import { toSearchParams } from "@/lib/search-params";
 import { breadcrumbJsonLd, metaDescription } from "@/lib/structured-data";
 
 interface PageProps {
   /** Next 15+ passes route params as a Promise. */
   readonly params: Promise<{ handle: string }>;
+  /** The filters, in the Liquid theme's format (see packages/shopify filters.ts). */
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 /**
@@ -46,10 +50,20 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
 /** Products per row at the widest breakpoint (`lg:grid-cols-3`). */
 const FIRST_ROW = 3;
 
-const CollectionPage = async ({ params }: PageProps) => {
+const CollectionPage = async ({ params, searchParams }: PageProps) => {
   const { handle } = await params;
+  const query = toSearchParams(await searchParams);
 
-  const result = await getCollection(handle);
+  // The filter form submits its empty fields too (an untouched price box), so
+  // tidy the URL once: shared links stay readable, and it works without JS.
+  const tidy = withoutEmptyFilters(query);
+  if (tidy)
+    redirect(tidy.size ? `/collections/${handle}?${tidy}` : `/collections/${handle}`);
+
+  const filterQuery = new URLSearchParams(
+    [...query].filter(([name]) => name.startsWith("filter.")),
+  ).toString();
+  const result = await getCollection(handle, filterQuery);
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
@@ -65,6 +79,8 @@ const CollectionPage = async ({ params }: PageProps) => {
         ])}
       />
 
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: collection.title }]} />
+
       <header className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">{collection.title}</h1>
         {collection.description ? (
@@ -72,43 +88,32 @@ const CollectionPage = async ({ params }: PageProps) => {
         ) : null}
       </header>
 
+      <CollectionFilters
+        filters={collection.products.filters}
+        params={query}
+        path={`/collections/${handle}`}
+        productCount={collection.products.nodes.length}
+      />
+
+      {collection.products.nodes.length === 0 ? (
+        <p className="py-12 text-center text-foreground-muted">
+          No products match these filters.
+        </p>
+      ) : null}
+
       <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {collection.products.nodes.map((product, index) => (
           <li key={product.id}>
-            <Link
-              href={`/products/${product.handle}`}
-              className="group block rounded-lg border border-border p-3 transition-colors hover:border-brand-400"
-            >
-              <div className="mb-3 aspect-square overflow-hidden rounded-md bg-surface-muted">
-                {product.featuredImage ? (
-                  <Image
-                    data={product.featuredImage}
-                    sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-                    className="h-full w-full object-cover"
-                    // The first row is on screen at load, and its first image
-                    // is the Largest Contentful Paint on a phone. Hydrogen's
-                    // Image defaults to lazy, which delayed it (SHO-143).
-                    // Three is the widest row; everything below stays lazy.
-                    loading={index < FIRST_ROW ? "eager" : "lazy"}
-                    fetchPriority={index === 0 ? "high" : "auto"}
-                  />
-                ) : (
-                  <div
-                    className="flex h-full items-center justify-center text-sm text-foreground-muted"
-                    aria-hidden="true"
-                  >
-                    No image
-                  </div>
-                )}
-              </div>
-
-              <h2 className="text-base font-medium group-hover:text-brand-700">
-                {product.title}
-              </h2>
-              <p className="mt-1 text-sm text-foreground-muted">
-                {formatMoney(product.priceRange.minVariantPrice)}
-              </p>
-            </Link>
+            <ProductCard
+              product={product}
+              sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
+              // The first row is on screen at load, and its first image is the
+              // Largest Contentful Paint on a phone. Hydrogen's Image defaults
+              // to lazy, which delayed it (SHO-143). Three is the widest row;
+              // everything below stays lazy.
+              loading={index < FIRST_ROW ? "eager" : "lazy"}
+              fetchPriority={index === 0 ? "high" : "auto"}
+            />
           </li>
         ))}
       </ul>

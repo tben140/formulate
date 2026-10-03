@@ -1,4 +1,8 @@
-import { CollectionProductsQuery, ProductByHandleQuery } from "@formulate/shopify";
+import {
+  CollectionProductsQuery,
+  productFiltersFromParams,
+  ProductByHandleQuery,
+} from "@formulate/shopify";
 import { cache } from "react";
 
 import { storefront } from "./storefront";
@@ -19,6 +23,14 @@ export const getProduct = cache(async (handle: string) =>
 /** How many products a collection page shows. Pagination is SHO-44. */
 export const COLLECTION_PAGE_SIZE = 24;
 
-export const getCollection = cache(async (handle: string) =>
-  storefront.request(CollectionProductsQuery, { handle, first: COLLECTION_PAGE_SIZE }),
+/**
+ * `filterQuery` is the Liquid-style filter query string (SHO-153). A string,
+ * not the parsed filters, so React's per-render cache can match it.
+ */
+export const getCollection = cache(async (handle: string, filterQuery = "") =>
+  storefront.request(CollectionProductsQuery, {
+    handle,
+    first: COLLECTION_PAGE_SIZE,
+    filters: productFiltersFromParams(new URLSearchParams(filterQuery)),
+  }),
 );

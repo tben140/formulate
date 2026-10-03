@@ -4,6 +4,7 @@ import { useState } from "react";
 import { View } from "react-native";
 
 import { CartButton } from "../components/cart-button";
+import { HeaderActions } from "../components/header-actions";
 import { CartProvider } from "../components/cart-provider";
 import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
@@ -63,11 +64,17 @@ const RootLayout = () => {
               headerStyle: { backgroundColor: "#ffffff" },
               headerTintColor: "#0f172a",
               contentStyle: { backgroundColor: "#ffffff" },
-              headerRight: () => <CartButton />,
+              headerRight: () => <HeaderActions />,
             }}
           >
             <Stack.Screen name="index" options={{ title: "Formulate" }} />
+            <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
             <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
+            {/* Cart only: a Search button on the search screen goes nowhere. */}
+            <Stack.Screen
+              name="search"
+              options={{ title: "Search", headerRight: () => <CartButton /> }}
+            />
           </Stack>
         </CartProvider>
       </CheckoutProvider>

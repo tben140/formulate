@@ -46,7 +46,21 @@
     }
   },
   "collections": {
-    "title": "Collections"
+    "title": "Collections",
+    "nav_label": "Collections",
+    "filter": "Filter",
+    "active": "active",
+    "apply": "Apply",
+    "clear_all": "Clear all",
+    "price_from": "From",
+    "price_to": "To",
+    "active_filters": "Active filters",
+    "remove_filter": "remove filter",
+    "no_matches": "No products match these filters.",
+    "product_count": {
+      "one": "{{ count }} product",
+      "other": "{{ count }} products"
+    }
   },
   "customers": {
     "login": {
@@ -88,13 +102,23 @@
     "added": "Added to your cart.",
     "purchase_options": "Purchase options",
     "one_time": "One-time purchase",
-    "variant": "Variant"
+    "variant": "Variant",
+    "pairs_well_with": "Pairs well with"
   },
   "search": {
     "title": "Search",
     "placeholder": "Search articles, pages, or products",
     "submit": "Search",
     "no_results_html": "No results found for {{ terms }}",
-    "results_for_html": "{{ count }} results found for {{ terms }}"
+    "results_for_html": "{{ count }} results found for {{ terms }}",
+    "label": "Search products",
+    "results": "Results",
+    "no_products": "No products match “{{ terms }}”. Try a different word, or browse the collections."
+  },
+  "general": {
+    "breadcrumb": "Breadcrumb",
+    "home": "Home",
+    "shop_collection": "Shop {{ title }}",
+    "search_link": "Search"
   }
 }
