@@ -171,7 +171,9 @@ export const CartDrawer = ({
                           </button>
                         </form>
 
-                        <p className="text-sm">{formatMoney(line.cost.totalAmount)}</p>
+                        <p className="font-mono text-sm">
+                          {formatMoney(line.cost.totalAmount)}
+                        </p>
                       </div>
                     </div>
 
@@ -200,7 +202,9 @@ export const CartDrawer = ({
           <footer className="border-t border-border px-4 py-4">
             <div className="mb-3 flex items-center justify-between text-sm">
               <span className="text-foreground-muted">Subtotal</span>
-              <span className="font-medium">{formatMoney(cart.cost.subtotalAmount)}</span>
+              <span className="font-mono font-medium">
+                {formatMoney(cart.cost.subtotalAmount)}
+              </span>
             </div>
 
             <p className="mb-3 text-xs text-foreground-muted">

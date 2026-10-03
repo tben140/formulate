@@ -215,7 +215,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                   {choice.label}
                 </span>
                 {choice.price ? (
-                  <span className="text-foreground-muted">
+                  <span className="font-mono text-foreground-muted">
                     {/*
                       The leading space is for the accessible name, not the
                       layout — flex handles the visual gap. Without it the
@@ -232,7 +232,8 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       ) : null}
 
       {displayPrice ? (
-        <p className="mb-4 text-2xl font-semibold">{formatMoney(displayPrice)}</p>
+        // DM Mono ships in 400 and 500 only; semibold would be synthesised.
+        <p className="mb-4 font-mono text-2xl font-medium">{formatMoney(displayPrice)}</p>
       ) : null}
 
       {/*

@@ -64,7 +64,7 @@ export const ProductCard = ({
       <Heading className="text-base font-medium group-hover:text-brand-700">
         {product.title}
       </Heading>
-      <p className="mt-1 text-sm text-foreground-muted">
+      <p className="mt-1 font-mono text-sm text-foreground-muted">
         {formatMoney(product.priceRange.minVariantPrice)}
       </p>
     </Link>

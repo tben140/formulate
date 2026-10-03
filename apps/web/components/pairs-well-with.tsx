@@ -60,7 +60,7 @@ export const PairsWellWith = async ({ productId }: { readonly productId: string 
                 <p className="truncate text-sm font-medium group-hover:text-brand-700">
                   {product.title}
                 </p>
-                <p className="text-sm text-foreground-muted">
+                <p className="font-mono text-sm text-foreground-muted">
                   {formatMoney(product.priceRange.minVariantPrice)}
                 </p>
               </div>
