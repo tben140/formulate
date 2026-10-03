@@ -1,0 +1,117 @@
+{% comment %}
+  The homepage introduction, matching the top of apps/web's app/page.tsx
+  (SHO-61). The copy is editable in the theme editor. The button goes to the
+  first collection in the Shop menu, as it does on web, unless the merchant
+  sets a link.
+{% endcomment %}
+
+{% liquid
+  assign first_link = nil
+  for link in linklists.shop.links
+    if link.type == 'collection_link'
+      assign first_link = link
+      break
+    endif
+  endfor
+
+  assign button_url = section.settings.button_url
+  assign button_label = section.settings.button_label
+  if button_url == blank and first_link
+    assign button_url = first_link.url
+    if button_label == blank
+      assign button_label = 'general.shop_collection' | t: title: first_link.title
+    endif
+  endif
+%}
+
+<div class="container">
+  <section class="home-intro" aria-labelledby="home-intro-{{ section.id }}">
+    <h1 id="home-intro-{{ section.id }}" class="home-intro__heading">{{ section.settings.heading }}</h1>
+    {% if section.settings.text != blank %}
+      <p class="home-intro__text">{{ section.settings.text }}</p>
+    {% endif %}
+    {% if button_url != blank and button_label != blank %}
+      <a class="home-intro__button" href="{{ button_url }}">{{ button_label }}</a>
+    {% endif %}
+  </section>
+</div>
+
+{% stylesheet %}
+  .home-intro {
+    margin-block-start: var(--spacing-8);
+    padding: var(--spacing-12) var(--spacing-6);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface-muted);
+  }
+
+  @media (min-width: 40rem) {
+    .home-intro {
+      padding-inline: var(--spacing-10);
+    }
+  }
+
+  .home-intro__heading {
+    max-inline-size: 36rem;
+    margin: 0;
+    font-size: 2.25rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+
+  /* The main text colour: muted grey on this panel is 4.34:1, under AA. */
+  .home-intro__text {
+    max-inline-size: 36rem;
+    margin: var(--spacing-4) 0 0;
+    font-size: var(--text-lg);
+    color: var(--color-foreground);
+  }
+
+  .home-intro__button {
+    display: inline-block;
+    margin-block-start: var(--spacing-8);
+    padding: var(--spacing-3) var(--spacing-6);
+    border-radius: var(--radius-md);
+    background: var(--color-brand-600);
+    color: var(--color-surface);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .home-intro__button:hover {
+    background: var(--color-brand-700);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Home introduction",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Everyday supplements, delivered on your schedule"
+    },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "Text",
+      "default": "Buy once or subscribe. Subscriptions can be skipped, paused or cancelled at any time."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "info": "Leave blank to use \"Shop\" and the first collection in the Shop menu."
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Button link",
+      "info": "Leave blank to link to the first collection in the Shop menu."
+    }
+  ],
+  "presets": [{ "name": "Home introduction" }]
+}
+{% endschema %}

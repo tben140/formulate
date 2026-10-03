@@ -13,6 +13,8 @@
   @param {number} [width] - The highest resolution width of the image to be rendered
   @param {number} [height] - The highest resolution height of the image to be rendered
   @param {string} [crop] - The crop position of the image
+  @param {string} [loading] - 'eager' or 'lazy'. Omit to keep image_tag's own section-position default
+  @param {string} [fetchpriority] - 'high' only for the page's LCP candidate
 
   @example
   {% render 'image', image: product.featured_image %}
@@ -45,7 +47,11 @@
     href="{{ url }}"
   {% endif %}
 >
-  {{ image | image_url: width: width, height: height, crop: crop | image_tag }}
+  {%- if loading -%}
+    {{ image | image_url: width: width, height: height, crop: crop | image_tag: loading: loading, fetchpriority: fetchpriority }}
+  {%- else -%}
+    {{ image | image_url: width: width, height: height, crop: crop | image_tag }}
+  {%- endif -%}
 </{{ wrapper }}>
 
 {% stylesheet %}

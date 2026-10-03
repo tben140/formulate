@@ -1,22 +1,43 @@
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
-import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
+import { DemoNotice } from "@/components/demo-notice";
 import { EmailCapture } from "@/components/email-capture";
+import { SiteNav } from "@/components/site-nav";
+import {
+  CookiePreferencesButton,
+  TrackingConsentProvider,
+} from "@/components/tracking-consent";
 import { getCart } from "@/lib/cart";
-import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
+import { getLegalLinks, getNavLinks } from "@/lib/nav";
+import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
+import { baseOpenGraph, isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
+import { getCartSuggestions } from "@/lib/recommendations";
 
 import "./globals.css";
 
+/**
+ * Site-wide defaults. Each route overrides title, description and canonical.
+ *
+ * `metadataBase` is what turns every relative URL below (canonicals, Open
+ * Graph) into an absolute one. `robots` is the per-page half of keeping
+ * previews out of search results; `app/robots.ts` is the other half.
+ */
 export const metadata: Metadata = {
-  title: "Formulate",
-  description: "A headless Shopify storefront built on Next.js and Expo.",
+  metadataBase: siteUrl,
+  title: { default: SITE_NAME, template: `%s — ${SITE_NAME}` },
+  description: "Supplements built around a 30-day rhythm, from Double Helix.",
+  applicationName: SITE_NAME,
+  openGraph: baseOpenGraph,
+  twitter: { card: "summary_large_image" },
+  robots: isIndexable ? { index: true, follow: true } : { index: false, follow: false },
 };
 
 /**
@@ -33,7 +54,19 @@ export const metadata: Metadata = {
  * state on the interaction a shopper cares most about.
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
-  const cart = await getCart();
+  // In parallel: neither depends on the other, and both are on every page.
+  const [cart, navLinks, legalLinks] = await Promise.all([
+    getCart(),
+    getNavLinks(),
+    getLegalLinks(),
+  ]);
+  // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
+  // no request at all.
+  const suggestions = await getCartSuggestions(cart);
+
+  // Read on the server so the first render is already right: no banner flash
+  // for someone who has decided, and no script tag for someone who declined.
+  const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
 
   return (
     <html lang="en-GB">
@@ -42,36 +75,97 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         rather than floating mid-viewport.
       */}
       <body className="flex min-h-screen flex-col">
-        <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
-          <header className="border-b border-border">
-            <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-              <Link
-                href="/"
-                className="text-lg font-semibold tracking-tight text-foreground"
+        {/*
+          Also where Klaviyo onsite is loaded — and only once the shopper
+          accepts. The Liquid theme gets that from an app embed deferring to
+          Shopify's consent API; here it is ours. See ADR 0008.
+        */}
+        <TrackingConsentProvider initialConsent={consent}>
+          <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
+            <DemoNotice />
+            <header className="border-b border-border">
+              {/*
+                One row from md up: wordmark, collections, cart. Below that the
+                collections drop to their own scrolling row, via `order`, so the
+                wordmark and cart keep their places.
+              */}
+              <nav
+                aria-label="Main"
+                className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-8 gap-y-3 px-4 py-4"
               >
-                Formulate
-              </Link>
-              <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
-            </nav>
-          </header>
+                <Link
+                  href="/"
+                  className="order-1 text-lg font-semibold tracking-tight text-foreground"
+                >
+                  Formulate
+                </Link>
+                <SiteNav links={navLinks} />
+                <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
+                  {/* A link to the search page, not an inline field: it works
+                      without JavaScript and keeps the header compact on a phone. */}
+                  <Link
+                    href="/search"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 20 20"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <circle cx="8.5" cy="8.5" r="5.5" />
+                      <path d="m13 13 4 4" strokeLinecap="round" />
+                    </svg>
+                    Search
+                  </Link>
+                  <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
+                </div>
+              </nav>
+            </header>
 
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
+            <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
 
-          {/*
-            Mirrors apps/theme's sections/footer.liquid so the surfaces match.
-            Rendered on the server, so the year needs no hydration guard.
-          */}
-          <footer className="border-t border-border">
-            <div className="mx-auto max-w-5xl px-4 py-6">
-              <EmailCapture />
-              <p className="mt-6 text-sm text-foreground-muted">
-                &copy; {new Date().getFullYear()} Formulate
-              </p>
-            </div>
-          </footer>
+            {/*
+              Mirrors apps/theme's sections/footer.liquid so the surfaces match.
+              Rendered on the server, so the year needs no hydration guard.
+            */}
+            <footer className="border-t border-border">
+              <div className="mx-auto max-w-5xl px-4 py-6">
+                <EmailCapture />
+                {/*
+                  The footer's links come from the Shopify menu "Legal"
+                  (SHO-60), the same menu the theme's footer reads.
+                */}
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground-muted">
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    <p>&copy; {new Date().getFullYear()} Formulate</p>
+                    {legalLinks.length > 0 ? (
+                      <nav aria-label="Legal">
+                        <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                          {legalLinks.map((link) => (
+                            <li key={link.id}>
+                              <Link
+                                href={link.path}
+                                className="underline-offset-4 hover:text-foreground hover:underline"
+                              >
+                                {link.title}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </nav>
+                    ) : null}
+                  </div>
+                  <CookiePreferencesButton />
+                </div>
+              </div>
+            </footer>
 
-          <CartDrawer cart={cart} />
-        </CartProvider>
+            <CartDrawer cart={cart} suggestions={suggestions} />
+          </CartProvider>
+        </TrackingConsentProvider>
 
         {/*
           Both are no-ops outside Vercel, so local dev and CI builds are
@@ -85,21 +179,6 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         */}
         <Analytics />
         <SpeedInsights />
-
-        {/*
-          Klaviyo onsite. The Liquid theme gets this injected by an app embed;
-          a headless surface has no such mechanism, so it is loaded by hand.
-
-          `afterInteractive` rather than `beforeInteractive`: tracking must not
-          block first paint, and `lib/klaviyo.ts` queues events that fire
-          before the script arrives.
-
-          Omitted entirely when the key is unset, so local dev and CI without
-          Klaviyo credentials render a clean page.
-        */}
-        {KLAVIYO_PUBLIC_KEY ? (
-          <Script src={KLAVIYO_SCRIPT_URL} strategy="afterInteractive" />
-        ) : null}
       </body>
     </html>
   );

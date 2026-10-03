@@ -1,14 +1,15 @@
 "use client";
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
-import { formatMoney, type Cart } from "@formulate/shopify";
+import { formatMoney, type Cart, type CartSuggestion } from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 
-import { useCartUi } from "./cart-provider";
-
+import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
+import { FreeShippingBar } from "./free-shipping-bar";
+import { CartSuggestions } from "./cart-suggestions";
 /**
  * The slide-in cart.
  *
@@ -24,7 +25,13 @@ import { useCartUi } from "./cart-provider";
  * Hand-rolling any of that is where accessible drawers usually go wrong. The
  * only thing added on top is the slide, which is pure CSS in globals.css.
  */
-export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
+export const CartDrawer = ({
+  cart,
+  suggestions = [],
+}: {
+  cart: Cart | null;
+  suggestions?: readonly CartSuggestion[];
+}) => {
   const { open, closeCart, storeDomain } = useCartUi();
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -41,6 +48,14 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
   const lines = cart?.lines.nodes ?? [];
 
   return (
+    /*
+     * The backdrop click below is a mouse convenience with no keyboard
+     * equivalent to add: keyboard users already close a modal <dialog> with
+     * Escape (native) or the Close button. jsx-a11y can't see that the element
+     * is a dialog handling its own keyboard dismissal, so the two rules are
+     * disabled for this element only.
+     */
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={ref}
       aria-label="Shopping cart"
@@ -57,8 +72,12 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
     >
       <div className="flex h-full flex-col">
         <header className="flex items-center justify-between border-b border-border px-4 py-4">
-          <h2 className="text-lg font-semibold">
-            Cart
+          {/*
+            Focusable from script only: a one-tap suggestion add moves focus
+            here, because the button that had it disappears from the list.
+          */}
+          <h2 id={CART_DRAWER_TITLE_ID} tabIndex={-1} className="text-lg font-semibold">
+            Cart{/* A real space: the margin alone reads "Cart2 items". */}{" "}
             {cart?.totalQuantity ? (
               <span className="ml-2 text-sm font-normal text-foreground-muted">
                 {cart.totalQuantity} {cart.totalQuantity === 1 ? "item" : "items"}
@@ -75,100 +94,117 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
           </button>
         </header>
 
+        {/* Above the lines, so it is read before the list rather than after it. */}
+        <FreeShippingBar
+          subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
+        />
+
         {lines.length === 0 ? (
           <p className="flex-1 px-4 py-8 text-sm text-foreground-muted">
             Your cart is empty.
           </p>
         ) : (
-          <ul className="flex-1 divide-y divide-border overflow-y-auto">
-            {lines.map((line) => {
-              // `merchandise` is a union in the schema, but ProductVariant is
-              // its only member we select, so codegen flattens it — no
-              // __typename narrowing needed here.
-              const variant = line.merchandise;
+          // One scrolling region for lines and suggestions, so suggestions sit
+          // under the last line rather than pushing the checkout off screen.
+          <div className="flex-1 overflow-y-auto">
+            <ul className="divide-y divide-border">
+              {lines.map((line) => {
+                // `merchandise` is a union in the schema, but ProductVariant is
+                // its only member we select, so codegen flattens it — no
+                // __typename narrowing needed here.
+                const variant = line.merchandise;
 
-              return (
-                <li key={line.id} className="flex gap-3 px-4 py-4">
-                  {variant.image ? (
-                    // Plain <img>: these are Shopify CDN URLs at a fixed small
-                    // size inside a dialog, so next/image's optimisation and
-                    // layout machinery would cost more than it returns.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={variant.image.url}
-                      alt=""
-                      width={64}
-                      height={64}
-                      className="h-16 w-16 shrink-0 rounded-md border border-border object-cover"
-                    />
-                  ) : null}
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {variant.product.title}
-                    </p>
-                    {variant.title !== "Default Title" ? (
-                      <p className="text-xs text-foreground-muted">{variant.title}</p>
+                return (
+                  <li key={line.id} className="flex gap-3 px-4 py-4">
+                    {variant.image ? (
+                      // Plain <img>: these are Shopify CDN URLs at a fixed small
+                      // size inside a dialog, so next/image's optimisation and
+                      // layout machinery would cost more than it returns.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={variant.image.url}
+                        alt=""
+                        width={64}
+                        height={64}
+                        className="h-16 w-16 shrink-0 rounded-md border border-border object-cover"
+                      />
                     ) : null}
 
-                    {/*
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {variant.product.title}
+                      </p>
+                      {variant.title !== "Default Title" ? (
+                        <p className="text-xs text-foreground-muted">{variant.title}</p>
+                      ) : null}
+
+                      {/*
                       The subscription line is the whole reason the selling-plan
                       filter exists. Showing it here is how a shopper confirms
                       they bought a subscription rather than a one-off.
                     */}
-                    {line.sellingPlanAllocation ? (
-                      <p className="mt-0.5 text-xs font-medium text-brand-600">
-                        {line.sellingPlanAllocation.sellingPlan.name}
-                      </p>
-                    ) : null}
+                      {line.sellingPlanAllocation ? (
+                        <p className="mt-0.5 text-xs font-medium text-brand-600">
+                          {line.sellingPlanAllocation.sellingPlan.name}
+                        </p>
+                      ) : null}
 
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <form action={updateCartLine} className="flex items-center gap-1">
-                        <input type="hidden" name="lineId" value={line.id} />
-                        <label htmlFor={`qty-${line.id}`} className="sr-only">
-                          Quantity for {variant.product.title}
-                        </label>
-                        <input
-                          id={`qty-${line.id}`}
-                          name="quantity"
-                          type="number"
-                          min={0}
-                          defaultValue={line.quantity}
-                          className="w-16 rounded-md border border-border px-2 py-1 text-sm"
-                        />
-                        <button
-                          type="submit"
-                          className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
-                        >
-                          Update
-                        </button>
-                      </form>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <form action={updateCartLine} className="flex items-center gap-1">
+                          <input type="hidden" name="lineId" value={line.id} />
+                          <label htmlFor={`qty-${line.id}`} className="sr-only">
+                            Quantity for {variant.product.title}
+                          </label>
+                          <input
+                            id={`qty-${line.id}`}
+                            name="quantity"
+                            type="number"
+                            min={0}
+                            defaultValue={line.quantity}
+                            className="w-16 rounded-md border border-border px-2 py-1 text-sm"
+                          />
+                          <button
+                            type="submit"
+                            className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
+                          >
+                            Update
+                          </button>
+                        </form>
 
-                      <p className="text-sm">{formatMoney(line.cost.totalAmount)}</p>
+                        <p className="font-mono text-sm">
+                          {formatMoney(line.cost.totalAmount)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <form action={removeCartLine}>
-                    <input type="hidden" name="lineId" value={line.id} />
-                    <button
-                      type="submit"
-                      className="text-xs text-foreground-muted underline underline-offset-2 hover:text-danger"
-                    >
-                      Remove
-                      <span className="sr-only"> {variant.product.title} from cart</span>
-                    </button>
-                  </form>
-                </li>
-              );
-            })}
-          </ul>
+                    <form action={removeCartLine}>
+                      <input type="hidden" name="lineId" value={line.id} />
+                      <button
+                        type="submit"
+                        className="text-xs text-foreground-muted underline underline-offset-2 hover:text-danger"
+                      >
+                        Remove
+                        <span className="sr-only">
+                          {" "}
+                          {variant.product.title} from cart
+                        </span>
+                      </button>
+                    </form>
+                  </li>
+                );
+              })}
+            </ul>
+            <CartSuggestions suggestions={suggestions} />
+          </div>
         )}
 
         {cart && lines.length > 0 ? (
           <footer className="border-t border-border px-4 py-4">
             <div className="mb-3 flex items-center justify-between text-sm">
               <span className="text-foreground-muted">Subtotal</span>
-              <span className="font-medium">{formatMoney(cart.cost.subtotalAmount)}</span>
+              <span className="font-mono font-medium">
+                {formatMoney(cart.cost.subtotalAmount)}
+              </span>
             </div>
 
             <p className="mb-3 text-xs text-foreground-muted">

@@ -146,7 +146,29 @@ interface ProductLike {
   readonly featuredImage?: { readonly url: string } | null;
   readonly priceRange: { readonly minVariantPrice: MoneyLike };
   readonly compareAtPriceRange?: { readonly minVariantPrice: MoneyLike } | null;
+  /** Optional so a caller without collections still compiles; it then sends []. */
+  readonly collections?: { readonly nodes: readonly { readonly title: string }[] } | null;
 }
+
+/**
+ * The theme's `Categories`: the product's collection titles, **sorted by title**.
+ *
+ * ⚠️ The sort is the whole point. The Storefront API returns a product's
+ * collections in creation order, while the theme (Liquid's
+ * `product.collections`) lists them alphabetically. Measured 2026-09-26 on
+ * Daily Multivitamin: Storefront gave Cellular, Best Sellers, Daily Essentials;
+ * the theme sent Best Sellers, Cellular, Daily Essentials. Passing the API's
+ * order through would look right for most products and differ for some.
+ *
+ * Plain code-point order. Every title in the catalogue starts with a capital,
+ * so whether Liquid's sort is case-sensitive has not been observed.
+ *
+ * Both surfaces only see collections published to their own channel (Online
+ * Store for the theme, Headless for web), so the two lists match only while
+ * both channels carry the same collections.
+ */
+const categories = (product: ProductLike): readonly string[] =>
+  (product.collections?.nodes ?? []).map((collection) => collection.title).sort();
 
 /**
  * Builds a `Viewed Product` payload matching the theme's.
@@ -161,7 +183,7 @@ export const viewedProduct = (
 ): ViewedProductPayload => ({
   Name: product.title,
   ProductID: legacyIdFromGid(product.id),
-  Categories: [],
+  Categories: categories(product),
   ImageURL: product.featuredImage?.url ?? "",
   URL: productUrl(storeDomain, product.handle),
   Brand: product.vendor ?? "",
