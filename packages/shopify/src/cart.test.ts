@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createCartClient, isCartGone, isCartId } from "./cart";
+import { createCartClient, isCartGone, isCartId, stockNotice } from "./cart";
 import { describeForShopper } from "./errors";
 import {
   CartCreateMutation,
@@ -387,6 +387,45 @@ describe("addLinesOrCreate — stock warnings", () => {
     // cart adds nothing, yet Shopify still says "Only 3 items were added".
     expect(outcome.notice).toBe("Only 3 are available, and all 3 are in your cart.");
     expect(removed(request)).toEqual([]);
+  });
+
+  it("counts every line for the variant, one-time and subscription, in the notice", async () => {
+    // 3 in stock: 2 already in the cart one-time, then 5 asked for on a
+    // subscription gets 1. All 3 are in the cart, across two lines.
+    const subscriptionLine = {
+      ...cartLine("whey-sub", WHEY, 1),
+      sellingPlanAllocation: { sellingPlan: { id: "gid://shopify/SellingPlan/1" } },
+    };
+    const { cart } = client(
+      payload(
+        [cartLine("whey", WHEY, 2), subscriptionLine],
+        [
+          {
+            code: "MERCHANDISE_NOT_ENOUGH_STOCK",
+            message: "Only 1 items were added to your cart due to availability.",
+            target: lineId("whey-sub"),
+          },
+        ],
+      ),
+    );
+
+    const outcome = await cart.addLinesOrCreate({
+      cartId: CART,
+      lines: [
+        {
+          merchandiseId: WHEY,
+          quantity: 5,
+          sellingPlanId: "gid://shopify/SellingPlan/1",
+        },
+      ],
+    });
+
+    expect(outcome.notice).toBe("Only 3 are available, and all 3 are in your cart.");
+  });
+
+  it("says it in the singular when only one is available", () => {
+    expect(stockNotice(1)).toBe("Only 1 is available, and it's in your cart.");
+    expect(stockNotice(2)).toBe("Only 2 are available, and all 2 are in your cart.");
   });
 
   it("ignores a warning about a different line left over from an earlier add", async () => {
