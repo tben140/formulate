@@ -797,6 +797,7 @@ a:hover {
   bottom: 0;
   z-index: 10;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-3);
   padding: var(--spacing-3) var(--spacing-4);
@@ -820,6 +821,18 @@ a:hover {
   .product-form__sticky {
     display: none;
   }
+}
+
+/* A failed add's message, on its own line above the title and button. */
+.product-form__sticky-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.product-form__sticky-error[hidden] {
+  display: none;
 }
 
 .product-form__sticky-info {
