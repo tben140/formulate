@@ -87,8 +87,14 @@ class ProductForm extends Component {
     // right and are left alone. An empty list (this variant has none) is built
     // here, so the one-time radio exists for when the shopper moves to one that
     // does.
+    //
+    // Which variant Liquid built them for comes from the markup, never from
+    // the variant-id input: browsers restore form fields on Back and reload
+    // (Firefox restores hidden inputs too), so the input can already hold a
+    // different variant. Trusting it skipped the rebuild, and an add could
+    // send one variant's selling plan with another variant's id.
     const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
-    this.#plansBuiltFor = rendered ? Number(this.refs.variantId?.value) || null : null;
+    this.#plansBuiltFor = rendered ? Number(this.refs.planList?.dataset.builtFor) || null : null;
     this.#sync();
     this.#observeMainButton();
   }
