@@ -18,7 +18,7 @@ import {
 import { getCart } from "@/lib/cart";
 import { getLegalLinks, getNavLinks } from "@/lib/nav";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
-import { isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
+import { baseOpenGraph, isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
 import { getCartSuggestions } from "@/lib/recommendations";
 
 import "./globals.css";
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   title: { default: SITE_NAME, template: `%s — ${SITE_NAME}` },
   description: "Supplements built around a 30-day rhythm, from Double Helix.",
   applicationName: SITE_NAME,
-  openGraph: { siteName: SITE_NAME, locale: "en_GB", type: "website" },
+  openGraph: baseOpenGraph,
   twitter: { card: "summary_large_image" },
   robots: isIndexable ? { index: true, follow: true } : { index: false, follow: false },
 };

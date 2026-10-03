@@ -9,6 +9,7 @@ import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { getCollection } from "@/lib/catalogue";
 import { toSearchParams } from "@/lib/search-params";
+import { baseOpenGraph } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription } from "@/lib/structured-data";
 
 interface PageProps {
@@ -40,6 +41,7 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
     ...(description ? { description } : {}),
     alternates: { canonical: `/collections/${handle}` },
     openGraph: {
+      ...baseOpenGraph,
       url: `/collections/${handle}`,
       title: collection.title,
       ...(description ? { description } : {}),
