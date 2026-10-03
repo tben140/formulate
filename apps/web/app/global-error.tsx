@@ -7,12 +7,13 @@ import "./globals.css";
 /**
  * The last line of defence: an error in the root layout itself, which
  * app/error.tsx can't catch because it renders inside that layout. The
- * layout's cart query is the likeliest cause. This replaces the whole
+ * layout's cart query is the likeliest cause, which is why "Try again" must
+ * re-fetch (unstable_retry) rather than only re-render. This replaces the whole
  * document, so it brings its own <html> and <body>.
  */
 const GlobalError = (props: {
   error: Error & { digest?: string };
-  reset: () => void;
+  unstable_retry: () => void;
 }) => (
   <html lang="en-GB">
     <body>
