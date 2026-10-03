@@ -41,6 +41,9 @@ const TabsLayout = () => {
         name="(shop)"
         options={{
           title: "Shop",
+          // Explicit labels: the icon is a font glyph, and without one it
+          // becomes the start of the tab's accessible name.
+          tabBarAccessibilityLabel: "Shop",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="storefront-outline" color={color} size={size} />
           ),
@@ -50,6 +53,7 @@ const TabsLayout = () => {
         name="(search)"
         options={{
           title: "Search",
+          tabBarAccessibilityLabel: "Search",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="search-outline" color={color} size={size} />
           ),
