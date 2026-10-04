@@ -128,6 +128,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         */
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode="on-drag"
+        // Sign up takes one tap with the keyboard up; see collection-view.tsx.
+        keyboardShouldPersistTaps="handled"
         scrollEventThrottle={32}
         /*
           ⚠️ Read the event before calling setView. React Native recycles the
