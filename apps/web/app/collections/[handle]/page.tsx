@@ -49,9 +49,6 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   };
 };
 
-/** Products per row at the widest breakpoint (`lg:grid-cols-3`). */
-const FIRST_ROW = 3;
-
 const CollectionPage = async ({ params, searchParams }: PageProps) => {
   const { handle } = await params;
   const query = toSearchParams(await searchParams);
@@ -109,11 +106,14 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
             <ProductCard
               product={product}
               sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-              // The first row is on screen at load, and its first image is the
-              // Largest Contentful Paint on a phone. Hydrogen's Image defaults
-              // to lazy, which delayed it (SHO-143). Three is the widest row;
-              // everything below stays lazy.
-              loading={index < FIRST_ROW ? "eager" : "lazy"}
+              // Only the first image is eager. It's the Largest Contentful
+              // Paint, and Hydrogen's Image defaults to lazy, which delayed it
+              // (SHO-143). The rest stay lazy (SHO-148): React preloads every
+              // eager image in <head>, so an eager first row meant three
+              // images racing the LCP image and the JavaScript on a phone,
+              // where only the first is on screen. On wider screens the row's
+              // cards are the same size, and the LCP stays the first painted.
+              loading={index === 0 ? "eager" : "lazy"}
               fetchPriority={index === 0 ? "high" : "auto"}
             />
           </li>
