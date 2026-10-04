@@ -58,6 +58,10 @@ export const ProductByHandleQuery = graphql(`
       handle
       title
       description
+      # Rendered through descriptionBlocks (src/description.ts): the plain
+      # description above runs headings into paragraphs, and stays for the
+      # meta description.
+      descriptionHtml
       # The merchant's search-engine overrides from the admin. Either can be
       # null, in which case apps/web falls back to the title and description.
       seo {
