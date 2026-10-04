@@ -69,7 +69,6 @@ EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN
 EXPO_PUBLIC_SHOPIFY_STOREFRONT_TOKEN
 EXPO_PUBLIC_SHOPIFY_API_VERSION
 EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY
-EXPO_PUBLIC_KLAVIYO_LIST_ID
 EXPO_PUBLIC_API_BASE_URL
 ```
 
@@ -118,8 +117,9 @@ Style props that Tailwind cannot express — `aspectRatio`, `borderRadius` on
 
 ## Klaviyo
 
-Env: `EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY`, `EXPO_PUBLIC_KLAVIYO_LIST_ID`. Both are
-public by design. A Klaviyo **private** key must never appear here — there is
+Env: `EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY`, which is public by design. There is no
+list id: the consent worker (`apps/api`) chooses the list, so a caller can't.
+A Klaviyo **private** key must never appear here — there is
 no server to hide it behind, so it would ship to every device.
 
 ⚠️ **Identity works differently here, and it is the only real divergence.**
