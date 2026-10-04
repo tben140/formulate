@@ -242,6 +242,35 @@ a:hover {
   color: var(--color-brand-700);
 }
 
+/* "Skip to content" (SHO-152): off screen until it has keyboard focus, then
+   at the top left above everything. Matches apps/web's skip link. */
+.skip-link {
+  position: absolute;
+  inset-inline-start: var(--spacing-4);
+  inset-block-start: var(--spacing-4);
+  z-index: 100;
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-foreground);
+  text-decoration: none;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* The skip link's target takes focus programmatically; it isn't a control, so
+   no ring. */
+#MainContent:focus {
+  outline: none;
+}
+
 /* Page sections that are not the storefront's main browse surfaces still get
    the same measure and vertical rhythm. */
 .page-section {
