@@ -92,4 +92,5 @@ export {
   withValueToggled,
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
+export { WEBP_ACCEPT, sizedImageUrl } from "./image-url";
 export type { ProductFilter } from "./generated/graphql";
