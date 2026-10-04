@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { withoutEmptyFilters } from "@formulate/shopify";
+import { pageVariables, withoutEmptyFilters } from "@formulate/shopify";
 import { notFound, redirect } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CollectionFilters } from "@/components/collection-filters";
+import { Pagination } from "@/components/pagination";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
-import { getCollection } from "@/lib/catalogue";
+import { COLLECTION_PAGE_SIZE, getCollection } from "@/lib/catalogue";
 import { toSearchParams } from "@/lib/search-params";
 import { baseOpenGraph } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription } from "@/lib/structured-data";
@@ -19,16 +20,45 @@ interface PageProps {
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+/** The filter part of a query string (`filter.…`), for the loader. */
+const filterQueryOf = (query: URLSearchParams): string =>
+  new URLSearchParams(
+    [...query].filter(([name]) => name.startsWith("filter.")),
+  ).toString();
+
 /**
- * The canonical is always the bare collection URL. Today there is one page of
- * results (see COLLECTION_PAGE_SIZE), so every variant of this URL (tracking
- * parameters, sort parameters) points back to it. When pagination arrives
- * (SHO-44), each page must be its own canonical, not page 1: pointing page 2
- * at page 1 tells search engines to ignore the products only page 2 lists.
+ * The cursor part of a query string (`after=…` or `before=…`), and nothing
+ * else: what tells one page of a collection from another.
  */
-export const generateMetadata = async ({ params }: PageProps): Promise<Metadata> => {
+const pageQueryOf = (query: URLSearchParams): string => {
+  const variables = pageVariables(query, COLLECTION_PAGE_SIZE);
+  if ("before" in variables)
+    return new URLSearchParams({ before: variables.before }).toString();
+  return variables.after
+    ? new URLSearchParams({ after: variables.after }).toString()
+    : "";
+};
+
+/**
+ * Each page is its own canonical (SHO-44): the bare collection URL for the
+ * first page, plus the cursor for later ones. Pointing page 2 at page 1 would
+ * tell search engines to ignore the products only page 2 lists. Everything
+ * else in the URL (filters, tracking) is left out, so those variants point
+ * back to the unfiltered page.
+ */
+export const generateMetadata = async ({
+  params,
+  searchParams,
+}: PageProps): Promise<Metadata> => {
   const { handle } = await params;
-  const result = await getCollection(handle);
+  const query = toSearchParams(await searchParams);
+  const pageQuery = pageQueryOf(query);
+  const canonical = pageQuery
+    ? `/collections/${handle}?${pageQuery}`
+    : `/collections/${handle}`;
+  // The same arguments as the page, so React's cache serves both from one
+  // request.
+  const result = await getCollection(handle, filterQueryOf(query), pageQuery);
   const collection = result.ok ? result.data.collection : null;
   if (!collection) return {};
 
@@ -39,10 +69,10 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   return {
     title: collection.seo.title ?? collection.title,
     ...(description ? { description } : {}),
-    alternates: { canonical: `/collections/${handle}` },
+    alternates: { canonical },
     openGraph: {
       ...baseOpenGraph,
-      url: `/collections/${handle}`,
+      url: canonical,
       title: collection.title,
       ...(description ? { description } : {}),
     },
@@ -62,10 +92,7 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
   if (tidy)
     redirect(tidy.size ? `/collections/${handle}?${tidy}` : `/collections/${handle}`);
 
-  const filterQuery = new URLSearchParams(
-    [...query].filter(([name]) => name.startsWith("filter.")),
-  ).toString();
-  const result = await getCollection(handle, filterQuery);
+  const result = await getCollection(handle, filterQueryOf(query), pageQueryOf(query));
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
@@ -119,6 +146,12 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
           </li>
         ))}
       </ul>
+
+      <Pagination
+        path={`/collections/${handle}`}
+        params={query}
+        pageInfo={collection.products.pageInfo}
+      />
     </>
   );
 };
