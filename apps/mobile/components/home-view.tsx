@@ -1,10 +1,11 @@
 import { Image } from "expo-image";
 import { Link } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
+import { Text } from "./text";
 
 /** How many featured products the home screen lists before "View all". */
 const FEATURED_COUNT = 4;

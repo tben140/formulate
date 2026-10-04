@@ -2,10 +2,12 @@ import { formatMoney } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, TextInput, View } from "react-native";
 
 import { CollectionFilters } from "../../../components/collection-filters";
 import { useSearch } from "../../../lib/queries";
+import { Text } from "../../../components/text";
+import { fontFor } from "../../../lib/fonts";
 
 /** How long typing must pause before a search runs. */
 const DEBOUNCE_MS = 300;
@@ -46,6 +48,8 @@ const SearchScreen = () => {
         <View className="mb-2 gap-4">
           <View className="flex-row items-center gap-2">
             <TextInput
+              // TextInput doesn't inherit a font either (SHO-144).
+              style={{ fontFamily: fontFor() }}
               value={text}
               onChangeText={setText}
               onSubmitEditing={() => setTerm(text.trim())}
@@ -78,7 +82,7 @@ const SearchScreen = () => {
         </View>
       }
       ListEmptyComponent={
-        <Text className="py-12 text-center text-foreground-muted">
+        <Text className="py-12 text-center text-foreground-muted font-mono">
           {!searching
             ? "Search by product name, format or ingredient."
             : data && !isFetching
@@ -102,7 +106,7 @@ const SearchScreen = () => {
             />
             <View className="flex-1">
               <Text className="text-base font-medium text-foreground">{item.title}</Text>
-              <Text className="mt-1 text-sm text-foreground-muted">
+              <Text className="mt-1 text-sm text-foreground-muted font-mono">
                 {formatMoney(item.priceRange.minVariantPrice)}
               </Text>
             </View>
