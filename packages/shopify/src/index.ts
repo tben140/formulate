@@ -93,4 +93,11 @@ export {
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
 export { WEBP_ACCEPT, sizedImageUrl } from "./image-url";
+export {
+  APP_IDENTIFIERS,
+  APP_LINK_PATHS,
+  SHARED_ROUTES,
+  SURFACE_ONLY_ROUTES,
+  paths,
+} from "./routes";
 export type { ProductFilter } from "./generated/graphql";
