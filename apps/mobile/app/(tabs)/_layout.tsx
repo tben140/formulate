@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 
 import { useCartUi } from "../../components/cart-provider";
 import { useCart } from "../../lib/use-cart";
+import { fontFor } from "../../lib/fonts";
 
 /** brand-600 and ink-500 from packages/tokens: active and inactive tabs. */
 const ACTIVE = "#255deb";
@@ -34,6 +35,8 @@ const TabsLayout = () => {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: ACTIVE,
+        // The face carries the weight (lib/fonts.ts), so the default 500 goes.
+        tabBarLabelStyle: { fontFamily: fontFor("font-medium"), fontWeight: "normal" },
         tabBarInactiveTintColor: INACTIVE,
       }}
     >

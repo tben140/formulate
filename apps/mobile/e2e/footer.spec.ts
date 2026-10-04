@@ -27,7 +27,11 @@ for (const [screen, path] of [
     });
     const signUp = page.getByRole("button", { name: "Sign up" });
 
-    await signUp.scrollIntoViewIfNeeded();
+    // Home re-renders as its sections arrive, which can replace the footer
+    // mid-scroll; retry until it holds still.
+    await expect(async () => {
+      await signUp.scrollIntoViewIfNeeded({ timeout: 2_000 });
+    }).toPass();
     await signUp.tap();
     await expect(page.getByText("Enter your email address.")).toBeVisible();
 

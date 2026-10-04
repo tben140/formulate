@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Keyboard, ScrollView, View } from "react-native";
 
 import { AddToCart } from "../../../../components/add-to-cart";
 import { useCartUi } from "../../../../components/cart-provider";
@@ -13,6 +13,7 @@ import {
 } from "../../../../components/sticky-add-to-cart";
 import { useProduct } from "../../../../lib/queries";
 import { usePurchase, type Product } from "../../../../lib/use-purchase";
+import { Text } from "../../../../components/text";
 
 /** Whether the software keyboard is showing. The "did" events fire on both platforms. */
 const useKeyboardOpen = () => {

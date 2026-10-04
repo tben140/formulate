@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
-import { useState } from "react";
+import { useFonts } from "expo-font";
+import { SplashScreen, Stack } from "expo-router";
+import { useEffect, useState } from "react";
 
 import { CartProvider } from "../components/cart-provider";
 import { CheckoutProvider } from "../lib/checkout";
+import { FONT_FILES } from "../lib/fonts";
 import { initKlaviyo } from "../lib/klaviyo";
 
 import "../global.css";
@@ -17,6 +19,10 @@ import "../global.css";
  * this integration keeps producing. Module scope runs before any render.
  */
 initKlaviyo();
+
+// Hold the splash screen until the fonts are in (below), so text never draws
+// in the system font and then jumps to DM Sans.
+void SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
   // Created in state so the client survives Fast Refresh but is never shared
@@ -32,6 +38,15 @@ const RootLayout = () => {
         },
       }),
   );
+
+  // DM Sans and DM Mono, from the app bundle (SHO-144, lib/fonts.ts). A
+  // failure falls through to the system font rather than a blank app.
+  const [fontsLoaded, fontError] = useFonts(FONT_FILES);
+  const fontsSettled = fontsLoaded || fontError !== null;
+  useEffect(() => {
+    if (fontsSettled) void SplashScreen.hideAsync();
+  }, [fontsSettled]);
+  if (!fontsSettled) return null;
 
   return (
     <QueryClientProvider client={queryClient}>
