@@ -61,8 +61,12 @@ const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
         if (next.cart && line)
           track(EVENTS.addedToCart, addedToCart(next.cart, line, storeDomain));
         // The drawer's heading survives the re-render and announces the new
-        // count, which is also the confirmation a screen reader needs.
-        document.getElementById(CART_DRAWER_TITLE_ID)?.focus();
+        // count, which is also the confirmation a screen reader needs. Made
+        // focusable only now: a tabindex in the markup would make the heading
+        // the first thing <dialog> focuses on opening, not the Close button.
+        const title = document.getElementById(CART_DRAWER_TITLE_ID);
+        title?.setAttribute("tabindex", "-1");
+        title?.focus();
       }
       return next;
     },
