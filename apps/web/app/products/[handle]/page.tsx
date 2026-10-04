@@ -11,6 +11,7 @@ import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
+import { ProductDescription } from "@/components/product-description";
 import { getProduct } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
 import { baseOpenGraph } from "@/lib/site";
@@ -128,9 +129,7 @@ const ProductPage = async ({ params }: PageProps) => {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
 
-          {product.description ? (
-            <p className="mt-4 text-foreground-muted">{product.description}</p>
-          ) : null}
+          <ProductDescription html={product.descriptionHtml} />
 
           {/*
           The price now lives inside the form, because it changes with the

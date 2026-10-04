@@ -101,3 +101,5 @@ export {
   paths,
 } from "./routes";
 export type { ProductFilter } from "./generated/graphql";
+export { descriptionBlocks } from "./description";
+export type { DescriptionBlock } from "./description";
