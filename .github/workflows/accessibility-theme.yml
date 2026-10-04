@@ -1,0 +1,114 @@
+name: Accessibility (theme)
+
+# WCAG 2.2 AA scans of the Liquid theme with axe (SHO-149), the counterpart of
+# web's accessibility.spec.ts. The PR's theme is pushed to the store as a
+# temporary unpublished theme, previewed through ?preview_theme_id, scanned,
+# and deleted. The store's published theme is Shopify's default, not ours, so
+# scanning it would test nothing of this repo.
+
+on:
+  pull_request:
+    paths:
+      - apps/theme/**
+      - .github/workflows/accessibility-theme.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  axe:
+    name: Accessibility (theme)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # The same three secrets as theme Lighthouse. Empty on forks and until
+      # they're added, and the job then skips rather than failing.
+      SHOP_STORE: ${{ secrets.SHOP_STORE }}
+      SHOP_THEME_ACCESS_PASSWORD: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+      SHOP_PASSWORD: ${{ secrets.SHOP_PASSWORD }}
+
+    steps:
+      - name: Skip when store credentials are not configured
+        if: env.SHOP_THEME_ACCESS_PASSWORD == '' || env.SHOP_STORE == '' || env.SHOP_PASSWORD == ''
+        run: echo "::notice::Theme accessibility skipped - SHOP_STORE, SHOP_THEME_ACCESS_PASSWORD and SHOP_PASSWORD secrets are not all set."
+
+      - uses: actions/checkout@v5
+        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+
+      - uses: pnpm/action-setup@v4
+        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+
+      - uses: actions/setup-node@v5
+        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+        run: pnpm install --frozen-lockfile
+
+      # The browser build must match the pinned @playwright/test exactly.
+      - name: Install Chromium
+        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+        run: pnpm --filter @formulate/theme exec playwright install --with-deps chromium
+
+      # SHOP_STORE may be the store's handle or its full domain.
+      - name: Resolve the store domain
+        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+        run: |
+          case "$SHOP_STORE" in
+            *.*) echo "STORE_DOMAIN=$SHOP_STORE" >> "$GITHUB_ENV" ;;
+            *) echo "STORE_DOMAIN=$SHOP_STORE.myshopify.com" >> "$GITHUB_ENV" ;;
+          esac
+
+      # A new unpublished theme per run, named for it, so the delete below can
+      # only ever remove what this run made.
+      - name: Push the PR's theme, unpublished
+        id: push
+        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+        working-directory: apps/theme
+        env:
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+          SHOPIFY_CLI_NO_ANALYTICS: "1"
+        run: |
+          pnpm exec shopify theme push --path . --store "$STORE_DOMAIN" \
+            --unpublished --theme "CI accessibility ${GITHUB_RUN_ID}" --json > "$RUNNER_TEMP/push.json"
+          id=$(jq -r '.theme.id' "$RUNNER_TEMP/push.json")
+          if ! [[ "$id" =~ ^[0-9]+$ ]]; then echo "::error::theme push returned no id"; exit 1; fi
+          echo "theme_id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Run the scans
+        if: steps.push.outputs.theme_id != ''
+        working-directory: apps/theme
+        env:
+          THEME_E2E_STORE: ${{ env.STORE_DOMAIN }}
+          THEME_E2E_PASSWORD: ${{ secrets.SHOP_PASSWORD }}
+          THEME_E2E_THEME_ID: ${{ steps.push.outputs.theme_id }}
+        run: pnpm test:e2e
+
+      - name: Delete the temporary theme
+        if: always() && steps.push.outputs.theme_id != ''
+        working-directory: apps/theme
+        env:
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+          SHOPIFY_CLI_NO_ANALYTICS: "1"
+          THEME_ID: ${{ steps.push.outputs.theme_id }}
+        run: pnpm exec shopify theme delete --store "$STORE_DOMAIN" --theme "$THEME_ID" --force
+
+      # The password is typed in global setup, which isn't traced, so the
+      # reports don't contain it. Traces do carry the storefront session
+      # cookie for this development store; e2e/.auth itself isn't uploaded.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: theme-accessibility-report
+          path: |
+            apps/theme/playwright-report
+            apps/theme/test-results
+          retention-days: 14
