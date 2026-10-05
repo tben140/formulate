@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "node --env-file-if-exists=../../apps/web/.env.local scripts/smoke-test.mjs"
+    "smoke": "node --env-file-if-exists=../../apps/web/.env.local scripts/smoke-test.mjs",
+    "test:coverage": "vitest run --coverage --coverage.reporter=text-summary --coverage.reporter=json-summary --coverage.exclude=codegen.ts --coverage.exclude='src/generated/**' --coverage.exclude=src/index.ts"
   },
   "dependencies": {
     "@graphql-typed-document-node/core": "^3.2.0"
@@ -23,6 +24,7 @@
     "@graphql-codegen/cli": "^7.2.0",
     "@graphql-codegen/client-preset": "^5.1.0",
     "@shopify/hydrogen-react": "^2026.4.3",
+    "@vitest/coverage-v8": "3.2.7",
     "eslint": "^10.8.0",
     "graphql": "^16.11.0",
     "typescript": "~6.0.3",

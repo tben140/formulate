@@ -9,11 +9,13 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.reporter=text-summary --coverage.reporter=json-summary --coverage.exclude=src/index.ts"
   },
   "devDependencies": {
     "@formulate/eslint-config": "workspace:*",
     "@formulate/typescript-config": "workspace:*",
+    "@vitest/coverage-v8": "3.2.7",
     "eslint": "^10.8.0",
     "typescript": "~6.0.3",
     "vitest": "^3.2.7"
