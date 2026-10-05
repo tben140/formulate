@@ -62,7 +62,10 @@ export const AddToCart = ({
                     key={value.name}
                     onPress={() => setSelected(candidate)}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: checked }}
+                    // aria-checked, not accessibilityState.selected: a radio
+                    // is checked, and react-native-web only writes
+                    // aria-checked from the aria- prop, including false.
+                    aria-checked={checked}
                     // Sold-out combinations stay selectable — a shopper who
                     // wants one needs to select it and be told it is gone.
                     accessibilityLabel={
@@ -102,7 +105,7 @@ export const AddToCart = ({
                 key={choice.id || "one-time"}
                 onPress={() => setPlanId(choice.id)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: effectivePlanId === choice.id }}
+                aria-checked={effectivePlanId === choice.id}
                 accessibilityLabel={
                   choice.price
                     ? `${choice.label}, ${formatMoney(choice.price)}`
