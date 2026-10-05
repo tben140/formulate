@@ -139,7 +139,12 @@ belongs behind a Next.js route handler.
 
 ## Setup
 
+You need Node 22 or later and pnpm 11. The repository pins its pnpm version
+(`packageManager` in `package.json`), so `corepack enable` provides the right
+one.
+
 ```bash
+corepack enable
 pnpm install
 ```
 
