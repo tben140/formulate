@@ -62,13 +62,6 @@ test("the drawer returns focus to the header button that opened it", async ({ pa
 });
 
 test("the drawer returns focus to Add to cart that opened it", async ({ page }) => {
-  // Known bug, fixed by PR #37. Remove this line once it merges: Playwright
-  // will report the test as unexpectedly passing until then.
-  test.fail(
-    true,
-    "SHO-134: focus drops to <body>, because the button is disabled mid-add",
-  );
-
   await openProduct(page, "daily-multivitamin");
   const add = page.getByRole("button", { name: "Add to cart", exact: true });
   await add.focus();
@@ -79,8 +72,6 @@ test("the drawer returns focus to Add to cart that opened it", async ({ page }) 
 });
 
 test("option pills show where keyboard focus is", async ({ page }) => {
-  test.fail(true, "SHO-128: fixed by PR #28; remove this line once it merges");
-
   await openProduct(page, "whey-protein");
   const vanilla = page.getByRole("radio", { name: "Vanilla" });
   await tabTo(page, vanilla);
