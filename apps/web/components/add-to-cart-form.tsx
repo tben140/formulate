@@ -15,6 +15,7 @@ import { useActionState, useEffect, useRef, useState, useSyncExternalStore } fro
 import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 
+import { BackInStockForm } from "./back-in-stock-form";
 import { useCartUi } from "./cart-provider";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -117,126 +118,129 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
   const stickyVisible = useOffScreen(primaryButton);
 
   return (
-    <form
-      action={formAction}
-      // The buttons are never natively `disabled` (see below), so the form
-      // refuses here instead: a second submit while one is in flight would add
-      // the item twice, and there's nothing to add when it's unavailable.
-      // React skips the action when onSubmit prevents default.
-      onSubmit={(event) => {
-        if (pending || unavailable) event.preventDefault();
-      }}
-      className="mt-6"
-    >
-      <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
-      <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
+    <>
+      <form
+        action={formAction}
+        // The buttons are never natively `disabled` (see below), so the form
+        // refuses here instead: a second submit while one is in flight would add
+        // the item twice, and there's nothing to add when it's unavailable.
+        // React skips the action when onSubmit prevents default.
+        onSubmit={(event) => {
+          if (pending || unavailable) event.preventDefault();
+        }}
+        className="mt-6"
+      >
+        <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
+        <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
 
-      {product.options.map((option) =>
-        // A single option called "Title" with one value is Shopify's stand-in
-        // for "this product has no options". Rendering it produces a pointless
-        // one-choice radio group on most products.
-        option.optionValues.length <= 1 ? null : (
-          <fieldset key={option.name} className="mb-5">
-            <legend className="mb-2 text-sm font-semibold">{option.name}</legend>
-            <div className="flex flex-wrap gap-2">
-              {option.optionValues.map((value) => {
-                const candidate = withOption(selected, option.name, value.name);
-                const match = findVariantByOptions(product.variants.nodes, candidate);
-                const checked = selected.some(
-                  (o) => o.name === option.name && o.value === value.name,
-                );
+        {product.options.map((option) =>
+          // A single option called "Title" with one value is Shopify's stand-in
+          // for "this product has no options". Rendering it produces a pointless
+          // one-choice radio group on most products.
+          option.optionValues.length <= 1 ? null : (
+            <fieldset key={option.name} className="mb-5">
+              <legend className="mb-2 text-sm font-semibold">{option.name}</legend>
+              <div className="flex flex-wrap gap-2">
+                {option.optionValues.map((value) => {
+                  const candidate = withOption(selected, option.name, value.name);
+                  const match = findVariantByOptions(product.variants.nodes, candidate);
+                  const checked = selected.some(
+                    (o) => o.name === option.name && o.value === value.name,
+                  );
 
-                return (
-                  // The radio is sr-only, so the global :focus-visible outline
-                  // would draw on a clipped 1px box. The label shows it instead,
-                  // matching the theme's .product-form__pill (WCAG 2.4.7).
-                  <label
-                    key={value.name}
-                    className={`cursor-pointer rounded-md border px-3 py-2 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 ${
-                      checked
-                        ? "border-brand-600 bg-brand-50 font-medium"
-                        : "border-border hover:border-foreground-muted"
-                    } ${match && !match.availableForSale ? "text-foreground-muted line-through" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name={`option-${option.name}`}
-                      value={value.name}
-                      checked={checked}
-                      onChange={() => setSelected(candidate)}
-                      className="sr-only"
-                    />
-                    {value.name}
-                    {/*
+                  return (
+                    // The radio is sr-only, so the global :focus-visible outline
+                    // would draw on a clipped 1px box. The label shows it instead,
+                    // matching the theme's .product-form__pill (WCAG 2.4.7).
+                    <label
+                      key={value.name}
+                      className={`cursor-pointer rounded-md border px-3 py-2 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 ${
+                        checked
+                          ? "border-brand-600 bg-brand-50 font-medium"
+                          : "border-border hover:border-foreground-muted"
+                      } ${match && !match.availableForSale ? "text-foreground-muted line-through" : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name={`option-${option.name}`}
+                        value={value.name}
+                        checked={checked}
+                        onChange={() => setSelected(candidate)}
+                        className="sr-only"
+                      />
+                      {value.name}
+                      {/*
                       Sold-out combinations stay selectable. A shopper who wants
                       one needs to be able to select it and be told it is gone —
                       hiding it just makes the product look like it never
                       existed.
                     */}
-                    {match && !match.availableForSale ? (
-                      <span className="sr-only"> (sold out)</span>
-                    ) : null}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        ),
-      )}
+                      {match && !match.availableForSale ? (
+                        <span className="sr-only"> (sold out)</span>
+                      ) : null}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ),
+        )}
 
-      {allocations.length > 0 ? (
-        <fieldset className="mb-5">
-          <legend className="mb-2 text-sm font-semibold">Purchase options</legend>
-          <div className="space-y-2">
-            {[
-              { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
-              ...allocations.map((allocation) => ({
-                id: allocation.sellingPlan.id,
-                label: allocation.sellingPlan.name,
-                price: allocation.priceAdjustments[0]?.price,
-              })),
-            ].map((choice) => (
-              <label
-                key={choice.id || "one-time"}
-                className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${
-                  effectivePlanId === choice.id
-                    ? "border-brand-600 bg-brand-50"
-                    : "border-border hover:border-foreground-muted"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="purchase-option"
-                    value={choice.id}
-                    checked={effectivePlanId === choice.id}
-                    onChange={() => setPlanId(choice.id)}
-                  />
-                  {choice.label}
-                </span>
-                {choice.price ? (
-                  <span className="font-mono text-foreground-muted">
-                    {/*
+        {allocations.length > 0 ? (
+          <fieldset className="mb-5">
+            <legend className="mb-2 text-sm font-semibold">Purchase options</legend>
+            <div className="space-y-2">
+              {[
+                { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
+                ...allocations.map((allocation) => ({
+                  id: allocation.sellingPlan.id,
+                  label: allocation.sellingPlan.name,
+                  price: allocation.priceAdjustments[0]?.price,
+                })),
+              ].map((choice) => (
+                <label
+                  key={choice.id || "one-time"}
+                  className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${
+                    effectivePlanId === choice.id
+                      ? "border-brand-600 bg-brand-50"
+                      : "border-border hover:border-foreground-muted"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="purchase-option"
+                      value={choice.id}
+                      checked={effectivePlanId === choice.id}
+                      onChange={() => setPlanId(choice.id)}
+                    />
+                    {choice.label}
+                  </span>
+                  {choice.price ? (
+                    <span className="font-mono text-foreground-muted">
+                      {/*
                       The leading space is for the accessible name, not the
                       layout — flex handles the visual gap. Without it the
                       label computes as "One-time purchase£24.95", which is
                       what a screen reader would announce.
                     */}
-                    {` ${formatMoney(choice.price)}`}
-                  </span>
-                ) : null}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ) : null}
+                      {` ${formatMoney(choice.price)}`}
+                    </span>
+                  ) : null}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
 
-      {displayPrice ? (
-        // DM Mono ships in 400 and 500 only; semibold would be synthesised.
-        <p className="mb-4 font-mono text-2xl font-medium">{formatMoney(displayPrice)}</p>
-      ) : null}
+        {displayPrice ? (
+          // DM Mono ships in 400 and 500 only; semibold would be synthesised.
+          <p className="mb-4 font-mono text-2xl font-medium">
+            {formatMoney(displayPrice)}
+          </p>
+        ) : null}
 
-      {/*
+        {/*
         ⚠️ `aria-disabled`, never `disabled` (SHO-134). A focused button that
         becomes disabled drops focus to <body>, so the cart drawer, which
         returns focus to whatever had it when it opened, would send a keyboard
@@ -245,54 +249,69 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         revalidates the page, the variant comes back sold out, and the button
         that has focus would turn disabled in the same render.
       */}
-      <button
-        ref={primaryButton}
-        type="submit"
-        aria-disabled={pending || unavailable || undefined}
-        data-unavailable={unavailable || undefined}
-        className="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-surface hover:bg-brand-700 aria-disabled:cursor-wait data-unavailable:cursor-not-allowed data-unavailable:bg-ink-300 data-unavailable:hover:bg-ink-300"
-      >
-        {buttonLabel}
-      </button>
+        <button
+          ref={primaryButton}
+          type="submit"
+          aria-disabled={pending || unavailable || undefined}
+          data-unavailable={unavailable || undefined}
+          className="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-surface hover:bg-brand-700 aria-disabled:cursor-wait data-unavailable:cursor-not-allowed data-unavailable:bg-ink-300 data-unavailable:hover:bg-ink-300"
+        >
+          {buttonLabel}
+        </button>
 
-      {/*
+        {/*
         The drawer opening is a visual event a screen reader does not narrate,
         and errors here are the only ones a shopper can act on — so both are
         announced. `polite` rather than `assertive`: nothing here is urgent
         enough to interrupt.
       */}
-      {/*
+        {/*
         Inside the same form and fed by the same render, so it cannot disagree
         with the controls above: one state, two views of it (SHO-117). Its
         button submits this form, with the same variant and plan.
       */}
-      <StickyAddToCart
-        visible={stickyVisible}
-        title={product.title}
-        variantTitle={variant && variant.title !== "Default Title" ? variant.title : null}
-        planName={chosenAllocation?.sellingPlan.name ?? null}
-        price={displayPrice ? formatMoney(displayPrice) : null}
-        buttonLabel={buttonLabel}
-        unavailable={unavailable}
-        busy={pending}
-        error={state.status === "error" ? (state.message ?? null) : null}
-        returnFocusTo={primaryButton}
-      />
+        <StickyAddToCart
+          visible={stickyVisible}
+          title={product.title}
+          variantTitle={
+            variant && variant.title !== "Default Title" ? variant.title : null
+          }
+          planName={chosenAllocation?.sellingPlan.name ?? null}
+          price={displayPrice ? formatMoney(displayPrice) : null}
+          buttonLabel={buttonLabel}
+          unavailable={unavailable}
+          busy={pending}
+          error={state.status === "error" ? (state.message ?? null) : null}
+          returnFocusTo={primaryButton}
+        />
 
-      <p role="status" aria-live="polite" className="mt-3 text-sm">
-        {state.status === "error" ? (
-          <span className="text-danger">{state.message}</span>
-        ) : state.status === "success" ? (
-          // A message on success means fewer were added than asked for, which
-          // the shopper needs to notice — so it is not styled as a success.
-          state.message ? (
-            <span className="text-foreground">{state.message}</span>
-          ) : (
-            <span className="text-success">Added to your cart.</span>
-          )
-        ) : null}
-      </p>
-    </form>
+        <p role="status" aria-live="polite" className="mt-3 text-sm">
+          {state.status === "error" ? (
+            <span className="text-danger">{state.message}</span>
+          ) : state.status === "success" ? (
+            // A message on success means fewer were added than asked for, which
+            // the shopper needs to notice — so it is not styled as a success.
+            state.message ? (
+              <span className="text-foreground">{state.message}</span>
+            ) : (
+              <span className="text-success">Added to your cart.</span>
+            )
+          ) : null}
+        </p>
+      </form>
+
+      {soldOut && variant ? (
+        <BackInStockForm
+          key={variant.id}
+          variantId={variant.id}
+          itemName={
+            variant.title === "Default Title"
+              ? product.title
+              : `${product.title}, ${variant.title}`
+          }
+        />
+      ) : null}
+    </>
   );
 };
 

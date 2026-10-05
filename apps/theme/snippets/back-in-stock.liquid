@@ -1,0 +1,167 @@
+{% comment %}
+  "Email me when it's back", below the product form (SHO-118), the counterpart
+  of apps/web's <BackInStockForm />. Klaviyo's live "Back in stock" flow sends
+  the email when Shopify restocks the variant.
+
+  Rendered when the product has any sold-out variant, and shown while the
+  selected one is sold out: back-in-stock.js follows the selection through
+  product-form's `product-form:variant-change` event. Outside the add-to-cart
+  form because forms can't nest.
+
+  ⚠️ A one-off alert, not a marketing subscription: no list and no consent,
+  and the hint says so.
+
+  Accepts:
+  - product: the product
+  - variant: the variant selected on load
+{% endcomment %}
+{%- liquid
+  assign any_sold_out = false
+  for v in product.variants
+    unless v.available
+      assign any_sold_out = true
+      break
+    endunless
+  endfor
+
+  if variant.title == 'Default Title'
+    assign item = product.title
+  else
+    assign item = product.title | append: ', ' | append: variant.title
+  endif
+-%}
+{% if settings.klaviyo_public_key != blank and any_sold_out %}
+  <back-in-stock
+    class="back-in-stock"
+    data-public-key="{{ settings.klaviyo_public_key }}"
+    data-variant-id="{{ variant.id }}"
+    data-product-title="{{ product.title | escape }}"
+    data-hint-template="{{ 'back_in_stock.hint' | t: item: '%ITEM%' }}"
+    data-label-pending="{{ 'back_in_stock.pending' | t }}"
+    data-label-success="{{ 'back_in_stock.success' | t }}"
+    data-error-empty="{{ 'newsletter.error_empty' | t }}"
+    data-error-invalid="{{ 'newsletter.error_invalid' | t }}"
+    data-error-unavailable="{{ 'back_in_stock.error_unavailable' | t }}"
+    data-error-failed="{{ 'newsletter.error_failed' | t }}"
+    data-error-network="{{ 'newsletter.error_network' | t }}"
+    {% if variant.available %}hidden{% endif %}
+  >
+    {% comment %} novalidate: the messages are ours, as in the footer form. {% endcomment %}
+    <form class="back-in-stock__form" novalidate>
+      <label class="back-in-stock__label" for="back-in-stock-email">
+        {{ 'back_in_stock.heading' | t }}
+      </label>
+      <p ref="hint" id="back-in-stock-hint" class="back-in-stock__hint">
+        {{ 'back_in_stock.hint' | t: item: item }}
+      </p>
+      <div class="back-in-stock__row">
+        <input
+          ref="input"
+          id="back-in-stock-email"
+          class="back-in-stock__input"
+          type="email"
+          name="email"
+          autocomplete="email"
+          required
+          placeholder="{{ 'newsletter.placeholder' | t }}"
+          aria-describedby="back-in-stock-hint back-in-stock-message"
+        >
+        <button ref="submit" class="back-in-stock__submit" type="submit">
+          {{ 'back_in_stock.submit' | t }}
+        </button>
+      </div>
+      <p
+        ref="message"
+        id="back-in-stock-message"
+        class="back-in-stock__message"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </form>
+  </back-in-stock>
+{% endif %}
+
+{% stylesheet %}
+  /*
+    Matched against apps/web's <BackInStockForm />: a bordered box (border,
+    rounded-md, p-4) under the buy button, with the footer form's controls.
+  */
+  .back-in-stock {
+    display: block;
+    margin-block-start: var(--spacing-4);
+    padding: var(--spacing-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  .back-in-stock[hidden] {
+    display: none;
+  }
+
+  .back-in-stock__label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-foreground);
+  }
+
+  .back-in-stock__hint {
+    margin-block-start: var(--spacing-1);
+    font-size: var(--text-xs);
+    color: var(--color-foreground-muted);
+  }
+
+  .back-in-stock__row {
+    display: flex;
+    gap: var(--spacing-2);
+    margin-block-start: var(--spacing-3);
+  }
+
+  .back-in-stock__input {
+    min-width: 0;
+    flex: 1;
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--text-sm);
+    color: var(--color-foreground);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  .back-in-stock__input:focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+    border-color: var(--color-brand-600);
+  }
+
+  .back-in-stock__submit {
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-surface);
+    background: var(--color-brand-600);
+    border: 0;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .back-in-stock__submit:hover {
+    background: var(--color-brand-700);
+  }
+
+  .back-in-stock__submit:disabled {
+    background: var(--color-ink-300);
+    cursor: not-allowed;
+  }
+
+  .back-in-stock__message {
+    min-height: 1.25rem;
+    margin-block-start: var(--spacing-2);
+    font-size: var(--text-sm);
+    color: var(--color-success);
+  }
+
+  .back-in-stock__message--error {
+    color: var(--color-danger);
+  }
+{% endstylesheet %}
