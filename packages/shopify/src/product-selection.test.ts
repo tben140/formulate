@@ -7,6 +7,11 @@ import {
   purchasableAllocations,
   purchasableSellingPlanGroups,
   withOption,
+  ONE_TIME,
+  displayPrice,
+  effectivePlanId,
+  purchaseOptions,
+  selectionStatus,
 } from "./product-selection";
 
 /**
@@ -249,5 +254,45 @@ describe("purchasableAllocations", () => {
 
   it("returns an empty array for a variant with no allocations", () => {
     expect(purchasableAllocations(GROUPS, [])).toEqual([]);
+  });
+});
+
+describe("purchase options and price (SHO-127)", () => {
+  const monthly = {
+    sellingPlan: { id: "plan-monthly", name: "Delivery every 30 days" },
+    // The first adjustment is the price now; the second applies later.
+    priceAdjustments: [{ price: "27.00" }, { price: "24.00" }],
+  };
+  const variant = { price: "30.00", availableForSale: true };
+
+  it("keeps a plan the variant offers, and falls back to one-time when it doesn't", () => {
+    expect(effectivePlanId([monthly], "plan-monthly")).toBe("plan-monthly");
+    // The shopper chose monthly, then moved to a variant without it.
+    expect(effectivePlanId([], "plan-monthly")).toBe(ONE_TIME);
+    expect(effectivePlanId([monthly], ONE_TIME)).toBe(ONE_TIME);
+  });
+
+  it("prices the selection at the plan's price now, not a later adjustment", () => {
+    expect(displayPrice(variant, [monthly], "plan-monthly")).toBe("27.00");
+    expect(displayPrice(variant, [monthly], ONE_TIME)).toBe("30.00");
+    // A plan missing on the newly selected variant: back to the variant's price.
+    expect(displayPrice(variant, [], "plan-monthly")).toBe("30.00");
+    expect(displayPrice(undefined, [], ONE_TIME)).toBeNull();
+  });
+
+  it("lists one-time first, then each plan at its price now", () => {
+    expect(purchaseOptions(variant, [monthly])).toEqual([
+      { id: ONE_TIME, label: "One-time purchase", price: "30.00" },
+      { id: "plan-monthly", label: "Delivery every 30 days", price: "27.00" },
+    ]);
+    expect(purchaseOptions(undefined, [])).toEqual([
+      { id: ONE_TIME, label: "One-time purchase", price: undefined },
+    ]);
+  });
+
+  it("tells unavailable combinations from sold-out variants", () => {
+    expect(selectionStatus(variant)).toBe("available");
+    expect(selectionStatus({ ...variant, availableForSale: false })).toBe("soldOut");
+    expect(selectionStatus(undefined)).toBe("unavailable");
   });
 });
