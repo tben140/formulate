@@ -33,11 +33,6 @@ test("no WCAG 2.2 AA violations with the cart drawer open", async ({ page }) => 
 });
 
 test("no WCAG 2.2 AA violations on the add-to-cart confirmation", async ({ page }) => {
-  test.fail(
-    true,
-    "SHO-133: success green is 3.30:1; fixed by PR #35, remove once merged",
-  );
-
   await openProduct(page, "daily-multivitamin");
   await addToCart(page);
   await page.keyboard.press("Escape");
