@@ -2,9 +2,8 @@
 /** Internal type. DO NOT USE DIRECTLY. */
 type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
-export type Incremental<T> =
-  T | { [P in keyof T]?: P extends " $fragmentName" | "__typename" ? T[P] : never };
-import type { DocumentTypeDecoration } from "@graphql-typed-document-node/core";
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
 /**
  * A custom key-value pair that stores additional information on a [cart](https://shopify.dev/docs/api/storefront/current/objects/Cart) or [cart line](https://shopify.dev/docs/api/storefront/current/objects/CartLine). Attributes capture additional information like gift messages, special instructions, or custom order details. Learn more about [managing carts with the Storefront API](https://shopify.dev/docs/storefronts/headless/building-with-the-storefront-api/cart/manage).
  *
@@ -146,121 +145,121 @@ export type CartDeliveryPreferenceInput = {
  */
 export type CartErrorCode =
   /** The specified address field contains emojis. */
-  | "ADDRESS_FIELD_CONTAINS_EMOJIS"
+  | 'ADDRESS_FIELD_CONTAINS_EMOJIS'
   /** The specified address field contains HTML tags. */
-  | "ADDRESS_FIELD_CONTAINS_HTML_TAGS"
+  | 'ADDRESS_FIELD_CONTAINS_HTML_TAGS'
   /** The specified address field contains a URL. */
-  | "ADDRESS_FIELD_CONTAINS_URL"
+  | 'ADDRESS_FIELD_CONTAINS_URL'
   /** The specified address field does not match the expected pattern. */
-  | "ADDRESS_FIELD_DOES_NOT_MATCH_EXPECTED_PATTERN"
+  | 'ADDRESS_FIELD_DOES_NOT_MATCH_EXPECTED_PATTERN'
   /** The specified address field is required. */
-  | "ADDRESS_FIELD_IS_REQUIRED"
+  | 'ADDRESS_FIELD_IS_REQUIRED'
   /** The specified address field is too long. */
-  | "ADDRESS_FIELD_IS_TOO_LONG"
+  | 'ADDRESS_FIELD_IS_TOO_LONG'
   /** Bundles and addons cannot be mixed. */
-  | "BUNDLES_AND_ADDONS_CANNOT_BE_MIXED"
+  | 'BUNDLES_AND_ADDONS_CANNOT_BE_MIXED'
   /** Buyer cannot purchase for company location. */
-  | "BUYER_CANNOT_PURCHASE_FOR_COMPANY_LOCATION"
+  | 'BUYER_CANNOT_PURCHASE_FOR_COMPANY_LOCATION'
   /** The cart is too large to save. */
-  | "CART_TOO_LARGE"
+  | 'CART_TOO_LARGE'
   /** The specified gift card recipient is invalid. */
-  | "GIFT_CARD_RECIPIENT_INVALID"
+  | 'GIFT_CARD_RECIPIENT_INVALID'
   /** The input value is invalid. */
-  | "INVALID"
+  | 'INVALID'
   /** Company location not found or not allowed. */
-  | "INVALID_COMPANY_LOCATION"
+  | 'INVALID_COMPANY_LOCATION'
   /** The delivery address was not found. */
-  | "INVALID_DELIVERY_ADDRESS_ID"
+  | 'INVALID_DELIVERY_ADDRESS_ID'
   /** Delivery group was not found in cart. */
-  | "INVALID_DELIVERY_GROUP"
+  | 'INVALID_DELIVERY_GROUP'
   /** Delivery option was not valid. */
-  | "INVALID_DELIVERY_OPTION"
+  | 'INVALID_DELIVERY_OPTION'
   /** The quantity must be a multiple of the specified increment. */
-  | "INVALID_INCREMENT"
+  | 'INVALID_INCREMENT'
   /** Merchandise line was not found in cart. */
-  | "INVALID_MERCHANDISE_LINE"
+  | 'INVALID_MERCHANDISE_LINE'
   /** The metafields were not valid. */
-  | "INVALID_METAFIELDS"
+  | 'INVALID_METAFIELDS'
   /** The payment wasn't valid. */
-  | "INVALID_PAYMENT"
+  | 'INVALID_PAYMENT'
   /** The payment is invalid. Deferred payment is required. */
-  | "INVALID_PAYMENT_DEFERRED_PAYMENT_REQUIRED"
+  | 'INVALID_PAYMENT_DEFERRED_PAYMENT_REQUIRED'
   /** Cannot update payment on an empty cart */
-  | "INVALID_PAYMENT_EMPTY_CART"
+  | 'INVALID_PAYMENT_EMPTY_CART'
   /** The given zip code is invalid for the provided country. */
-  | "INVALID_ZIP_CODE_FOR_COUNTRY"
+  | 'INVALID_ZIP_CODE_FOR_COUNTRY'
   /** The given zip code is invalid for the provided province. */
-  | "INVALID_ZIP_CODE_FOR_PROVINCE"
+  | 'INVALID_ZIP_CODE_FOR_PROVINCE'
   /** The input value should be less than the maximum value allowed. */
-  | "LESS_THAN"
+  | 'LESS_THAN'
   /** The quantity must be below the specified maximum for the item. */
-  | "MAXIMUM_EXCEEDED"
+  | 'MAXIMUM_EXCEEDED'
   /** An error occurred while processing cart transformations. */
-  | "MERCHANDISE_LINE_TRANSFORMERS_RUN_ERROR"
+  | 'MERCHANDISE_LINE_TRANSFORMERS_RUN_ERROR'
   /** Item cannot be purchased as configured. */
-  | "MERCHANDISE_NOT_APPLICABLE"
+  | 'MERCHANDISE_NOT_APPLICABLE'
   /** The quantity must be above the specified minimum for the item. */
-  | "MINIMUM_NOT_MET"
+  | 'MINIMUM_NOT_MET'
   /** The customer access token is required when setting a company location. */
-  | "MISSING_CUSTOMER_ACCESS_TOKEN"
+  | 'MISSING_CUSTOMER_ACCESS_TOKEN'
   /** Missing discount code. */
-  | "MISSING_DISCOUNT_CODE"
+  | 'MISSING_DISCOUNT_CODE'
   /** Missing note. */
-  | "MISSING_NOTE"
+  | 'MISSING_NOTE'
   /** The note length must be below the specified maximum. */
-  | "NOTE_TOO_LONG"
+  | 'NOTE_TOO_LONG'
   /** Only one delivery address can be selected. */
-  | "ONLY_ONE_DELIVERY_ADDRESS_CAN_BE_SELECTED"
+  | 'ONLY_ONE_DELIVERY_ADDRESS_CAN_BE_SELECTED'
   /** Cannot reference existing parent lines by variant_id. */
-  | "PARENT_LINE_INVALID_REFERENCE"
+  | 'PARENT_LINE_INVALID_REFERENCE'
   /** Parent line nesting is too deep or circular. */
-  | "PARENT_LINE_NESTING_TOO_DEEP"
+  | 'PARENT_LINE_NESTING_TOO_DEEP'
   /** Parent line not found. */
-  | "PARENT_LINE_NOT_FOUND"
+  | 'PARENT_LINE_NOT_FOUND'
   /** Nested cartlines are blocked due to an incompatibility. */
-  | "PARENT_LINE_OPERATION_BLOCKED"
+  | 'PARENT_LINE_OPERATION_BLOCKED'
   /** Credit card has expired. */
-  | "PAYMENTS_CREDIT_CARD_BASE_EXPIRED"
+  | 'PAYMENTS_CREDIT_CARD_BASE_EXPIRED'
   /** Credit card gateway is not supported. */
-  | "PAYMENTS_CREDIT_CARD_BASE_GATEWAY_NOT_SUPPORTED"
+  | 'PAYMENTS_CREDIT_CARD_BASE_GATEWAY_NOT_SUPPORTED'
   /** Credit card error. */
-  | "PAYMENTS_CREDIT_CARD_GENERIC"
+  | 'PAYMENTS_CREDIT_CARD_GENERIC'
   /** Credit card month is invalid. */
-  | "PAYMENTS_CREDIT_CARD_MONTH_INCLUSION"
+  | 'PAYMENTS_CREDIT_CARD_MONTH_INCLUSION'
   /** Credit card number is invalid. */
-  | "PAYMENTS_CREDIT_CARD_NUMBER_INVALID"
+  | 'PAYMENTS_CREDIT_CARD_NUMBER_INVALID'
   /** Credit card number format is invalid. */
-  | "PAYMENTS_CREDIT_CARD_NUMBER_INVALID_FORMAT"
+  | 'PAYMENTS_CREDIT_CARD_NUMBER_INVALID_FORMAT'
   /** Credit card verification value is blank. */
-  | "PAYMENTS_CREDIT_CARD_VERIFICATION_VALUE_BLANK"
+  | 'PAYMENTS_CREDIT_CARD_VERIFICATION_VALUE_BLANK'
   /** Credit card verification value is invalid for card type. */
-  | "PAYMENTS_CREDIT_CARD_VERIFICATION_VALUE_INVALID_FOR_CARD_TYPE"
+  | 'PAYMENTS_CREDIT_CARD_VERIFICATION_VALUE_INVALID_FOR_CARD_TYPE'
   /** Credit card has expired. */
-  | "PAYMENTS_CREDIT_CARD_YEAR_EXPIRED"
+  | 'PAYMENTS_CREDIT_CARD_YEAR_EXPIRED'
   /** Credit card expiry year is invalid. */
-  | "PAYMENTS_CREDIT_CARD_YEAR_INVALID_EXPIRY_YEAR"
+  | 'PAYMENTS_CREDIT_CARD_YEAR_INVALID_EXPIRY_YEAR'
   /** The payment method is not applicable. */
-  | "PAYMENT_METHOD_NOT_APPLICABLE"
+  | 'PAYMENT_METHOD_NOT_APPLICABLE'
   /** The payment method is not supported. */
-  | "PAYMENT_METHOD_NOT_SUPPORTED"
+  | 'PAYMENT_METHOD_NOT_SUPPORTED'
   /** The delivery group is in a pending state. */
-  | "PENDING_DELIVERY_GROUPS"
+  | 'PENDING_DELIVERY_GROUPS'
   /** The given province cannot be found. */
-  | "PROVINCE_NOT_FOUND"
+  | 'PROVINCE_NOT_FOUND'
   /** Selling plan is not applicable. */
-  | "SELLING_PLAN_NOT_APPLICABLE"
+  | 'SELLING_PLAN_NOT_APPLICABLE'
   /** An error occurred while saving the cart. */
-  | "SERVICE_UNAVAILABLE"
+  | 'SERVICE_UNAVAILABLE'
   /** Too many delivery addresses on Cart. */
-  | "TOO_MANY_DELIVERY_ADDRESSES"
+  | 'TOO_MANY_DELIVERY_ADDRESSES'
   /** A general error occurred during address validation. */
-  | "UNSPECIFIED_ADDRESS_ERROR"
+  | 'UNSPECIFIED_ADDRESS_ERROR'
   /** Validation failed. */
-  | "VALIDATION_CUSTOM"
+  | 'VALIDATION_CUSTOM'
   /** Variant can only be purchased with a selling plan. */
-  | "VARIANT_REQUIRES_SELLING_PLAN"
+  | 'VARIANT_REQUIRES_SELLING_PLAN'
   /** The given zip code is unsupported. */
-  | "ZIP_CODE_NOT_SUPPORTED";
+  | 'ZIP_CODE_NOT_SUPPORTED';
 
 /**
  * The input fields for creating a [`Cart`](https://shopify.dev/docs/api/storefront/current/objects/Cart). Used by the [`cartCreate`](https://shopify.dev/docs/api/storefront/current/mutations/cartCreate) mutation.
@@ -424,39 +423,39 @@ export type CartSelectableAddressInput = {
 /** The code for the cart warning. */
 export type CartWarningCode =
   /** The discount code cannot be honored. */
-  | "DISCOUNT_CODE_NOT_HONOURED"
+  | 'DISCOUNT_CODE_NOT_HONOURED'
   /** The discount is currently inactive. */
-  | "DISCOUNT_CURRENTLY_INACTIVE"
+  | 'DISCOUNT_CURRENTLY_INACTIVE'
   /** The customer is not eligible for this discount. */
-  | "DISCOUNT_CUSTOMER_NOT_ELIGIBLE"
+  | 'DISCOUNT_CUSTOMER_NOT_ELIGIBLE'
   /** The customer's discount usage limit has been reached. */
-  | "DISCOUNT_CUSTOMER_USAGE_LIMIT_REACHED"
+  | 'DISCOUNT_CUSTOMER_USAGE_LIMIT_REACHED'
   /** An eligible customer is missing for this discount. */
-  | "DISCOUNT_ELIGIBLE_CUSTOMER_MISSING"
+  | 'DISCOUNT_ELIGIBLE_CUSTOMER_MISSING'
   /** The purchase type is incompatible with this discount. */
-  | "DISCOUNT_INCOMPATIBLE_PURCHASE_TYPE"
+  | 'DISCOUNT_INCOMPATIBLE_PURCHASE_TYPE'
   /** The discount was not found. */
-  | "DISCOUNT_NOT_FOUND"
+  | 'DISCOUNT_NOT_FOUND'
   /** There are no entitled line items for this discount. */
-  | "DISCOUNT_NO_ENTITLED_LINE_ITEMS"
+  | 'DISCOUNT_NO_ENTITLED_LINE_ITEMS'
   /** There are no entitled shipping lines for this discount. */
-  | "DISCOUNT_NO_ENTITLED_SHIPPING_LINES"
+  | 'DISCOUNT_NO_ENTITLED_SHIPPING_LINES'
   /** The purchase is not in range for this discount. */
-  | "DISCOUNT_PURCHASE_NOT_IN_RANGE"
+  | 'DISCOUNT_PURCHASE_NOT_IN_RANGE'
   /** The quantity is not in range for this discount. */
-  | "DISCOUNT_QUANTITY_NOT_IN_RANGE"
+  | 'DISCOUNT_QUANTITY_NOT_IN_RANGE'
   /** The discount usage limit has been reached. */
-  | "DISCOUNT_USAGE_LIMIT_REACHED"
+  | 'DISCOUNT_USAGE_LIMIT_REACHED'
   /** A delivery address with the same details already exists on this cart. */
-  | "DUPLICATE_DELIVERY_ADDRESS"
+  | 'DUPLICATE_DELIVERY_ADDRESS'
   /** The merchandise does not have enough stock. */
-  | "MERCHANDISE_NOT_ENOUGH_STOCK"
+  | 'MERCHANDISE_NOT_ENOUGH_STOCK'
   /** The merchandise is out of stock. */
-  | "MERCHANDISE_OUT_OF_STOCK"
+  | 'MERCHANDISE_OUT_OF_STOCK'
   /** Only one-time purchase is available for B2B orders. */
-  | "MERCHANDISE_SELLING_PLAN_NOT_APPLICABLE_ON_COMPANY_LOCATION"
+  | 'MERCHANDISE_SELLING_PLAN_NOT_APPLICABLE_ON_COMPANY_LOCATION'
   /** Gift cards are not available as a payment method. */
-  | "PAYMENTS_GIFT_CARDS_UNAVAILABLE";
+  | 'PAYMENTS_GIFT_CARDS_UNAVAILABLE';
 
 /**
  * A filter used to view a subset of products in a collection matching a specific category value.
@@ -476,495 +475,495 @@ export type CategoryFilter = {
  */
 export type CountryCode =
   /** Ascension Island. */
-  | "AC"
+  | 'AC'
   /** Andorra. */
-  | "AD"
+  | 'AD'
   /** United Arab Emirates. */
-  | "AE"
+  | 'AE'
   /** Afghanistan. */
-  | "AF"
+  | 'AF'
   /** Antigua & Barbuda. */
-  | "AG"
+  | 'AG'
   /** Anguilla. */
-  | "AI"
+  | 'AI'
   /** Albania. */
-  | "AL"
+  | 'AL'
   /** Armenia. */
-  | "AM"
+  | 'AM'
   /** Netherlands Antilles. */
-  | "AN"
+  | 'AN'
   /** Angola. */
-  | "AO"
+  | 'AO'
   /** Argentina. */
-  | "AR"
+  | 'AR'
   /** Austria. */
-  | "AT"
+  | 'AT'
   /** Australia. */
-  | "AU"
+  | 'AU'
   /** Aruba. */
-  | "AW"
+  | 'AW'
   /** Åland Islands. */
-  | "AX"
+  | 'AX'
   /** Azerbaijan. */
-  | "AZ"
+  | 'AZ'
   /** Bosnia & Herzegovina. */
-  | "BA"
+  | 'BA'
   /** Barbados. */
-  | "BB"
+  | 'BB'
   /** Bangladesh. */
-  | "BD"
+  | 'BD'
   /** Belgium. */
-  | "BE"
+  | 'BE'
   /** Burkina Faso. */
-  | "BF"
+  | 'BF'
   /** Bulgaria. */
-  | "BG"
+  | 'BG'
   /** Bahrain. */
-  | "BH"
+  | 'BH'
   /** Burundi. */
-  | "BI"
+  | 'BI'
   /** Benin. */
-  | "BJ"
+  | 'BJ'
   /** St. Barthélemy. */
-  | "BL"
+  | 'BL'
   /** Bermuda. */
-  | "BM"
+  | 'BM'
   /** Brunei. */
-  | "BN"
+  | 'BN'
   /** Bolivia. */
-  | "BO"
+  | 'BO'
   /** Caribbean Netherlands. */
-  | "BQ"
+  | 'BQ'
   /** Brazil. */
-  | "BR"
+  | 'BR'
   /** Bahamas. */
-  | "BS"
+  | 'BS'
   /** Bhutan. */
-  | "BT"
+  | 'BT'
   /** Bouvet Island. */
-  | "BV"
+  | 'BV'
   /** Botswana. */
-  | "BW"
+  | 'BW'
   /** Belarus. */
-  | "BY"
+  | 'BY'
   /** Belize. */
-  | "BZ"
+  | 'BZ'
   /** Canada. */
-  | "CA"
+  | 'CA'
   /** Cocos (Keeling) Islands. */
-  | "CC"
+  | 'CC'
   /** Congo - Kinshasa. */
-  | "CD"
+  | 'CD'
   /** Central African Republic. */
-  | "CF"
+  | 'CF'
   /** Congo - Brazzaville. */
-  | "CG"
+  | 'CG'
   /** Switzerland. */
-  | "CH"
+  | 'CH'
   /** Côte d’Ivoire. */
-  | "CI"
+  | 'CI'
   /** Cook Islands. */
-  | "CK"
+  | 'CK'
   /** Chile. */
-  | "CL"
+  | 'CL'
   /** Cameroon. */
-  | "CM"
+  | 'CM'
   /** China. */
-  | "CN"
+  | 'CN'
   /** Colombia. */
-  | "CO"
+  | 'CO'
   /** Costa Rica. */
-  | "CR"
+  | 'CR'
   /** Cuba. */
-  | "CU"
+  | 'CU'
   /** Cape Verde. */
-  | "CV"
+  | 'CV'
   /** Curaçao. */
-  | "CW"
+  | 'CW'
   /** Christmas Island. */
-  | "CX"
+  | 'CX'
   /** Cyprus. */
-  | "CY"
+  | 'CY'
   /** Czechia. */
-  | "CZ"
+  | 'CZ'
   /** Germany. */
-  | "DE"
+  | 'DE'
   /** Djibouti. */
-  | "DJ"
+  | 'DJ'
   /** Denmark. */
-  | "DK"
+  | 'DK'
   /** Dominica. */
-  | "DM"
+  | 'DM'
   /** Dominican Republic. */
-  | "DO"
+  | 'DO'
   /** Algeria. */
-  | "DZ"
+  | 'DZ'
   /** Ecuador. */
-  | "EC"
+  | 'EC'
   /** Estonia. */
-  | "EE"
+  | 'EE'
   /** Egypt. */
-  | "EG"
+  | 'EG'
   /** Western Sahara. */
-  | "EH"
+  | 'EH'
   /** Eritrea. */
-  | "ER"
+  | 'ER'
   /** Spain. */
-  | "ES"
+  | 'ES'
   /** Ethiopia. */
-  | "ET"
+  | 'ET'
   /** Finland. */
-  | "FI"
+  | 'FI'
   /** Fiji. */
-  | "FJ"
+  | 'FJ'
   /** Falkland Islands. */
-  | "FK"
+  | 'FK'
   /** Faroe Islands. */
-  | "FO"
+  | 'FO'
   /** France. */
-  | "FR"
+  | 'FR'
   /** Gabon. */
-  | "GA"
+  | 'GA'
   /** United Kingdom. */
-  | "GB"
+  | 'GB'
   /** Grenada. */
-  | "GD"
+  | 'GD'
   /** Georgia. */
-  | "GE"
+  | 'GE'
   /** French Guiana. */
-  | "GF"
+  | 'GF'
   /** Guernsey. */
-  | "GG"
+  | 'GG'
   /** Ghana. */
-  | "GH"
+  | 'GH'
   /** Gibraltar. */
-  | "GI"
+  | 'GI'
   /** Greenland. */
-  | "GL"
+  | 'GL'
   /** Gambia. */
-  | "GM"
+  | 'GM'
   /** Guinea. */
-  | "GN"
+  | 'GN'
   /** Guadeloupe. */
-  | "GP"
+  | 'GP'
   /** Equatorial Guinea. */
-  | "GQ"
+  | 'GQ'
   /** Greece. */
-  | "GR"
+  | 'GR'
   /** South Georgia & South Sandwich Islands. */
-  | "GS"
+  | 'GS'
   /** Guatemala. */
-  | "GT"
+  | 'GT'
   /** Guinea-Bissau. */
-  | "GW"
+  | 'GW'
   /** Guyana. */
-  | "GY"
+  | 'GY'
   /** Hong Kong SAR. */
-  | "HK"
+  | 'HK'
   /** Heard & McDonald Islands. */
-  | "HM"
+  | 'HM'
   /** Honduras. */
-  | "HN"
+  | 'HN'
   /** Croatia. */
-  | "HR"
+  | 'HR'
   /** Haiti. */
-  | "HT"
+  | 'HT'
   /** Hungary. */
-  | "HU"
+  | 'HU'
   /** Indonesia. */
-  | "ID"
+  | 'ID'
   /** Ireland. */
-  | "IE"
+  | 'IE'
   /** Israel. */
-  | "IL"
+  | 'IL'
   /** Isle of Man. */
-  | "IM"
+  | 'IM'
   /** India. */
-  | "IN"
+  | 'IN'
   /** British Indian Ocean Territory. */
-  | "IO"
+  | 'IO'
   /** Iraq. */
-  | "IQ"
+  | 'IQ'
   /** Iran. */
-  | "IR"
+  | 'IR'
   /** Iceland. */
-  | "IS"
+  | 'IS'
   /** Italy. */
-  | "IT"
+  | 'IT'
   /** Jersey. */
-  | "JE"
+  | 'JE'
   /** Jamaica. */
-  | "JM"
+  | 'JM'
   /** Jordan. */
-  | "JO"
+  | 'JO'
   /** Japan. */
-  | "JP"
+  | 'JP'
   /** Kenya. */
-  | "KE"
+  | 'KE'
   /** Kyrgyzstan. */
-  | "KG"
+  | 'KG'
   /** Cambodia. */
-  | "KH"
+  | 'KH'
   /** Kiribati. */
-  | "KI"
+  | 'KI'
   /** Comoros. */
-  | "KM"
+  | 'KM'
   /** St. Kitts & Nevis. */
-  | "KN"
+  | 'KN'
   /** North Korea. */
-  | "KP"
+  | 'KP'
   /** South Korea. */
-  | "KR"
+  | 'KR'
   /** Kuwait. */
-  | "KW"
+  | 'KW'
   /** Cayman Islands. */
-  | "KY"
+  | 'KY'
   /** Kazakhstan. */
-  | "KZ"
+  | 'KZ'
   /** Laos. */
-  | "LA"
+  | 'LA'
   /** Lebanon. */
-  | "LB"
+  | 'LB'
   /** St. Lucia. */
-  | "LC"
+  | 'LC'
   /** Liechtenstein. */
-  | "LI"
+  | 'LI'
   /** Sri Lanka. */
-  | "LK"
+  | 'LK'
   /** Liberia. */
-  | "LR"
+  | 'LR'
   /** Lesotho. */
-  | "LS"
+  | 'LS'
   /** Lithuania. */
-  | "LT"
+  | 'LT'
   /** Luxembourg. */
-  | "LU"
+  | 'LU'
   /** Latvia. */
-  | "LV"
+  | 'LV'
   /** Libya. */
-  | "LY"
+  | 'LY'
   /** Morocco. */
-  | "MA"
+  | 'MA'
   /** Monaco. */
-  | "MC"
+  | 'MC'
   /** Moldova. */
-  | "MD"
+  | 'MD'
   /** Montenegro. */
-  | "ME"
+  | 'ME'
   /** St. Martin. */
-  | "MF"
+  | 'MF'
   /** Madagascar. */
-  | "MG"
+  | 'MG'
   /** North Macedonia. */
-  | "MK"
+  | 'MK'
   /** Mali. */
-  | "ML"
+  | 'ML'
   /** Myanmar (Burma). */
-  | "MM"
+  | 'MM'
   /** Mongolia. */
-  | "MN"
+  | 'MN'
   /** Macao SAR. */
-  | "MO"
+  | 'MO'
   /** Martinique. */
-  | "MQ"
+  | 'MQ'
   /** Mauritania. */
-  | "MR"
+  | 'MR'
   /** Montserrat. */
-  | "MS"
+  | 'MS'
   /** Malta. */
-  | "MT"
+  | 'MT'
   /** Mauritius. */
-  | "MU"
+  | 'MU'
   /** Maldives. */
-  | "MV"
+  | 'MV'
   /** Malawi. */
-  | "MW"
+  | 'MW'
   /** Mexico. */
-  | "MX"
+  | 'MX'
   /** Malaysia. */
-  | "MY"
+  | 'MY'
   /** Mozambique. */
-  | "MZ"
+  | 'MZ'
   /** Namibia. */
-  | "NA"
+  | 'NA'
   /** New Caledonia. */
-  | "NC"
+  | 'NC'
   /** Niger. */
-  | "NE"
+  | 'NE'
   /** Norfolk Island. */
-  | "NF"
+  | 'NF'
   /** Nigeria. */
-  | "NG"
+  | 'NG'
   /** Nicaragua. */
-  | "NI"
+  | 'NI'
   /** Netherlands. */
-  | "NL"
+  | 'NL'
   /** Norway. */
-  | "NO"
+  | 'NO'
   /** Nepal. */
-  | "NP"
+  | 'NP'
   /** Nauru. */
-  | "NR"
+  | 'NR'
   /** Niue. */
-  | "NU"
+  | 'NU'
   /** New Zealand. */
-  | "NZ"
+  | 'NZ'
   /** Oman. */
-  | "OM"
+  | 'OM'
   /** Panama. */
-  | "PA"
+  | 'PA'
   /** Peru. */
-  | "PE"
+  | 'PE'
   /** French Polynesia. */
-  | "PF"
+  | 'PF'
   /** Papua New Guinea. */
-  | "PG"
+  | 'PG'
   /** Philippines. */
-  | "PH"
+  | 'PH'
   /** Pakistan. */
-  | "PK"
+  | 'PK'
   /** Poland. */
-  | "PL"
+  | 'PL'
   /** St. Pierre & Miquelon. */
-  | "PM"
+  | 'PM'
   /** Pitcairn Islands. */
-  | "PN"
+  | 'PN'
   /** Palestinian Territories. */
-  | "PS"
+  | 'PS'
   /** Portugal. */
-  | "PT"
+  | 'PT'
   /** Paraguay. */
-  | "PY"
+  | 'PY'
   /** Qatar. */
-  | "QA"
+  | 'QA'
   /** Réunion. */
-  | "RE"
+  | 'RE'
   /** Romania. */
-  | "RO"
+  | 'RO'
   /** Serbia. */
-  | "RS"
+  | 'RS'
   /** Russia. */
-  | "RU"
+  | 'RU'
   /** Rwanda. */
-  | "RW"
+  | 'RW'
   /** Saudi Arabia. */
-  | "SA"
+  | 'SA'
   /** Solomon Islands. */
-  | "SB"
+  | 'SB'
   /** Seychelles. */
-  | "SC"
+  | 'SC'
   /** Sudan. */
-  | "SD"
+  | 'SD'
   /** Sweden. */
-  | "SE"
+  | 'SE'
   /** Singapore. */
-  | "SG"
+  | 'SG'
   /** St. Helena. */
-  | "SH"
+  | 'SH'
   /** Slovenia. */
-  | "SI"
+  | 'SI'
   /** Svalbard & Jan Mayen. */
-  | "SJ"
+  | 'SJ'
   /** Slovakia. */
-  | "SK"
+  | 'SK'
   /** Sierra Leone. */
-  | "SL"
+  | 'SL'
   /** San Marino. */
-  | "SM"
+  | 'SM'
   /** Senegal. */
-  | "SN"
+  | 'SN'
   /** Somalia. */
-  | "SO"
+  | 'SO'
   /** Suriname. */
-  | "SR"
+  | 'SR'
   /** South Sudan. */
-  | "SS"
+  | 'SS'
   /** São Tomé & Príncipe. */
-  | "ST"
+  | 'ST'
   /** El Salvador. */
-  | "SV"
+  | 'SV'
   /** Sint Maarten. */
-  | "SX"
+  | 'SX'
   /** Syria. */
-  | "SY"
+  | 'SY'
   /** Eswatini. */
-  | "SZ"
+  | 'SZ'
   /** Tristan da Cunha. */
-  | "TA"
+  | 'TA'
   /** Turks & Caicos Islands. */
-  | "TC"
+  | 'TC'
   /** Chad. */
-  | "TD"
+  | 'TD'
   /** French Southern Territories. */
-  | "TF"
+  | 'TF'
   /** Togo. */
-  | "TG"
+  | 'TG'
   /** Thailand. */
-  | "TH"
+  | 'TH'
   /** Tajikistan. */
-  | "TJ"
+  | 'TJ'
   /** Tokelau. */
-  | "TK"
+  | 'TK'
   /** Timor-Leste. */
-  | "TL"
+  | 'TL'
   /** Turkmenistan. */
-  | "TM"
+  | 'TM'
   /** Tunisia. */
-  | "TN"
+  | 'TN'
   /** Tonga. */
-  | "TO"
+  | 'TO'
   /** Türkiye. */
-  | "TR"
+  | 'TR'
   /** Trinidad & Tobago. */
-  | "TT"
+  | 'TT'
   /** Tuvalu. */
-  | "TV"
+  | 'TV'
   /** Taiwan. */
-  | "TW"
+  | 'TW'
   /** Tanzania. */
-  | "TZ"
+  | 'TZ'
   /** Ukraine. */
-  | "UA"
+  | 'UA'
   /** Uganda. */
-  | "UG"
+  | 'UG'
   /** U.S. Outlying Islands. */
-  | "UM"
+  | 'UM'
   /** United States. */
-  | "US"
+  | 'US'
   /** Uruguay. */
-  | "UY"
+  | 'UY'
   /** Uzbekistan. */
-  | "UZ"
+  | 'UZ'
   /** Vatican City. */
-  | "VA"
+  | 'VA'
   /** St. Vincent & Grenadines. */
-  | "VC"
+  | 'VC'
   /** Venezuela. */
-  | "VE"
+  | 'VE'
   /** British Virgin Islands. */
-  | "VG"
+  | 'VG'
   /** Vietnam. */
-  | "VN"
+  | 'VN'
   /** Vanuatu. */
-  | "VU"
+  | 'VU'
   /** Wallis & Futuna. */
-  | "WF"
+  | 'WF'
   /** Samoa. */
-  | "WS"
+  | 'WS'
   /** Kosovo. */
-  | "XK"
+  | 'XK'
   /** Yemen. */
-  | "YE"
+  | 'YE'
   /** Mayotte. */
-  | "YT"
+  | 'YT'
   /** South Africa. */
-  | "ZA"
+  | 'ZA'
   /** Zambia. */
-  | "ZM"
+  | 'ZM'
   /** Zimbabwe. */
-  | "ZW"
+  | 'ZW'
   /** Unknown Region. */
-  | "ZZ";
+  | 'ZZ';
 
 /**
  * The three-letter currency codes that represent the world currencies used in
@@ -974,327 +973,327 @@ export type CountryCode =
  */
 export type CurrencyCode =
   /** United Arab Emirates Dirham (AED). */
-  | "AED"
+  | 'AED'
   /** Afghan Afghani (AFN). */
-  | "AFN"
+  | 'AFN'
   /** Albanian Lek (ALL). */
-  | "ALL"
+  | 'ALL'
   /** Armenian Dram (AMD). */
-  | "AMD"
+  | 'AMD'
   /** Netherlands Antillean Guilder. */
-  | "ANG"
+  | 'ANG'
   /** Angolan Kwanza (AOA). */
-  | "AOA"
+  | 'AOA'
   /** Argentine Pesos (ARS). */
-  | "ARS"
+  | 'ARS'
   /** Australian Dollars (AUD). */
-  | "AUD"
+  | 'AUD'
   /** Aruban Florin (AWG). */
-  | "AWG"
+  | 'AWG'
   /** Azerbaijani Manat (AZN). */
-  | "AZN"
+  | 'AZN'
   /** Bosnia and Herzegovina Convertible Mark (BAM). */
-  | "BAM"
+  | 'BAM'
   /** Barbadian Dollar (BBD). */
-  | "BBD"
+  | 'BBD'
   /** Bangladesh Taka (BDT). */
-  | "BDT"
+  | 'BDT'
   /** Bulgarian Lev (BGN). */
-  | "BGN"
+  | 'BGN'
   /** Bahraini Dinar (BHD). */
-  | "BHD"
+  | 'BHD'
   /** Burundian Franc (BIF). */
-  | "BIF"
+  | 'BIF'
   /** Bermudian Dollar (BMD). */
-  | "BMD"
+  | 'BMD'
   /** Brunei Dollar (BND). */
-  | "BND"
+  | 'BND'
   /** Bolivian Boliviano (BOB). */
-  | "BOB"
+  | 'BOB'
   /** Brazilian Real (BRL). */
-  | "BRL"
+  | 'BRL'
   /** Bahamian Dollar (BSD). */
-  | "BSD"
+  | 'BSD'
   /** Bhutanese Ngultrum (BTN). */
-  | "BTN"
+  | 'BTN'
   /** Botswana Pula (BWP). */
-  | "BWP"
+  | 'BWP'
   /** Belarusian Ruble (BYN). */
-  | "BYN"
+  | 'BYN'
   /** Belarusian Ruble (BYR). */
-  | "BYR"
+  | 'BYR'
   /** Belize Dollar (BZD). */
-  | "BZD"
+  | 'BZD'
   /** Canadian Dollars (CAD). */
-  | "CAD"
+  | 'CAD'
   /** Congolese franc (CDF). */
-  | "CDF"
+  | 'CDF'
   /** Swiss Francs (CHF). */
-  | "CHF"
+  | 'CHF'
   /** Chilean Peso (CLP). */
-  | "CLP"
+  | 'CLP'
   /** Chinese Yuan Renminbi (CNY). */
-  | "CNY"
+  | 'CNY'
   /** Colombian Peso (COP). */
-  | "COP"
+  | 'COP'
   /** Costa Rican Colones (CRC). */
-  | "CRC"
+  | 'CRC'
   /** Cape Verdean escudo (CVE). */
-  | "CVE"
+  | 'CVE'
   /** Czech Koruny (CZK). */
-  | "CZK"
+  | 'CZK'
   /** Djiboutian Franc (DJF). */
-  | "DJF"
+  | 'DJF'
   /** Danish Kroner (DKK). */
-  | "DKK"
+  | 'DKK'
   /** Dominican Peso (DOP). */
-  | "DOP"
+  | 'DOP'
   /** Algerian Dinar (DZD). */
-  | "DZD"
+  | 'DZD'
   /** Egyptian Pound (EGP). */
-  | "EGP"
+  | 'EGP'
   /** Eritrean Nakfa (ERN). */
-  | "ERN"
+  | 'ERN'
   /** Ethiopian Birr (ETB). */
-  | "ETB"
+  | 'ETB'
   /** Euro (EUR). */
-  | "EUR"
+  | 'EUR'
   /** Fijian Dollars (FJD). */
-  | "FJD"
+  | 'FJD'
   /** Falkland Islands Pounds (FKP). */
-  | "FKP"
+  | 'FKP'
   /** United Kingdom Pounds (GBP). */
-  | "GBP"
+  | 'GBP'
   /** Georgian Lari (GEL). */
-  | "GEL"
+  | 'GEL'
   /** Ghanaian Cedi (GHS). */
-  | "GHS"
+  | 'GHS'
   /** Gibraltar Pounds (GIP). */
-  | "GIP"
+  | 'GIP'
   /** Gambian Dalasi (GMD). */
-  | "GMD"
+  | 'GMD'
   /** Guinean Franc (GNF). */
-  | "GNF"
+  | 'GNF'
   /** Guatemalan Quetzal (GTQ). */
-  | "GTQ"
+  | 'GTQ'
   /** Guyanese Dollar (GYD). */
-  | "GYD"
+  | 'GYD'
   /** Hong Kong Dollars (HKD). */
-  | "HKD"
+  | 'HKD'
   /** Honduran Lempira (HNL). */
-  | "HNL"
+  | 'HNL'
   /** Croatian Kuna (HRK). */
-  | "HRK"
+  | 'HRK'
   /** Haitian Gourde (HTG). */
-  | "HTG"
+  | 'HTG'
   /** Hungarian Forint (HUF). */
-  | "HUF"
+  | 'HUF'
   /** Indonesian Rupiah (IDR). */
-  | "IDR"
+  | 'IDR'
   /** Israeli New Shekel (NIS). */
-  | "ILS"
+  | 'ILS'
   /** Indian Rupees (INR). */
-  | "INR"
+  | 'INR'
   /** Iraqi Dinar (IQD). */
-  | "IQD"
+  | 'IQD'
   /** Iranian Rial (IRR). */
-  | "IRR"
+  | 'IRR'
   /** Icelandic Kronur (ISK). */
-  | "ISK"
+  | 'ISK'
   /** Jersey Pound. */
-  | "JEP"
+  | 'JEP'
   /** Jamaican Dollars (JMD). */
-  | "JMD"
+  | 'JMD'
   /** Jordanian Dinar (JOD). */
-  | "JOD"
+  | 'JOD'
   /** Japanese Yen (JPY). */
-  | "JPY"
+  | 'JPY'
   /** Kenyan Shilling (KES). */
-  | "KES"
+  | 'KES'
   /** Kyrgyzstani Som (KGS). */
-  | "KGS"
+  | 'KGS'
   /** Cambodian Riel. */
-  | "KHR"
+  | 'KHR'
   /** Kiribati Dollar (KID). */
-  | "KID"
+  | 'KID'
   /** Comorian Franc (KMF). */
-  | "KMF"
+  | 'KMF'
   /** South Korean Won (KRW). */
-  | "KRW"
+  | 'KRW'
   /** Kuwaiti Dinar (KWD). */
-  | "KWD"
+  | 'KWD'
   /** Cayman Dollars (KYD). */
-  | "KYD"
+  | 'KYD'
   /** Kazakhstani Tenge (KZT). */
-  | "KZT"
+  | 'KZT'
   /** Laotian Kip (LAK). */
-  | "LAK"
+  | 'LAK'
   /** Lebanese Pounds (LBP). */
-  | "LBP"
+  | 'LBP'
   /** Sri Lankan Rupees (LKR). */
-  | "LKR"
+  | 'LKR'
   /** Liberian Dollar (LRD). */
-  | "LRD"
+  | 'LRD'
   /** Lesotho Loti (LSL). */
-  | "LSL"
+  | 'LSL'
   /** Lithuanian Litai (LTL). */
-  | "LTL"
+  | 'LTL'
   /** Latvian Lati (LVL). */
-  | "LVL"
+  | 'LVL'
   /** Libyan Dinar (LYD). */
-  | "LYD"
+  | 'LYD'
   /** Moroccan Dirham. */
-  | "MAD"
+  | 'MAD'
   /** Moldovan Leu (MDL). */
-  | "MDL"
+  | 'MDL'
   /** Malagasy Ariary (MGA). */
-  | "MGA"
+  | 'MGA'
   /** Macedonia Denar (MKD). */
-  | "MKD"
+  | 'MKD'
   /** Burmese Kyat (MMK). */
-  | "MMK"
+  | 'MMK'
   /** Mongolian Tugrik. */
-  | "MNT"
+  | 'MNT'
   /** Macanese Pataca (MOP). */
-  | "MOP"
+  | 'MOP'
   /** Mauritanian Ouguiya (MRU). */
-  | "MRU"
+  | 'MRU'
   /** Mauritian Rupee (MUR). */
-  | "MUR"
+  | 'MUR'
   /** Maldivian Rufiyaa (MVR). */
-  | "MVR"
+  | 'MVR'
   /** Malawian Kwacha (MWK). */
-  | "MWK"
+  | 'MWK'
   /** Mexican Pesos (MXN). */
-  | "MXN"
+  | 'MXN'
   /** Malaysian Ringgits (MYR). */
-  | "MYR"
+  | 'MYR'
   /** Mozambican Metical. */
-  | "MZN"
+  | 'MZN'
   /** Namibian Dollar. */
-  | "NAD"
+  | 'NAD'
   /** Nigerian Naira (NGN). */
-  | "NGN"
+  | 'NGN'
   /** Nicaraguan Córdoba (NIO). */
-  | "NIO"
+  | 'NIO'
   /** Norwegian Kroner (NOK). */
-  | "NOK"
+  | 'NOK'
   /** Nepalese Rupee (NPR). */
-  | "NPR"
+  | 'NPR'
   /** New Zealand Dollars (NZD). */
-  | "NZD"
+  | 'NZD'
   /** Omani Rial (OMR). */
-  | "OMR"
+  | 'OMR'
   /** Panamian Balboa (PAB). */
-  | "PAB"
+  | 'PAB'
   /** Peruvian Nuevo Sol (PEN). */
-  | "PEN"
+  | 'PEN'
   /** Papua New Guinean Kina (PGK). */
-  | "PGK"
+  | 'PGK'
   /** Philippine Peso (PHP). */
-  | "PHP"
+  | 'PHP'
   /** Pakistani Rupee (PKR). */
-  | "PKR"
+  | 'PKR'
   /** Polish Zlotych (PLN). */
-  | "PLN"
+  | 'PLN'
   /** Paraguayan Guarani (PYG). */
-  | "PYG"
+  | 'PYG'
   /** Qatari Rial (QAR). */
-  | "QAR"
+  | 'QAR'
   /** Romanian Lei (RON). */
-  | "RON"
+  | 'RON'
   /** Serbian dinar (RSD). */
-  | "RSD"
+  | 'RSD'
   /** Russian Rubles (RUB). */
-  | "RUB"
+  | 'RUB'
   /** Rwandan Franc (RWF). */
-  | "RWF"
+  | 'RWF'
   /** Saudi Riyal (SAR). */
-  | "SAR"
+  | 'SAR'
   /** Solomon Islands Dollar (SBD). */
-  | "SBD"
+  | 'SBD'
   /** Seychellois Rupee (SCR). */
-  | "SCR"
+  | 'SCR'
   /** Sudanese Pound (SDG). */
-  | "SDG"
+  | 'SDG'
   /** Swedish Kronor (SEK). */
-  | "SEK"
+  | 'SEK'
   /** Singapore Dollars (SGD). */
-  | "SGD"
+  | 'SGD'
   /** Saint Helena Pounds (SHP). */
-  | "SHP"
+  | 'SHP'
   /** Sierra Leonean Leone (SLL). */
-  | "SLL"
+  | 'SLL'
   /** Somali Shilling (SOS). */
-  | "SOS"
+  | 'SOS'
   /** Surinamese Dollar (SRD). */
-  | "SRD"
+  | 'SRD'
   /** South Sudanese Pound (SSP). */
-  | "SSP"
+  | 'SSP'
   /** Sao Tome And Principe Dobra (STD). */
-  | "STD"
+  | 'STD'
   /** Sao Tome And Principe Dobra (STN). */
-  | "STN"
+  | 'STN'
   /** Syrian Pound (SYP). */
-  | "SYP"
+  | 'SYP'
   /** Swazi Lilangeni (SZL). */
-  | "SZL"
+  | 'SZL'
   /** Thai baht (THB). */
-  | "THB"
+  | 'THB'
   /** Tajikistani Somoni (TJS). */
-  | "TJS"
+  | 'TJS'
   /** Turkmenistani Manat (TMT). */
-  | "TMT"
+  | 'TMT'
   /** Tunisian Dinar (TND). */
-  | "TND"
+  | 'TND'
   /** Tongan Pa'anga (TOP). */
-  | "TOP"
+  | 'TOP'
   /** Turkish Lira (TRY). */
-  | "TRY"
+  | 'TRY'
   /** Trinidad and Tobago Dollars (TTD). */
-  | "TTD"
+  | 'TTD'
   /** Taiwan Dollars (TWD). */
-  | "TWD"
+  | 'TWD'
   /** Tanzanian Shilling (TZS). */
-  | "TZS"
+  | 'TZS'
   /** Ukrainian Hryvnia (UAH). */
-  | "UAH"
+  | 'UAH'
   /** Ugandan Shilling (UGX). */
-  | "UGX"
+  | 'UGX'
   /** United States Dollars (USD). */
-  | "USD"
+  | 'USD'
   /** Uruguayan Pesos (UYU). */
-  | "UYU"
+  | 'UYU'
   /** Uzbekistan som (UZS). */
-  | "UZS"
+  | 'UZS'
   /** Venezuelan Bolivares (VED). */
-  | "VED"
+  | 'VED'
   /** Venezuelan Bolivares (VEF). */
-  | "VEF"
+  | 'VEF'
   /** Venezuelan Bolivares Soberanos (VES). */
-  | "VES"
+  | 'VES'
   /** Vietnamese đồng (VND). */
-  | "VND"
+  | 'VND'
   /** Vanuatu Vatu (VUV). */
-  | "VUV"
+  | 'VUV'
   /** Samoan Tala (WST). */
-  | "WST"
+  | 'WST'
   /** Central African CFA Franc (XAF). */
-  | "XAF"
+  | 'XAF'
   /** East Caribbean Dollar (XCD). */
-  | "XCD"
+  | 'XCD'
   /** West African CFA franc (XOF). */
-  | "XOF"
+  | 'XOF'
   /** CFP Franc (XPF). */
-  | "XPF"
+  | 'XPF'
   /** Unrecognized currency. */
-  | "XXX"
+  | 'XXX'
   /** Yemeni Rial (YER). */
-  | "YER"
+  | 'YER'
   /** South African Rand (ZAR). */
-  | "ZAR"
+  | 'ZAR'
   /** Zambian Kwacha (ZMW). */
-  | "ZMW";
+  | 'ZMW';
 
 /**
  * Controls how delivery addresses are validated during cart operations. The default validation checks only the country code, while strict validation verifies all address fields against Shopify's checkout rules and rejects invalid addresses.
@@ -1304,13 +1303,13 @@ export type CurrencyCode =
  */
 export type DeliveryAddressValidationStrategy =
   /** Only the country code is validated. */
-  | "COUNTRY_CODE_ONLY"
+  | 'COUNTRY_CODE_ONLY'
   /**
    * Strict validation is performed, i.e. all fields in the address are validated
    * according to Shopify's checkout rules. If the address fails validation, the cart will not be updated.
    *
    */
-  | "STRICT";
+  | 'STRICT';
 
 /**
  * The type of data that the filter group represents.
@@ -1321,40 +1320,40 @@ export type DeliveryAddressValidationStrategy =
  */
 export type FilterType =
   /** A boolean value. */
-  | "BOOLEAN"
+  | 'BOOLEAN'
   /** A list of selectable values. */
-  | "LIST"
+  | 'LIST'
   /** A range of prices. */
-  | "PRICE_RANGE";
+  | 'PRICE_RANGE';
 
 /** A menu item type. */
 export type MenuItemType =
   /** An article link. */
-  | "ARTICLE"
+  | 'ARTICLE'
   /** A blog link. */
-  | "BLOG"
+  | 'BLOG'
   /** A catalog link. */
-  | "CATALOG"
+  | 'CATALOG'
   /** A collection link. */
-  | "COLLECTION"
+  | 'COLLECTION'
   /** A collection link. */
-  | "COLLECTIONS"
+  | 'COLLECTIONS'
   /** A customer account page link. */
-  | "CUSTOMER_ACCOUNT_PAGE"
+  | 'CUSTOMER_ACCOUNT_PAGE'
   /** A frontpage link. */
-  | "FRONTPAGE"
+  | 'FRONTPAGE'
   /** An http link. */
-  | "HTTP"
+  | 'HTTP'
   /** A metaobject page link. */
-  | "METAOBJECT"
+  | 'METAOBJECT'
   /** A page link. */
-  | "PAGE"
+  | 'PAGE'
   /** A product link. */
-  | "PRODUCT"
+  | 'PRODUCT'
   /** A search link. */
-  | "SEARCH"
+  | 'SEARCH'
   /** A shop policy link. */
-  | "SHOP_POLICY";
+  | 'SHOP_POLICY';
 
 /**
  * Filters products in a collection by matching a specific metafield value. Used by the [`ProductFilter`](https://shopify.dev/docs/api/storefront/current/input-objects/ProductFilter) input's `productMetafield` and `variantMetafield` fields.
@@ -1374,11 +1373,11 @@ export type MetafieldFilter = {
 /** The preferred delivery methods such as shipping, local pickup or through pickup points. */
 export type PreferenceDeliveryMethodType =
   /** A delivery method used to let buyers collect purchases at designated locations like parcel lockers. */
-  | "PICKUP_POINT"
+  | 'PICKUP_POINT'
   /** A delivery method used to let buyers receive items directly from a specific location within an area. */
-  | "PICK_UP"
+  | 'PICK_UP'
   /** A delivery method used to send items directly to a buyer’s specified address. */
-  | "SHIPPING";
+  | 'SHIPPING';
 
 /**
  * A price range for filtering products in a collection. Used by the [`ProductFilter`](https://shopify.dev/docs/api/storefront/current/input-objects/ProductFilter) input's [`price`](https://shopify.dev/docs/api/storefront/current/input-objects/ProductFilter#fields-price) field.
@@ -1452,784 +1451,168 @@ export type CollectionProductsQueryVariables = Exact<{
   filters?: Array<ProductFilter> | ProductFilter | null | undefined;
 }>;
 
-export type CollectionProductsQuery = {
-  collection: {
-    id: string;
-    title: string;
-    description: string;
-    seo: { title: string | null; description: string | null };
-    products: {
-      pageInfo: {
-        hasNextPage: boolean;
-        hasPreviousPage: boolean;
-        startCursor: string | null;
-        endCursor: string | null;
-      };
-      filters: Array<{
-        id: string;
-        label: string;
-        type: FilterType;
-        values: Array<{ id: string; label: string; count: number; input: unknown }>;
-      }>;
-      nodes: Array<{
-        id: string;
-        handle: string;
-        title: string;
-        featuredImage: {
-          url: string;
-          altText: string | null;
-          width: number | null;
-          height: number | null;
-        } | null;
-        priceRange: { minVariantPrice: { amount: string; currencyCode: CurrencyCode } };
-      }>;
-    };
-  } | null;
-};
+
+export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { pageInfo: { hasNextPage: boolean, hasPreviousPage: boolean, startCursor: string | null, endCursor: string | null }, filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } } | null };
 
 export type ProductByHandleQueryVariables = Exact<{
   handle: string;
 }>;
 
-export type ProductByHandleQuery = {
-  product: {
-    id: string;
-    handle: string;
-    title: string;
-    description: string;
-    vendor: string;
-    seo: { title: string | null; description: string | null };
-    breadcrumbCollections: { nodes: Array<{ handle: string; title: string }> };
-    collections: { nodes: Array<{ title: string }> };
-    compareAtPriceRange: {
-      minVariantPrice: { amount: string; currencyCode: CurrencyCode };
-    };
-    featuredImage: {
-      url: string;
-      altText: string | null;
-      width: number | null;
-      height: number | null;
-    } | null;
-    images: {
-      nodes: Array<{
-        url: string;
-        altText: string | null;
-        width: number | null;
-        height: number | null;
-      }>;
-    };
-    priceRange: { minVariantPrice: { amount: string; currencyCode: CurrencyCode } };
-    options: Array<{ name: string; optionValues: Array<{ name: string }> }>;
-    sellingPlanGroups: {
-      nodes: Array<{
-        name: string;
-        appName: string | null;
-        options: Array<{ name: string; values: Array<string> }>;
-        sellingPlans: { nodes: Array<{ id: string }> };
-      }>;
-    };
-    variants: {
-      nodes: Array<{
-        id: string;
-        title: string;
-        availableForSale: boolean;
-        sku: string | null;
-        selectedOptions: Array<{ name: string; value: string }>;
-        price: { amount: string; currencyCode: CurrencyCode };
-        compareAtPrice: { amount: string; currencyCode: CurrencyCode } | null;
-        image: {
-          url: string;
-          altText: string | null;
-          width: number | null;
-          height: number | null;
-        } | null;
-        sellingPlanAllocations: {
-          nodes: Array<{
-            sellingPlan: { id: string; name: string };
-            priceAdjustments: Array<{
-              price: { amount: string; currencyCode: CurrencyCode };
-            }>;
-          }>;
-        };
-      }>;
-    };
-  } | null;
-};
 
-export type FilterFieldsFragment = {
-  id: string;
-  label: string;
-  type: FilterType;
-  values: Array<{ id: string; label: string; count: number; input: unknown }>;
-};
+export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, vendor: string, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
 
-export type ProductCardFieldsFragment = {
-  id: string;
-  handle: string;
-  title: string;
-  featuredImage: {
-    url: string;
-    altText: string | null;
-    width: number | null;
-    height: number | null;
-  } | null;
-  priceRange: { minVariantPrice: { amount: string; currencyCode: CurrencyCode } };
-};
+export type FilterFieldsFragment = { id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> };
+
+export type ProductCardFieldsFragment = { id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } };
 
 export type SearchProductsQueryVariables = Exact<{
   query: string;
-  first: number;
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  last?: number | null | undefined;
+  before?: string | null | undefined;
   filters?: Array<ProductFilter> | ProductFilter | null | undefined;
 }>;
 
-export type SearchProductsQuery = {
-  search: {
-    totalCount: number;
-    productFilters: Array<{
-      id: string;
-      label: string;
-      type: FilterType;
-      values: Array<{ id: string; label: string; count: number; input: unknown }>;
-    }>;
-    nodes: Array<
-      | { __typename: "Article" }
-      | { __typename: "Page" }
-      | {
-          __typename: "Product";
-          id: string;
-          handle: string;
-          title: string;
-          featuredImage: {
-            url: string;
-            altText: string | null;
-            width: number | null;
-            height: number | null;
-          } | null;
-          priceRange: { minVariantPrice: { amount: string; currencyCode: CurrencyCode } };
-        }
-    >;
-  };
-};
+
+export type SearchProductsQuery = { search: { totalCount: number, pageInfo: { hasNextPage: boolean, hasPreviousPage: boolean, startCursor: string | null, endCursor: string | null }, productFilters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<
+      | { __typename: 'Article' }
+      | { __typename: 'Page' }
+      | { __typename: 'Product', id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }
+    > } };
 
 export type PredictiveSearchQueryVariables = Exact<{
   query: string;
   limit: number;
 }>;
 
-export type PredictiveSearchQuery = {
-  predictiveSearch: {
-    queries: Array<{ text: string; styledText: string }>;
-    products: Array<{
-      id: string;
-      handle: string;
-      title: string;
-      featuredImage: {
-        url: string;
-        altText: string | null;
-        width: number | null;
-        height: number | null;
-      } | null;
-      priceRange: { minVariantPrice: { amount: string; currencyCode: CurrencyCode } };
-    }>;
-    collections: Array<{ id: string; handle: string; title: string }>;
-  } | null;
-};
+
+export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text: string, styledText: string }>, products: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }>, collections: Array<{ id: string, handle: string, title: string }> } | null };
 
 export type ComplementaryProductsQueryVariables = Exact<{
   productId: string | number;
 }>;
 
-export type ComplementaryProductsQuery = {
-  productRecommendations: Array<{
-    id: string;
-    handle: string;
-    title: string;
-    featuredImage: {
-      url: string;
-      altText: string | null;
-      width: number | null;
-      height: number | null;
-    } | null;
-    priceRange: { minVariantPrice: { amount: string; currencyCode: CurrencyCode } };
-  }> | null;
-};
+
+export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> | null };
 
 export type NavMenuQueryVariables = Exact<{
   handle: string;
 }>;
 
-export type NavMenuQuery = {
-  menu: {
-    items: Array<{ id: string; title: string; type: MenuItemType; url: string | null }>;
-  } | null;
-};
 
-export type CollectionCardsQueryVariables = Exact<{ [key: string]: never }>;
+export type NavMenuQuery = { menu: { items: Array<{ id: string, title: string, type: MenuItemType, url: string | null }> } | null };
 
-export type CollectionCardsQuery = {
-  collections: {
-    nodes: Array<{
-      id: string;
-      handle: string;
-      title: string;
-      description: string;
-      image: {
-        url: string;
-        altText: string | null;
-        width: number | null;
-        height: number | null;
-      } | null;
-      products: {
-        nodes: Array<{
-          featuredImage: {
-            url: string;
-            altText: string | null;
-            width: number | null;
-            height: number | null;
-          } | null;
-        }>;
-      };
-    }>;
-  };
-};
+export type CollectionCardsQueryVariables = Exact<{ [key: string]: never; }>;
 
-export type ShopPoliciesQueryVariables = Exact<{ [key: string]: never }>;
 
-export type ShopPoliciesQuery = {
-  shop: {
-    privacyPolicy: { title: string; handle: string; body: string } | null;
-    refundPolicy: { title: string; handle: string; body: string } | null;
-    termsOfService: { title: string; handle: string; body: string } | null;
-    shippingPolicy: { title: string; handle: string; body: string } | null;
-    subscriptionPolicy: { title: string; handle: string; body: string } | null;
-  };
-};
+export type CollectionCardsQuery = { collections: { nodes: Array<{ id: string, handle: string, title: string, description: string, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, products: { nodes: Array<{ featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null }> } }> } };
 
-export type ShopNameQueryVariables = Exact<{ [key: string]: never }>;
+export type ShopPoliciesQueryVariables = Exact<{ [key: string]: never; }>;
 
-export type ShopNameQuery = { shop: { name: string; primaryDomain: { url: string } } };
 
-export type CartFieldsFragment = {
-  id: string;
-  checkoutUrl: string;
-  totalQuantity: number;
-  buyerIdentity: { countryCode: CountryCode | null };
-  cost: {
-    subtotalAmount: { amount: string; currencyCode: CurrencyCode };
-    totalAmount: { amount: string; currencyCode: CurrencyCode };
-    totalTaxAmount: { amount: string; currencyCode: CurrencyCode } | null;
-  };
-  lines: {
-    nodes: Array<
-      | {
-          id: string;
-          quantity: number;
-          cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-          merchandise: {
-            id: string;
-            title: string;
-            availableForSale: boolean;
-            image: {
-              url: string;
-              altText: string | null;
-              width: number | null;
-              height: number | null;
-            } | null;
-            price: { amount: string; currencyCode: CurrencyCode };
-            selectedOptions: Array<{ name: string; value: string }>;
-            product: { id: string; handle: string; title: string };
-          };
-          sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-        }
-      | {
-          id: string;
-          quantity: number;
-          cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-          merchandise: {
-            id: string;
-            title: string;
-            availableForSale: boolean;
-            image: {
-              url: string;
-              altText: string | null;
-              width: number | null;
-              height: number | null;
-            } | null;
-            price: { amount: string; currencyCode: CurrencyCode };
-            selectedOptions: Array<{ name: string; value: string }>;
-            product: { id: string; handle: string; title: string };
-          };
-          sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-        }
-    >;
-  };
-};
+export type ShopPoliciesQuery = { shop: { privacyPolicy: { title: string, handle: string, body: string } | null, refundPolicy: { title: string, handle: string, body: string } | null, termsOfService: { title: string, handle: string, body: string } | null, shippingPolicy: { title: string, handle: string, body: string } | null, subscriptionPolicy: { title: string, handle: string, body: string } | null } };
+
+export type ShopNameQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ShopNameQuery = { shop: { name: string, primaryDomain: { url: string } } };
+
+export type CartFieldsFragment = { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+      | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+      | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+    > } };
 
 export type CartQueryVariables = Exact<{
   id: string | number;
 }>;
 
-export type CartQuery = {
-  cart: {
-    id: string;
-    checkoutUrl: string;
-    totalQuantity: number;
-    buyerIdentity: { countryCode: CountryCode | null };
-    cost: {
-      subtotalAmount: { amount: string; currencyCode: CurrencyCode };
-      totalAmount: { amount: string; currencyCode: CurrencyCode };
-      totalTaxAmount: { amount: string; currencyCode: CurrencyCode } | null;
-    };
-    lines: {
-      nodes: Array<
-        | {
-            id: string;
-            quantity: number;
-            cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-            merchandise: {
-              id: string;
-              title: string;
-              availableForSale: boolean;
-              image: {
-                url: string;
-                altText: string | null;
-                width: number | null;
-                height: number | null;
-              } | null;
-              price: { amount: string; currencyCode: CurrencyCode };
-              selectedOptions: Array<{ name: string; value: string }>;
-              product: { id: string; handle: string; title: string };
-            };
-            sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-          }
-        | {
-            id: string;
-            quantity: number;
-            cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-            merchandise: {
-              id: string;
-              title: string;
-              availableForSale: boolean;
-              image: {
-                url: string;
-                altText: string | null;
-                width: number | null;
-                height: number | null;
-              } | null;
-              price: { amount: string; currencyCode: CurrencyCode };
-              selectedOptions: Array<{ name: string; value: string }>;
-              product: { id: string; handle: string; title: string };
-            };
-            sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-          }
-      >;
-    };
-  } | null;
-};
+
+export type CartQuery = { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+        | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+        | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+      > } } | null };
 
 export type CartCreateMutationVariables = Exact<{
   input: CartInput;
 }>;
 
-export type CartCreateMutation = {
-  cartCreate: {
-    cart: {
-      id: string;
-      checkoutUrl: string;
-      totalQuantity: number;
-      buyerIdentity: { countryCode: CountryCode | null };
-      cost: {
-        subtotalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalTaxAmount: { amount: string; currencyCode: CurrencyCode } | null;
-      };
-      lines: {
-        nodes: Array<
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-        >;
-      };
-    } | null;
-    userErrors: Array<{
-      field: Array<string> | null;
-      message: string;
-      code: CartErrorCode | null;
-    }>;
-    warnings: Array<{ code: CartWarningCode; message: string; target: string }>;
-  } | null;
-};
+
+export type CartCreateMutation = { cartCreate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }>, warnings: Array<{ code: CartWarningCode, message: string, target: string }> } | null };
 
 export type CartLinesAddMutationVariables = Exact<{
   cartId: string | number;
   lines: Array<CartLineInput> | CartLineInput;
 }>;
 
-export type CartLinesAddMutation = {
-  cartLinesAdd: {
-    cart: {
-      id: string;
-      checkoutUrl: string;
-      totalQuantity: number;
-      buyerIdentity: { countryCode: CountryCode | null };
-      cost: {
-        subtotalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalTaxAmount: { amount: string; currencyCode: CurrencyCode } | null;
-      };
-      lines: {
-        nodes: Array<
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-        >;
-      };
-    } | null;
-    userErrors: Array<{
-      field: Array<string> | null;
-      message: string;
-      code: CartErrorCode | null;
-    }>;
-    warnings: Array<{ code: CartWarningCode; message: string; target: string }>;
-  } | null;
-};
+
+export type CartLinesAddMutation = { cartLinesAdd: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }>, warnings: Array<{ code: CartWarningCode, message: string, target: string }> } | null };
 
 export type CartLinesUpdateMutationVariables = Exact<{
   cartId: string | number;
   lines: Array<CartLineUpdateInput> | CartLineUpdateInput;
 }>;
 
-export type CartLinesUpdateMutation = {
-  cartLinesUpdate: {
-    cart: {
-      id: string;
-      checkoutUrl: string;
-      totalQuantity: number;
-      buyerIdentity: { countryCode: CountryCode | null };
-      cost: {
-        subtotalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalTaxAmount: { amount: string; currencyCode: CurrencyCode } | null;
-      };
-      lines: {
-        nodes: Array<
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-        >;
-      };
-    } | null;
-    userErrors: Array<{
-      field: Array<string> | null;
-      message: string;
-      code: CartErrorCode | null;
-    }>;
-  } | null;
-};
+
+export type CartLinesUpdateMutation = { cartLinesUpdate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }> } | null };
 
 export type CartLinesRemoveMutationVariables = Exact<{
   cartId: string | number;
   lineIds: Array<string | number> | string | number;
 }>;
 
-export type CartLinesRemoveMutation = {
-  cartLinesRemove: {
-    cart: {
-      id: string;
-      checkoutUrl: string;
-      totalQuantity: number;
-      buyerIdentity: { countryCode: CountryCode | null };
-      cost: {
-        subtotalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalTaxAmount: { amount: string; currencyCode: CurrencyCode } | null;
-      };
-      lines: {
-        nodes: Array<
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-        >;
-      };
-    } | null;
-    userErrors: Array<{
-      field: Array<string> | null;
-      message: string;
-      code: CartErrorCode | null;
-    }>;
-  } | null;
-};
+
+export type CartLinesRemoveMutation = { cartLinesRemove: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }> } | null };
 
 export type CartBuyerIdentityUpdateMutationVariables = Exact<{
   cartId: string | number;
   buyerIdentity: CartBuyerIdentityInput;
 }>;
 
-export type CartBuyerIdentityUpdateMutation = {
-  cartBuyerIdentityUpdate: {
-    cart: {
-      id: string;
-      checkoutUrl: string;
-      totalQuantity: number;
-      buyerIdentity: { countryCode: CountryCode | null };
-      cost: {
-        subtotalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalAmount: { amount: string; currencyCode: CurrencyCode };
-        totalTaxAmount: { amount: string; currencyCode: CurrencyCode } | null;
-      };
-      lines: {
-        nodes: Array<
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-          | {
-              id: string;
-              quantity: number;
-              cost: { totalAmount: { amount: string; currencyCode: CurrencyCode } };
-              merchandise: {
-                id: string;
-                title: string;
-                availableForSale: boolean;
-                image: {
-                  url: string;
-                  altText: string | null;
-                  width: number | null;
-                  height: number | null;
-                } | null;
-                price: { amount: string; currencyCode: CurrencyCode };
-                selectedOptions: Array<{ name: string; value: string }>;
-                product: { id: string; handle: string; title: string };
-              };
-              sellingPlanAllocation: { sellingPlan: { id: string; name: string } } | null;
-            }
-        >;
-      };
-    } | null;
-    userErrors: Array<{
-      field: Array<string> | null;
-      message: string;
-      code: CartErrorCode | null;
-    }>;
-  } | null;
-};
+
+export type CartBuyerIdentityUpdateMutation = { cartBuyerIdentityUpdate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }> } | null };
 
 export type SitemapProductsQueryVariables = Exact<{
   after?: string | null | undefined;
 }>;
 
-export type SitemapProductsQuery = {
-  products: {
-    nodes: Array<{ handle: string; updatedAt: string }>;
-    pageInfo: { hasNextPage: boolean; endCursor: string | null };
-  };
-};
+
+export type SitemapProductsQuery = { products: { nodes: Array<{ handle: string, updatedAt: string }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } } };
 
 export type SitemapCollectionsQueryVariables = Exact<{
   after?: string | null | undefined;
 }>;
 
-export type SitemapCollectionsQuery = {
-  collections: {
-    nodes: Array<{
-      handle: string;
-      updatedAt: string;
-      products: { nodes: Array<{ id: string }> };
-    }>;
-    pageInfo: { hasNextPage: boolean; endCursor: string | null };
-  };
-};
+
+export type SitemapCollectionsQuery = { collections: { nodes: Array<{ handle: string, updatedAt: string, products: { nodes: Array<{ id: string }> } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } } };
 
 export type ProductRecommendationsQueryVariables = Exact<{
   productId: string | number;
 }>;
 
-export type ProductRecommendationsQuery = {
-  productRecommendations: Array<{
-    id: string;
-    handle: string;
-    title: string;
-    availableForSale: boolean;
-    featuredImage: {
-      url: string;
-      altText: string | null;
-      width: number | null;
-      height: number | null;
-    } | null;
-    priceRange: { minVariantPrice: { amount: string; currencyCode: CurrencyCode } };
-    variants: { nodes: Array<{ id: string; availableForSale: boolean }> };
-  }> | null;
-};
+
+export type ProductRecommendationsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, availableForSale: boolean, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, variants: { nodes: Array<{ id: string, availableForSale: boolean }> } }> | null };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
 {
-  __apiType?: NonNullable<DocumentTypeDecoration<TResult, TVariables>["__apiType"]>;
+  __apiType?: NonNullable<DocumentTypeDecoration<TResult, TVariables>['__apiType']>;
   private value: string;
   public __meta__?: Record<string, any> | undefined;
 
@@ -2243,8 +1626,7 @@ export class TypedDocumentString<TResult, TVariables>
     return this.value;
   }
 }
-export const FilterFieldsFragmentDoc = new TypedDocumentString(
-  `
+export const FilterFieldsFragmentDoc = new TypedDocumentString(`
     fragment FilterFields on Filter {
   id
   label
@@ -2256,11 +1638,8 @@ export const FilterFieldsFragmentDoc = new TypedDocumentString(
     input
   }
 }
-    `,
-  { fragmentName: "FilterFields" },
-) as unknown as TypedDocumentString<FilterFieldsFragment, unknown>;
-export const ProductCardFieldsFragmentDoc = new TypedDocumentString(
-  `
+    `, {"fragmentName":"FilterFields"}) as unknown as TypedDocumentString<FilterFieldsFragment, unknown>;
+export const ProductCardFieldsFragmentDoc = new TypedDocumentString(`
     fragment ProductCardFields on Product {
   id
   handle
@@ -2278,11 +1657,8 @@ export const ProductCardFieldsFragmentDoc = new TypedDocumentString(
     }
   }
 }
-    `,
-  { fragmentName: "ProductCardFields" },
-) as unknown as TypedDocumentString<ProductCardFieldsFragment, unknown>;
-export const CartFieldsFragmentDoc = new TypedDocumentString(
-  `
+    `, {"fragmentName":"ProductCardFields"}) as unknown as TypedDocumentString<ProductCardFieldsFragment, unknown>;
+export const CartFieldsFragmentDoc = new TypedDocumentString(`
     fragment CartFields on Cart {
   id
   checkoutUrl
@@ -2349,9 +1725,7 @@ export const CartFieldsFragmentDoc = new TypedDocumentString(
     }
   }
 }
-    `,
-  { fragmentName: "CartFields" },
-) as unknown as TypedDocumentString<CartFieldsFragment, unknown>;
+    `, {"fragmentName":"CartFields"}) as unknown as TypedDocumentString<CartFieldsFragment, unknown>;
 export const CollectionProductsDocument = new TypedDocumentString(`
     query CollectionProducts($handle: String!, $first: Int, $after: String, $last: Int, $before: String, $filters: [ProductFilter!]) {
   collection(handle: $handle) {
@@ -2409,10 +1783,7 @@ export const CollectionProductsDocument = new TypedDocumentString(`
     count
     input
   }
-}`) as unknown as TypedDocumentString<
-  CollectionProductsQuery,
-  CollectionProductsQueryVariables
->;
+}`) as unknown as TypedDocumentString<CollectionProductsQuery, CollectionProductsQueryVariables>;
 export const ProductByHandleDocument = new TypedDocumentString(`
     query ProductByHandle($handle: String!) {
   product(handle: $handle) {
@@ -2525,14 +1896,25 @@ export const ProductByHandleDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<
-  ProductByHandleQuery,
-  ProductByHandleQueryVariables
->;
+    `) as unknown as TypedDocumentString<ProductByHandleQuery, ProductByHandleQueryVariables>;
 export const SearchProductsDocument = new TypedDocumentString(`
-    query SearchProducts($query: String!, $first: Int!, $filters: [ProductFilter!]) {
-  search(query: $query, first: $first, types: [PRODUCT], productFilters: $filters) {
+    query SearchProducts($query: String!, $first: Int, $after: String, $last: Int, $before: String, $filters: [ProductFilter!]) {
+  search(
+    query: $query
+    first: $first
+    after: $after
+    last: $last
+    before: $before
+    types: [PRODUCT]
+    productFilters: $filters
+  ) {
     totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
     productFilters {
       ...FilterFields
     }
@@ -2609,10 +1991,7 @@ export const PredictiveSearchDocument = new TypedDocumentString(`
       currencyCode
     }
   }
-}`) as unknown as TypedDocumentString<
-  PredictiveSearchQuery,
-  PredictiveSearchQueryVariables
->;
+}`) as unknown as TypedDocumentString<PredictiveSearchQuery, PredictiveSearchQueryVariables>;
 export const ComplementaryProductsDocument = new TypedDocumentString(`
     query ComplementaryProducts($productId: ID!) {
   productRecommendations(productId: $productId, intent: COMPLEMENTARY) {
@@ -2635,10 +2014,7 @@ export const ComplementaryProductsDocument = new TypedDocumentString(`
       currencyCode
     }
   }
-}`) as unknown as TypedDocumentString<
-  ComplementaryProductsQuery,
-  ComplementaryProductsQueryVariables
->;
+}`) as unknown as TypedDocumentString<ComplementaryProductsQuery, ComplementaryProductsQueryVariables>;
 export const NavMenuDocument = new TypedDocumentString(`
     query NavMenu($handle: String!) {
   menu(handle: $handle) {
@@ -2678,10 +2054,7 @@ export const CollectionCardsDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<
-  CollectionCardsQuery,
-  CollectionCardsQueryVariables
->;
+    `) as unknown as TypedDocumentString<CollectionCardsQuery, CollectionCardsQueryVariables>;
 export const ShopPoliciesDocument = new TypedDocumentString(`
     query ShopPolicies {
   shop {
@@ -2962,10 +2335,7 @@ export const CartLinesAddDocument = new TypedDocumentString(`
       }
     }
   }
-}`) as unknown as TypedDocumentString<
-  CartLinesAddMutation,
-  CartLinesAddMutationVariables
->;
+}`) as unknown as TypedDocumentString<CartLinesAddMutation, CartLinesAddMutationVariables>;
 export const CartLinesUpdateDocument = new TypedDocumentString(`
     mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
   cartLinesUpdate(cartId: $cartId, lines: $lines) {
@@ -3044,10 +2414,7 @@ export const CartLinesUpdateDocument = new TypedDocumentString(`
       }
     }
   }
-}`) as unknown as TypedDocumentString<
-  CartLinesUpdateMutation,
-  CartLinesUpdateMutationVariables
->;
+}`) as unknown as TypedDocumentString<CartLinesUpdateMutation, CartLinesUpdateMutationVariables>;
 export const CartLinesRemoveDocument = new TypedDocumentString(`
     mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
   cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
@@ -3126,10 +2493,7 @@ export const CartLinesRemoveDocument = new TypedDocumentString(`
       }
     }
   }
-}`) as unknown as TypedDocumentString<
-  CartLinesRemoveMutation,
-  CartLinesRemoveMutationVariables
->;
+}`) as unknown as TypedDocumentString<CartLinesRemoveMutation, CartLinesRemoveMutationVariables>;
 export const CartBuyerIdentityUpdateDocument = new TypedDocumentString(`
     mutation CartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
   cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
@@ -3208,10 +2572,7 @@ export const CartBuyerIdentityUpdateDocument = new TypedDocumentString(`
       }
     }
   }
-}`) as unknown as TypedDocumentString<
-  CartBuyerIdentityUpdateMutation,
-  CartBuyerIdentityUpdateMutationVariables
->;
+}`) as unknown as TypedDocumentString<CartBuyerIdentityUpdateMutation, CartBuyerIdentityUpdateMutationVariables>;
 export const SitemapProductsDocument = new TypedDocumentString(`
     query SitemapProducts($after: String) {
   products(first: 250, after: $after) {
@@ -3225,10 +2586,7 @@ export const SitemapProductsDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<
-  SitemapProductsQuery,
-  SitemapProductsQueryVariables
->;
+    `) as unknown as TypedDocumentString<SitemapProductsQuery, SitemapProductsQueryVariables>;
 export const SitemapCollectionsDocument = new TypedDocumentString(`
     query SitemapCollections($after: String) {
   collections(first: 250, after: $after) {
@@ -3247,10 +2605,7 @@ export const SitemapCollectionsDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<
-  SitemapCollectionsQuery,
-  SitemapCollectionsQueryVariables
->;
+    `) as unknown as TypedDocumentString<SitemapCollectionsQuery, SitemapCollectionsQueryVariables>;
 export const ProductRecommendationsDocument = new TypedDocumentString(`
     query ProductRecommendations($productId: ID!) {
   productRecommendations(productId: $productId, intent: RELATED) {
@@ -3278,7 +2633,4 @@ export const ProductRecommendationsDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<
-  ProductRecommendationsQuery,
-  ProductRecommendationsQueryVariables
->;
+    `) as unknown as TypedDocumentString<ProductRecommendationsQuery, ProductRecommendationsQueryVariables>;

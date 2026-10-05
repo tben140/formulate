@@ -1,4 +1,5 @@
 import {
+  pageVariables,
   productFiltersFromParams,
   SearchProductsQuery,
   withoutEmptyFilters,
@@ -7,8 +8,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { CollectionFilters } from "@/components/collection-filters";
+import { Pagination } from "@/components/pagination";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { COLLECTION_PAGE_SIZE } from "@/lib/catalogue";
 import { toSearchParams } from "@/lib/search-params";
 import { storefront } from "@/lib/storefront";
 
@@ -43,7 +46,8 @@ const SearchPage = async ({ searchParams }: PageProps) => {
   const result = term
     ? await storefront.request(SearchProductsQuery, {
         query: term,
-        first: 24,
+        // Paged by cursor, the same size as a collection page.
+        ...pageVariables(query, COLLECTION_PAGE_SIZE),
         filters: productFiltersFromParams(query),
       })
     : null;
@@ -92,7 +96,8 @@ const SearchPage = async ({ searchParams }: PageProps) => {
               filters={result.data.search.productFilters}
               params={query}
               path="/search"
-              productCount={result.data.search.nodes.length}
+              // The whole result count, not this page's: search knows it.
+              productCount={result.data.search.totalCount}
             />
           ) : null}
 
@@ -114,6 +119,12 @@ const SearchPage = async ({ searchParams }: PageProps) => {
               )}
             </ul>
           )}
+
+          <Pagination
+            path="/search"
+            params={query}
+            pageInfo={result.data.search.pageInfo}
+          />
         </section>
       ) : null}
     </>
