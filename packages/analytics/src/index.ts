@@ -32,6 +32,7 @@ export {
 export type { SubscribeResult, SubscriptionSource } from "./subscribe";
 
 export {
+  SERVER_BACK_IN_STOCK_URL,
   backInStockPayload,
   backInStockUrl,
   catalogVariantId,

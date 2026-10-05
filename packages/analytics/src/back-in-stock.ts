@@ -48,6 +48,14 @@ export const catalogVariantId = (variant: string | number): string | null => {
   return numeric > 0 ? `$shopify:::$default:::${numeric}` : null;
 };
 
+/**
+ * The server-side endpoint, for the app's Worker (apps/api). Same payload as
+ * the client one, authenticated with a private key that has catalogs:write
+ * and profiles:write.
+ */
+export const SERVER_BACK_IN_STOCK_URL =
+  "https://a.klaviyo.com/api/back-in-stock-subscriptions";
+
 /** The JSON:API document: email only, one channel, one variant. */
 export const backInStockPayload = ({
   email,
