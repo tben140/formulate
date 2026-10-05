@@ -1,0 +1,75 @@
+name: Deploy API
+
+# Deploys apps/api, the Cloudflare Worker that records the app's email consent
+# and restock alerts (ADR 0007, SHO-118), so it no longer depends on someone
+# running `wrangler deploy` from a laptop.
+#
+# - Automatically, when a push to main changes the Worker or the package it
+#   builds payloads from.
+# - By hand (Actions → Deploy API → Run workflow), from any branch: for
+#   shipping a Worker change before it merges. Only people with write access
+#   to the repository can run it.
+#
+# The Worker's own secrets (KLAVIYO_PRIVATE_KEY, KLAVIYO_BACK_IN_STOCK_KEY) are
+# set in Cloudflare, never here; a deploy leaves them as they are. This job
+# only needs a Cloudflare API token that can edit Workers.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/api/**
+      - packages/analytics/**
+      - .github/workflows/deploy-api.yml
+  workflow_dispatch:
+
+# One deploy at a time, and never cancel one halfway.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # Empty on forks and until added; the job then skips rather than failing.
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Skip without Cloudflare credentials
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        run: echo "::notice::API deploy skipped - CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets are not both set."
+
+      - uses: actions/checkout@v5
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+
+      - uses: pnpm/action-setup@v4
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+
+      - uses: actions/setup-node@v5
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: pnpm install --frozen-lockfile
+
+      # The Worker's tests pin its security rules (no CORS, no error bodies,
+      # only the email read). A deploy that breaks one never ships.
+      - name: Test the Worker
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: pnpm --filter @formulate/api test
+
+      # Wrangler from the lockfile, not a floating version, and it reads the
+      # token and account from the environment.
+      - name: Deploy
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: pnpm --filter @formulate/api run deploy

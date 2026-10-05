@@ -4,7 +4,10 @@ export { RateLimiter } from "./rate-limiter";
 
 import {
   KLAVIYO_REVISION,
+  SERVER_BACK_IN_STOCK_URL,
   SERVER_SUBSCRIBE_URL,
+  backInStockPayload,
+  catalogVariantId,
   isPlausibleEmail,
   serverSubscriptionPayload,
 } from "@formulate/analytics";
@@ -33,6 +36,12 @@ interface Env {
   readonly KLAVIYO_PRIVATE_KEY: string;
   readonly KLAVIYO_LIST_ID: string;
   /**
+   * For `POST /back-in-stock` (SHO-118): a separate key with catalogs:write
+   * and profiles:write, so each key can do only its own job. Optional: until
+   * it's set, that route answers 503 and the newsletter is unaffected.
+   */
+  readonly KLAVIYO_BACK_IN_STOCK_KEY?: string;
+  /**
    * One Durable Object per IP. Not Cloudflare's `ratelimits` binding — see
    * src/rate-limiter.ts for why that one was removed.
    */
@@ -60,7 +69,10 @@ const MAX_BODY_BYTES = 1024;
  */
 type Outcome =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: "invalid-email" | "rate-limited" | "rejected" };
+  | {
+      readonly ok: false;
+      readonly reason: "invalid-email" | "rate-limited" | "rejected";
+    };
 
 const json = (body: Outcome, status: number): Response =>
   new Response(JSON.stringify(body), {
@@ -82,6 +94,55 @@ const json = (body: Outcome, status: number): Response =>
       "cache-control": "no-store",
     },
   });
+
+/**
+ * `POST /back-in-stock`: Klaviyo emails `email` once when `variant` (a
+ * Storefront gid or numeric id) is back in stock. Not a marketing
+ * subscription: no list, no consent. The same rules as the newsletter route:
+ * two fields read, the payload built here, Klaviyo's errors never returned.
+ */
+const backInStock = async (raw: string, env: Env): Promise<Response> => {
+  let body: { email?: unknown; variant?: unknown };
+  try {
+    body = JSON.parse(raw) as typeof body;
+  } catch {
+    return json({ ok: false, reason: "rejected" }, 400);
+  }
+
+  const { email, variant } = body;
+  if (typeof email !== "string" || !isPlausibleEmail(email)) {
+    return json({ ok: false, reason: "invalid-email" }, 400);
+  }
+  const variantId =
+    typeof variant === "string" || typeof variant === "number"
+      ? catalogVariantId(variant)
+      : null;
+  if (!variantId) return json({ ok: false, reason: "rejected" }, 400);
+
+  if (!env.KLAVIYO_BACK_IN_STOCK_KEY) {
+    console.error("back-in-stock: KLAVIYO_BACK_IN_STOCK_KEY is not set");
+    return json({ ok: false, reason: "rejected" }, 503);
+  }
+
+  const response = await fetch(SERVER_BACK_IN_STOCK_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Klaviyo-API-Key ${env.KLAVIYO_BACK_IN_STOCK_KEY}`,
+      "content-type": "application/vnd.api+json",
+      revision: KLAVIYO_REVISION,
+    },
+    body: JSON.stringify(backInStockPayload({ email, variantId })),
+  });
+
+  if (!response.ok) {
+    console.error("klaviyo back-in-stock failed", {
+      status: response.status,
+      detail: (await response.text()).slice(0, 500),
+    });
+    return json({ ok: false, reason: "rejected" }, 502);
+  }
+  return json({ ok: true }, 202);
+};
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -113,6 +174,12 @@ export default {
     const raw = await request.text();
     if (raw.length > MAX_BODY_BYTES) {
       return json({ ok: false, reason: "rejected" }, 413);
+    }
+
+    // Restock alerts (SHO-118) share every check above, then take one more
+    // field: the variant.
+    if (new URL(request.url).pathname === "/back-in-stock") {
+      return backInStock(raw, env);
     }
 
     let email: unknown;

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import { AddToCart } from "../../../../components/add-to-cart";
+import { BackInStockForm } from "../../../../components/back-in-stock-form";
 import { useCartUi } from "../../../../components/cart-provider";
 import { PairsWellWith } from "../../../../components/pairs-well-with";
 import { ProductDescription } from "../../../../components/product-description";
@@ -206,6 +207,18 @@ const ProductBody = ({ product }: { product: Product }) => {
             }}
           />
         </View>
+
+        {purchase.soldOut && purchase.variant ? (
+          <BackInStockForm
+            key={purchase.variant.id}
+            variantId={purchase.variant.id}
+            itemName={
+              purchase.variant.title === "Default Title"
+                ? product.title
+                : `${product.title}, ${purchase.variant.title}`
+            }
+          />
+        ) : null}
 
         <PairsWellWith productId={product.id} />
 

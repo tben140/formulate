@@ -90,6 +90,14 @@
     "error_failed": "Something went wrong at our end. Please try again.",
     "error_network": "We couldn't reach our email service. Check your connection and try again."
   },
+  "back_in_stock": {
+    "heading": "Email me when it's back",
+    "hint": "One email when {{ item }} is back in stock. This doesn't sign you up for marketing.",
+    "submit": "Notify me",
+    "pending": "Sending…",
+    "success": "We'll email you when it's back.",
+    "error_unavailable": "Restock alerts aren't available at the moment."
+  },
   "password": {
     "title": "This shop is private",
     "password": "Password",

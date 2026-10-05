@@ -196,3 +196,93 @@ describe("⚠️ CORS", () => {
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 });
+
+describe("POST /back-in-stock (SHO-118)", () => {
+  const BIS_KEY = "pk_back_in_stock_not_real";
+  const bisEnv = { ...testEnv(), KLAVIYO_BACK_IN_STOCK_KEY: BIS_KEY };
+  const postBis = (body: unknown) =>
+    new Request("https://api.example/back-in-stock", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  const VARIANT = "gid://shopify/ProductVariant/52871790756152";
+
+  it("subscribes the address to the variant with its own key, never the newsletter's", async () => {
+    const klaviyo = stubKlaviyo({ ok: true, status: 202 });
+    const response = await run(postBis({ email: "a@b.co", variant: VARIANT }), bisEnv);
+    expect(response.status).toBe(202);
+
+    const [url, init] = klaviyo.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://a.klaviyo.com/api/back-in-stock-subscriptions");
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe(`Klaviyo-API-Key ${BIS_KEY}`);
+    const body = JSON.parse(init.body as string);
+    expect(body.data.relationships.variant.data.id).toBe(
+      "$shopify:::$default:::52871790756152",
+    );
+    expect(body.data.attributes.profile.data.attributes.email).toBe("a@b.co");
+  });
+
+  it("reads only email and variant: no list, no consent, nothing else forwarded", async () => {
+    const klaviyo = stubKlaviyo({ ok: true, status: 202 });
+    await run(
+      postBis({
+        email: "a@b.co",
+        variant: VARIANT,
+        list: "X",
+        channels: ["SMS"],
+        admin: true,
+      }),
+      bisEnv,
+    );
+    const body = JSON.parse(
+      (klaviyo.mock.calls[0] as unknown as [string, RequestInit])[1].body as string,
+    );
+    expect(body.data.attributes.channels).toEqual(["EMAIL"]);
+    expect(JSON.stringify(body)).not.toContain('"X"');
+    expect(JSON.stringify(body)).not.toContain("admin");
+  });
+
+  it("rejects a bad address or variant without contacting Klaviyo", async () => {
+    const klaviyo = stubKlaviyo({ ok: true, status: 202 });
+    expect((await run(postBis({ email: "nope", variant: VARIANT }), bisEnv)).status).toBe(
+      400,
+    );
+    expect(
+      (await run(postBis({ email: "a@b.co", variant: "not-a-variant" }), bisEnv)).status,
+    ).toBe(400);
+    expect((await run(postBis({ email: "a@b.co" }), bisEnv)).status).toBe(400);
+    expect(klaviyo).not.toHaveBeenCalled();
+  });
+
+  it("answers 503 until its key is set, and the newsletter route still works", async () => {
+    const klaviyo = stubKlaviyo({ ok: true, status: 202 });
+    expect((await run(postBis({ email: "a@b.co", variant: VARIANT }))).status).toBe(503);
+    expect(klaviyo).not.toHaveBeenCalled();
+    expect((await run(post({ email: "a@b.co" }))).status).toBe(202);
+  });
+
+  it("is rate limited like the newsletter route", async () => {
+    const klaviyo = stubKlaviyo({ ok: true, status: 202 });
+    const limited = { ...testEnv(false), KLAVIYO_BACK_IN_STOCK_KEY: BIS_KEY };
+    expect(
+      (await run(postBis({ email: "a@b.co", variant: VARIANT }), limited)).status,
+    ).toBe(429);
+    expect(klaviyo).not.toHaveBeenCalled();
+  });
+
+  it("never returns Klaviyo's error body or the key", async () => {
+    stubKlaviyo({
+      ok: false,
+      status: 400,
+      text: () => Promise.resolve("Variant not found in catalog"),
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await run(postBis({ email: "a@b.co", variant: VARIANT }), bisEnv);
+    expect(response.status).toBe(502);
+    const text = await response.text();
+    expect(text).not.toContain("Variant not found");
+    expect(text).not.toContain(BIS_KEY);
+  });
+});
