@@ -31,7 +31,7 @@ export const CollectionView = ({
   if (isPending) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Loading products" />
       </View>
     );
   }
