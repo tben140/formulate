@@ -165,3 +165,88 @@ export const purchasableAllocations = <A extends AllocationLike>(
 
   return allocations.filter((allocation) => ownedPlanIds.has(allocation.sellingPlan.id));
 };
+
+/*
+ * ---------------------------------------------------------------------------
+ * What the selection implies (SHO-127)
+ *
+ * Everything below was written twice, line for line: in apps/web's
+ * add-to-cart-form.tsx and apps/mobile's use-purchase.ts. They agreed, but
+ * nothing kept them agreeing. Rendering stays per platform; these decide what
+ * is rendered.
+ * ---------------------------------------------------------------------------
+ */
+
+/** The purchase option meaning "buy it once". Not a plan id, so never sent. */
+export const ONE_TIME = "";
+
+/** An allocation with what the purchase-option list needs from it. */
+interface PricedAllocationLike<P> extends AllocationLike {
+  readonly sellingPlan: { readonly id: string; readonly name: string };
+  /**
+   * Shopify's price adjustments, in order. The first is the price at
+   * purchase; later ones apply after a number of orders (e.g. a cheaper
+   * renewal), so only [0] is what the shopper pays now.
+   */
+  readonly priceAdjustments: readonly { readonly price: P }[];
+}
+
+/**
+ * The plan actually in effect: the shopper's choice if this variant offers
+ * it, otherwise one-time.
+ *
+ * A plan offered on one variant may not exist on another, and sending a plan
+ * the variant has no allocation for makes Shopify reject the add. Derived, not
+ * stored: the choice survives, so moving to a variant without the plan and
+ * back again restores it.
+ */
+export const effectivePlanId = (
+  allocations: readonly AllocationLike[],
+  chosenPlanId: string,
+): string =>
+  allocations.some((allocation) => allocation.sellingPlan.id === chosenPlanId)
+    ? chosenPlanId
+    : ONE_TIME;
+
+/** The price for the selection: the plan's price at purchase, else the variant's. */
+export const displayPrice = <P>(
+  variant: { readonly price: P } | undefined,
+  allocations: readonly PricedAllocationLike<P>[],
+  chosenPlanId: string,
+): P | null => {
+  const planId = effectivePlanId(allocations, chosenPlanId);
+  const allocation = allocations.find((a) => a.sellingPlan.id === planId);
+  return allocation?.priceAdjustments[0]?.price ?? variant?.price ?? null;
+};
+
+export interface PurchaseOption<P> {
+  /** A selling plan id, or ONE_TIME. */
+  readonly id: string;
+  readonly label: string;
+  readonly price: P | undefined;
+}
+
+/** The purchase options to offer, one-time first, each at its price now. */
+export const purchaseOptions = <P>(
+  variant: { readonly price: P } | undefined,
+  allocations: readonly PricedAllocationLike<P>[],
+): PurchaseOption<P>[] => [
+  { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
+  ...allocations.map((allocation) => ({
+    id: allocation.sellingPlan.id,
+    label: allocation.sellingPlan.name,
+    price: allocation.priceAdjustments[0]?.price,
+  })),
+];
+
+/**
+ * Whether the selection can be bought. `unavailable` means no variant has this
+ * combination of options; `soldOut` means one does and it's out of stock.
+ * Each surface maps these to its own words.
+ */
+export type SelectionStatus = "available" | "soldOut" | "unavailable";
+
+export const selectionStatus = (
+  variant: { readonly availableForSale: boolean } | undefined,
+): SelectionStatus =>
+  !variant ? "unavailable" : variant.availableForSale ? "available" : "soldOut";

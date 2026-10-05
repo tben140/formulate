@@ -25,14 +25,23 @@ export type { CartSuggestion } from "./recommendations";
 export type { MoneyLike } from "./format-money";
 
 export {
+  ONE_TIME,
   defaultSelectedOptions,
+  displayPrice,
+  effectivePlanId,
   findVariantByOptions,
   hasOwningApp,
   purchasableAllocations,
   purchasableSellingPlanGroups,
+  purchaseOptions,
+  selectionStatus,
   withOption,
 } from "./product-selection";
-export type { SelectedOption } from "./product-selection";
+export type {
+  PurchaseOption,
+  SelectedOption,
+  SelectionStatus,
+} from "./product-selection";
 
 export {
   CartBuyerIdentityUpdateMutation,

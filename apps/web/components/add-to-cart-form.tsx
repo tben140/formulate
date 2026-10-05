@@ -2,10 +2,15 @@
 
 import { EVENTS, addedToCart } from "@formulate/analytics";
 import {
+  ONE_TIME,
   defaultSelectedOptions,
+  displayPrice as priceForSelection,
+  effectivePlanId as resolvePlanId,
   findVariantByOptions,
   formatMoney,
   purchasableAllocations,
+  purchaseOptions,
+  selectionStatus,
   withOption,
   type ProductByHandleResult,
   type SelectedOption,
@@ -18,9 +23,6 @@ import { track } from "@/lib/klaviyo";
 import { useCartUi } from "./cart-provider";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
-
-/** Sentinel for "buy it once". Not a selling plan id, so the action skips it. */
-const ONE_TIME = "";
 
 /**
  * Lives here rather than beside the action, because a `"use server"` module may
@@ -73,9 +75,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
    * this way `planId` survives, so switching to a variant without the plan and
    * back again restores what they picked.
    */
-  const effectivePlanId = allocations.some((a) => a.sellingPlan.id === planId)
-    ? planId
-    : ONE_TIME;
+  const effectivePlanId = resolvePlanId(allocations, planId);
 
   /*
    * Opens on the token rather than on status, so adding the same product twice
@@ -96,22 +96,25 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     }
   }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
 
-  const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
-  const displayPrice =
-    chosenAllocation?.priceAdjustments[0]?.price ?? variant?.price ?? null;
-
-  const soldOut = Boolean(variant && !variant.availableForSale);
+  // The selection rules are shared with the app (packages/shopify,
+  // SHO-127); only the words and the rendering are this surface's.
+  const displayPrice = priceForSelection(variant, allocations, planId);
+  const planName =
+    allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
+    null;
+  const status = selectionStatus(variant);
+  const soldOut = status === "soldOut";
 
   const buttonLabel = pending
     ? "Adding…"
     : soldOut
       ? "Sold out"
-      : !variant
+      : status === "unavailable"
         ? "Unavailable in this combination"
         : "Add to cart";
 
   // Nothing to add: no variant for this combination, or it's sold out.
-  const unavailable = !variant || soldOut;
+  const unavailable = status !== "available";
 
   const primaryButton = useRef<HTMLButtonElement>(null);
   const stickyVisible = useOffScreen(primaryButton);
@@ -188,14 +191,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         <fieldset className="mb-5">
           <legend className="mb-2 text-sm font-semibold">Purchase options</legend>
           <div className="space-y-2">
-            {[
-              { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
-              ...allocations.map((allocation) => ({
-                id: allocation.sellingPlan.id,
-                label: allocation.sellingPlan.name,
-                price: allocation.priceAdjustments[0]?.price,
-              })),
-            ].map((choice) => (
+            {purchaseOptions(variant, allocations).map((choice) => (
               <label
                 key={choice.id || "one-time"}
                 className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${
@@ -270,7 +266,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         visible={stickyVisible}
         title={product.title}
         variantTitle={variant && variant.title !== "Default Title" ? variant.title : null}
-        planName={chosenAllocation?.sellingPlan.name ?? null}
+        planName={planName}
         price={displayPrice ? formatMoney(displayPrice) : null}
         buttonLabel={buttonLabel}
         unavailable={unavailable}
