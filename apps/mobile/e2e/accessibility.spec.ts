@@ -27,6 +27,17 @@ const scan = async (page: Page) => {
 /** Waits for images to settle, so a mid-transition copy isn't what's scanned. */
 const settle = (page: Page) => page.waitForLoadState("networkidle");
 
+/**
+ * Waits until an opened sheet is a dialog, not just visible.
+ *
+ * react-native-web (0.21.2) renders a Modal with `aria-modal` at once but adds
+ * `role="dialog"` only when the modal becomes active, a tick later. A scan in
+ * that gap reports `aria-allowed-attr` on the bare `aria-modal`: about one run
+ * in eight, in CI and locally. It's an artefact of the web build; native doesn't
+ * use ARIA. Waiting for the role is waiting for the state a user actually meets.
+ */
+const sheetOpen = (page: Page) => expect(page.getByRole("dialog")).toBeVisible();
+
 test("home", async ({ page }) => {
   await openApp(page);
   await settle(page);
@@ -40,6 +51,7 @@ test("a collection, and its filter sheet", async ({ page }) => {
 
   await page.getByRole("button", { name: "Filter" }).click();
   await expect(page.getByRole("button", { name: "Show results" })).toBeVisible();
+  await sheetOpen(page);
   expect(await scan(page)).toEqual([]);
 });
 
@@ -73,6 +85,7 @@ test("search results and the cart sheet", async ({ page }) => {
 
   await tab(page, "Cart").click();
   await expect(page.getByText("Your cart is empty.")).toBeVisible();
+  await sheetOpen(page);
   expect(await scan(page)).toEqual([]);
 });
 
