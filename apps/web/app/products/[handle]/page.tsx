@@ -62,6 +62,8 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
 };
 
 const ProductPage = async ({ params }: PageProps) => {
+  // SHO-29 THROWAWAY: a deliberate 2 s regression to prove the gates fire. Never merge.
+  await new Promise((resolve) => setTimeout(resolve, 2000));
   const { handle } = await params;
 
   // Both cached per render: generateMetadata already fetched the product, and

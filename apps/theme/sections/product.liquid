@@ -180,6 +180,9 @@
 
 {% endstylesheet %}
 
+{% comment %} SHO-29 THROWAWAY: block the main thread for 2 s to prove the gate fires. Never merge. {% endcomment %}
+<script>(function(){var t=Date.now();while(Date.now()-t<2000){}})();</script>
+
 {% schema %}
 {
   "name": "t:general.product",
