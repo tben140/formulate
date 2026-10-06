@@ -22,7 +22,14 @@ incidental — it is why the Storefront token never reaches the browser.
 SHOPIFY_STORE_DOMAIN
 SHOPIFY_STOREFRONT_TOKEN
 SHOPIFY_API_VERSION
+SHOPIFY_SHOP_ID
+SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID
 ```
+
+The last two are for customer sign-in (SHO-70) and aren't secret, but they stay
+server-side like the rest: every Customer Account API call happens on the
+server, and the buyer's tokens live in an httpOnly cookie. See
+[`docs/integration-customer-accounts.md`](../../docs/integration-customer-accounts.md).
 
 ⚠️ **Never add a `NEXT_PUBLIC_` prefix to any of these.** The prefix inlines the
 value into the client bundle. Nothing in this app needs the token client-side,
@@ -115,7 +122,7 @@ ever tells you an event was dropped.
 
 Email capture (`components/email-capture.tsx`) does two things and both are
 required: `POST /client/subscriptions/` creates the profile and records
-consent, then `identify` tells the script in *this tab* who the visitor is,
+consent, then `identify` tells the script in _this tab_ who the visitor is,
 which is what flushes the cached events. The first alone leaves them cached.
 
 There is no already-subscribed state to render. Klaviyo returns `202` for a new
