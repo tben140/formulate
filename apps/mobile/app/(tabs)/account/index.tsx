@@ -88,7 +88,8 @@ const AccountScreen = () => {
     );
   }
 
-  if (!orders.data) {
+  const firstPage = orders.data?.pages[0] ?? null;
+  if (!firstPage) {
     const failed = signIn.data?.kind === "failed";
     return (
       <View className="gap-4 p-4">
@@ -116,9 +117,9 @@ const AccountScreen = () => {
     );
   }
 
-  const { customer } = orders.data;
+  const { customer } = firstPage;
   const email = customer.emailAddress?.emailAddress;
-  const list = customer.orders.nodes;
+  const list = orders.data.pages.flatMap((page) => page?.customer.orders.nodes ?? []);
 
   return (
     <ScrollView contentContainerClassName="gap-6 p-4">
@@ -202,6 +203,16 @@ const AccountScreen = () => {
             })}
           </View>
         )}
+        {orders.hasNextPage ? (
+          <View className="mt-3">
+            <Button
+              label={orders.isFetchingNextPage ? "Loading…" : "Load older orders"}
+              variant="secondary"
+              busy={orders.isFetchingNextPage}
+              onPress={() => void orders.fetchNextPage()}
+            />
+          </View>
+        ) : null}
       </View>
 
       <Button
