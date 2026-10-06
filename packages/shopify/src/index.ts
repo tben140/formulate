@@ -15,6 +15,7 @@ export type {
 export {
   CUSTOMER_ACCOUNT_SCOPE,
   base64Url,
+  callbackParams,
   codeChallengeFor,
   createAuthorizationRequest,
   customerAccountEndpoints,
@@ -39,6 +40,7 @@ export type {
 export {
   CUSTOMER_ORDERS_QUERY,
   CUSTOMER_ORDER_QUERY,
+  formatOrderDate,
   orderGid,
   orderPathId,
   orderStatusLabel,

@@ -22,14 +22,16 @@ OAuth 2.0 authorisation code flow, as a **public client** with PKCE: there is
 no client secret anywhere, so the PKCE verifier is what stops a stolen code
 being redeemed.
 
-| Step                              | Web (`apps/web`)                                         |
-| --------------------------------- | -------------------------------------------------------- |
-| Start (`/account/login`)          | state, nonce and PKCE verifier into an httpOnly cookie   |
-| Shopify's sign-in page            | email and one-time code                                  |
-| Callback (`/account/authorize`)   | state checked, code exchanged, id token's nonce checked  |
-| Tokens                            | httpOnly cookie, 30 days; access token renewed on expiry |
-| Cart                              | attached to the buyer, so checkout opens signed in       |
-| Sign out (`POST /account/logout`) | cookie and cart cleared, then Shopify's own logout       |
+| Step         | Web (`apps/web`)                                       | App (`apps/mobile`)                                        |
+| ------------ | ------------------------------------------------------ | ---------------------------------------------------------- |
+| Start        | `/account/login`: state, nonce, verifier in a cookie   | Sign in button: kept in memory while the sheet is open     |
+| Sign-in page | redirect to Shopify                                    | `openAuthSessionAsync`, an ephemeral system sheet          |
+| Callback     | `https://<origin>/account/authorize`                   | `shop.<shop id>.app://callback`                            |
+| Checks       | state, then nonce in the id token                      | the same, through the shared module                        |
+| Tokens       | httpOnly cookie, 30 days                               | keychain, one entry per token (Android's 2 KB value limit) |
+| Renewal      | `/account/refresh` redirect                            | before each request, in `getUsableTokens`                  |
+| Cart         | attached at sign-in; cleared at sign-out               | the same                                                   |
+| Sign out     | `POST /account/logout`, then Shopify's logout redirect | a plain request to Shopify's logout URL (no redirect)      |
 
 The protocol (URLs, PKCE, token exchange, refresh, id token checks) lives in
 `packages/shopify/src/customer-account.ts`, so the app will send exactly what
@@ -45,6 +47,13 @@ Things that are easy to get wrong, each now pinned by a test or a comment:
   shared computer the next checkout would otherwise open as them.
 - **The callback origin comes from the forwarded headers**, not
   `request.nextUrl.origin`, which named `localhost` for a `127.0.0.1` request.
+- **The app parses the callback itself** (`callbackParams`). React Native's
+  `URLSearchParams` splits each pair on every `=`, which would truncate a code
+  containing one.
+- **The app's sheet is ephemeral**: no cookies shared with Safari, so signing
+  out of the app can't leave the buyer signed in at shopify.com.
+- **Expo Go can't test app sign-in.** It only receives `exp://` links, and
+  Shopify requires `shop.<shop id>.app://`. Use a development build.
 
 ## Setup (Shopify admin)
 
@@ -58,12 +67,17 @@ Sales channels → Headless → the storefront → **Customer Account API**:
    stable `web-git-<branch>-…vercel.app` alias.
 3. **JavaScript origins:** the same origins, without a path.
 4. **Logout URL:** `https://<origin>/`.
+5. **For the app:** add `shop.100581966136.app://callback` as a callback URL.
+   The app needs `EXPO_PUBLIC_SHOPIFY_SHOP_ID` and
+   `EXPO_PUBLIC_SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID`; the shop id also adds the
+   scheme to the build (app.config.ts).
+
+The theme needs none of this: Shopify serves its account pages itself.
 
 ## Not built yet
 
-- **The app.** Same flow through `expo-web-browser`, with the redirect scheme
-  Shopify requires for native clients (`shop.<shop_id>.app://callback`) and
-  tokens in the keychain.
+- **Testing app sign-in on a device.** It needs a development build (SHO-24);
+  Expo Go can't receive the callback.
 - **Order history beyond the latest 20**, and order tracking.
 - **The read-only Recharge portal**, which exchanges this session for a
   Recharge one.

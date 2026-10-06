@@ -109,6 +109,29 @@ const missingConfig = (config: CustomerAccountConfig): CustomerAccountError | nu
           "Missing shop id, client id or API version for the Customer Account API.",
       };
 
+/**
+ * The query parameters of an OAuth callback URL, as a plain record.
+ *
+ * Not `new URL(...).searchParams`: React Native's polyfill (0.86) splits each
+ * pair on every `=`, so a value containing one (padded base64, which an
+ * authorisation code is free to be) would arrive truncated, and the exchange
+ * would fail with nothing to show why. This splits on the first `=` only, and
+ * works on any scheme, including `shop.<id>.app://`.
+ */
+export const callbackParams = (url: string): Readonly<Record<string, string>> => {
+  const query = url.split("#")[0]?.split("?")[1] ?? "";
+  const params: Record<string, string> = {};
+  for (const pair of query.split("&")) {
+    if (!pair) continue;
+    const at = pair.indexOf("=");
+    const decode = (part: string) => decodeURIComponent(part.replace(/\+/g, " "));
+    const key = decode(at === -1 ? pair : pair.slice(0, at));
+    // First value wins, as URLSearchParams.get does.
+    if (!(key in params)) params[key] = at === -1 ? "" : decode(pair.slice(at + 1));
+  }
+  return params;
+};
+
 /** RFC 4648 §5: the URL-safe alphabet, unpadded, as OAuth and JWTs use. */
 export const base64Url = (bytes: Uint8Array): string => {
   let binary = "";

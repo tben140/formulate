@@ -161,3 +161,16 @@ export const orderStatusLabel = (status: string | null): string | null => {
   const words = status.toLowerCase().split("_").join(" ");
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
+
+/**
+ * An order date as a UK shopper reads it ("6 October 2026"), in UK time
+ * whatever the server's or phone's zone. Shared so web and the app can't
+ * disagree about which day an order was placed.
+ */
+export const formatOrderDate = (iso: string): string =>
+  new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/London",
+  }).format(new Date(iso));

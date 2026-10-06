@@ -3,6 +3,7 @@ import {
   customerAccountRequest,
   describeCustomerAccountError,
   formatMoney,
+  formatOrderDate,
   orderGid,
   orderStatusLabel,
   type CustomerOrderResult,
@@ -12,11 +13,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import {
-  customerAccountConfig,
-  formatOrderDate,
-  requireCustomerTokens,
-} from "@/lib/customer-account";
+import { customerAccountConfig, requireCustomerTokens } from "@/lib/customer-account";
 
 export const metadata: Metadata = {
   title: "Order",

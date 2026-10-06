@@ -3,6 +3,7 @@ import {
   customerAccountRequest,
   describeCustomerAccountError,
   formatMoney,
+  formatOrderDate,
   orderPathId,
   orderStatusLabel,
   type CustomerOrdersResult,
@@ -13,7 +14,6 @@ import { redirect } from "next/navigation";
 
 import {
   customerAccountConfig,
-  formatOrderDate,
   isCustomerAccountConfigured,
   requireCustomerTokens,
 } from "@/lib/customer-account";

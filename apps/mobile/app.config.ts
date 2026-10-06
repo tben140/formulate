@@ -36,10 +36,18 @@ const androidAppLinks = webHost
     ]
   : [];
 
+/**
+ * Customer sign-in (SHO-70) returns to `shop.<shop id>.app://callback`, the
+ * scheme Shopify requires for native clients. Registered alongside the app's
+ * own scheme, and only when the shop id is known.
+ */
+const shopId = process.env.EXPO_PUBLIC_SHOPIFY_SHOP_ID ?? "";
+const schemes = shopId ? ["formulate", `shop.${shopId}.app`] : ["formulate"];
+
 const config: ExpoConfig = {
   name: "Formulate",
   slug: "formulate",
-  scheme: "formulate",
+  scheme: schemes,
   version: "0.1.0",
   orientation: "portrait",
   userInterfaceStyle: "light",
@@ -55,7 +63,7 @@ const config: ExpoConfig = {
     bundler: "metro",
     output: "static",
   },
-  plugins: ["expo-router"],
+  plugins: ["expo-router", "expo-web-browser"],
   experiments: {
     typedRoutes: true,
   },

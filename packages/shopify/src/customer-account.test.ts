@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   base64Url,
+  callbackParams,
   codeChallengeFor,
   createAuthorizationRequest,
   customerAccountEndpoints,
@@ -17,7 +18,12 @@ import {
   type CustomerAccountConfig,
   type CustomerTokens,
 } from "./customer-account";
-import { orderGid, orderPathId, orderStatusLabel } from "./customer-orders";
+import {
+  formatOrderDate,
+  orderGid,
+  orderPathId,
+  orderStatusLabel,
+} from "./customer-orders";
 
 const CONFIG: CustomerAccountConfig = {
   shopId: "100581966136",
@@ -338,5 +344,32 @@ describe("order ids in URLs", () => {
   it("makes Shopify's status enums readable", () => {
     expect(orderStatusLabel("PARTIALLY_REFUNDED")).toBe("Partially refunded");
     expect(orderStatusLabel(null)).toBeNull();
+  });
+});
+
+describe("callbackParams", () => {
+  it("reads a native callback, keeping an '=' inside a value", () => {
+    expect(
+      callbackParams("shop.100581966136.app://callback?code=abc%2Fdef==&state=xyz"),
+    ).toEqual({ code: "abc/def==", state: "xyz" });
+  });
+
+  it("reads an error callback and ignores the fragment", () => {
+    expect(
+      callbackParams("https://shop.example/account/authorize?error=access_denied#x"),
+    ).toEqual({ error: "access_denied" });
+  });
+
+  it("returns nothing for a URL without a query", () => {
+    expect(callbackParams("shop.1.app://callback")).toEqual({});
+  });
+});
+
+describe("formatOrderDate", () => {
+  it("uses UK time, so a late-evening order isn't dated the next day", () => {
+    // 23:30 UTC on 6 October is 00:30 BST on the 7th.
+    expect(formatOrderDate("2026-10-06T23:30:00Z")).toBe("7 October 2026");
+    // In winter UK time is UTC.
+    expect(formatOrderDate("2026-12-06T23:30:00Z")).toBe("6 December 2026");
   });
 });

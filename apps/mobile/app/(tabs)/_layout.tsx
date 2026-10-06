@@ -13,7 +13,7 @@ const INACTIVE = "#64748b";
 export const unstable_settings = { initialRouteName: "(shop)" };
 
 /**
- * The app's bottom tab bar (SHO-151): Shop · Search · Cart. A tab bar rather
+ * The app's bottom tab bar (SHO-151): Shop · Search · Account · Cart. A tab bar rather
  * than a hamburger menu, the iOS convention for top-level sections.
  *
  * Shop and Search are each a stack with its own history (see
@@ -21,9 +21,9 @@ export const unstable_settings = { initialRouteName: "(shop)" };
  * first screen. Cart isn't a screen: tapping it opens the cart sheet, as the
  * header button used to, and its badge carries the item count.
  *
- * Account and a subscriptions tab ("My plan") are expected later (SHO-70,
- * SHO-73), up to Apple's five-tab limit. Each joins when its screen exists:
- * an empty tab is worse than no tab.
+ * Account arrived with sign-in (SHO-70). A subscriptions tab ("My plan",
+ * SHO-73) is expected later, which is Apple's five-tab limit. Each joins when
+ * its screen exists: an empty tab is worse than no tab.
  */
 const TabsLayout = () => {
   const { openCart } = useCartUi();
@@ -59,6 +59,16 @@ const TabsLayout = () => {
           tabBarAccessibilityLabel: "Search",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="search-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: "Account",
+          tabBarAccessibilityLabel: "Account",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" color={color} size={size} />
           ),
         }}
       />

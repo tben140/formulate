@@ -200,12 +200,3 @@ export const requireCustomerTokens = async (
   if (isTokenExpiring(tokens)) redirect(`/account/refresh?return_to=${back}`);
   return tokens;
 };
-
-/** Order dates as a UK shopper reads them, in UK time whatever the server's zone. */
-export const formatOrderDate = (iso: string): string =>
-  new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Europe/London",
-  }).format(new Date(iso));

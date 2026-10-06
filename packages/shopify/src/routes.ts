@@ -20,6 +20,8 @@ export const paths = {
   search: (query?: string): string =>
     query ? `/search?${new URLSearchParams({ q: query })}` : "/search",
   policy: (handle: string): string => `/policies/${segment(handle)}`,
+  account: (): string => "/account",
+  order: (pathId: string): string => `/account/orders/${segment(pathId)}`,
 } as const;
 
 /** Route patterns, in Next.js / Expo Router file syntax, that both apps have. */
@@ -28,6 +30,10 @@ export const SHARED_ROUTES = [
   "/collections/[handle]",
   "/products/[handle]",
   "/search",
+  // Customer accounts (SHO-70). Not app links: signed-in pages open where the
+  // session is, and a link can't carry one across.
+  "/account",
+  "/account/orders/[id]",
 ] as const;
 
 /**

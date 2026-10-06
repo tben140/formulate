@@ -75,3 +75,10 @@ test("search results and the cart sheet", async ({ page }) => {
   await expect(page.getByText("Your cart is empty.")).toBeVisible();
   expect(await scan(page)).toEqual([]);
 });
+
+test("the Account tab", async ({ page }) => {
+  await openApp(page);
+  await switchTab(page, "Account");
+  await expect(page.getByText("Accounts aren't available here")).toBeVisible();
+  expect(await scan(page)).toEqual([]);
+});
