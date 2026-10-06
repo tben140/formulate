@@ -62,29 +62,51 @@ different times — after checkout, the authoritative record of "when does this
 customer next get charged" lives in Recharge, not Shopify. Anything the
 storefront displays about a subscription's future is Recharge's answer.
 
-## Planned: read-only customer portal
+## The customer portal (read-only)
 
-Scope is deliberately narrow — **read-only, web only**:
+Built for web and the app (SHO-71, SHO-72): a signed-in customer sees their
+subscriptions, how often each is delivered, and the next deliveries with what
+they'll cost. Changes (skip, swap, pause, cancel) are SHO-73 and SHO-74. For
+now, the emails' portal link (Recharge's hosted portal) covers them.
 
-- Customer signs in.
-- List active subscriptions.
-- Per subscription: next charge date and line items.
+**How a customer becomes a Recharge session.** Signing in to the storefront
+(the [Customer Account API](integration-customer-accounts.md)) gives an access
+token. Recharge exchanges that for its own one-hour session:
 
-No skip, no swap, no pause, no address editing, no cancellation.
+```
+POST https://admin.rechargeapps.com/shopify_customer_account_api_access
+X-Recharge-Storefront-Access-Token: strfnt_…
+{ "customer_token": "<Customer Account access token>", "shop_url": "<shop>.myshopify.com" }
+→ { "api_token": "…", "customer_id": … }
+```
 
-The reasoning: the portal's _management_ surface is a large amount of CRUD that
-demonstrates very little beyond CRUD. What it does prove — authentication, a
-Recharge session, and reading real subscription data across a system boundary —
-is entirely present in the read-only version. If the schedule slips, this is the
-first thing cut, ahead of Klaviyo.
+Reads then go to `api.rechargeapps.com` with that `api_token`, API version
+`2021-11` and `shop_url`, and Recharge scopes them to that customer.
 
-### The constraint that shapes it
+**A thin module, not Recharge's SDK** (`packages/recharge`, decided in SHO-55):
 
-**A Recharge portal session is issued by Recharge, not by Shopify.** "Logged in"
-to the storefront and "logged in" to the portal are two different statements. The
-portal work is therefore also the thing that forces a decision on customer
-authentication generally — see the [domain model](domain-model.md#customer),
-which currently records that decision as deliberately open.
+- The SDK's customer-account login is that one call.
+- Its React Native support is unstated.
+- The repo's shared packages are bare `fetch`.
+
+The cost is tracking Recharge's API version ourselves.
+
+|                       | Web                                        | App                                     |
+| --------------------- | ------------------------------------------ | --------------------------------------- |
+| Recharge session      | server memory, per instance, under an hour | app memory                              |
+| Expired session (401) | log in again once                          | the same                                |
+| Storefront token      | `RECHARGE_STOREFRONT_TOKEN`, server-only   | `EXPO_PUBLIC_…`, as Recharge designs it |
+
+**Never subscribed is not an error.** Recharge returns no session for a
+customer it has never seen, and the portal shows its empty state.
+
+**Rate limits:** Recharge allows about two requests a second, so a page is one
+login (cached for the hour) and at most two reads, in sequence.
+
+**Testing without Recharge:** the package's tests use fixtures taken from the
+store's real test subscription (personal data removed). On web, the Recharge
+hosts can be overridden (`RECHARGE_ADMIN_URL`, `RECHARGE_API_URL`) to point at
+a local fake for rendering real pages.
 
 ## Planned: Recharge → Klaviyo
 
@@ -97,7 +119,6 @@ little build. See [Klaviyo](integration-klaviyo.md).
 
 ## Open questions
 
-- Which Recharge API version and auth model the portal reads through.
 - Whether webhooks are needed for the read-only scope, or whether reading on
   demand is sufficient. Read-on-demand is the current assumption, because with no
   local copy of the data there is nothing to keep in sync.

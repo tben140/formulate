@@ -15,6 +15,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
     "@formulate/analytics": "workspace:*",
+    "@formulate/recharge": "workspace:*",
     "@formulate/shopify": "workspace:*",
     "@formulate/tokens": "workspace:*",
     "@shopify/checkout-sheet-kit": "3.8.1",

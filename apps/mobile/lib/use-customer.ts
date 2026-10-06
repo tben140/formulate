@@ -19,6 +19,12 @@ import {
   signIn,
   signOut,
 } from "./customer-account";
+import {
+  clearRechargeSession,
+  isRechargeConfigured,
+  loadPortal,
+  loadSubscription,
+} from "./recharge";
 import { storefront } from "./storefront";
 
 /**
@@ -114,6 +120,7 @@ export const useSignOut = () => {
   return useMutation({
     mutationFn: async () => {
       await signOut();
+      clearRechargeSession();
       // ⚠️ The cart goes too: it was attached to this buyer at sign-in, so the
       // next person to use the phone would otherwise check out as them.
       await clearCartId();
@@ -124,3 +131,21 @@ export const useSignOut = () => {
     },
   });
 };
+
+/**
+ * The subscription portal (SHO-72). Disabled until a Recharge Storefront token
+ * is configured; the screens say so rather than showing an empty list.
+ */
+export const usePortal = () =>
+  useQuery({
+    queryKey: [...CUSTOMER_KEY, "portal"],
+    queryFn: loadPortal,
+    enabled: isCustomerAccountAvailable && isRechargeConfigured,
+  });
+
+export const useSubscription = (id: string) =>
+  useQuery({
+    queryKey: [...CUSTOMER_KEY, "subscription", id],
+    queryFn: () => loadSubscription(id),
+    enabled: isCustomerAccountAvailable && isRechargeConfigured,
+  });
