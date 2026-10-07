@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node scripts/sync-tokens.mjs",
     "dev": "./scripts/with-env.sh shopify theme dev --path .",
-    "lint": "shopify theme check --path .",
+    "lint": "node scripts/check-css.mjs && shopify theme check --path .",
     "typecheck": "tsc --noEmit",
     "push": "./scripts/with-env.sh shopify theme push --path . --unpublished",
     "pull": "./scripts/with-env.sh shopify theme pull --path ."
