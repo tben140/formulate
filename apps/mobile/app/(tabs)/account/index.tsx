@@ -221,6 +221,12 @@ const AccountScreen = () => {
         busy={signOut.isPending}
         onPress={() => signOut.mutate()}
       />
+
+      <Link href="/account/delete" asChild>
+        <Pressable accessibilityRole="link" className="items-center py-2">
+          <Text className="text-sm text-foreground-muted underline">Delete account</Text>
+        </Pressable>
+      </Link>
     </ScrollView>
   );
 };

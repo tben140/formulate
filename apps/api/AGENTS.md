@@ -60,6 +60,24 @@ and it looks identical in code.
 - Rate limiting keys on `CF-Connecting-IP`, which the edge sets. Never
   `X-Forwarded-For`, which the caller controls.
 
+## Account deletion (SHO-90)
+
+`POST /account/deletion/preview` and `POST /account/deletion`, in
+`src/account-deletion.ts`. Unlike the Klaviyo routes, these act on a person, so
+they authenticate: the caller's Shopify Customer Account token in
+`Authorization`, verified with Shopify.
+
+- ⚠️ **The customer id comes only from Shopify's answer to that token.** Never
+  from the body. The Worker holds Admin tokens; an id from the request would let
+  any signed-in buyer cancel or erase another account. Tested.
+- Order is fixed and stops at the first failure: cancel Recharge subscriptions,
+  delete the Klaviyo profile, then request Shopify erasure. Every step is safe
+  to repeat, so a retry is correct.
+- Needs three secrets, `SHOPIFY_ADMIN_TOKEN`, `RECHARGE_ADMIN_TOKEN` and
+  `KLAVIYO_DELETION_KEY` (data-privacy:write only). Until all three exist the
+  routes answer 503 and delete nothing, because the confirmation screen
+  promises every step.
+
 ## The runtime is not Node
 
 No `fs`, no `Buffer`, no Node `crypto`, no `process.env` — environment arrives as

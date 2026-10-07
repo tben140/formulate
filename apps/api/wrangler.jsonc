@@ -41,7 +41,16 @@
    * one on this platform, and it looks identical in code.
    */
   "vars": {
-    "KLAVIYO_LIST_ID": "XPJ8ic"
+    "KLAVIYO_LIST_ID": "XPJ8ic",
+    /*
+     * Account deletion (SHO-90). These name the store and grant nothing. Its
+     * credentials, SHOPIFY_ADMIN_TOKEN, RECHARGE_ADMIN_TOKEN and
+     * KLAVIYO_DELETION_KEY, are secrets: Cloudflare dashboard, type Secret.
+     * Until all three exist, deletion answers 503 and deletes nothing.
+     */
+    "SHOPIFY_SHOP_ID": "100581966136",
+    "SHOPIFY_STORE_DOMAIN": "tben140plus-xcorpito.myshopify.com",
+    "SHOPIFY_API_VERSION": "2026-04"
   },
 
   /*
