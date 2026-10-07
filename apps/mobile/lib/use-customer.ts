@@ -15,6 +15,12 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
+import {
+  SAMPLE_ORDERS,
+  SAMPLE_PORTAL,
+  sampleOrder,
+  usePreviewingAccount,
+} from "./account-preview";
 import { clearCartId, readCartId } from "./cart-storage";
 import {
   clearCustomerTokens,
@@ -67,43 +73,58 @@ const queryAsCustomer = async <TData>(
 };
 
 /** The buyer and their latest orders, or null when signed out. */
-export const useCustomerOrders = () =>
-  useInfiniteQuery({
-    queryKey: [...CUSTOMER_KEY, "orders"],
+/*
+ * Each query below answers with sample data while the Expo Go account preview
+ * is on (lib/account-preview.ts), keyed separately so switching it off goes
+ * straight back to real data.
+ */
+
+export const useCustomerOrders = () => {
+  const preview = usePreviewingAccount();
+  return useInfiniteQuery({
+    queryKey: [...CUSTOMER_KEY, "orders", { preview }],
     queryFn: ({ pageParam }) =>
-      queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, {
-        first: 20,
-        after: pageParam,
-      }),
+      preview
+        ? Promise.resolve<CustomerOrdersResult | null>(SAMPLE_ORDERS)
+        : queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, {
+            first: 20,
+            after: pageParam,
+          }),
     initialPageParam: undefined as string | undefined,
     // Older orders, one cursor page at a time ("Load more" on the Account tab).
     getNextPageParam: (last) =>
       last?.customer.orders.pageInfo.hasNextPage
         ? (last.customer.orders.pageInfo.endCursor ?? undefined)
         : undefined,
-    enabled: isCustomerAccountAvailable,
+    enabled: preview || isCustomerAccountAvailable,
   });
+};
 
 /** One order. Another buyer's id comes back as `order: null`, the API's own scoping. */
-export const useCustomerOrder = (pathId: string) =>
-  useQuery({
-    queryKey: [...CUSTOMER_KEY, "order", pathId],
+export const useCustomerOrder = (pathId: string) => {
+  const preview = usePreviewingAccount();
+  return useQuery({
+    queryKey: [...CUSTOMER_KEY, "order", pathId, { preview }],
     queryFn: () => {
       const gid = orderGid(pathId);
-      return gid
-        ? queryAsCustomer<CustomerOrderResult>(CUSTOMER_ORDER_QUERY, { id: gid })
-        : null;
+      if (!gid) return null;
+      return preview
+        ? sampleOrder(gid)
+        : queryAsCustomer<CustomerOrderResult>(CUSTOMER_ORDER_QUERY, { id: gid });
     },
-    enabled: isCustomerAccountAvailable,
+    enabled: preview || isCustomerAccountAvailable,
   });
+};
 
 /** Whether tokens are stored, for deciding what to show before any request. */
-export const useHasCustomerSession = () =>
-  useQuery({
-    queryKey: [...CUSTOMER_KEY, "session"],
-    queryFn: async () => (await readCustomerTokens()) !== null,
-    enabled: isCustomerAccountAvailable,
+export const useHasCustomerSession = () => {
+  const preview = usePreviewingAccount();
+  return useQuery({
+    queryKey: [...CUSTOMER_KEY, "session", { preview }],
+    queryFn: async () => preview || (await readCustomerTokens()) !== null,
+    enabled: preview || isCustomerAccountAvailable,
   });
+};
 
 export const useSignIn = () => {
   const queryClient = useQueryClient();
@@ -150,16 +171,24 @@ export const useSignOut = () => {
  * The subscription portal (SHO-72). Disabled until a Recharge Storefront token
  * is configured; the screens say so rather than showing an empty list.
  */
-export const usePortal = () =>
-  useQuery({
-    queryKey: [...CUSTOMER_KEY, "portal"],
-    queryFn: loadPortal,
-    enabled: isCustomerAccountAvailable && isRechargeConfigured,
+export const usePortal = () => {
+  const preview = usePreviewingAccount();
+  return useQuery({
+    queryKey: [...CUSTOMER_KEY, "portal", { preview }],
+    queryFn: () => (preview ? Promise.resolve(SAMPLE_PORTAL) : loadPortal()),
+    enabled: preview || (isCustomerAccountAvailable && isRechargeConfigured),
   });
+};
 
-export const useSubscription = (id: string) =>
-  useQuery({
-    queryKey: [...CUSTOMER_KEY, "subscription", id],
-    queryFn: () => loadSubscription(id),
-    enabled: isCustomerAccountAvailable && isRechargeConfigured,
+export const useSubscription = (id: string) => {
+  const preview = usePreviewingAccount();
+  return useQuery({
+    queryKey: [...CUSTOMER_KEY, "subscription", id, { preview }],
+    queryFn: () => {
+      if (!preview) return loadSubscription(id);
+      const subscription = SAMPLE_PORTAL.subscriptions.find((s) => String(s.id) === id);
+      return subscription ? { subscription, upcoming: SAMPLE_PORTAL.upcoming } : null;
+    },
+    enabled: preview || (isCustomerAccountAvailable && isRechargeConfigured),
   });
+};
