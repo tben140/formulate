@@ -1,4 +1,4 @@
-import { HomeView } from "../components/home-view";
+import { HomeView } from "../../../components/home-view";
 
 const HomeScreen = () => <HomeView />;
 
