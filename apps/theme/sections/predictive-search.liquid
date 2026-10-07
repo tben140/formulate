@@ -1,0 +1,78 @@
+{% comment %}
+  Search suggestions (SHO-103): rendered by Shopify for
+  `/search/suggest?q=…&section_id=predictive-search` and read by
+  assets/predictive-search.js. Never placed on a page itself.
+
+  Options only: the listbox, status line and keyboard handling live in the
+  component, so this response is just what to put inside the list. Matches
+  apps/web's suggestions: image, title, lowest price, at most six products.
+{% endcomment %}
+{%- liquid
+  assign products = predictive_search.resources.products
+-%}
+<div data-predictive-search-results data-count="{{ products.size }}">
+  {%- for product in products limit: 6 -%}
+    <a
+      class="predictive-search__option"
+      id="predictive-search-option-{{ forloop.index }}"
+      role="option"
+      aria-selected="false"
+      href="{{ product.url }}"
+      tabindex="-1"
+    >
+      {%- if product.featured_image -%}
+        {{ product.featured_image | image_url: width: 80, height: 80, crop: 'center' | image_tag: alt: '', width: 40, height: 40, loading: 'lazy', class: 'predictive-search__image' }}
+      {%- else -%}
+        <span class="predictive-search__image" aria-hidden="true"></span>
+      {%- endif -%}
+      <span class="predictive-search__title">{{ product.title }}</span>
+      <span class="predictive-search__price">{{ product.price_min | money }}</span>
+    </a>
+  {%- endfor -%}
+</div>
+
+{% stylesheet %}
+  .predictive-search__option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--text-sm);
+    color: var(--color-foreground);
+    text-decoration: none;
+  }
+
+  .predictive-search__option[aria-selected='true'],
+  .predictive-search__option:hover {
+    background: var(--color-brand-50);
+  }
+
+  .predictive-search__image {
+    flex-shrink: 0;
+    inline-size: 40px;
+    block-size: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-muted);
+    object-fit: cover;
+  }
+
+  .predictive-search__title {
+    flex: 1;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Full-strength text: brand-50 under muted grey fails AA (#77). */
+  .predictive-search__price {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Search suggestions"
+}
+{% endschema %}

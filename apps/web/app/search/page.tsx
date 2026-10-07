@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { CollectionFilters } from "@/components/collection-filters";
+import { PredictiveSearch } from "@/components/predictive-search";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { toSearchParams } from "@/lib/search-params";
@@ -56,21 +57,13 @@ const SearchPage = async ({ searchParams }: PageProps) => {
         method="get"
         action="/search"
         role="search"
-        className="mt-6 flex max-w-xl gap-2"
+        className="relative mt-6 flex max-w-xl gap-2"
       >
         <label htmlFor="search-term" className="sr-only">
           Search products
         </label>
-        <input
-          id="search-term"
-          type="search"
-          name="q"
-          defaultValue={term}
-          placeholder="Search products"
-          autoComplete="off"
-          enterKeyHint="search"
-          className="min-w-0 flex-1 rounded-md border border-ink-400 px-3 py-2"
-        />
+        {/* Suggestions as you type (SHO-103); a plain input without JavaScript. */}
+        <PredictiveSearch id="search-term" defaultValue={term} />
         <button
           type="submit"
           className="rounded-md bg-brand-600 px-4 py-2 font-semibold text-surface hover:bg-brand-700"
