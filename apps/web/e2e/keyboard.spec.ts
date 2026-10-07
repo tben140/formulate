@@ -14,6 +14,24 @@ const tabTo = async (page: Page, target: ReturnType<Page["locator"]>, max = 40) 
 // Keyboard behaviour is the same at every width; the desktop project covers it.
 test.skip(({ viewport }) => (viewport?.width ?? 0) < 768, "desktop only");
 
+test("the first Tab reaches Skip to content, which jumps past the header", async ({
+  page,
+}) => {
+  await page.goto("/collections/best-sellers", { waitUntil: "networkidle" });
+  await page.keyboard.press("Tab");
+  const skip = page.getByRole("link", { name: "Skip to content" });
+  await expect(skip).toBeFocused();
+  await expect(skip).toBeInViewport();
+
+  await page.keyboard.press("Enter");
+  await expect(page.locator("main")).toBeFocused();
+  // The next stop is inside the page, not the header's collection links.
+  await page.keyboard.press("Tab");
+  expect(
+    await page.evaluate(() => document.activeElement?.closest("main") !== null),
+  ).toBe(true);
+});
+
 test("keyboard-only: collection to cart, with focus moved into the drawer", async ({
   page,
 }) => {
