@@ -7,7 +7,7 @@ export const openApp = async (page: Page, path = "/") => {
 };
 
 /** A tab in the bottom bar, by the start of its accessible name. */
-export const tab = (page: Page, name: "Shop" | "Search" | "Cart") =>
+export const tab = (page: Page, name: "Shop" | "Search" | "Account" | "Cart") =>
   page.getByRole("tab", { name: new RegExp(`^${name}`) });
 
 /**
@@ -15,7 +15,7 @@ export const tab = (page: Page, name: "Shop" | "Search" | "Cart") =>
  * render, React Navigation on web can still be settling its initial state and
  * drop a tap; this retries the tap instead of failing on a lost one.
  */
-export const switchTab = async (page: Page, name: "Shop" | "Search") => {
+export const switchTab = async (page: Page, name: "Shop" | "Search" | "Account") => {
   await expect(async () => {
     await tab(page, name).click();
     await expect(tab(page, name)).toHaveAttribute("aria-selected", "true", {
