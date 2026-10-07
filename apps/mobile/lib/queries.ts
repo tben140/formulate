@@ -9,6 +9,7 @@ import {
   describeError,
   productFiltersFromParams,
   toNavLinks,
+  suggestionTerm,
 } from "@formulate/shopify";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
@@ -113,7 +114,8 @@ export const useComplementaryProducts = (productId: string | undefined) =>
 
 /**
  * Product search, as Search & Discovery tunes it, with the same filter query
- * string as collections. Off until the term is at least two characters, and
+ * string as collections. Off until the term reaches the shared minimum
+ * (PREDICTIVE_SEARCH, the same as web and the theme), and
  * previous results stay on screen while the next ones load.
  */
 export const useSearch = (term: string, filterQuery = "") =>
@@ -127,6 +129,6 @@ export const useSearch = (term: string, filterQuery = "") =>
           filters: productFiltersFromParams(new URLSearchParams(filterQuery)),
         }),
       ).search,
-    enabled: term.trim().length >= 2,
+    enabled: suggestionTerm(term) !== null,
     placeholderData: keepPreviousData,
   });
