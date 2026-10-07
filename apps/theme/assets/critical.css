@@ -813,6 +813,13 @@ a:hover {
   color: var(--color-foreground);
 }
 
+/* The subscriber gift line under the plans (SHO-156); matches web's text-sm muted. */
+.product-form__gift {
+  margin-block-start: var(--spacing-2);
+  font-size: var(--text-sm);
+  color: var(--color-foreground-muted);
+}
+
 .product-form__price {
   margin-block-end: var(--spacing-4);
   font-size: var(--text-2xl);
