@@ -1,8 +1,88 @@
 # Formulate
 
-One Shopify store rendered three ways, as a Turborepo monorepo: a Next.js web
-app, an Expo React Native app, and a Liquid theme — over a shared data layer and
-one set of design tokens.
+**One Shopify store, three storefronts.** A Next.js web app, an Expo React
+Native app and a Liquid theme sell the same supplement subscriptions, built in
+one Turborepo over a shared Storefront API layer and one set of design tokens.
+It's a portfolio project on a real development store, with checkout in test
+mode.
+
+- **Web:** [web-six-murex-18.vercel.app](https://web-six-murex-18.vercel.app)
+  (production deploys from `main`)
+- **App:** no public build yet; EAS builds are SHO-24. It runs in Expo Go for
+  development.
+- **Theme:** the store is password-protected, as development stores are. The
+  password is available on request.
+
+| Web                                                                      | App                                                                                   | Theme                                                                      |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| ![The web app's Best Sellers collection](docs/images/web-collection.jpg) | ![The app's Performance collection, with the tab bar](docs/images/app-collection.jpg) | ![The theme's Whey Protein page on a phone](docs/images/theme-product.jpg) |
+
+## How it fits together
+
+```mermaid
+flowchart LR
+  subgraph Shopify
+    SF[Storefront API]
+    SD[Search & Discovery]
+    CO[Checkout]
+  end
+  subgraph packages
+    SH[packages/shopify<br/>queries · types · filters · routes]
+    TK[packages/tokens<br/>colours · type · spacing]
+    AN[packages/analytics<br/>Klaviyo events · consent]
+  end
+  WEB[apps/web<br/>Next.js · Server Components]
+  APP[apps/mobile<br/>Expo · TanStack Query]
+  THEME[apps/theme<br/>Liquid · web components]
+  API[apps/api<br/>Cloudflare Worker]
+  KL[Klaviyo]
+
+  SH --> WEB & APP
+  TK --> WEB & APP & THEME
+  AN --> WEB & APP
+  WEB & APP --> SF
+  THEME --> SF
+  SF --- SD
+  WEB & APP & THEME --> CO
+  APP -- consent --> API --> KL
+  WEB & THEME -- consent and events --> KL
+```
+
+The two React apps share data code, through `packages/shopify`. All three
+share design, through `packages/tokens`. The theme deliberately reads its data
+from Liquid rather than the shared client
+([ADR 0005](docs/adr/0005-parity-means-design-not-data.md)).
+
+## The stack, and why
+
+| Choice                                     | Why                                                                                                                                                                              |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Turborepo + pnpm, theme included**       | One change can land on all three surfaces in one PR, and the theme is versioned with the code it mirrors ([ADR 0001](docs/adr/0001-monorepo-over-separate-theme-repository.md)). |
+| **Next.js 16, App Router**                 | Every Storefront query runs in a Server Component, so the web app's token never reaches a browser.                                                                               |
+| **Expo SDK 57 + Expo Router**              | File routes match web's URLs, which a shared route contract and a parity test enforce.                                                                                           |
+| **Liquid theme, no build step**            | Shopify's own storefront, as a reference and for the store's native features. Plain ES modules, typed with JSDoc.                                                                |
+| **Tailwind v4 + NativeWind v5**            | Web and the app consume the same generated token CSS. NativeWind v5 is a preview, a known risk ([ADR 0003](docs/adr/0003-nativewind-v5-and-tailwind-v4.md)).                     |
+| **GraphQL codegen from a bundled schema**  | Typed queries, generated offline with no store credentials.                                                                                                                      |
+| **A Cloudflare Worker for mobile consent** | Klaviyo's client endpoints are blocked from native apps, and a private key can't ship in an app ([ADR 0007](docs/adr/0007-mobile-consent-goes-through-a-worker.md)).             |
+| **Search & Discovery**                     | Filters and "Pairs well with" are configured by the merchant, not in code, and are the same on all three surfaces.                                                               |
+
+## Worth a closer look
+
+- **Design tokens on three runtimes.** One TypeScript source generates the CSS
+  for Tailwind on web, NativeWind in the app and plain CSS in the theme, and
+  every surface uses DM Sans and DM Mono from it.
+- **Measured, not assumed, performance.** Lighthouse CI runs on every web
+  deployment and on the theme. A lab "2.5 s render delay" turned out to be an
+  artefact of simulated throttling: real throttling put LCP render delay near
+  0.1 s, and the fix was image loading ([surface-web.md](docs/surface-web.md)).
+- **Accessibility in CI on every surface.** axe (WCAG 2.2 AA) runs against web
+  deployments and against a temporary copy of the theme pushed for each PR.
+  Keyboard paths are tested end to end.
+- **Consent done properly.** Web gates Klaviyo on consent; the app records
+  consent through the Worker; a restock alert is not a marketing sign-up and
+  says so ([integration-klaviyo.md](docs/integration-klaviyo.md)).
+- **Headless subscriptions** with Recharge are in progress
+  ([integration-recharge.md](docs/integration-recharge.md)).
 
 ## Structure
 
@@ -11,9 +91,11 @@ apps/
   web/          Next.js 16 · App Router · Tailwind v4 · deploys to Vercel
   mobile/       Expo SDK 57 · Expo Router · NativeWind v5 · builds via EAS
   theme/        Liquid · web components · no build step · Shopify Online Store
+  api/          Cloudflare Worker · records mobile marketing consent in Klaviyo
 packages/
-  shopify/      Storefront API client, query documents, generated types
+  shopify/      Storefront API client, query documents, generated types, routes
   tokens/       Design tokens (TS source) → generated CSS for Tailwind and Liquid
+  analytics/    Klaviyo event payloads and consent requests, shared by web and app
   eslint-config/
   typescript-config/
 docs/           Architecture, domain model, decision records (also an Obsidian vault)
@@ -57,7 +139,12 @@ belongs behind a Next.js route handler.
 
 ## Setup
 
+You need Node 22 or later and pnpm 11. The repository pins its pnpm version
+(`packageManager` in `package.json`), so `corepack enable` provides the right
+one.
+
 ```bash
+corepack enable
 pnpm install
 ```
 
