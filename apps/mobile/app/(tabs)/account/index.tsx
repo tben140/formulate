@@ -8,6 +8,11 @@ import { Link } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 
 import { Text } from "../../../components/text";
+import {
+  canPreviewAccount,
+  setPreviewingAccount,
+  usePreviewingAccount,
+} from "../../../lib/account-preview";
 import { isCustomerAccountAvailable } from "../../../lib/customer-account";
 import { useCustomerOrders, useSignIn, useSignOut } from "../../../lib/use-customer";
 
@@ -48,12 +53,32 @@ const Button = ({
  * Unlike web, signing in doesn't redirect away on its own: a tab you tap
  * shouldn't open a browser sheet before you've asked for it.
  */
+/**
+ * Expo Go can't sign in (lib/account-preview.ts), so in development it offers
+ * the signed-in screens with sample data instead of a button that can't work.
+ */
+const ExpoGoPreviewOffer = () => (
+  <View className="gap-4 p-4">
+    <Text accessibilityRole="header" className="text-2xl font-semibold text-foreground">
+      Your account
+    </Text>
+    <Text className="text-foreground-muted">
+      Signing in needs the full app: Expo Go can&apos;t receive Shopify&apos;s sign-in.
+      You can still try every account screen with sample data.
+    </Text>
+    <Button label="Preview with sample data" onPress={() => setPreviewingAccount(true)} />
+  </View>
+);
+
 const AccountScreen = () => {
+  const preview = usePreviewingAccount();
   const orders = useCustomerOrders();
   const signIn = useSignIn();
   const signOut = useSignOut();
 
-  if (!isCustomerAccountAvailable) {
+  if (!preview && canPreviewAccount) return <ExpoGoPreviewOffer />;
+
+  if (!preview && !isCustomerAccountAvailable) {
     return (
       <View className="p-4">
         <Text
@@ -123,6 +148,16 @@ const AccountScreen = () => {
 
   return (
     <ScrollView contentContainerClassName="gap-6 p-4">
+      {preview ? (
+        <View
+          accessibilityRole="summary"
+          className="rounded-md border border-brand-600 bg-brand-50 px-4 py-3"
+        >
+          <Text className="text-sm text-foreground">
+            Preview with sample data. Nothing here is a real order or subscription.
+          </Text>
+        </View>
+      ) : null}
       <View>
         <Text
           accessibilityRole="header"
@@ -215,12 +250,20 @@ const AccountScreen = () => {
         ) : null}
       </View>
 
-      <Button
-        label={signOut.isPending ? "Signing out…" : "Sign out"}
-        variant="secondary"
-        busy={signOut.isPending}
-        onPress={() => signOut.mutate()}
-      />
+      {preview ? (
+        <Button
+          label="Exit preview"
+          variant="secondary"
+          onPress={() => setPreviewingAccount(false)}
+        />
+      ) : (
+        <Button
+          label={signOut.isPending ? "Signing out…" : "Sign out"}
+          variant="secondary"
+          busy={signOut.isPending}
+          onPress={() => signOut.mutate()}
+        />
+      )}
     </ScrollView>
   );
 };

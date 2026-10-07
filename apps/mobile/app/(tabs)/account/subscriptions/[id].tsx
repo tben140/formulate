@@ -12,6 +12,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 
 import { Text } from "../../../../components/text";
+import { usePreviewingAccount } from "../../../../lib/account-preview";
 import { isRechargeConfigured } from "../../../../lib/recharge";
 import { useSubscription } from "../../../../lib/use-customer";
 
@@ -25,9 +26,10 @@ const Row = ({ label, value }: { label: string; value: string }) => (
 /** One subscription, matching apps/web's /account/subscriptions/[id]. */
 const SubscriptionScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const preview = usePreviewingAccount();
   const query = useSubscription(id);
 
-  if (!isRechargeConfigured) {
+  if (!preview && !isRechargeConfigured) {
     return (
       <Text className="p-4 text-foreground-muted">
         Subscriptions can&apos;t be shown in this version of the app yet.
