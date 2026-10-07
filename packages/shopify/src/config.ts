@@ -64,3 +64,19 @@ export const DEFAULT_API_VERSION = "2026-04";
  * for. When markets arrive, this becomes the fallback rather than the answer.
  */
 export const DEFAULT_COUNTRY_CODE = "GB" as const;
+
+/**
+ * The subscriber gift (SHO-156): a free 7-day trial pack with the 3rd
+ * delivery, added by Recharge. Shown under the purchase options on products
+ * that have a subscription plan.
+ *
+ * ⚠️ `enabled` stays false until the gift is really being added to orders. A
+ * storefront promising a gift that never arrives is worse than saying nothing.
+ * The Liquid theme can't import this: its copy is `product.subscriber_gift` in
+ * locales/en.default.json, switched by the theme setting
+ * `subscriber_gift_enabled`. Change all three together.
+ */
+export const SUBSCRIBER_GIFT = {
+  enabled: false,
+  message: "Subscribe and get a free 7-day trial pack with your 3rd delivery.",
+} as const;
