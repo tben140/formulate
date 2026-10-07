@@ -28,11 +28,18 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  readonly searchParams: Promise<{ error?: string }>;
+  readonly searchParams: Promise<{ error?: string; after?: string }>;
 }
 
-/** How many recent orders to show. History beyond that is a later ticket. */
+/** Orders per page; older ones are a link away (`?after=<cursor>`). */
 const ORDER_LIMIT = 20;
+
+/**
+ * A page cursor from the URL, or undefined. Shopify's cursors are opaque
+ * base64-ish strings; anything long or odd is ignored rather than sent on.
+ */
+const pageCursor = (value: string | undefined): string | undefined =>
+  value && value.length <= 512 && /^[\w+/=:.-]+$/.test(value) ? value : undefined;
 
 const Notice = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="max-w-xl">
@@ -58,7 +65,8 @@ const AccountPage = async ({ searchParams }: PageProps) => {
 
   // After a failed or cancelled sign-in. Shown instead of retrying
   // automatically, which would bounce straight back to Shopify.
-  const { error } = await searchParams;
+  const { error, after: afterParam } = await searchParams;
+  const after = pageCursor(afterParam);
   if (error) {
     return (
       <Notice title="You're not signed in">
@@ -80,7 +88,7 @@ const AccountPage = async ({ searchParams }: PageProps) => {
     customerAccountConfig,
     tokens.accessToken,
     CUSTOMER_ORDERS_QUERY,
-    { first: ORDER_LIMIT },
+    { first: ORDER_LIMIT, after },
   );
 
   if (!result.ok) {
@@ -189,6 +197,30 @@ const AccountPage = async ({ searchParams }: PageProps) => {
           })}
         </ul>
       )}
+
+      {/* Plain links, so paging works without JavaScript, like the collections. */}
+      {after || customer.orders.pageInfo.hasNextPage ? (
+        <nav
+          aria-label="Order history pages"
+          className="mt-4 flex justify-between text-sm"
+        >
+          {after ? (
+            <Link href="/account" className="text-brand-600 underline underline-offset-4">
+              Latest orders
+            </Link>
+          ) : (
+            <span />
+          )}
+          {customer.orders.pageInfo.hasNextPage && customer.orders.pageInfo.endCursor ? (
+            <Link
+              href={`/account?after=${encodeURIComponent(customer.orders.pageInfo.endCursor)}`}
+              className="text-brand-600 underline underline-offset-4"
+            >
+              Older orders
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
     </div>
   );
 };

@@ -8,7 +8,12 @@ import {
   type CustomerOrderResult,
   type CustomerOrdersResult,
 } from "@formulate/shopify";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { clearCartId, readCartId } from "./cart-storage";
 import {
@@ -63,10 +68,19 @@ const queryAsCustomer = async <TData>(
 
 /** The buyer and their latest orders, or null when signed out. */
 export const useCustomerOrders = () =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: [...CUSTOMER_KEY, "orders"],
-    queryFn: () =>
-      queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, { first: 20 }),
+    queryFn: ({ pageParam }) =>
+      queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, {
+        first: 20,
+        after: pageParam,
+      }),
+    initialPageParam: undefined as string | undefined,
+    // Older orders, one cursor page at a time ("Load more" on the Account tab).
+    getNextPageParam: (last) =>
+      last?.customer.orders.pageInfo.hasNextPage
+        ? (last.customer.orders.pageInfo.endCursor ?? undefined)
+        : undefined,
     enabled: isCustomerAccountAvailable,
   });
 
