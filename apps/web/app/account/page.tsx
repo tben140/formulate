@@ -122,6 +122,19 @@ const AccountPage = async ({ searchParams }: PageProps) => {
         </form>
       </div>
 
+      <Link
+        href="/account/subscriptions"
+        className="mt-8 flex items-center justify-between rounded-md border border-border px-4 py-3 hover:bg-surface-muted"
+      >
+        <span>
+          <span className="block font-medium">Subscriptions</span>
+          <span className="block text-sm text-foreground-muted">
+            Your deliveries and what&apos;s coming next
+          </span>
+        </span>
+        <span aria-hidden="true">→</span>
+      </Link>
+
       <h2 className="mt-10 text-xl font-semibold">Orders</h2>
       {orders.length === 0 ? (
         <p className="mt-2 text-foreground-muted">

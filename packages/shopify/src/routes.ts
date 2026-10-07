@@ -34,6 +34,9 @@ export const SHARED_ROUTES = [
   // session is, and a link can't carry one across.
   "/account",
   "/account/orders/[id]",
+  // The subscription portal (SHO-72).
+  "/account/subscriptions",
+  "/account/subscriptions/[id]",
 ] as const;
 
 /**

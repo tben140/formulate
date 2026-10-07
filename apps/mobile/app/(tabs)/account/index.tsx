@@ -134,6 +134,24 @@ const AccountScreen = () => {
         ) : null}
       </View>
 
+      <Link href="/account/subscriptions" asChild>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Subscriptions: your deliveries and what's coming next"
+          className="flex-row items-center justify-between rounded-md border border-border px-4 py-3"
+        >
+          <View>
+            <Text className="font-medium text-foreground">Subscriptions</Text>
+            <Text className="text-sm text-foreground-muted">
+              Your deliveries and what&apos;s coming next
+            </Text>
+          </View>
+          <Text aria-hidden className="text-foreground">
+            →
+          </Text>
+        </Pressable>
+      </Link>
+
       <View>
         <Text
           accessibilityRole="header"
