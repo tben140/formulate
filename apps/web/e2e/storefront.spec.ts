@@ -51,3 +51,25 @@ test("an unknown product is a 404", async ({ page }) => {
   const response = await page.goto("/products/this-product-does-not-exist");
   expect(response?.status()).toBe(404);
 });
+
+test("the product photo keeps its own shape beside a tall details column", async ({
+  page,
+}) => {
+  // At 768 px the details column was 961 px tall and the photo stretched to
+  // match, cropped to fit. Checked at the widths where the two columns sit
+  // side by side, and at phone width.
+  for (const width of [390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/products/magnesium-glycinate");
+    const photo = page.locator("main img").first();
+    await expect(photo).toBeVisible();
+    const { shown, natural } = await photo.evaluate((img: HTMLImageElement) => {
+      const box = img.getBoundingClientRect();
+      return {
+        shown: box.width / box.height,
+        natural: img.naturalWidth / img.naturalHeight,
+      };
+    });
+    expect(Math.abs(shown - natural), `at ${width}px`).toBeLessThan(0.02);
+  }
+});
