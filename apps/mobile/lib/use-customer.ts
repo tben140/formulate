@@ -26,7 +26,6 @@ import {
   signOut,
 } from "./customer-account";
 import {
-  clearRechargeSession,
   isRechargeConfigured,
   loadPortal,
   loadSubscription,
@@ -135,7 +134,6 @@ export const useSignOut = () => {
   return useMutation({
     mutationFn: async () => {
       await signOut();
-      clearRechargeSession();
       // ⚠️ The cart goes too: it was attached to this buyer at sign-in, so the
       // next person to use the phone would otherwise check out as them.
       await clearCartId();
@@ -148,8 +146,9 @@ export const useSignOut = () => {
 };
 
 /**
- * The subscription portal (SHO-72). Disabled until a Recharge Storefront token
- * is configured; the screens say so rather than showing an empty list.
+ * The subscription portal (SHO-72), read through the Worker. Disabled until
+ * the Worker's URL is configured; the screens say so rather than showing an
+ * empty list.
  */
 export const usePortal = () =>
   useQuery({
@@ -176,7 +175,7 @@ export const useDeletionPreview = () =>
 
 /**
  * Deletes the account through the Worker. On success, everything sign-out
- * forgets is forgotten here too: tokens, Recharge session and the cart. No
+ * forgets is forgotten here too: tokens and the cart. No
  * Shopify logout request: the account it would end is being erased.
  */
 export const useDeleteAccount = () => {
@@ -186,7 +185,6 @@ export const useDeleteAccount = () => {
       const result = await deleteAccount();
       if (result.ok) {
         await clearCustomerTokens();
-        clearRechargeSession();
         await clearCartId();
       }
       return result;

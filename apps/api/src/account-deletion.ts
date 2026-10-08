@@ -1,5 +1,13 @@
 import { KLAVIYO_REVISION } from "@formulate/analytics";
 
+import { recharge, rechargeCustomerId, rechargeList, type RechargeAdminEnv } from "./recharge-admin";
+import {
+  bearerToken,
+  verifyCustomer,
+  type CustomerEnv,
+  type VerifiedCustomer,
+} from "./shopify-customer";
+
 /**
  * Account deletion (SHO-90), for the web account page and the app.
  *
@@ -34,7 +42,7 @@ import { KLAVIYO_REVISION } from "@formulate/analytics";
  * is harmless, and a second erasure request replaces the first.
  */
 
-export interface DeletionEnv {
+export interface DeletionEnv extends CustomerEnv, RechargeAdminEnv {
   /** Plain vars: they name the store, they grant nothing. */
   readonly SHOPIFY_SHOP_ID: string;
   readonly SHOPIFY_STORE_DOMAIN: string;
@@ -97,51 +105,11 @@ const fail = (status: number, reason: DeletionFailure["reason"]): DeletionResult
   body: { ok: false, reason },
 });
 
-const RECHARGE_API = "https://api.rechargeapps.com";
-const RECHARGE_VERSION = "2021-11";
 const KLAVIYO_DELETION_URL = "https://a.klaviyo.com/api/data-privacy-deletion-jobs";
 
 /** Charges are scheduled by the store's calendar day, which is London's. */
 export const londonToday = (now: Date = new Date()): string =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(now);
-
-interface VerifiedCustomer {
-  /** Numeric, as Recharge's `external_customer_id` and Shopify's gid take it. */
-  readonly id: string;
-  readonly email: string | null;
-}
-
-/**
- * Whose token is this? Asked of Shopify's Customer Account API with the token
- * itself, so only a live sign-in for this shop answers.
- */
-const verifyCustomer = async (
-  env: DeletionEnv,
-  accessToken: string,
-): Promise<VerifiedCustomer | null> => {
-  const response = await fetch(
-    `https://shopify.com/${env.SHOPIFY_SHOP_ID}/account/customer/api/${env.SHOPIFY_API_VERSION}/graphql`,
-    {
-      method: "POST",
-      // No "Bearer": the Customer Account API takes the bare token.
-      headers: { Authorization: accessToken, "content-type": "application/json" },
-      body: JSON.stringify({
-        query: "{ customer { id emailAddress { emailAddress } } }",
-      }),
-    },
-  );
-  if (!response.ok) return null;
-  const body = (await response.json().catch(() => null)) as {
-    data?: {
-      customer?: { id?: string; emailAddress?: { emailAddress?: string } | null };
-    };
-  } | null;
-  const gid = body?.data?.customer?.id;
-  const id = gid?.match(/^gid:\/\/shopify\/Customer\/(\d+)$/)?.[1];
-  return id
-    ? { id, email: body?.data?.customer?.emailAddress?.emailAddress ?? null }
-    : null;
-};
 
 interface AdminSubscription {
   readonly id: number;
@@ -152,45 +120,12 @@ interface AdminSubscription {
   readonly charge_interval_frequency: number | string;
 }
 
-const recharge = (env: DeletionEnv, path: string, init: RequestInit = {}) =>
-  fetch(`${env.RECHARGE_API_URL ?? RECHARGE_API}${path}`, {
-    ...init,
-    headers: {
-      "X-Recharge-Access-Token": env.RECHARGE_ADMIN_TOKEN ?? "",
-      "X-Recharge-Version": RECHARGE_VERSION,
-      "content-type": "application/json",
-      accept: "application/json",
-    },
-  });
-
-const rechargeList = async <T>(env: DeletionEnv, path: string, key: string) => {
-  const response = await recharge(env, path);
-  if (!response.ok) {
-    console.error("recharge read failed", {
-      path: path.split("?")[0],
-      status: response.status,
-    });
-    return null;
-  }
-  const body = (await response.json().catch(() => null)) as Record<
-    string,
-    unknown
-  > | null;
-  const list = body?.[key];
-  return Array.isArray(list) ? (list as T[]) : null;
-};
-
 /** The customer's Recharge state, or null when Recharge couldn't be read. */
 const rechargeState = async (env: DeletionEnv, customer: VerifiedCustomer) => {
-  const customers = await rechargeList<{ id: number }>(
-    env,
-    `/customers?external_customer_id=${customer.id}`,
-    "customers",
-  );
-  if (!customers) return null;
-  const rechargeId = customers[0]?.id;
+  const rechargeId = await rechargeCustomerId(env, customer.id);
+  if (rechargeId === null) return null;
   // Never subscribed: nothing in Recharge to cancel.
-  if (rechargeId === undefined) return { subscriptions: [], charges: [] };
+  if (rechargeId === "none") return { subscriptions: [], charges: [] };
 
   const [subscriptions, charges] = await Promise.all([
     rechargeList<AdminSubscription>(
@@ -216,7 +151,7 @@ const authorise = async (
   env: DeletionEnv,
   request: Request,
 ): Promise<VerifiedCustomer | DeletionResult> => {
-  const token = request.headers.get("Authorization")?.trim();
+  const token = bearerToken(request);
   if (!token) return fail(401, "unauthorized");
   if (
     !env.SHOPIFY_ADMIN_TOKEN ||
