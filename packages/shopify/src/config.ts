@@ -1,11 +1,17 @@
 /**
  * The collection the storefront opens on.
  *
- * `automated-collection` is a seeded smart collection on the demo store
- * (products priced between £200 and £800), which gives the slice eight real
- * products to render.
+ * `best-sellers` is the Double Helix catalogue's collection that is published
+ * to the Headless channel (6 products, measured 2026-09-26). It replaced
+ * `automated-collection`, the snowboard seed collection, which is now empty,
+ * and an empty collection resolves without an error, so a stale handle
+ * produces a blank landing page rather than a failure anyone notices.
+ *
+ * ⚠️ Two copies cannot import this and must be changed with it:
+ * `apps/theme/sections/featured-collection.liquid` (Liquid) and
+ * `scripts/smoke-test.mjs` (plain Node, no TypeScript).
  */
-export const DEFAULT_COLLECTION_HANDLE = "automated-collection";
+export const DEFAULT_COLLECTION_HANDLE = "best-sellers";
 
 /**
  * Must match the schema version codegen ran against — see codegen.ts. Bumping
