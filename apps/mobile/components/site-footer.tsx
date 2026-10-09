@@ -33,7 +33,7 @@ export const SiteFooter = () => (
     <EmailCapture />
 
     <Text className="mt-6 text-sm text-foreground-muted">
-      &copy; {new Date().getFullYear()} Formulate
+      &copy; {new Date().getFullYear()} Double Helix
     </Text>
   </View>
 );
