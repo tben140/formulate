@@ -78,6 +78,16 @@
 
   <div class="product__info">
     <h1 class="product__title">{{ product.title }}</h1>
+    {% comment %}
+      Stars link to Judge.me's review widget, added as an app block in the
+      theme editor (Product page → Add block → Judge.me Reviews), whose
+      element id is judgeme_product_reviews.
+    {% endcomment %}
+    {%- if product.metafields.reviews.rating_count.value > 0 -%}
+      <a class="product__rating" href="#judgeme_product_reviews">
+        {%- render 'stars', product: product, show_count: true -%}
+      </a>
+    {%- endif -%}
 
     {% if product.description != blank %}
       <div class="product__description">{{ product.description }}</div>
