@@ -8,8 +8,9 @@
   price alongside a selection that changes the price is a contradiction.
 
   The gallery is progressively enhanced by <media-gallery> in
-  assets/media-gallery.js. Without JavaScript the first image still renders and
-  every thumbnail is a plain button, so the page remains usable.
+  assets/media-gallery.js. Without JavaScript every image is still there in a
+  track that swipes and scrolls; the script adds arrows, the count and
+  thumbnails that follow it.
 
   https://shopify.dev/docs/storefronts/themes/architecture/templates/product
 {% endcomment %}
@@ -34,44 +35,79 @@
 </div>
 
 <article class="container product">
-  <media-gallery class="product__gallery">
+  {% comment %}
+    The gallery, matching apps/web's components/product-gallery.tsx and the
+    app's: the featured image first, then the rest (galleryImages in
+    packages/shopify/src/gallery.ts). Every image sits in a scroll-snapping
+    track, so it swipes and scrolls without JavaScript; <media-gallery> adds
+    the arrows, the count, and thumbnails that follow the track. Only the
+    first image loads eagerly: it's the page's Largest Contentful Paint.
+  {% endcomment %}
+  {%- liquid
+    assign gallery_count = product.images.size
+    if gallery_count == 0 and product.featured_image
+      assign gallery_count = 1
+    endif
+  -%}
+  <media-gallery
+    class="product__gallery"
+    {% if gallery_count > 1 %}
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="{{ 'product.gallery_label' | t: title: product.title }}"
+    {% endif %}
+    data-position-text="{{ 'product.gallery_position' | t: index: '[index]', count: '[count]' }}"
+  >
     <div class="product__media">
       {% if product.featured_image %}
-        <img
-          ref="mainImage"
-          class="product__image"
-          src="{{ product.featured_image | image_url: width: 1200 }}"
-          alt="{{ product.featured_image.alt | escape }}"
-          width="{{ product.featured_image.width }}"
-          height="{{ product.featured_image.height }}"
-          loading="eager"
-          fetchpriority="high"
+        <div
+          ref="track"
+          class="product__track"
+          {% if gallery_count > 1 %}
+            tabindex="0"
+            aria-label="{{ 'product.gallery_position' | t: index: 1, count: gallery_count }}"
+          {% endif %}
         >
+          {%- render 'product-slide',
+            image: product.featured_image,
+            index: 1,
+            count: gallery_count,
+            title: product.title
+          -%}
+          {%- assign slide_index = 1 -%}
+          {%- for image in product.images -%}
+            {%- if image.id == product.featured_image.id -%}{%- continue -%}{%- endif -%}
+            {%- assign slide_index = slide_index | plus: 1 -%}
+            {%- render 'product-slide', image: image, index: slide_index, count: gallery_count, title: product.title -%}
+          {%- endfor -%}
+        </div>
+
+        {% if gallery_count > 1 %}
+          <button ref="previous" type="button" class="product__arrow product__arrow--previous" aria-label="{{ 'product.previous_image' | t }}" hidden>
+            <span aria-hidden="true">‹</span>
+          </button>
+          <button ref="next" type="button" class="product__arrow product__arrow--next" aria-label="{{ 'product.next_image' | t }}" hidden>
+            <span aria-hidden="true">›</span>
+          </button>
+          <p ref="count" class="product__count" aria-live="polite" hidden>
+            <span class="visually-hidden" ref="countText">{{ 'product.gallery_position' | t: index: 1, count: gallery_count }}</span>
+            <span aria-hidden="true" ref="countShort">1 / {{ gallery_count }}</span>
+          </p>
+        {% endif %}
       {% else %}
         <span class="product__placeholder">No image</span>
       {% endif %}
     </div>
 
-    {% if product.images.size > 1 %}
-      <div class="product__thumbnails" role="group" aria-label="Product images">
-        {% for image in product.images %}
-          <button
-            ref="thumbnail"
-            type="button"
-            class="product__thumbnail"
-            data-src="{{ image | image_url: width: 1200 }}"
-            data-alt="{{ image.alt | escape }}"
-            aria-label="Show image {{ forloop.index }} of {{ product.images.size }}"
-          >
-            <img
-              src="{{ image | image_url: width: 160, height: 160, crop: 'center' }}"
-              alt=""
-              width="80"
-              height="80"
-              loading="lazy"
-            >
-          </button>
-        {% endfor %}
+    {% if gallery_count > 1 %}
+      <div class="product__thumbnails" role="group" aria-label="{{ 'product.choose_image' | t }}">
+        {%- render 'product-thumbnail', image: product.featured_image, index: 1, count: gallery_count -%}
+        {%- assign thumb_index = 1 -%}
+        {%- for image in product.images -%}
+          {%- if image.id == product.featured_image.id -%}{%- continue -%}{%- endif -%}
+          {%- assign thumb_index = thumb_index | plus: 1 -%}
+          {%- render 'product-thumbnail', image: image, index: thumb_index, count: gallery_count -%}
+        {%- endfor -%}
       </div>
     {% endif %}
   </media-gallery>
@@ -111,15 +147,41 @@
   }
 
   .product__media {
+    position: relative;
     overflow: hidden;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     background-color: var(--color-surface-muted);
   }
 
+  /* One image per view; swipes and scrolls snap to each. Works without JS. */
+  .product__track {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .product__track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .product__track:focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: -2px;
+  }
+
+  .product__slide {
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+  }
+
   .product__image {
+    display: block;
     width: 100%;
-    height: 100%;
+    height: auto;
+    aspect-ratio: 1;
     object-fit: cover;
   }
 
@@ -131,14 +193,64 @@
     color: var(--color-foreground-muted);
   }
 
+  .product__arrow {
+    position: absolute;
+    inset-block-start: 50%;
+    translate: 0 -50%;
+    display: none;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+    color: var(--color-foreground);
+    font-size: var(--text-xl);
+    cursor: pointer;
+  }
+
+  .product__arrow--previous {
+    inset-inline-start: var(--spacing-2);
+  }
+
+  .product__arrow--next {
+    inset-inline-end: var(--spacing-2);
+  }
+
+  /* Arrows on wider screens; on touch, the swipe is the control. */
+  @media (min-width: 48rem) {
+    .product__arrow:not([hidden]) {
+      display: grid;
+    }
+  }
+
+  .product__arrow:focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+
+  .product__count {
+    position: absolute;
+    inset-inline-end: var(--spacing-2);
+    inset-block-end: var(--spacing-2);
+    padding: 0.125rem var(--spacing-2);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-foreground);
+  }
+
   .product__thumbnails {
     display: flex;
     gap: var(--spacing-2);
     margin-block-start: var(--spacing-3);
-    flex-wrap: wrap;
+    overflow-x: auto;
+    padding-block-end: var(--spacing-1);
   }
 
   .product__thumbnail {
+    flex-shrink: 0;
     padding: 0;
     /* A visible resting border, not `transparent`. Product photography is
        often on a white background, so a transparent border leaves unselected
