@@ -1,126 +1,98 @@
 import {
-  describeRechargeError,
-  getSubscription,
-  isSessionExpiring,
-  listSubscriptions,
-  listUpcomingCharges,
-  loginWithCustomerAccount,
   sortSubscriptions,
   type RechargeCharge,
-  type RechargeConfig,
-  type RechargeError,
-  type RechargeResult,
-  type RechargeSession,
   type RechargeSubscription,
 } from "@formulate/recharge";
 import type { CustomerTokens } from "@formulate/shopify";
 
 /**
- * The subscription portal's server side (SHO-71, SHO-72). Every Recharge call
- * happens here; the browser sees rendered pages only.
+ * The subscription portal's server side (SHO-71, SHO-72), read through the
+ * Worker (apps/api, POST /account/subscriptions).
  *
- * ⚠️ RECHARGE_STOREFRONT_TOKEN stays server-only even though Recharge designs
- * Storefront tokens for client code: nothing in the browser needs it.
- * The ADMIN/API URL overrides exist for local mocks and tests.
- */
-export const rechargeConfig: RechargeConfig = {
-  storeDomain: process.env.SHOPIFY_STORE_DOMAIN ?? "",
-  storefrontToken: process.env.RECHARGE_STOREFRONT_TOKEN ?? "",
-  adminUrl: process.env.RECHARGE_ADMIN_URL || undefined,
-  apiUrl: process.env.RECHARGE_API_URL || undefined,
-};
-
-export const isRechargeConfigured = Boolean(
-  rechargeConfig.storeDomain && rechargeConfig.storefrontToken,
-);
-
-/**
- * Recharge sessions, kept in this server instance's memory for their hour.
+ * Recharge's customer-facing Storefront API needs a plan this store doesn't
+ * have, so the Worker reads with the Recharge Admin token on the customer's
+ * behalf, after checking their Shopify sign-in (option A, 2026-10-08). The
+ * Admin token never comes near this app: it lives in Cloudflare only.
  *
- * Keyed by the customer's access token, which is what the session was issued
- * for. A cold instance (or another one) simply logs in again: one extra call,
- * never a wrong answer. Not a cookie, because a Server Component can't set one,
- * and a second bearer token in the browser would buy nothing.
+ * Server-side only: the Worker sends no CORS headers, so the browser can't
+ * call it, and the customer's access token stays in this server's cookie.
  */
-const sessions = new Map<string, RechargeSession>();
+const API_URL = process.env.FORMULATE_API_URL ?? "";
 
-const MAX_SESSIONS = 500;
+export const isRechargeConfigured = Boolean(API_URL);
 
-const sessionFor = async (
-  tokens: CustomerTokens,
-  { fresh = false } = {},
-): Promise<RechargeResult<RechargeSession | null>> => {
-  const cached = sessions.get(tokens.accessToken);
-  if (cached && !fresh && !isSessionExpiring(cached)) return { ok: true, data: cached };
+/** Why the Worker couldn't answer. Logged, and shown only as "try again". */
+export interface PortalError {
+  readonly status: number | null;
+  readonly reason: string;
+}
 
-  const result = await loginWithCustomerAccount(rechargeConfig, tokens.accessToken);
-  if (result.ok && result.data) {
-    // A crude cap so a long-lived instance can't grow without bound; Map keeps
-    // insertion order, so the oldest go first.
-    if (sessions.size >= MAX_SESSIONS) {
-      const oldest = sessions.keys().next().value;
-      if (oldest !== undefined) sessions.delete(oldest);
+type WorkerAnswer =
+  | {
+      readonly ok: true;
+      readonly subscriptions: readonly RechargeSubscription[];
+      readonly upcoming: readonly RechargeCharge[];
     }
-    sessions.set(tokens.accessToken, result.data);
+  | { readonly ok: false; readonly error: PortalError };
+
+const fetchPortal = async (tokens: CustomerTokens): Promise<WorkerAnswer> => {
+  try {
+    const response = await fetch(`${API_URL}/account/subscriptions`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        Authorization: tokens.accessToken,
+      },
+      body: "{}",
+      cache: "no-store",
+    });
+    const body = (await response.json().catch(() => null)) as
+      | {
+          ok: true;
+          subscriptions: RechargeSubscription[];
+          upcoming: RechargeCharge[];
+        }
+      | { ok: false; reason: string }
+      | null;
+    if (body?.ok) return body;
+    return {
+      ok: false,
+      error: { status: response.status, reason: body?.reason ?? "invalid-response" },
+    };
+  } catch (cause) {
+    return { ok: false, error: { status: null, reason: String(cause) } };
   }
-  return result;
 };
 
-/** Runs a read, logging in again once if Recharge says the session has expired. */
-const withSession = async <T>(
-  tokens: CustomerTokens,
-  run: (session: RechargeSession) => Promise<RechargeResult<T>>,
-): Promise<RechargeResult<T> | { readonly ok: true; readonly data: "no-customer" }> => {
-  const first = await sessionFor(tokens);
-  if (!first.ok) return first;
-  if (!first.data) return { ok: true, data: "no-customer" };
-
-  const result = await run(first.data);
-  if (result.ok || result.error.kind !== "session-expired") return result;
-
-  const second = await sessionFor(tokens, { fresh: true });
-  if (!second.ok) return second;
-  if (!second.data) return { ok: true, data: "no-customer" };
-  return run(second.data);
-};
+const logError = (error: PortalError) =>
+  console.error(`Subscriptions via the Worker failed: ${error.status ?? "network"} ${error.reason}`);
 
 export type PortalData =
   | { readonly kind: "not-connected" }
-  /** Signed in, but Recharge has never seen this customer: never subscribed. */
+  /** Signed in, but no subscriptions: never subscribed, or none left. */
   | { readonly kind: "no-subscriptions" }
   | {
       readonly kind: "ready";
       readonly subscriptions: readonly RechargeSubscription[];
       readonly upcoming: readonly RechargeCharge[];
     }
-  | { readonly kind: "error"; readonly error: RechargeError };
+  | { readonly kind: "error"; readonly error: PortalError };
 
-/** Everything the subscriptions page shows, in two reads after one login. */
+/** Everything the subscriptions page shows, in one Worker call. */
 export const loadPortal = async (tokens: CustomerTokens): Promise<PortalData> => {
   if (!isRechargeConfigured) return { kind: "not-connected" };
-
-  const result = await withSession(tokens, async (session) => {
-    // In sequence, not in parallel: Recharge's leaky bucket allows about two
-    // requests a second, and a login has just used one.
-    const subscriptions = await listSubscriptions(rechargeConfig, session);
-    if (!subscriptions.ok) return subscriptions;
-    const upcoming = await listUpcomingCharges(rechargeConfig, session);
-    if (!upcoming.ok) return upcoming;
-    return {
-      ok: true,
-      data: { subscriptions: subscriptions.data, upcoming: upcoming.data },
-    };
-  });
-
-  if (!result.ok) {
-    console.error(describeRechargeError(result.error));
-    return { kind: "error", error: result.error };
+  const answer = await fetchPortal(tokens);
+  if (!answer.ok) {
+    logError(answer.error);
+    return { kind: "error", error: answer.error };
   }
-  if (result.data === "no-customer") return { kind: "no-subscriptions" };
-  const { subscriptions, upcoming } = result.data;
-  return subscriptions.length === 0
+  return answer.subscriptions.length === 0
     ? { kind: "no-subscriptions" }
-    : { kind: "ready", subscriptions: sortSubscriptions(subscriptions), upcoming };
+    : {
+        kind: "ready",
+        subscriptions: sortSubscriptions(answer.subscriptions),
+        upcoming: answer.upcoming,
+      };
 };
 
 export type SubscriptionData =
@@ -131,33 +103,24 @@ export type SubscriptionData =
       readonly subscription: RechargeSubscription;
       readonly upcoming: readonly RechargeCharge[];
     }
-  | { readonly kind: "error"; readonly error: RechargeError };
+  | { readonly kind: "error"; readonly error: PortalError };
 
+/**
+ * One subscription, picked from the customer's own list. Another customer's
+ * id simply isn't in it, so it's "not found": the Worker never takes an id.
+ */
 export const loadSubscription = async (
   tokens: CustomerTokens,
   id: string,
 ): Promise<SubscriptionData> => {
   if (!isRechargeConfigured) return { kind: "not-connected" };
-
-  const result = await withSession<{
-    readonly subscription: RechargeSubscription;
-    readonly upcoming: readonly RechargeCharge[];
-  } | null>(tokens, async (session) => {
-    const subscription = await getSubscription(rechargeConfig, session, id);
-    if (!subscription.ok) return subscription;
-    if (!subscription.data) return { ok: true, data: null };
-    const upcoming = await listUpcomingCharges(rechargeConfig, session);
-    if (!upcoming.ok) return upcoming;
-    return {
-      ok: true,
-      data: { subscription: subscription.data, upcoming: upcoming.data },
-    };
-  });
-
-  if (!result.ok) {
-    console.error(describeRechargeError(result.error));
-    return { kind: "error", error: result.error };
+  const answer = await fetchPortal(tokens);
+  if (!answer.ok) {
+    logError(answer.error);
+    return { kind: "error", error: answer.error };
   }
-  if (result.data === "no-customer" || result.data === null) return { kind: "not-found" };
-  return { kind: "ready", ...result.data };
+  const subscription = answer.subscriptions.find((s) => String(s.id) === id);
+  return subscription
+    ? { kind: "ready", subscription, upcoming: answer.upcoming }
+    : { kind: "not-found" };
 };

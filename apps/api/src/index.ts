@@ -3,6 +3,7 @@ import type { RateLimiter } from "./rate-limiter";
 export { RateLimiter } from "./rate-limiter";
 
 import { deleteAccount, previewDeletion, type DeletionEnv } from "./account-deletion";
+import { listSubscriptions } from "./subscriptions";
 
 import {
   KLAVIYO_REVISION,
@@ -193,6 +194,11 @@ export default {
     // plus the caller's Customer Account token, verified with Shopify.
     if (pathname === "/account/deletion/preview") {
       const { status, body } = await previewDeletion(env, request);
+      return respond(body, status);
+    }
+    // The subscription portal (SHO-72): the same token check, read-only.
+    if (pathname === "/account/subscriptions") {
+      const { status, body } = await listSubscriptions(env, request);
       return respond(body, status);
     }
     if (pathname === "/account/deletion") {
