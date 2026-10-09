@@ -61,6 +61,20 @@ p:empty {
   display: none;
 }
 
+/*
+ * DM Sans ships 400, 500 and 600 only (packages/tokens). Browsers default
+ * <b>, <strong> and h3–h6 to bold (700), which would be synthesised, a smeared
+ * fake bold. Merchant rich text uses all of these, so bold here means 600.
+ */
+b,
+strong,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+}
+
 :is(p, h1, h2, h3, h4, h5, h6):first-child,
 :empty:first-child + :where(p, h1, h2, h3, h4, h5, h6) {
   margin-block-start: 0;
@@ -73,7 +87,7 @@ p:empty {
 
 /** Theme styles below */
 body {
-  font-family: var(--font-primary--family);
+  font-family: var(--font-sans);
   background-color: var(--color-background);
   color: var(--color-foreground);
 }
@@ -648,10 +662,23 @@ a:hover {
 .product-form__price {
   margin-block-end: var(--spacing-4);
   font-size: var(--text-2xl);
-  font-weight: 600;
+  /* 500, not 600: DM Mono ships in 400 and 500, and apps/web matches. */
+  font-weight: 500;
 }
 
 .product-form__status {
   margin-block-start: var(--spacing-3);
   font-size: var(--text-sm);
+}
+
+/*
+ * Prices in DM Mono (SHO-110), the theme's equivalent of apps/web's
+ * `font-mono` on the same elements.
+ */
+.product-card__price,
+.product-form__price,
+.product-form__plan-price,
+.cart-line__price,
+.cart-drawer__subtotal-value {
+  font-family: var(--font-mono);
 }
