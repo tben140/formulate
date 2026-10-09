@@ -1,4 +1,4 @@
-# Formulate: a case study
+# Double Helix: a case study
 
 > **Draft.** Written from the repository, its decision records and measured
 > findings. Sections marked **TODO (Ben)** need first-hand context that isn't
