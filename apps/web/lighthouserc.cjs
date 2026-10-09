@@ -30,8 +30,19 @@ const withBypass = (path) =>
 // is a redirect to a collection, so it would audit the redirect, not a page.
 const PATHS = ["/collections/best-sellers", "/products/magnesium-glycinate"];
 
-/** Median of three runs, so one noisy run can neither pass nor fail a PR. */
-const median = { aggregationMethod: "median-run" };
+/**
+ * Median of three runs, per metric, so one noisy run can neither pass nor fail
+ * a PR.
+ *
+ * ⚠️ `median`, not `median-run`. `median-run` picks one representative run (by
+ * its other metrics) and checks every budget against that whole run, so a run
+ * with a one-off blocking-time spike can still be the one checked: #94 failed
+ * on 1,659 ms TBT while its other two runs measured 62 and 34 ms. `median`
+ * takes the middle value of each metric across the runs, which is what this
+ * comment always meant. A real regression raises all three runs, so it still
+ * fails.
+ */
+const median = { aggregationMethod: "median" };
 
 module.exports = {
   ci: {
