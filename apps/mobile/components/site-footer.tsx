@@ -1,4 +1,6 @@
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+
+import { POSTHOG_KEY, reopenAnalyticsChoice } from "../lib/product-analytics";
 
 import { EmailCapture } from "./email-capture";
 
@@ -35,5 +37,16 @@ export const SiteFooter = () => (
     <Text className="mt-6 text-sm text-foreground-muted">
       &copy; {new Date().getFullYear()} Formulate
     </Text>
+
+    {/* Web's "Cookie preferences": changing the analytics choice (SHO-87). */}
+    {POSTHOG_KEY ? (
+      <Pressable
+        accessibilityRole="button"
+        onPress={reopenAnalyticsChoice}
+        className="mt-2 self-start py-1"
+      >
+        <Text className="text-sm text-foreground-muted underline">Privacy choices</Text>
+      </Pressable>
+    ) : null}
   </View>
 );

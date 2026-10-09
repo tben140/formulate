@@ -1,14 +1,20 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
-import { useState } from "react";
+import { Stack, usePathname } from "expo-router";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { AnalyticsConsent } from "../components/analytics-consent";
 import { CartButton } from "../components/cart-button";
 import { HeaderActions } from "../components/header-actions";
 import { CartProvider } from "../components/cart-provider";
 import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
 import { initKlaviyo } from "../lib/klaviyo";
+import {
+  analytics,
+  loadAnalyticsConsent,
+  useAnalyticsConsent,
+} from "../lib/product-analytics";
 
 import "../global.css";
 
@@ -21,6 +27,18 @@ import "../global.css";
  * this integration keeps producing. Module scope runs before any render.
  */
 initKlaviyo();
+// The stored analytics choice (SHO-87); nothing is sent until it says yes.
+void loadAnalyticsConsent();
+
+/** A PostHog screen view per route (SHO-87); nothing without consent. */
+const AnalyticsScreens = () => {
+  const pathname = usePathname();
+  const consent = useAnalyticsConsent();
+  useEffect(() => {
+    analytics()?.screen(pathname);
+  }, [pathname, consent]);
+  return null;
+};
 
 const RootLayout = () => {
   // Created in state so the client survives Fast Refresh but is never shared
@@ -76,6 +94,8 @@ const RootLayout = () => {
               options={{ title: "Search", headerRight: () => <CartButton /> }}
             />
           </Stack>
+          <AnalyticsScreens />
+          <AnalyticsConsent />
         </CartProvider>
       </CheckoutProvider>
     </QueryClientProvider>

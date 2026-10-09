@@ -4,6 +4,7 @@ import Script from "next/script";
 import { createContext, useContext, useId, useState, type ReactNode } from "react";
 
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
+import { analytics, forgetProductAnalytics, POSTHOG_KEY } from "@/lib/product-analytics";
 import {
   discardQueuedEvents,
   KLAVIYO_PUBLIC_KEY,
@@ -111,6 +112,7 @@ export const TrackingConsentProvider = ({
        */
       if (consent === "granted") {
         forgetKlaviyo();
+        forgetProductAnalytics();
         window.location.reload();
         return;
       }
@@ -118,9 +120,14 @@ export const TrackingConsentProvider = ({
 
     setConsent(next);
     setReopened(false);
+
+    // Events before Accept were dropped, not queued (lib/product-analytics.ts),
+    // so the page the shopper accepted on is counted from here.
+    if (next === "granted") analytics()?.pageview();
   };
 
-  const showBanner = Boolean(KLAVIYO_PUBLIC_KEY) && (consent === "unset" || reopened);
+  const showBanner =
+    Boolean(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY) && (consent === "unset" || reopened);
 
   return (
     <ConsentContext.Provider value={{ reopen: () => setReopened(true) }}>
@@ -186,8 +193,9 @@ const ConsentBanner = ({
           </h2>
           <p className="mt-1 text-foreground-muted">
             With your permission, Klaviyo remembers what you browse and add to your basket
-            so we can email you reminders. Nothing is tracked unless you accept. You can
-            change your mind from the footer at any time.
+            so we can email you reminders, and PostHog measures how the shop is used so we
+            can improve it. Nothing is tracked unless you accept. You can change your mind
+            from the footer at any time.
           </p>
         </div>
 
