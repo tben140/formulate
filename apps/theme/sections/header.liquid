@@ -6,7 +6,8 @@
   still omitted — customer accounts are not built on any surface yet, and an
   icon leading to an unbuilt experience is worse than no icon.
 
-  The wordmark is a setting rather than `shop.name` so it can read "Formulate"
+  The wordmark is a theme-wide setting (Theme settings → Brand, shared with the
+  footer) rather than `shop.name` so it can read "Formulate"
   (the project brand) while the store itself is named something else — and
   still be editable in the theme editor, as a theme should be.
 {% endcomment %}
@@ -14,7 +15,7 @@
 <header class="site-header">
   <nav class="container site-header__nav">
     <a class="site-header__wordmark" href="{{ routes.root_url }}">
-      {{ section.settings.wordmark | default: shop.name }}
+      {{ settings.wordmark | default: shop.name }}
     </a>
 
     {% if section.settings.menu != blank %}
@@ -94,12 +95,6 @@
 {
   "name": "t:general.header",
   "settings": [
-    {
-      "type": "text",
-      "id": "wordmark",
-      "label": "Wordmark",
-      "default": "Formulate"
-    },
     {
       "type": "link_list",
       "id": "menu",
