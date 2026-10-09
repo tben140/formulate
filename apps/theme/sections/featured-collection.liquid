@@ -30,7 +30,7 @@
       {% endif %}
     </header>
 
-    {% render 'product-grid', products: featured.products %}
+    {% render 'product-grid', products: featured.products, section_index: section.index %}
   {% else %}
     <p class="featured__empty">
       No collection selected. Choose one in the theme editor.
