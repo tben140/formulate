@@ -1,0 +1,25 @@
+{% comment %}
+  A thumbnail that scrolls the product gallery's track to its image
+  (sections/product.liquid, assets/media-gallery.js).
+
+  @param {image} image
+  @param {number} index - 1-based position
+  @param {number} count
+{% endcomment %}
+<button
+  ref="thumbnail"
+  type="button"
+  class="product__thumbnail"
+  aria-label="{{ 'product.show_image' | t: index: index, count: count }}"
+  {% if index == 1 %}
+    aria-current="true"
+  {% endif %}
+>
+  <img
+    src="{{ image | image_url: width: 160, height: 160, crop: 'center' }}"
+    alt=""
+    width="64"
+    height="64"
+    loading="lazy"
+  >
+</button>
