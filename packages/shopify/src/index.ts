@@ -53,6 +53,19 @@ export type {
   CustomerOrdersResult,
 } from "./customer-orders";
 
+export {
+  DELETION_CONFIRMATION,
+  DELETION_COPY,
+  deletionFailureMessage,
+  readDeletionResponse,
+} from "./account-deletion";
+export type {
+  DeletionFailureReason,
+  DeletionPreview,
+  DeletionPreviewSubscription,
+  DeletionResponse,
+} from "./account-deletion";
+
 export { formatMoney } from "./format-money";
 
 export {

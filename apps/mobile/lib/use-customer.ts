@@ -15,6 +15,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
+import { deleteAccount, previewDeletion } from "./account-deletion";
 import { clearCartId, readCartId } from "./cart-storage";
 import {
   clearCustomerTokens,
@@ -163,3 +164,37 @@ export const useSubscription = (id: string) =>
     queryFn: () => loadSubscription(id),
     enabled: isCustomerAccountAvailable && isRechargeConfigured,
   });
+
+/** What deleting the account would cancel (SHO-90). Fresh each visit: no caching. */
+export const useDeletionPreview = () =>
+  useQuery({
+    queryKey: [...CUSTOMER_KEY, "deletion-preview"],
+    queryFn: previewDeletion,
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+/**
+ * Deletes the account through the Worker. On success, everything sign-out
+ * forgets is forgotten here too: tokens, Recharge session and the cart. No
+ * Shopify logout request: the account it would end is being erased.
+ */
+export const useDeleteAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const result = await deleteAccount();
+      if (result.ok) {
+        await clearCustomerTokens();
+        clearRechargeSession();
+        await clearCartId();
+      }
+      return result;
+    },
+    onSuccess: async (result) => {
+      if (!result.ok) return;
+      await queryClient.invalidateQueries({ queryKey: CUSTOMER_KEY });
+      await queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+};

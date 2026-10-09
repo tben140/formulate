@@ -2,6 +2,8 @@ import type { RateLimiter } from "./rate-limiter";
 
 export { RateLimiter } from "./rate-limiter";
 
+import { deleteAccount, previewDeletion, type DeletionEnv } from "./account-deletion";
+
 import {
   KLAVIYO_REVISION,
   SERVER_BACK_IN_STOCK_URL,
@@ -31,7 +33,7 @@ import {
  * ever needing it.
  */
 
-interface Env {
+interface Env extends DeletionEnv {
   /** Set with `wrangler secret put`. Never in `vars`, never in the repo. */
   readonly KLAVIYO_PRIVATE_KEY: string;
   readonly KLAVIYO_LIST_ID: string;
@@ -74,7 +76,10 @@ type Outcome =
       readonly reason: "invalid-email" | "rate-limited" | "rejected";
     };
 
-const json = (body: Outcome, status: number): Response =>
+const json = (body: Outcome, status: number): Response => respond(body, status);
+
+/** Any JSON body, with the same headers (and the same reasons for them). */
+const respond = (body: unknown, status: number): Response =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -176,10 +181,23 @@ export default {
       return json({ ok: false, reason: "rejected" }, 413);
     }
 
+    const { pathname } = new URL(request.url);
+
     // Restock alerts (SHO-118) share every check above, then take one more
     // field: the variant.
-    if (new URL(request.url).pathname === "/back-in-stock") {
+    if (pathname === "/back-in-stock") {
       return backInStock(raw, env);
+    }
+
+    // Account deletion (SHO-90): see src/account-deletion.ts. Same checks,
+    // plus the caller's Customer Account token, verified with Shopify.
+    if (pathname === "/account/deletion/preview") {
+      const { status, body } = await previewDeletion(env, request);
+      return respond(body, status);
+    }
+    if (pathname === "/account/deletion") {
+      const { status, body } = await deleteAccount(env, request, raw);
+      return respond(body, status);
     }
 
     let email: unknown;

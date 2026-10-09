@@ -221,6 +221,15 @@ const AccountPage = async ({ searchParams }: PageProps) => {
           ) : null}
         </nav>
       ) : null}
+
+      <p className="mt-12 border-t border-border pt-6 text-sm">
+        <Link
+          href="/account/delete"
+          className="text-foreground-muted underline underline-offset-4 hover:text-foreground"
+        >
+          Delete account
+        </Link>
+      </p>
     </div>
   );
 };
