@@ -8,6 +8,7 @@ import { removeCartLine, updateCartLine } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 
 import { useCartUi } from "./cart-provider";
+import { FreeShippingBar } from "./free-shipping-bar";
 
 /**
  * The slide-in cart.
@@ -74,6 +75,11 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
             <span className="sr-only"> cart</span>
           </button>
         </header>
+
+        {/* Above the lines, so it is read before the list rather than after it. */}
+        <FreeShippingBar
+          subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
+        />
 
         {lines.length === 0 ? (
           <p className="flex-1 px-4 py-8 text-sm text-foreground-muted">
