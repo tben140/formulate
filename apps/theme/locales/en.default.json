@@ -32,10 +32,35 @@
       "other": "Open cart, {{ count }} items"
     },
     "quantity_for": "Quantity for {{ title }}",
-    "remove_for": "{{ title }} from cart"
+    "remove_for": "{{ title }} from cart",
+    "free_shipping": {
+      "away": "You're {{ amount }} away from free standard delivery",
+      "unlocked": "You've unlocked free standard delivery"
+    },
+    "suggestions": {
+      "title": "You might also like",
+      "add": "Add",
+      "add_for": "{{ title }} to cart",
+      "choose": "Choose options",
+      "choose_for": "for {{ title }}"
+    }
   },
   "collections": {
-    "title": "Collections"
+    "title": "Collections",
+    "nav_label": "Collections",
+    "filter": "Filter",
+    "active": "active",
+    "apply": "Apply",
+    "clear_all": "Clear all",
+    "price_from": "From",
+    "price_to": "To",
+    "active_filters": "Active filters",
+    "remove_filter": "remove filter",
+    "no_matches": "No products match these filters.",
+    "product_count": {
+      "one": "{{ count }} product",
+      "other": "{{ count }} products"
+    }
   },
   "customers": {
     "login": {
@@ -77,13 +102,23 @@
     "added": "Added to your cart.",
     "purchase_options": "Purchase options",
     "one_time": "One-time purchase",
-    "variant": "Variant"
+    "variant": "Variant",
+    "pairs_well_with": "Pairs well with"
   },
   "search": {
     "title": "Search",
     "placeholder": "Search articles, pages, or products",
     "submit": "Search",
     "no_results_html": "No results found for {{ terms }}",
-    "results_for_html": "{{ count }} results found for {{ terms }}"
+    "results_for_html": "{{ count }} results found for {{ terms }}",
+    "label": "Search products",
+    "results": "Results",
+    "no_products": "No products match “{{ terms }}”. Try a different word, or browse the collections."
+  },
+  "general": {
+    "breadcrumb": "Breadcrumb",
+    "home": "Home",
+    "shop_collection": "Shop {{ title }}",
+    "search_link": "Search"
   }
 }

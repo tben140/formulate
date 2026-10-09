@@ -1,5 +1,4 @@
 import { formatMoney } from "@formulate/shopify";
-import { useShopifyCheckoutSheet } from "@shopify/checkout-sheet-kit";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
@@ -11,7 +10,10 @@ import {
   View,
 } from "react-native";
 
+import { useCheckout } from "../lib/checkout";
 import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
+
+import { FreeShippingBar } from "./free-shipping-bar";
 
 /**
  * The cart, as a bottom sheet.
@@ -41,7 +43,7 @@ export const CartSheet = ({
   const { data: cart, isPending } = useCart();
   const updateLine = useUpdateCartLine();
   const clearCart = useClearCart();
-  const checkout = useShopifyCheckoutSheet();
+  const checkout = useCheckout();
 
   /**
    * Whether the checkout that is closing completed, as opposed to being
@@ -135,6 +137,11 @@ export const CartSheet = ({
             <Text className="text-sm text-foreground-muted">Close</Text>
           </Pressable>
         </View>
+
+        {/* Above the lines, so VoiceOver reaches it before the list. */}
+        <FreeShippingBar
+          subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
+        />
 
         {isPending ? (
           <View className="flex-1 items-center justify-center">

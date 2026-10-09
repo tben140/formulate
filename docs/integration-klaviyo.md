@@ -1,8 +1,12 @@
 # Integration: Klaviyo
 
-**Status as of 2026-08-08:** onsite tracking and the three commerce events are
-live on web and theme and verified in Klaviyo's own feed. Email capture ships
-on both surfaces. Mobile events and the lifecycle flows are outstanding.
+**Status as of 2026-10-01:** onsite tracking, Viewed Product and Added to Cart
+are live on web and theme and verified in Klaviyo's own feed. Started Checkout
+is sent by web only; the theme leaves checkout to Shopify's own Checkout Started
+(see [Which checkout metric](#-which-checkout-metric--and-why-not-ours)). Email
+capture ships on web, theme and mobile. Nine lifecycle flows are live (see
+[Flows](#flows)). Mobile sends no events yet, and the Recharge flows wait on
+the Recharge connection (SHO-108).
 
 ## Why Klaviyo
 
@@ -38,20 +42,52 @@ native app. They are not** — see below. The conclusion stands for the SDK's
 
 ## Events we intend to emit
 
-| Event              | Fires from | Status                             |
-| ------------------ | ---------- | ---------------------------------- |
-| Viewed product     | Web, theme | Shipped                            |
-| Added to cart      | Web, theme | Shipped                            |
-| Started checkout   | Web, theme | Shipped                            |
-| Subscribed to list | Web, theme | Shipped — see Email capture below  |
+Where each metric in the Klaviyo account really comes from, as observed in the
+account on 2026-09-27. Two pairs have near-identical names, so the id matters.
 
-The theme emits the first three automatically through Klaviyo's app embed, with
+| Klaviyo metric (id)         | Integration | Fed by                                                                  | Flows that use it                                 |
+| --------------------------- | ----------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
+| Viewed Product (`RXYrJ4`)   | API         | Web (`_learnq`), theme (Klaviyo app embed)                              | Browse abandonment                                |
+| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed). **Canonical**, see below. Mobile sends none yet | Cart abandonment                                  |
+| Added to Cart (`UNszvd`)    | Shopify     | Shopify's web pixel, theme only. **Not used**, see below                | none                                              |
+| Started Checkout (`SqEBQ9`) | API         | Web only (`apps/web`, on the checkout link). The theme does not emit it | none                                              |
+| Checkout Started (`UprmRa`) | Shopify     | Shopify, server-side, from every surface                                | Abandoned checkout                                |
+| Subscribed to List          | Klaviyo     | Web, theme, mobile through the `apps/api` Worker (email capture, below) | none (Welcome series triggers on the list itself) |
+
+The theme's Viewed Product and Added to Cart come from Klaviyo's app embed, with
 no code from us. The headless surfaces build the same payloads by hand in
 `packages/analytics`, which exists precisely so the two cannot drift: its tests
 assert against a payload captured from the running theme. A `ProductID` sent as
 a Storefront gid rather than a legacy numeric id would produce events that look
 correct in Klaviyo and never match a theme-generated one, splitting every
 segment in two with no error anywhere.
+
+For checkout, see "Which checkout metric" below: the flow uses Shopify's
+server-side `Checkout Started`, not our `Started Checkout`.
+
+### ⚠️ Which Added to Cart metric
+
+**`W7zpiE` (API) is canonical.** It is the only Added to Cart metric both
+sending surfaces feed (web and theme; the app sends no events yet), and Cart
+abandonment already triggers on it. Build flows and
+segments on it, and never on a sum of the two.
+
+`UNszvd` appeared on 2026-09-21 at 14:43, 14 seconds after its first event. Its
+events carry `$extra.standard.event_type: "product_added_to_cart"`, a `shop_id`
+and a `Client ID`: the shape of Shopify's Customer Events web pixel, which
+Klaviyo's Shopify integration can subscribe to. So it comes from the Shopify
+integration, not from the theme's code, and it would fire on any theme. On
+2026-09-21 it recorded **two** events for each add, a second apart with
+different event ids, and it has recorded nothing since.
+
+Two consequences if it is left on:
+
+- A flow or segment on `UNszvd` sees theme shoppers only.
+- Anything that adds the two together counts theme adds two or three times.
+
+It cannot be reproduced from a headless browser: Klaviyo treats automated
+browsers as robots and drops their events entirely, including Viewed Product.
+Check it from a real browser.
 
 Order and refund events come from Shopify's own Klaviyo integration rather than
 from our code. Emitting them ourselves would duplicate what the platform already
@@ -391,12 +427,30 @@ Design position:
 
 ## Flows
 
-Two, chosen because they exercise different trigger types:
+Nine flows are live, read from the account on 2026-10-01. Each email carries
+the demo-store notice.
 
-1. **Abandoned cart** — triggered by Shopify's `Checkout Started` with no
-   subsequent order. See the decision below.
-2. **Subscription upcoming charge** — triggered from Recharge. Tests the
-   cross-system path, with no code of ours in the trigger at all.
+| Flow | Trigger | Source of the trigger |
+| --- | --- | --- |
+| Welcome series | Added to the newsletter list | Email capture on every surface |
+| Browse abandonment | Viewed Product (`RXYrJ4`) | Ours: web, theme app embed |
+| Cart abandonment | Added to Cart (`W7zpiE`) | Ours: web, theme app embed |
+| Abandoned checkout | Checkout Started (`UprmRa`) | Shopify, server-side, every surface. See the decision below |
+| Back in stock | Subscribed to Back in Stock (`WbRfmD`) | Klaviyo's back-in-stock form |
+| Post-purchase | Placed Order (`V2sqtM`) | Shopify |
+| Replenishment | Placed Order (`V2sqtM`), after a delay | Shopify |
+| Review request | Fulfilled Order (`QNzAQc`) | Shopify |
+| Cancelled order | Cancelled Order (`WNShYg`) | Shopify |
+
+The cart and checkout pair is deliberate. **Cart abandonment** catches a shopper
+who added something and never reached checkout; **Abandoned checkout** catches
+one who reached checkout and didn't pay. They use different metrics for the
+reason below.
+
+Still to come: the **Recharge subscription flows** (upcoming order, payment
+failed, cancelled and the rest), triggered from Recharge's own metrics with no
+code of ours in the trigger. The templates exist; the flows need Recharge
+connected first. See SHO-108.
 
 ### ⚠️ Which checkout metric — and why not ours
 
@@ -454,13 +508,29 @@ only by its own logs has not been verified.
 
 ## Privacy
 
-Onsite tracking sets cookies that are not strictly necessary, which is a consent
-question in the UK and EU. The current position is that this is a demonstration
-store with no real customers, and a consent banner is out of scope — but it is a
-real gap and should be stated as one rather than left for someone to notice.
+Onsite tracking sets a cookie (`__kla_id`) and sends behavioural events. Neither
+is strictly necessary, so under PECR both need consent **before** they happen.
 
-Note the contrast with Vercel Analytics on the web surface, which is cookieless
-and therefore clear of this entirely.
+| Surface | Tracking consent                                                                                                                    |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Theme   | Klaviyo's app embed defers to Shopify's Customer Privacy API. Nothing we wrote.                                                     |
+| Web     | Our own banner. `klaviyo.js` is not loaded until the shopper accepts. [ADR 0008](adr/0008-headless-tracking-consent-is-our-own.md) |
+| Mobile  | No behavioural events yet. They go behind an in-app choice when [SHO-109] lands.                                                    |
+
+⚠️ **Tracking consent and marketing consent are different things.** The email
+capture form records marketing consent, the right to email someone. The banner
+records tracking consent, the right to watch what they browse. One does not
+imply the other: a subscriber who declined tracking gets the emails and no
+browse or cart-abandonment flows.
+
+This matters when reading numbers. Decliners are invisible to Klaviyo on both
+the theme and web, so flow volume counts **consenting** shoppers, not all of
+them. Comparing surfaces is only fair because both now gate the same way.
+
+Vercel Analytics on the web surface is cookieless and stores nothing on the
+device, so it sits outside this entirely.
+
+[SHO-109]: https://linear.app/shopify-project/issue/SHO-109
 
 ## Related
 

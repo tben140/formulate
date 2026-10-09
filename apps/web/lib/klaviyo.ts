@@ -5,6 +5,8 @@ import {
   type SubscribeResult,
 } from "@formulate/analytics";
 
+import { readConsent } from "@/lib/consent";
+
 /**
  * Klaviyo onsite tracking for the web app.
  *
@@ -81,6 +83,25 @@ const queue = (): { push: (args: unknown[]) => void } => {
 };
 
 /**
+ * Whether a push should happen at all.
+ *
+ * ⚠️ **The consent gate is not here — it is `klaviyo.js` never loading.** The
+ * script is rendered only once the shopper has accepted (see
+ * `components/tracking-consent.tsx`), and without it `_learnq` is a plain array
+ * that nothing reads and nothing transmits.
+ *
+ * So `unset` still pushes. Events fired before a decision wait in memory, and if
+ * the shopper accepts on this page the script arrives and drains them — the same
+ * behaviour as Klaviyo's embed on the theme, where the queue accumulates until
+ * Shopify's consent API says yes. `denied` drops them outright, so a refusal
+ * does not quietly build up a session's worth of events in the tab.
+ */
+const canPush = (): boolean =>
+  Boolean(KLAVIYO_PUBLIC_KEY) &&
+  typeof window !== "undefined" &&
+  readConsent() !== "denied";
+
+/**
  * Emits an event, safely.
  *
  * Silently does nothing when the key is unset, so local development and CI
@@ -88,7 +109,7 @@ const queue = (): { push: (args: unknown[]) => void } => {
  * product page.
  */
 export const track = (name: EventName, payload: Readonly<object>): void => {
-  if (!KLAVIYO_PUBLIC_KEY || typeof window === "undefined") return;
+  if (!canPush()) return;
   queue().push(["track", name, payload]);
 };
 
@@ -98,10 +119,24 @@ export const track = (name: EventName, payload: Readonly<object>): void => {
  * Deliberately only called at email capture and checkout. Identifying earlier
  * means guessing, and a confidently wrong profile is worse than an anonymous
  * one — see the identity section of docs/integration-klaviyo.md.
+ *
+ * Gated like `track`. Identifying is what makes Klaviyo transmit, so an
+ * ungated `identify` would be an ungated everything.
  */
 export const identify = (email: string): void => {
-  if (!KLAVIYO_PUBLIC_KEY || typeof window === "undefined" || !email) return;
+  if (!canPush() || !email) return;
   queue().push(["identify", { $email: email }]);
+};
+
+/**
+ * Throws away anything queued before the shopper declined.
+ *
+ * Only meaningful while `_learnq` is still our plain array. Once `klaviyo.js`
+ * has replaced it there is nothing queued to discard — it consumes each push
+ * immediately — and withdrawing consent reloads the page instead.
+ */
+export const discardQueuedEvents = (): void => {
+  if (Array.isArray(window._learnq)) window._learnq.length = 0;
 };
 
 /**

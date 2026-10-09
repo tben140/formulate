@@ -10,6 +10,12 @@
   (DEFAULT_COLLECTION_HANDLE in packages/shopify/src/config.ts) when the
   merchant has not picked one in the theme editor.
 
+  ⚠️ Liquid cannot import that constant, so the handle below is a copy. It has
+  already drifted once: the constant moved to `best-sellers` while this still
+  said `automated-collection`, and because a stale handle resolves to an empty
+  collection rather than an error, the homepage silently rendered the "no
+  collection selected" branch. Change both together.
+
   Uses the same snippet and styles as the collection template, so the two
   cannot drift.
 {% endcomment %}
@@ -17,20 +23,20 @@
 {% liquid
   assign featured = section.settings.collection
   unless featured
-    assign featured = collections['automated-collection']
+    assign featured = collections['best-sellers']
   endunless
 %}
 
 <div class="container featured">
   {% if featured != blank and featured.products.size > 0 %}
     <header class="featured__header">
-      <h1 class="featured__title">{{ featured.title }}</h1>
+      <h2 class="featured__title">{{ featured.title }}</h2>
       {% if featured.description != blank %}
         <p class="featured__description">{{ featured.description }}</p>
       {% endif %}
     </header>
 
-    {% render 'product-grid', products: featured.products %}
+    {% render 'product-grid', products: featured.products, section_index: section.index %}
   {% else %}
     <p class="featured__empty">
       No collection selected. Choose one in the theme editor.
@@ -43,12 +49,14 @@
     padding-block: var(--spacing-8);
   }
 
+  /* Below the home introduction and category cards, so an h2 like theirs. */
   .featured__header {
-    margin-block-end: var(--spacing-8);
+    margin-block: var(--spacing-16) var(--spacing-6);
   }
 
   .featured__title {
-    font-size: var(--text-3xl);
+    margin: 0;
+    font-size: var(--text-2xl);
     font-weight: 600;
     letter-spacing: -0.02em;
     color: var(--color-foreground);

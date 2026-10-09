@@ -11,12 +11,19 @@
   "type": "header",
   "name": "t:general.header",
   "sections": {
+    "demo_notice": {
+      "type": "demo-notice",
+      "settings": {}
+    },
     "header": {
       "type": "header",
-      "settings": {}
+      "settings": {
+        "menu": "shop"
+      }
     }
   },
   "order": [
+    "demo_notice",
     "header"
   ],
 }

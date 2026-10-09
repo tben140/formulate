@@ -66,3 +66,32 @@ export const describeError = (error: StorefrontError): string => {
       return `Storefront rejected the operation: ${error.errors.map((e) => e.message).join("; ")}`;
   }
 };
+
+/**
+ * Renders a StorefrontError for a shopper, not a developer.
+ *
+ * `describeError` is for logs: it names the transport and passes Shopify's text
+ * through verbatim, including ids like `gid://shopify/ProductVariant/1`. Shown
+ * on a product page that reads as a crash. This keeps the one thing a shopper
+ * can act on — Shopify's own wording for a stock or cart problem, which is
+ * written for them — and replaces everything else with a plain next step.
+ *
+ * Log `describeError` alongside it; the detail is still needed, just not here.
+ */
+export const describeForShopper = (error: StorefrontError): string => {
+  switch (error.kind) {
+    case "userError": {
+      const messages = error.errors.map((e) => e.message);
+      return messages.length > 0 &&
+        !messages.some((message) => message.includes("gid://"))
+        ? messages.join(" ")
+        : "That item can't be added to your cart right now.";
+    }
+    case "network":
+      return "We couldn't reach the shop. Check your connection and try again.";
+    case "config":
+    case "http":
+    case "graphql":
+      return "Something went wrong at our end. Please try again.";
+  }
+};
