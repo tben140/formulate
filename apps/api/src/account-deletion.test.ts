@@ -7,6 +7,7 @@ import {
   type DeletionEnv,
 } from "./account-deletion";
 import worker from "./index";
+import { resetAdminTokenCache } from "./shopify-admin";
 
 /**
  * Account deletion holds Admin tokens for Shopify and Recharge, so these tests
@@ -17,7 +18,8 @@ const env: DeletionEnv = {
   SHOPIFY_SHOP_ID: "100581966136",
   SHOPIFY_STORE_DOMAIN: "shop.example",
   SHOPIFY_API_VERSION: "2026-04",
-  SHOPIFY_ADMIN_TOKEN: "shpat_not_real",
+  SHOPIFY_CLIENT_ID: "client-id-not-real",
+  SHOPIFY_CLIENT_SECRET: "shpss_not_real",
   RECHARGE_ADMIN_TOKEN: "rc_not_real",
   KLAVIYO_DELETION_KEY: "pk_not_real",
 };
@@ -45,6 +47,8 @@ interface Upstream {
   klaviyo?: number;
   erasure?: unknown;
   rechargeDown?: boolean;
+  /** The Admin token exchange's response; a working token by default. */
+  adminToken?: Response;
 }
 
 const jsonResponse = (body: unknown, status = 200) =>
@@ -96,6 +100,16 @@ const stubUpstream = (upstream: Upstream = {}) => {
       if (url.startsWith("https://a.klaviyo.com/")) {
         return Promise.resolve(new Response(null, { status: upstream.klaviyo ?? 202 }));
       }
+      if (url.includes("/admin/oauth/access_token")) {
+        return Promise.resolve(
+          upstream.adminToken ??
+            jsonResponse({
+              access_token: "minted-admin-token",
+              scope: "x",
+              expires_in: 86399,
+            }),
+        );
+      }
       if (url.includes("/admin/api/")) {
         return Promise.resolve(
           jsonResponse(
@@ -135,20 +149,23 @@ const kinds = (calls: { url: string }[]) =>
   calls.map(({ url }) =>
     url.startsWith("https://shopify.com/")
       ? "verify"
-      : url.includes("/customers?")
-        ? "recharge-customer"
-        : url.includes("/subscriptions?")
-          ? "recharge-subscriptions"
-          : url.includes("/charges?")
-            ? "recharge-charges"
-            : url.endsWith("/cancel")
-              ? "cancel"
-              : url.startsWith("https://a.klaviyo.com/")
-                ? "klaviyo"
-                : "erasure",
+      : url.includes("/admin/oauth/access_token")
+        ? "admin-token"
+        : url.includes("/customers?")
+          ? "recharge-customer"
+          : url.includes("/subscriptions?")
+            ? "recharge-subscriptions"
+            : url.includes("/charges?")
+              ? "recharge-charges"
+              : url.endsWith("/cancel")
+                ? "cancel"
+                : url.startsWith("https://a.klaviyo.com/")
+                  ? "klaviyo"
+                  : "erasure",
   );
 
 afterEach(() => {
+  resetAdminTokenCache();
   vi.unstubAllGlobals();
 });
 
@@ -220,10 +237,11 @@ describe("⚠️ who can be affected", () => {
     expect(calls).toEqual([]);
   });
 
-  it("answers 503 until all three keys are set, without calling anyone", async () => {
+  it("answers 503 until all four credentials are set, without calling anyone", async () => {
     const calls = stubUpstream();
     for (const missing of [
-      "SHOPIFY_ADMIN_TOKEN",
+      "SHOPIFY_CLIENT_ID",
+      "SHOPIFY_CLIENT_SECRET",
       "RECHARGE_ADMIN_TOKEN",
       "KLAVIYO_DELETION_KEY",
     ]) {
@@ -246,6 +264,7 @@ describe("⚠️ order, and stopping at the first failure", () => {
     expect(result).toEqual({ status: 200, body: { ok: true, cancelled: 2 } });
     expect(kinds(calls)).toEqual([
       "verify",
+      "admin-token",
       "recharge-customer",
       "recharge-subscriptions",
       "recharge-charges",
@@ -302,7 +321,13 @@ describe("⚠️ order, and stopping at the first failure", () => {
     const calls = stubUpstream({ rechargeCustomers: [] });
     const result = await deleteAccount(env, ...confirmed());
     expect(result).toEqual({ status: 200, body: { ok: true, cancelled: 0 } });
-    expect(kinds(calls)).toEqual(["verify", "recharge-customer", "klaviyo", "erasure"]);
+    expect(kinds(calls)).toEqual([
+      "verify",
+      "admin-token",
+      "recharge-customer",
+      "klaviyo",
+      "erasure",
+    ]);
   });
 });
 
@@ -389,5 +414,51 @@ describe("through the Worker", () => {
     const response = await run(request({ confirm: "delete" }));
     expect(response.status).toBe(502);
     expect(await response.json()).toEqual({ ok: false, reason: "subscriptions" });
+  });
+});
+
+describe("⚠️ the Shopify Admin token (Dev Dashboard app)", () => {
+  it("is obtained before anything changes: if Shopify won't issue one, nothing is cancelled", async () => {
+    const calls = stubUpstream({
+      subscriptions: [subscription(7)],
+      adminToken: jsonResponse({ error: "shop_not_permitted" }, 400),
+    });
+    const result = await deleteAccount(env, ...confirmed());
+    expect(result).toEqual({
+      status: 503,
+      body: { ok: false, reason: "not-configured" },
+    });
+    expect(kinds(calls)).toEqual(["verify", "admin-token"]);
+  });
+
+  it("is requested with the client credentials grant, and used for the erasure", async () => {
+    const calls = stubUpstream();
+    await deleteAccount(env, ...confirmed());
+    const exchange = calls.find((call) => call.url.includes("/admin/oauth/access_token"));
+    expect(exchange?.url).toBe("https://shop.example/admin/oauth/access_token");
+    expect(Object.fromEntries(new URLSearchParams(String(exchange?.init?.body)))).toEqual(
+      {
+        client_id: "client-id-not-real",
+        client_secret: "shpss_not_real",
+        grant_type: "client_credentials",
+      },
+    );
+    const erasure = calls.find((call) => call.url.includes("/admin/api/"));
+    expect(new Headers(erasure?.init?.headers).get("X-Shopify-Access-Token")).toBe(
+      "minted-admin-token",
+    );
+  });
+
+  it("is reused while valid rather than requested on every call", async () => {
+    const calls = stubUpstream();
+    await previewDeletion(env, request());
+    await previewDeletion(env, request());
+    expect(kinds(calls).filter((kind) => kind === "admin-token")).toHaveLength(1);
+  });
+
+  it("never puts the client secret in a response", async () => {
+    stubUpstream({ adminToken: jsonResponse({ error: "invalid_client" }, 401) });
+    const result = await previewDeletion(env, request());
+    expect(JSON.stringify(result)).not.toContain("shpss_not_real");
   });
 });
