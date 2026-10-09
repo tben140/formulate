@@ -1,4 +1,4 @@
-# Formulate
+# Double Helix
 
 One Shopify store rendered three ways, as a Turborepo monorepo: a Next.js web
 app, an Expo React Native app, and a Liquid theme — over a shared data layer and

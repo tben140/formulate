@@ -17,7 +17,7 @@ import { storefront } from "@/lib/storefront";
  * engines are asked not to index them (they may still follow the links).
  */
 export const metadata: Metadata = {
-  title: "Search — Formulate",
+  title: "Search — Double Helix",
   robots: { index: false, follow: true },
 };
 

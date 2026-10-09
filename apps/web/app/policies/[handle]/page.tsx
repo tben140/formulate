@@ -10,7 +10,7 @@ interface PageProps {
   readonly params: Promise<{ handle: string }>;
 }
 
-export const metadata: Metadata = { title: "Policy — Formulate" };
+export const metadata: Metadata = { title: "Policy — Double Helix" };
 
 /**
  * A store policy (privacy, subscription and so on), as written in Shopify

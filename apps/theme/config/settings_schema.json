@@ -46,7 +46,7 @@
         "id": "wordmark",
         "label": "Wordmark",
         "info": "The brand name in the header and the footer's copyright line. Leave blank to use the store name.",
-        "default": "Formulate"
+        "default": "Double Helix"
       }
     ]
   },
