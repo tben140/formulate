@@ -15,7 +15,11 @@ export const CollectionProductsQuery = graphql(`
       id
       title
       description
-      products(first: $first) {
+      # COLLECTION_DEFAULT is the merchant's configured sort for this
+      # collection, the same order Liquid's collection.products uses, so the
+      # three surfaces agree. It is also the API default: stated here so it is a
+      # decision rather than an inheritance (SHO-111).
+      products(first: $first, sortKey: COLLECTION_DEFAULT) {
         nodes {
           id
           handle
