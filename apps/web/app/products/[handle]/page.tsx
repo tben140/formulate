@@ -1,5 +1,5 @@
 import { viewedProduct } from "@formulate/analytics";
-import { breadcrumbCollection } from "@formulate/shopify";
+import { breadcrumbCollection, ratingLabel, reviewSummary } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -9,6 +9,8 @@ import { AddToCartForm } from "@/components/add-to-cart-form";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
+import { ProductReviews } from "@/components/product-reviews";
+import { Stars } from "@/components/stars";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
@@ -73,6 +75,9 @@ const ProductPage = async ({ params }: PageProps) => {
   const product = result.data.product;
   if (!product) notFound();
 
+  // Average and count from Shopify's standard review metafields (Judge.me).
+  const summary = reviewSummary(product);
+
   // The same trail for people and for search engines.
   const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, navLinks);
 
@@ -127,6 +132,17 @@ const ProductPage = async ({ params }: PageProps) => {
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+          {summary ? (
+            <a
+              href="#reviews"
+              className="mt-2 inline-flex items-center gap-2 text-sm hover:underline"
+            >
+              <Stars value={summary.average} label={ratingLabel(summary)} />
+              <span aria-hidden="true">
+                {summary.count} {summary.count === 1 ? "review" : "reviews"}
+              </span>
+            </a>
+          ) : null}
 
           {product.description ? (
             <p className="mt-4 text-foreground-muted">{product.description}</p>
@@ -146,6 +162,11 @@ const ProductPage = async ({ params }: PageProps) => {
           </Suspense>
         </div>
       </article>
+
+      {/* Reviews stream in after the product, like "Pairs well with". */}
+      <Suspense fallback={null}>
+        <ProductReviews handle={product.handle} summary={summary} />
+      </Suspense>
     </>
   );
 };

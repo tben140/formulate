@@ -1,3 +1,4 @@
+import { ratingLabel, reviewSummary } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -7,6 +8,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddToCart } from "../../components/add-to-cart";
 import { useCartUi } from "../../components/cart-provider";
 import { PairsWellWith } from "../../components/pairs-well-with";
+import { ProductReviews } from "../../components/product-reviews";
+import { Stars } from "../../components/stars";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
 import { useProduct } from "../../lib/queries";
@@ -72,6 +75,7 @@ const ProductScreen = () => {
  * returns above.
  */
 const ProductBody = ({ product }: { product: Product }) => {
+  const summary = reviewSummary(product);
   const { openCart } = useCartUi();
   const { bottom } = useSafeAreaInsets();
   const purchase = usePurchase(product);
@@ -154,6 +158,18 @@ const ProductBody = ({ product }: { product: Product }) => {
 
         <View>
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
+          {summary ? (
+            <View className="mt-1 flex-row items-center gap-2">
+              <Stars value={summary.average} label={ratingLabel(summary)} />
+              <Text
+                importantForAccessibility="no-hide-descendants"
+                accessibilityElementsHidden
+                className="text-sm text-foreground-muted"
+              >
+                {summary.count} {summary.count === 1 ? "review" : "reviews"}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {product.description ? (
@@ -183,6 +199,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         </View>
 
         <PairsWellWith productId={product.id} />
+
+        <ProductReviews handle={product.handle} summary={summary} />
 
         <SiteFooter />
       </ScrollView>
