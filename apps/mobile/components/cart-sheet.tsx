@@ -1,5 +1,4 @@
 import { formatMoney } from "@formulate/shopify";
-import { useShopifyCheckoutSheet } from "@shopify/checkout-sheet-kit";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
@@ -11,6 +10,7 @@ import {
   View,
 } from "react-native";
 
+import { useCheckout } from "../lib/checkout";
 import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
 
 /**
@@ -41,7 +41,7 @@ export const CartSheet = ({
   const { data: cart, isPending } = useCart();
   const updateLine = useUpdateCartLine();
   const clearCart = useClearCart();
-  const checkout = useShopifyCheckoutSheet();
+  const checkout = useCheckout();
 
   /**
    * Whether the checkout that is closing completed, as opposed to being
