@@ -1,12 +1,22 @@
 import { KLAVIYO_REVISION } from "@formulate/analytics";
 
-import { recharge, rechargeCustomerId, rechargeList, type RechargeAdminEnv } from "./recharge-admin";
+import {
+  recharge,
+  rechargeCustomerId,
+  rechargeList,
+  type RechargeAdminEnv,
+} from "./recharge-admin";
 import {
   bearerToken,
   verifyCustomer,
   type CustomerEnv,
   type VerifiedCustomer,
 } from "./shopify-customer";
+import {
+  adminAccessToken,
+  hasAdminCredentials,
+  type ShopifyAdminEnv,
+} from "./shopify-admin";
 
 /**
  * Account deletion (SHO-90), for the web account page and the app.
@@ -42,7 +52,7 @@ import {
  * is harmless, and a second erasure request replaces the first.
  */
 
-export interface DeletionEnv extends CustomerEnv, RechargeAdminEnv {
+export interface DeletionEnv extends CustomerEnv, RechargeAdminEnv, ShopifyAdminEnv {
   /** Plain vars: they name the store, they grant nothing. */
   readonly SHOPIFY_SHOP_ID: string;
   readonly SHOPIFY_STORE_DOMAIN: string;
@@ -52,13 +62,16 @@ export interface DeletionEnv extends CustomerEnv, RechargeAdminEnv {
    * are set, these routes answer 503 `not-configured` and delete nothing: the
    * confirmation screen promises each step, so none may be skipped.
    *
-   * SHOPIFY_ADMIN_TOKEN: custom app "Formulate Worker", scopes read_customers,
-   * read_customer_data_erasure, write_customer_data_erasure.
+   * SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET: the Dev Dashboard app
+   * "Formulate Worker", scopes read_customers, read_customer_data_erasure,
+   * write_customer_data_erasure. Exchanged for a 24-hour Admin token by
+   * shopify-admin.ts.
    * RECHARGE_ADMIN_TOKEN: Recharge Admin API token (customers, subscriptions,
    * charges).
    * KLAVIYO_DELETION_KEY: a Klaviyo private key with data-privacy:write only.
    */
-  readonly SHOPIFY_ADMIN_TOKEN?: string;
+  readonly SHOPIFY_CLIENT_ID?: string;
+  readonly SHOPIFY_CLIENT_SECRET?: string;
   readonly RECHARGE_ADMIN_TOKEN?: string;
   readonly KLAVIYO_DELETION_KEY?: string;
   /** Test overrides only. */
@@ -146,26 +159,41 @@ const isPrepaid = (subscription: AdminSubscription): boolean =>
   Number(subscription.charge_interval_frequency) >
   Number(subscription.order_interval_frequency);
 
-/** Reads the token, verifies it, and checks the Admin tokens are present. */
+interface Authorised extends VerifiedCustomer {
+  /** A live Shopify Admin token, obtained before anything is changed. */
+  readonly adminToken: string;
+}
+
+/**
+ * Reads the caller's token, checks every credential is present, verifies the
+ * customer, and gets a Shopify Admin token, all before anything is changed.
+ * A Shopify app that can't issue a token stops deletion here, not halfway
+ * through, after subscriptions are already cancelled.
+ */
 const authorise = async (
   env: DeletionEnv,
   request: Request,
-): Promise<VerifiedCustomer | DeletionResult> => {
+): Promise<Authorised | DeletionResult> => {
   const token = bearerToken(request);
   if (!token) return fail(401, "unauthorized");
   if (
-    !env.SHOPIFY_ADMIN_TOKEN ||
+    !hasAdminCredentials(env) ||
     !env.RECHARGE_ADMIN_TOKEN ||
     !env.KLAVIYO_DELETION_KEY
   ) {
-    console.error("account deletion: an Admin token or KLAVIYO_DELETION_KEY is not set");
+    console.error(
+      "account deletion: a Shopify, Recharge or Klaviyo credential is not set",
+    );
     return fail(503, "not-configured");
   }
   const customer = await verifyCustomer(env, token);
-  return customer ?? fail(401, "unauthorized");
+  if (!customer) return fail(401, "unauthorized");
+  const adminToken = await adminAccessToken(env);
+  if (!adminToken) return fail(503, "not-configured");
+  return { ...customer, adminToken };
 };
 
-const isResult = (value: VerifiedCustomer | DeletionResult): value is DeletionResult =>
+const isResult = (value: Authorised | DeletionResult): value is DeletionResult =>
   "status" in value;
 
 export const previewDeletion = async (
@@ -266,7 +294,7 @@ export const deleteAccount = async (
     {
       method: "POST",
       headers: {
-        "X-Shopify-Access-Token": env.SHOPIFY_ADMIN_TOKEN ?? "",
+        "X-Shopify-Access-Token": customer.adminToken,
         "content-type": "application/json",
       },
       body: JSON.stringify({

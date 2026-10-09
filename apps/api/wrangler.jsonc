@@ -44,8 +44,9 @@
     "KLAVIYO_LIST_ID": "XPJ8ic",
     /*
      * Account deletion (SHO-90). These name the store and grant nothing. Its
-     * credentials, SHOPIFY_ADMIN_TOKEN, RECHARGE_ADMIN_TOKEN and
-     * KLAVIYO_DELETION_KEY, are secrets: Cloudflare dashboard, type Secret.
+     * credentials, SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET,
+     * RECHARGE_ADMIN_TOKEN and KLAVIYO_DELETION_KEY, are secrets: Cloudflare
+     * dashboard, type Secret.
      * Until all three exist, deletion answers 503 and deletes nothing.
      */
     "SHOPIFY_SHOP_ID": "100581966136",

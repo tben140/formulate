@@ -73,10 +73,16 @@ they authenticate: the caller's Shopify Customer Account token in
 - Order is fixed and stops at the first failure: cancel Recharge subscriptions,
   delete the Klaviyo profile, then request Shopify erasure. Every step is safe
   to repeat, so a retry is correct.
-- Needs three secrets, `SHOPIFY_ADMIN_TOKEN`, `RECHARGE_ADMIN_TOKEN` and
-  `KLAVIYO_DELETION_KEY` (data-privacy:write only). Until all three exist the
+- Needs four secrets: `SHOPIFY_CLIENT_ID` and `SHOPIFY_CLIENT_SECRET` (the
+  Dev Dashboard app "Formulate Worker"), `RECHARGE_ADMIN_TOKEN`, and
+  `KLAVIYO_DELETION_KEY` (data-privacy:write only). Until all four exist the
   routes answer 503 and delete nothing, because the confirmation screen
   promises every step.
+- ⚠️ Dev Dashboard apps have no permanent Admin token. `src/shopify-admin.ts`
+  exchanges the Client ID and secret for a 24-hour token (the client
+  credentials grant), caches it, and renews it. That grant only works when the
+  app and the store are in the same Shopify organization (error
+  `shop_not_permitted` otherwise).
 
 ## The runtime is not Node
 
@@ -108,7 +114,7 @@ It is documented as "permissive, eventually consistent, and intentionally
 designed to not be used as an accurate accounting system". Do not reinstate it.
 
 A Durable Object replaces it: single-threaded and serialised, so the
-read-modify-write cannot interleave. The *rule* lives in
+read-modify-write cannot interleave. The _rule_ lives in
 `src/rate-limit-policy.ts` as a pure function so it can be tested without a
 runtime; the DO is a storage shell.
 
