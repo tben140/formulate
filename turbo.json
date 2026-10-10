@@ -28,6 +28,12 @@
         "theme.css"
       ]
     },
+    // Both Storybooks side by side: web on 6006, which composes in the app's
+    // on 6007.
+    "storybook": {
+      "cache": false,
+      "persistent": true
+    },
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,

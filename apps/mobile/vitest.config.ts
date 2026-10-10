@@ -1,7 +1,5 @@
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
-import { fileURLToPath } from "node:url";
-
 import { defineConfig } from "vitest/config";
 
 /**
@@ -9,14 +7,24 @@ import { defineConfig } from "vitest/config";
  * function (if any) must pass, and the a11y addon must find no WCAG 2.2 AA
  * violation (`a11y.test: "error"` in .storybook/preview.ts).
  *
- * Separate from the Playwright e2e suite, which drives whole pages against the
- * real store. These need no network and no Shopify token.
+ * Rendered through React Native Web, like the Storybook itself: this checks
+ * the components' logic, markup and web accessibility. Native-only behaviour
+ * is still checked on a device.
  */
 export default defineConfig({
   plugins: [storybookTest({ configDir: ".storybook" })],
-  // tsconfig's `@/*` path, which Storybook's own builder sets up but Vitest
-  // doesn't.
-  resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
+  // Vitest's dependency scanner follows the real imports, not the mocks, and
+  // Expo's packages ship TypeScript it can't pre-bundle. The stories never
+  // load these (they're mocked in .storybook/preview.tsx), so skip them.
+  optimizeDeps: {
+    exclude: [
+      "expo-router",
+      "expo-image",
+      "expo-constants",
+      "expo-secure-store",
+      "expo-modules-core",
+    ],
+  },
   test: {
     name: "storybook",
     browser: {
