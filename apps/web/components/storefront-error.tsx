@@ -3,6 +3,10 @@ import { describeError, type StorefrontError } from "@formulate/shopify";
 /**
  * Renders a Storefront failure without pretending it didn't happen.
  *
+ * On the plain surface, not a red tint: danger text and secondary text both
+ * fell just under 4.5:1 on the tint (4.46 and 4.40), found by the Storybook
+ * a11y tests. The thick left border carries the "error" signal instead.
+ *
  * The `config` and `http` cases are overwhelmingly the ones a developer hits
  * first (no .env.local, or products not published to the token's sales
  * channel), so those get an explicit next step rather than a generic apology.
@@ -10,7 +14,7 @@ import { describeError, type StorefrontError } from "@formulate/shopify";
 export const StorefrontErrorState = ({ error }: { error: StorefrontError }) => (
   <div
     role="alert"
-    className="rounded-lg border border-danger/30 bg-danger/5 p-6 text-sm"
+    className="rounded-lg border border-danger/40 border-l-4 bg-surface p-6 text-sm"
   >
     <h2 className="mb-2 text-base font-semibold text-danger">
       Could not load from Shopify

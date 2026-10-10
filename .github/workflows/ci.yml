@@ -68,3 +68,40 @@ jobs:
           git diff --exit-code -- packages/tokens apps/theme/assets
 
       - run: pnpm turbo lint typecheck test build
+
+  storybook:
+    name: Storybook
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The same pinned Playwright as the e2e suite, so one browser build.
+      - name: Install Chromium
+        run: pnpm --filter @formulate/web exec playwright install --with-deps chromium
+
+      # Every story, web and app, rendered in Chromium: its play function must
+      # pass and axe must find no WCAG 2.2 AA violation.
+      - name: Run stories as tests
+        run: pnpm storybook:test
+
+      # The combined site (web, with the app composed in under /app), kept as
+      # an artifact for a reviewer to download.
+      - name: Build Storybook
+        run: pnpm storybook:build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storybook
+          path: apps/web/storybook-static
+          retention-days: 14

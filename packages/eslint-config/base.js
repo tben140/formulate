@@ -19,6 +19,8 @@ export const base = tseslint.config(
       "**/.next/**",
       "**/.expo/**",
       "**/.turbo/**",
+      // Storybook build output.
+      "**/storybook-static/**",
       // Codegen output — generated, not hand-written, so not ours to lint.
       "**/generated/**",
       // Generated from tokens.ts; see packages/tokens.
