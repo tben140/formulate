@@ -29,11 +29,11 @@ vault to browse it as a graph; it is plain markdown either way.
 
 ## Integrations
 
-| Note                                        | Status                                                                                        |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [Recharge](integration-recharge.md)         | Installed; one live test subscription. Portal not yet built                                   |
-| [Klaviyo](integration-klaviyo.md)           | Planned. Design only — nothing shipped                                                        |
-| [Google and Meta](integration-ad-pixels.md) | GA4 and Meta Pixel on web, Conversions API server-side; Shopify's apps for theme and checkout |
+| Note                                     | Status                                                                                                                                  |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| [Recharge](integration-recharge.md)      | Installed; one live test subscription. Portal not yet built                                                                             |
+| [Klaviyo](integration-klaviyo.md)        | Planned. Design only — nothing shipped                                                                                                  |
+| [Ad platforms](integration-ad-pixels.md) | Google, Meta, TikTok, Pinterest, Snapchat, Reddit, Microsoft on web; server-side copies for four; Shopify's apps for theme and checkout |
 
 ## Out of scope, kept for reference
 
