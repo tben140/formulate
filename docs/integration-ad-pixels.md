@@ -137,8 +137,51 @@ What this means:
 - **Options if more are needed:**
   - rely on the server-side copy alone for TikTok, Pinterest and Snapchat,
     which costs no browser time but gives the platform weaker matching;
-  - move the tags into a web worker with Partytown. That would need a spike:
-    it's experimental with the App Router, and not every tag works in it.
+  - move the tags into a web worker with Partytown. That would need a spike;
+    see below.
+
+### Partytown (researched 2026-10-10, not adopted)
+
+[Partytown](https://partytown.qwik.dev) runs third-party scripts in a web
+worker, so their work happens off the main thread. The page talks to them
+through forwarded calls (`gtag`, `fbq`, `ttq.track` and so on). It could
+remove most of the blocking measured above. What adopting it would involve:
+
+- **Package and version.**
+  - `@builder.io/partytown` is deprecated; the package is now
+    `@qwik.dev/partytown`.
+  - 1.0.0 was released on 2026-10-10, so under the repo's 14-day
+    release-age rule it can be used from 2026-10-24. The newest version old
+    enough today is 0.14.3 (2026-08-25).
+  - The README still calls it beta.
+- **No built-in Next.js support here.** `next/script`'s `strategy="worker"` is
+  experimental and doesn't work with the App Router (Next.js docs). So
+  integration would be manual:
+  - serve Partytown's files from `public/~partytown`;
+  - add its snippet to the root layout, with a `forward` list of every call
+    we make;
+  - inject each tag as `type="text/partytown"` after consent;
+  - dispatch `ptupdate`.
+- **CORS.** The worker fetches scripts with `fetch()`, which needs CORS
+  headers that some vendors don't send.
+  - Partytown's docs list Meta (`connect.facebook.net`) and Klaviyo as needing
+    a reverse proxy.
+  - Google and TikTok are listed as tested with no proxy.
+  - Pinterest, Snapchat, Reddit and Microsoft aren't on its tested list at all.
+  - A proxy route on our domain must allow only those exact script URLs, or
+    it becomes an open proxy.
+- **Service-worker mode, not Atomics.** Atomics mode needs cross-origin
+  isolation headers (COOP/COEP), which would break cross-origin resources such
+  as Shopify's CDN images and checkout.
+- **Verification gets harder.** Tag Assistant and the pixel helper extensions
+  are less reliable with scripts in a worker, so each platform's own test
+  events would be the check.
+- **Consent is unaffected.** Our tags only load after consent, so nothing
+  else has to run on the main thread first.
+
+Worth a spike only if more than Google and Meta need to be on at once. The
+measure of success is the harness behind the table above: blocking time
+with and without it, and each platform's test tool still receiving events.
 
 ## Setup (once per platform)
 
