@@ -98,6 +98,48 @@ build and Apple's tracking prompt.
   - the caller always gets 204, and failures are logged as platform and
     status only.
 
+## Performance cost
+
+Measured 2026-10-10 on a product page, in Chromium with the CPU slowed 4×
+(a mid-range phone). Consent was given, and dummy ids were set, so each
+platform's real script downloaded. The figure is main-thread blocking time
+(long tasks over 50 ms) in the 10–12 seconds after load, as the median of
+three runs.
+
+| Trackers loaded               | Blocking time | Tracker download |
+| ----------------------------- | ------------- | ---------------- |
+| None (no consent)             | ~0.5 s        | 0 KB             |
+| Klaviyo only                  | ~0.6 s        | ~70 KB           |
+| Klaviyo and all seven ad tags | ~1.9 s        | ~450 KB          |
+
+Each ad platform alone, added to the page without trackers:
+
+| Platform  | Extra blocking                                                                    |
+| --------- | --------------------------------------------------------------------------------- |
+| Meta      | ~690 ms                                                                           |
+| Google    | ~610 ms                                                                           |
+| Snapchat  | ~360 ms                                                                           |
+| Reddit    | ~240 ms                                                                           |
+| Pinterest | ~190 ms                                                                           |
+| Microsoft | ~140 ms                                                                           |
+| TikTok    | ~130 ms (with a dummy id, only its loader downloads, so likely higher in reality) |
+
+What this means:
+
+- **Loading time is unaffected.** The tags start after load, once the page
+  is idle, so largest contentful paint doesn't move.
+- **Lighthouse CI doesn't see it.** It audits without consent.
+- **Shoppers who accept do pay it.** A tap during those seconds responds
+  more slowly (INP), and it grows with each platform switched on.
+- **So turn on only the platforms actually running ads.** Google and Meta
+  are the v1 set. The rest are built and stay off until there's a campaign
+  on them.
+- **Options if more are needed:**
+  - rely on the server-side copy alone for TikTok, Pinterest and Snapchat,
+    which costs no browser time but gives the platform weaker matching;
+  - move the tags into a web worker with Partytown. That would need a spike:
+    it's experimental with the App Router, and not every tag works in it.
+
 ## Setup (once per platform)
 
 For every platform:
