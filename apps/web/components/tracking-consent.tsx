@@ -4,7 +4,7 @@ import Script from "next/script";
 import { createContext, useContext, useId, useState, type ReactNode } from "react";
 
 import { AdPixels } from "@/components/ad-pixels";
-import { forgetAdCookies, hasAdPixels } from "@/lib/ad-pixels";
+import { adPlatformNames, forgetAdCookies, hasAdPixels } from "@/lib/ad-pixels";
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
 import {
   discardQueuedEvents,
@@ -193,9 +193,12 @@ const ConsentBanner = ({
           </h2>
           <p className="mt-1 text-foreground-muted">
             With your permission, Klaviyo remembers what you browse and add to your basket
-            so we can email you reminders, and Google and Meta measure how visitors from
-            their ads use the shop. Nothing is tracked unless you accept. You can change
-            your mind from the footer at any time.
+            so we can email you reminders
+            {hasAdPixels
+              ? `, and ${adPlatformNames} measure how visitors from their ads use the shop`
+              : ""}
+            . Nothing is tracked unless you accept. You can change your mind from the
+            footer at any time.
           </p>
         </div>
 
