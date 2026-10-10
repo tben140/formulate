@@ -3,6 +3,8 @@
 import Script from "next/script";
 import { createContext, useContext, useId, useState, type ReactNode } from "react";
 
+import { AdPixels } from "@/components/ad-pixels";
+import { forgetAdCookies, hasAdPixels } from "@/lib/ad-pixels";
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
 import {
   discardQueuedEvents,
@@ -111,6 +113,7 @@ export const TrackingConsentProvider = ({
        */
       if (consent === "granted") {
         forgetKlaviyo();
+        forgetAdCookies();
         window.location.reload();
         return;
       }
@@ -120,7 +123,8 @@ export const TrackingConsentProvider = ({
     setReopened(false);
   };
 
-  const showBanner = Boolean(KLAVIYO_PUBLIC_KEY) && (consent === "unset" || reopened);
+  const hasTracking = Boolean(KLAVIYO_PUBLIC_KEY) || hasAdPixels;
+  const showBanner = hasTracking && (consent === "unset" || reopened);
 
   return (
     <ConsentContext.Provider value={{ reopen: () => setReopened(true) }}>
@@ -144,6 +148,9 @@ export const TrackingConsentProvider = ({
       {KLAVIYO_PUBLIC_KEY && consent === "granted" ? (
         <Script src={KLAVIYO_SCRIPT_URL} strategy="afterInteractive" />
       ) : null}
+
+      {/* Google and Meta, under the same consent (lib/ad-pixels.ts). */}
+      {hasAdPixels && consent === "granted" ? <AdPixels /> : null}
     </ConsentContext.Provider>
   );
 };
@@ -186,8 +193,9 @@ const ConsentBanner = ({
           </h2>
           <p className="mt-1 text-foreground-muted">
             With your permission, Klaviyo remembers what you browse and add to your basket
-            so we can email you reminders. Nothing is tracked unless you accept. You can
-            change your mind from the footer at any time.
+            so we can email you reminders, and Google and Meta measure how visitors from
+            their ads use the shop. Nothing is tracked unless you accept. You can change
+            your mind from the footer at any time.
           </p>
         </div>
 
@@ -210,7 +218,7 @@ const ConsentBanner = ({
  */
 export const CookiePreferencesButton = () => {
   const context = useContext(ConsentContext);
-  if (!context || !KLAVIYO_PUBLIC_KEY) return null;
+  if (!context || !(KLAVIYO_PUBLIC_KEY || hasAdPixels)) return null;
 
   return (
     <button

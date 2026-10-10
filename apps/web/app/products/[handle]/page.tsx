@@ -1,4 +1,4 @@
-import { viewedProduct } from "@formulate/analytics";
+import { adViewItem, viewedProduct } from "@formulate/analytics";
 import { breadcrumbCollection } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
@@ -101,6 +101,8 @@ const ProductPage = async ({ params }: PageProps) => {
       */}
         <TrackViewedProduct
           payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
+          // The event id is left blank here and set in the browser, one per view.
+          adEvent={adViewItem(product, "")}
         />
 
         <div className="overflow-hidden rounded-lg border border-border bg-surface-muted">
