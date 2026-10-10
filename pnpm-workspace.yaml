@@ -5,6 +5,10 @@ packages:
 # Native resolver used by eslint-import-resolver-typescript (pulled in by
 # eslint-config-expo). It ships a Rust binary and needs its postinstall step.
 allowBuilds:
+  # Sentry's CLI, used by @sentry/nextjs only to upload source maps. Its
+  # binary arrives through a per-platform optional dependency, so the
+  # postinstall fallback download isn't needed.
+  '@sentry/cli': false
   # Bundler used by @shopify/cli; ships prebuilt platform binaries.
   esbuild: true
   # Image processing used by Next.js and Expo tooling; ships prebuilt binaries.

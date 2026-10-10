@@ -5,6 +5,13 @@
   "compatibility_date": "2026-08-09",
 
   /*
+   * AsyncLocalStorage, which @sentry/cloudflare needs to keep each request's
+   * error context separate. Only this API, not the whole Node compatibility
+   * layer.
+   */
+  "compatibility_flags": ["nodejs_als"],
+
+  /*
    * Serve on `<name>.<subdomain>.workers.dev`, stated explicitly rather than
    * relying on the default.
    *

@@ -99,6 +99,20 @@ are not the source of truth; `app.config.ts` is. iOS builds need CocoaPods
 installed locally, because `pod install` links the native modules autolinking
 discovered.
 
+## Error monitoring
+
+**Sentry** (EU region, project `app`) receives JavaScript errors.
+`lib/sentry.ts` starts it at module scope in `app/_layout.tsx`, beside
+Klaviyo, so errors during the first render are caught. It's off without
+`EXPO_PUBLIC_SENTRY_DSN`. There's no tracing and no replay. `beforeSend`
+removes the user and any request details, and breadcrumbs keep URLs
+without their query strings.
+
+Native crashes need the native layer, so they're only reported from a
+development or store build. Expo Go reports JavaScript errors only. The
+version follows Expo's own recommendation for SDK 57 (`~7.11.0`), not the
+newest Sentry release.
+
 ## Known constraints
 
 - **NativeWind v5 is pre-release** (`5.0.0-preview.4`), chosen so both React

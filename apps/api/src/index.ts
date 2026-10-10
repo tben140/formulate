@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/cloudflare";
+
 import type { RateLimiter } from "./rate-limiter";
 
 export { RateLimiter } from "./rate-limiter";
@@ -37,6 +39,11 @@ interface Env {
    * src/rate-limiter.ts for why that one was removed.
    */
   readonly RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
+  /**
+   * Sentry's DSN for the `worker` project, in `vars`. Public by design: it can
+   * only submit events. Unset means Sentry is off (local runs, tests).
+   */
+  readonly SENTRY_DSN?: string;
 }
 
 /**
@@ -60,7 +67,10 @@ const MAX_BODY_BYTES = 1024;
  */
 type Outcome =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: "invalid-email" | "rate-limited" | "rejected" };
+  | {
+      readonly ok: false;
+      readonly reason: "invalid-email" | "rate-limited" | "rejected";
+    };
 
 const json = (body: Outcome, status: number): Response =>
   new Response(JSON.stringify(body), {
@@ -83,7 +93,7 @@ const json = (body: Outcome, status: number): Response =>
     },
   });
 
-export default {
+const handler = {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method !== "POST") {
       return json({ ok: false, reason: "rejected" }, 405);
@@ -161,6 +171,11 @@ export default {
         status: response.status,
         detail: (await response.text()).slice(0, 500),
       });
+      // Sentry gets the status only. Klaviyo's message can quote the address.
+      Sentry.captureMessage("Klaviyo subscribe failed", {
+        level: "error",
+        extra: { status: response.status },
+      });
       return json({ ok: false, reason: "rejected" }, 502);
     }
 
@@ -173,3 +188,27 @@ export default {
     return json({ ok: true }, 202);
   },
 } satisfies ExportedHandler<Env>;
+
+/**
+ * Uncaught errors go to Sentry (EU region, project `worker`), plus the
+ * Klaviyo failure above. Errors only, no tracing.
+ *
+ * ⚠️ No personal data. sendDefaultPii is off, and beforeSend drops the
+ * request entirely, so headers (including CF-Connecting-IP), cookies, the
+ * body and the query string never leave the Worker. The body is where the
+ * email address is.
+ */
+export default Sentry.withSentry<Env, unknown, unknown, typeof handler>(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN,
+    enabled: Boolean(env.SENTRY_DSN),
+    environment: "production",
+    sendDefaultPii: false,
+    beforeSend: (event) => {
+      delete event.request;
+      delete event.user;
+      return event;
+    },
+  }),
+  handler,
+);
