@@ -15,8 +15,13 @@ export default defineConfig({
   plugins: [storybookTest({ configDir: ".storybook" })],
   // Vitest's dependency scanner follows the real imports, not the mocks, and
   // Expo's packages ship TypeScript it can't pre-bundle. The stories never
-  // load these (they're mocked in .storybook/preview.tsx), so skip them.
+  // load these (.storybook/story-mocks.ts swaps them out), so skip them.
+  //
+  // react-native-web is listed up front because a cold run (every CI run)
+  // otherwise discovers it late, re-bundles and reloads mid-run, failing every
+  // story after the first file.
   optimizeDeps: {
+    include: ["react-native-web"],
     exclude: [
       "expo-router",
       "expo-image",
