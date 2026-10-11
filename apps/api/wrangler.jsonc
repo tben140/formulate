@@ -46,9 +46,13 @@
    * `wrangler secret put KLAVIYO_PRIVATE_KEY`, which encrypts it and never
    * writes it to disk. Putting a key in `vars` is the most common way to leak
    * one on this platform, and it looks identical in code.
+   *
+   * SENTRY_DSN is the Sentry `worker` project's DSN. Also public by design: it
+   * can only submit events, never read them.
    */
   "vars": {
-    "KLAVIYO_LIST_ID": "XPJ8ic"
+    "KLAVIYO_LIST_ID": "XPJ8ic",
+    "SENTRY_DSN": "https://1e56ea4ce8ff0d7c730026d917ab272f@o4512227983753216.ingest.de.sentry.io/4512238429732944"
   },
 
   /*
