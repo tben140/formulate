@@ -104,7 +104,9 @@ discovered.
 **Sentry** (EU region, project `app`) receives JavaScript errors.
 `lib/sentry.ts` starts it at module scope in `app/_layout.tsx`, beside
 Klaviyo, so errors during the first render are caught. It's off without
-`EXPO_PUBLIC_SENTRY_DSN`. There's no tracing and no replay. `beforeSend`
+`EXPO_PUBLIC_SENTRY_DSN`, which `eas.json` sets for preview and production
+builds (a DSN is public by design: it can only submit events). Local runs
+stay off unless you put it in `.env.local`. There's no tracing and no replay. `beforeSend`
 removes the user and any request details, and breadcrumbs keep URLs
 without their query strings.
 
