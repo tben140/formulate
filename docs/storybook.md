@@ -13,8 +13,9 @@ pnpm storybook:build   # one static site: apps/web/storybook-static (app under /
 ## What a story is here
 
 - **Shared data.** Stories use `@formulate/shopify/fixtures`: real catalogue
-  products, carts and suggestions, typed against the Storefront API's own
-  query types. Web and app render the same data, so differences are in the
+  products (as cards and as full product pages, with variants, a sold-out
+  option and a subscription plan), carts, suggestions, filters and menu
+  links, typed against the Storefront API's own query types. Web and app render the same data, so differences are in the
   components, not the inputs. Production code never imports it.
 - **A test, not just a picture.** `storybook:test` runs every story in
   Chromium through Vitest (`@storybook/addon-vitest`):
@@ -23,13 +24,17 @@ pnpm storybook:build   # one static site: apps/web/storybook-static (app under /
     success and failure, or the cart drawer taking focus);
   - axe must find no WCAG 2.2 AA violation (`a11y.test: "error"`).
 - **No network.** Server Actions and Klaviyo (web) and the cart hooks,
-  Klaviyo and navigation (app) are mocked. Stories set results with
+  checkout, Klaviyo and navigation (app) are mocked. Stories set results with
   `mocked(...)`.
 
 The axe checks found three contrast failures on their first run. All three
 were in states the page-level Playwright scans never reach: the "No image"
 card placeholder and both texts in the Shopify error box. That's the reason
-to test components, and not only pages.
+to test components, and not only pages. The app's option pickers and filter
+checkboxes came next: React Native Web writes no `aria-checked` for them, so
+a screen reader on web can't tell what's chosen. #69 fixes that, and until
+it merges those stories switch off that one axe rule, with a comment saying
+so.
 
 ## Web (`apps/web/.storybook`)
 
@@ -49,7 +54,12 @@ through React Native Web. Two small Vite plugins make that work:
 - **`story-mocks.ts`** redirects `expo-router`, `expo-image` and the app's
   Klaviyo and cart modules to hand-written mocks at resolve time. Storybook's
   `sb.mock` still loads the real module, and Expo's native layer can't load
-  in a browser.
+  in a browser. Checkout is mocked the same way: its `present` is a spy.
+
+`preview.tsx` adds a safe-area provider (Expo Router supplies one in the
+app). The cart sheet and the filter sheet are React Native Web modals, which
+only become dialogs once they've slid in, so their stories wait for the
+dialog before axe scans it.
 
 This is the browser view of the components, so it checks logic, markup and
 web accessibility. Native behaviour is still checked on a device:
