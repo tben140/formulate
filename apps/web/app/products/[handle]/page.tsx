@@ -103,12 +103,19 @@ const ProductPage = async ({ params }: PageProps) => {
           payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
         />
 
-        <div className="overflow-hidden rounded-lg border border-border bg-surface-muted">
+        {/*
+          `self-start`: a grid cell stretches to the row's height, and the
+          details column is far taller than the photo, so the image grew to
+          350 × 961 at 768 px and was cropped to fit. Now it keeps the photo's
+          own shape, and on two columns it stays in view while the details
+          scroll past.
+        */}
+        <div className="self-start overflow-hidden rounded-lg border border-border bg-surface-muted md:sticky md:top-6">
           {product.featuredImage ? (
             <Image
               data={product.featuredImage}
               sizes="(min-width: 768px) 45vw, 90vw"
-              className="h-full w-full object-cover"
+              className="h-auto w-full object-cover"
               // The page's Largest Contentful Paint. Hydrogen's Image defaults
               // to lazy, which made the browser wait for layout before even
               // requesting it (SHO-143).
