@@ -150,16 +150,20 @@ export const useComplementaryProducts = (productId: string | undefined) =>
  * previous results stay on screen while the next ones load.
  */
 export const useSearch = (term: string, filterQuery = "") =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: ["search", term, filterQuery],
-    queryFn: async () =>
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) =>
       unwrap(
         await storefront.request(SearchProductsQuery, {
           query: term,
-          first: 24,
+          first: COLLECTION_PAGE_SIZE,
+          ...(pageParam ? { after: pageParam } : {}),
           filters: productFiltersFromParams(new URLSearchParams(filterQuery)),
         }),
       ).search,
+    // More results load as the list nears its end, as on a collection.
+    getNextPageParam: (page) => nextCursor(page.pageInfo),
     enabled: term.trim().length >= 2,
     placeholderData: keepPreviousData,
   });
