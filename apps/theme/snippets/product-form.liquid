@@ -171,6 +171,14 @@
             {% endif %}
           {% endfor %}
         </div>
+        {% comment %}
+          The subscriber gift (SHO-156). Off until the gift is really added to
+          orders; switched on in the theme editor (Subscriptions). Web and the
+          app read SUBSCRIBER_GIFT in packages/shopify: change together.
+        {% endcomment %}
+        {% if settings.subscriber_gift_enabled %}
+          <p class="product-form__gift">{{ 'product.subscriber_gift' | t }}</p>
+        {% endif %}
       </fieldset>
     {% endif %}
 

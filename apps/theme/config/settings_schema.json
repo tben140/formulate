@@ -97,5 +97,17 @@
         "default": 4
       }
     ]
+  },
+  {
+    "name": "Subscriptions",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "subscriber_gift_enabled",
+        "label": "Show the subscriber gift on products",
+        "info": "Turn on only once the 3rd-delivery trial pack is really being added to orders (SHO-156).",
+        "default": false
+      }
+    ]
   }
 ]
