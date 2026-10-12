@@ -114,10 +114,17 @@ command that renders the storefront needs `SHOPIFY_FLAG_STORE_PASSWORD`.
 Sentry, in the EU region, with one project per runtime: `web`, `app` and
 `worker`. The theme has no project: Shopify hosts it and its JavaScript is
 small. The rules are the same on all three:
-- errors only;
+
+- errors, and traces at a low sample rate (10% in production);
 - no personal data (user, headers, cookies, bodies and query strings are
-  removed before sending);
+  removed before sending, from traces as well as errors);
 - off when no DSN is set.
+
+Traces are distributed: the app adds trace headers to its calls to the
+Worker, so one trace shows the screen, the request and the Worker's call to
+Klaviyo, with timings. Trace headers go only to our own services, never to
+Shopify, Klaviyo or ad platforms. Traces are scrubbed by `scrubTransaction`
+in `@formulate/analytics`, so every surface follows the same tested rules.
 
 Details live in each surface's doc and, for the Worker, in `apps/api/src/index.ts`.
 
