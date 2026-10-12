@@ -15,12 +15,20 @@ import { storyMocks } from "./story-mocks";
 const config: StorybookConfig = {
   framework: { name: "@storybook/react-native-web-vite", options: {} },
   stories: ["../components/**/*.stories.tsx"],
-  addons: ["@storybook/addon-docs", "@storybook/addon-a11y", "@storybook/addon-vitest"],
+  addons: [
+    "@storybook/addon-docs",
+    "@storybook/addon-a11y",
+    "@storybook/addon-vitest",
+    // GitHub's ⚡ Performance panel: frame rate, INP, long tasks, layout shift
+    // and React render timings for the open story. It only measures while the
+    // panel is open.
+    "@github-ui/storybook-addon-performance-panel",
+  ],
   staticDirs: [{ from: "../../../packages/tokens/fonts", to: "/assets/fonts" }],
   core: { disableTelemetry: true },
   viteFinal: (viteConfig) => {
     viteConfig.plugins = [storyMocks(), nativewindWeb(), ...(viteConfig.plugins ?? [])];
-      viteConfig.build = { ...viteConfig.build, minify: false };
+    viteConfig.build = { ...viteConfig.build, minify: false };
     return viteConfig;
   },
 };

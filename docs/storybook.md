@@ -36,6 +36,21 @@ a screen reader on web can't tell what's chosen. #69 fixes that, and until
 it merges those stories switch off that one axe rule, with a comment saying
 so.
 
+## Performance panel
+
+Both Storybooks load GitHub's
+[`@github-ui/storybook-addon-performance-panel`](https://github.com/github/storybook-addon-performance-panel).
+Its ⚡ Performance tab shows, for the open story: frame rate and dropped
+frames, INP, long tasks and Total Blocking Time, layout shift, long animation
+frames and React render timings. It measures only while the tab is open, so
+the story tests don't pay for it. Use Chrome or Edge, which expose the most
+metrics.
+
+It's a tool for looking, not a gate. Page performance is gated by Lighthouse
+CI against real deployments. Numbers in the panel include Storybook's own
+work on first load, so compare a story against itself (before and after a
+change), not against a budget.
+
 ## Web (`apps/web/.storybook`)
 
 `@storybook/nextjs-vite`. Stories cover client and presentational components.
