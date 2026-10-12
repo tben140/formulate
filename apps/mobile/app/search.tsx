@@ -29,9 +29,19 @@ const SearchScreen = () => {
     return () => clearTimeout(timer);
   }, [text]);
 
-  const { data, isFetching, isError, error } = useSearch(term, filterQuery);
-  const products = (data?.nodes ?? []).flatMap((node) =>
-    node.__typename === "Product" ? [node] : [],
+  const {
+    data,
+    isFetching,
+    isError,
+    error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useSearch(term, filterQuery);
+  // Every loaded page's products; the first page carries the filters and count.
+  const firstPage = data?.pages[0];
+  const products = (data?.pages ?? []).flatMap((page) =>
+    page.nodes.flatMap((node) => (node.__typename === "Product" ? [node] : [])),
   );
   const searching = term.length >= 2;
 
@@ -58,15 +68,18 @@ const SearchScreen = () => {
               clearButtonMode="while-editing"
               className="flex-1 rounded-md border border-ink-400 px-3 py-2.5 text-base text-foreground"
             />
-            {isFetching ? <ActivityIndicator accessibilityLabel="Searching" /> : null}
+            {isFetching && !isFetchingNextPage ? (
+              <ActivityIndicator accessibilityLabel="Searching" />
+            ) : null}
           </View>
 
-          {searching && data ? (
+          {searching && firstPage ? (
             <CollectionFilters
-              filters={data.productFilters}
+              filters={firstPage.productFilters}
               query={filterQuery}
               onChange={setFilterQuery}
-              productCount={products.length}
+              // The whole result count, not just the pages loaded so far.
+              productCount={firstPage.totalCount}
             />
           ) : null}
 
@@ -81,10 +94,20 @@ const SearchScreen = () => {
         <Text className="py-12 text-center text-foreground-muted">
           {!searching
             ? "Search by product name, format or ingredient."
-            : data && !isFetching
+            : firstPage && !isFetching
               ? `No products match “${term}”.`
               : ""}
         </Text>
+      }
+      // More results load as the end of the list comes near.
+      onEndReached={() => {
+        if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+      }}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <ActivityIndicator className="py-4" accessibilityLabel="Loading more results" />
+        ) : null
       }
       renderItem={({ item }) => (
         <Link href={`/products/${item.handle}`} asChild>

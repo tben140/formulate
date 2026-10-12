@@ -1,3 +1,4 @@
+import type { Cart } from "@formulate/shopify";
 import { fn } from "storybook/test";
 
 /**
@@ -11,7 +12,12 @@ const mutation = () => ({
   isPending: false,
 });
 
-export const useCart = fn(() => ({ data: null, isLoading: false, error: null }));
+export const useCart = fn(() => ({
+  data: null as Cart | null,
+  isLoading: false,
+  isPending: false,
+  error: null,
+}));
 export const useAddToCart = fn(mutation);
 export const useUpdateCartLine = fn(mutation);
 export const useClearCart = fn(mutation);

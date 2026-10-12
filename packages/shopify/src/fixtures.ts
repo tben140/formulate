@@ -1,4 +1,7 @@
 import type { Cart } from "./cart";
+import type { FilterLike } from "./filters";
+import type { ProductByHandleQuery } from "./generated/graphql";
+import type { NavLink } from "./nav";
 import type { CartSuggestion } from "./recommendations";
 
 /**
@@ -157,4 +160,194 @@ export const FIXTURE_SUGGESTIONS: readonly CartSuggestion[] = [
     variantId: "gid://shopify/ProductVariant/vitamin-d3-0",
   },
   { kind: "view", product: recommendation(FIXTURE_PRODUCTS.focusSticks, 2) },
+];
+
+type ProductDetail = NonNullable<ProductByHandleQuery["product"]>;
+type VariantDetail = ProductDetail["variants"]["nodes"][number];
+
+/** The subscription plan Recharge manages, at 10% off. */
+const PLAN = { id: "gid://shopify/SellingPlan/30-day", name: "Delivered every 30 days" };
+
+/**
+ * A plan from Shopify's seed data, which no app manages. It's allocated to the
+ * variants like a real plan, and the purchase options must leave it out (see
+ * `purchasableAllocations`).
+ */
+const SEED_PLAN = {
+  id: "gid://shopify/SellingPlan/seed",
+  name: "Seed plan, never charged",
+};
+
+interface Axis {
+  readonly name: string;
+  /** Each value, and whether its variant is in stock. */
+  readonly values: readonly (readonly [string, boolean])[];
+}
+
+const detail = (
+  item: FixtureProduct,
+  axis: Axis | null,
+  {
+    subscription = false,
+    inStock = true,
+  }: { readonly subscription?: boolean; readonly inStock?: boolean } = {},
+): ProductDetail => {
+  const price = item.priceRange.minVariantPrice;
+  const subscribed = gbp((Number(price.amount) * 0.9).toFixed(2));
+  // No options is Shopify's single "Title: Default Title" variant.
+  const values = axis?.values ?? [["Default Title", inStock] as const];
+  const axisName = axis?.name ?? "Title";
+
+  const variants: VariantDetail[] = values.map(([value, available], index) => ({
+    id: `gid://shopify/ProductVariant/${item.handle}-${index}`,
+    title: value,
+    availableForSale: available,
+    sku: null,
+    selectedOptions: [{ name: axisName, value }],
+    price,
+    compareAtPrice: null,
+    image: null,
+    sellingPlanAllocations: {
+      nodes: subscription
+        ? [PLAN, SEED_PLAN].map((plan) => ({
+            sellingPlan: plan,
+            priceAdjustments: [{ price: subscribed }],
+          }))
+        : [],
+    },
+  }));
+
+  return {
+    id: `gid://shopify/Product/${item.handle}`,
+    handle: item.handle,
+    title: item.title,
+    description: `${item.title}, from the Double Helix range.`,
+    vendor: "Double Helix",
+    seo: { title: null, description: null },
+    breadcrumbCollections: { nodes: [] },
+    collections: { nodes: [] },
+    compareAtPriceRange: { minVariantPrice: gbp("0.00") },
+    featuredImage: item.featuredImage,
+    images: { nodes: item.featuredImage ? [item.featuredImage] : [] },
+    priceRange: item.priceRange,
+    options: [{ name: axisName, optionValues: values.map(([name]) => ({ name })) }],
+    sellingPlanGroups: {
+      nodes: subscription
+        ? [
+            {
+              name: "Subscribe and save",
+              appName: "Recharge Subscriptions",
+              options: [{ name: "Delivery", values: [PLAN.name] }],
+              sellingPlans: { nodes: [{ id: PLAN.id }] },
+            },
+            {
+              name: "Seed data",
+              appName: null,
+              options: [{ name: "Delivery", values: [SEED_PLAN.name] }],
+              sellingPlans: { nodes: [{ id: SEED_PLAN.id }] },
+            },
+          ]
+        : [],
+    },
+    variants: { nodes: variants },
+  };
+};
+
+/** Full products, as the product page queries them, at the states its buy controls handle. */
+export const FIXTURE_PRODUCT_DETAILS = {
+  /** Two strengths, each one-time or on a subscription. */
+  subscription: detail(
+    FIXTURE_PRODUCTS.magnesium,
+    {
+      name: "Strength",
+      values: [
+        ["375 mg", true],
+        ["500 mg", true],
+      ],
+    },
+    { subscription: true },
+  ),
+  /** One flavour sold out: still selectable, struck through. */
+  partlySoldOut: detail(FIXTURE_PRODUCTS.focusSticks, {
+    name: "Flavour",
+    values: [
+      ["Citrus", true],
+      ["Berry", false],
+    ],
+  }),
+  /** No options and no plans: a price and a button. */
+  simple: detail(FIXTURE_PRODUCTS.vitaminD3, null),
+  soldOut: detail(FIXTURE_PRODUCTS.noImage, null, { inStock: false }),
+} as const;
+
+/** Filters as the Storefront API returned them for a collection (2026-10-01). */
+export const FIXTURE_FILTERS: readonly FilterLike[] = [
+  {
+    id: "filter.v.availability",
+    label: "Availability",
+    type: "LIST",
+    values: [
+      {
+        id: "filter.v.availability.1",
+        label: "In stock",
+        count: 6,
+        input: '{"available":true}',
+      },
+      {
+        id: "filter.v.availability.0",
+        label: "Out of stock",
+        count: 0,
+        input: '{"available":false}',
+      },
+    ],
+  },
+  {
+    id: "filter.v.price",
+    label: "Price",
+    type: "PRICE_RANGE",
+    values: [
+      {
+        id: "filter.v.price",
+        label: "Price",
+        count: 0,
+        input: '{"price":{"min":0,"max":32.95}}',
+      },
+    ],
+  },
+  {
+    id: "filter.v.option.flavour",
+    label: "Flavour",
+    type: "LIST",
+    values: [
+      {
+        id: "filter.v.option.flavour.vanilla",
+        label: "Vanilla",
+        count: 2,
+        input: '{"variantOption":{"name":"flavour","value":"Vanilla"}}',
+      },
+      {
+        id: "filter.v.option.flavour.chocolate",
+        label: "Chocolate",
+        count: 2,
+        input: '{"variantOption":{"name":"flavour","value":"Chocolate"}}',
+      },
+    ],
+  },
+];
+
+const collectionLink = (handle: string, title: string): NavLink => ({
+  id: `gid://shopify/MenuItem/${handle}`,
+  title,
+  kind: "collection",
+  handle,
+  path: `/collections/${handle}`,
+});
+
+/** The header's collection links, from the store's main menu. */
+export const FIXTURE_NAV_LINKS: readonly NavLink[] = [
+  collectionLink("sleep", "Sleep"),
+  collectionLink("focus", "Focus"),
+  collectionLink("performance", "Performance"),
+  collectionLink("daily-health", "Daily health"),
+  collectionLink("all", "Shop all"),
 ];

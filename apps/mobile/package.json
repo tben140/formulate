@@ -41,9 +41,11 @@
   "devDependencies": {
     "@formulate/eslint-config": "workspace:*",
     "@formulate/typescript-config": "workspace:*",
+    "@github-ui/storybook-addon-performance-panel": "1.3.0",
     "@storybook/addon-a11y": "10.6.0",
     "@storybook/addon-docs": "10.6.0",
     "@storybook/addon-vitest": "10.6.0",
+    "@storybook/icons": "2.1.0",
     "@storybook/react-native-web-vite": "10.6.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19.2.0",

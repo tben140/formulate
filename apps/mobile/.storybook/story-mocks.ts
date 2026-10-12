@@ -14,6 +14,7 @@ const PACKAGES: Record<string, string> = {
 const MODULES: Record<string, string> = {
   [here("../lib/klaviyo.ts")]: here("../lib/__mocks__/klaviyo.ts"),
   [here("../lib/use-cart.ts")]: here("../lib/__mocks__/use-cart.ts"),
+  [here("../lib/checkout.tsx")]: here("../lib/__mocks__/checkout.tsx"),
 };
 
 /**

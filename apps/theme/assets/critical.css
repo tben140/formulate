@@ -242,6 +242,35 @@ a:hover {
   color: var(--color-brand-700);
 }
 
+/* "Skip to content" (SHO-152): off screen until it has keyboard focus, then
+   at the top left above everything. Matches apps/web's skip link. */
+.skip-link {
+  position: absolute;
+  inset-inline-start: var(--spacing-4);
+  inset-block-start: var(--spacing-4);
+  z-index: 100;
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-foreground);
+  text-decoration: none;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* The skip link's target takes focus programmatically; it isn't a control, so
+   no ring. */
+#MainContent:focus {
+  outline: none;
+}
+
 /* Page sections that are not the storefront's main browse surfaces still get
    the same measure and vertical rhythm. */
 .page-section {
@@ -811,6 +840,13 @@ a:hover {
 .product-form__plan:has(input:checked) .product-form__plan-price,
 .product-form__pill--sold-out:has(input:checked) {
   color: var(--color-foreground);
+}
+
+/* The subscriber gift line under the plans (SHO-156); matches web's text-sm muted. */
+.product-form__gift {
+  margin-block-start: var(--spacing-2);
+  font-size: var(--text-sm);
+  color: var(--color-foreground-muted);
 }
 
 .product-form__price {
