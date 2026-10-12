@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
-import { useState } from "react";
+import { Stack, useNavigationContainerRef } from "expo-router";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { CartButton } from "../components/cart-button";
@@ -9,7 +9,7 @@ import { CartProvider } from "../components/cart-provider";
 import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
 import { initKlaviyo } from "../lib/klaviyo";
-import { initSentry } from "../lib/sentry";
+import { initSentry, navigationIntegration } from "../lib/sentry";
 
 import "../global.css";
 
@@ -25,6 +25,12 @@ initKlaviyo();
 initSentry();
 
 const RootLayout = () => {
+  // Screen changes become Sentry spans (lib/sentry.ts).
+  const navigation = useNavigationContainerRef();
+  useEffect(() => {
+    navigationIntegration.registerNavigationContainer(navigation);
+  }, [navigation]);
+
   // Created in state so the client survives Fast Refresh but is never shared
   // between renders of different app instances.
   const [queryClient] = useState(
