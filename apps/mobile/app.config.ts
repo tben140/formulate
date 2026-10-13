@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@formulate/tokens";
 import type { ExpoConfig } from "expo/config";
 
 /**
@@ -6,7 +7,7 @@ import type { ExpoConfig } from "expo/config";
  * JSON file cannot pick them up.
  */
 const config: ExpoConfig = {
-  name: "Double Helix",
+  name: BRAND_NAME,
   slug: "formulate",
   scheme: "formulate",
   version: "0.1.0",
