@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect } from "react";
 
+import { reportError } from "@/lib/sentry-client";
+
 /**
  * What a shopper sees when a page throws while rendering: something the
  * Storefront Result type didn't anticipate. Expected failures (a bad token,
@@ -14,8 +16,8 @@ import { useEffect } from "react";
  * server again. `reset` only re-renders what's already in the browser, so
  * after a Storefront failure it showed the same error again (Next 16.2 docs:
  * "In most cases, you should use unstable_retry() instead").
- * The error itself goes to the console, not the page: its message is for
- * developers, and can contain internals a shopper shouldn't see.
+ * The error itself goes to the console and to Sentry, not the page: its
+ * message is for developers, and can contain internals a shopper shouldn't see.
  */
 export const ErrorState = ({
   error,
@@ -26,6 +28,7 @@ export const ErrorState = ({
 }) => {
   useEffect(() => {
     console.error(error);
+    reportError(error);
   }, [error]);
 
   return (

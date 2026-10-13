@@ -10,7 +10,7 @@
 | Rendering | React Server Components — every Storefront query runs on the server   |
 | Styling   | Tailwind v4, consuming `@formulate/tokens/theme.css`                  |
 | Images    | `next/image`, with `cdn.shopify.com` allow-listed in `next.config.ts` |
-| Hosting   | Vercel, with Web Analytics and Speed Insights                         |
+| Hosting   | Vercel, with Web Analytics and Speed Insights; errors to Sentry       |
 
 ## Routes
 
@@ -85,6 +85,29 @@ outside Vercel, so local dev and CI are unaffected.
 Scope worth stating: Vercel Analytics is page views and Core Web Vitals measured
 at the edge, cookieless. It is **not** product analytics, and it cannot see the
 Expo app at all.
+
+### Error monitoring
+
+**Sentry** (EU region, project `web`) receives errors from the browser, from
+Server Components and route handlers (`instrumentation.ts`), and from the
+error boundaries (`components/error-state.tsx`). It's errors only: no
+tracing, no session replay.
+
+- **Off without a DSN.** `NEXT_PUBLIC_SENTRY_DSN` is public by design and
+  set in Vercel. Local builds and forks run without Sentry.
+- **No personal data** (`lib/sentry.ts`). `sendDefaultPii` is off, and
+  `beforeSend` removes the user, cookies, headers, request body and every
+  query string. Query strings matter because Shopify's sign-in callback
+  carries an authorisation code there and search pages carry what the
+  shopper typed. Sentry sets no cookies, so it sits outside the consent
+  banner.
+- **Loaded after the page** (`lib/sentry-client.ts`). Importing the SDK up
+  front added 57 KB of gzipped JavaScript to every page (home page 204 KB →
+  261 KB). It now loads as its own chunk once the browser is idle, which
+  costs the critical path about 1.4 KB. Errors raised before it arrives are
+  queued and sent when it does.
+- **Readable stack traces** need `SENTRY_ORG` and `SENTRY_AUTH_TOKEN` (a
+  secret) in Vercel. Without them, the build skips the source map upload.
 
 ### Performance monitoring
 

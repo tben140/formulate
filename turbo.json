@@ -12,14 +12,17 @@
     "EXPO_PUBLIC_KLAVIYO_LIST_ID",
     "EXPO_PUBLIC_API_BASE_URL",
     "NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY",
-    "NEXT_PUBLIC_KLAVIYO_LIST_ID"
+    "NEXT_PUBLIC_KLAVIYO_LIST_ID",
+    "NEXT_PUBLIC_SENTRY_DSN",
+    "NEXT_PUBLIC_VERCEL_ENV"
   ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       // VERCEL is part of the cache key so a build produced locally is never
       // reused for a Vercel build, where the environment genuinely differs.
-      "env": ["VERCEL"],
+      // The Sentry pair only switches source map upload on.
+      "env": ["VERCEL", "SENTRY_ORG", "SENTRY_AUTH_TOKEN"],
       "outputs": [
         ".next/**",
         "!.next/cache/**",
