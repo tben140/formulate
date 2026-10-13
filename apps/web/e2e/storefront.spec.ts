@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@formulate/tokens";
 import { expect, test } from "@playwright/test";
 
 import { openProduct } from "./helpers";
@@ -50,4 +51,19 @@ test("a sold-out option is marked and cannot be bought", async ({ page }) => {
 test("an unknown product is a 404", async ({ page }) => {
   const response = await page.goto("/products/this-product-does-not-exist");
   expect(response?.status()).toBe(404);
+});
+
+/**
+ * The root layout's title template appends " — <brand>" to every page below
+ * it, so those pages set only their own part. Search and the policies pages
+ * once added the brand themselves too and read "Search — Formulate —
+ * Formulate".
+ */
+test("page titles name the brand once", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveTitle(BRAND_NAME);
+  await page.goto("/search?q=magnesium");
+  await expect(page).toHaveTitle(`Search — ${BRAND_NAME}`);
+  await page.goto("/policies/privacy-policy");
+  await expect(page).toHaveTitle(`Policy — ${BRAND_NAME}`);
 });
