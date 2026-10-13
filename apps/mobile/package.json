@@ -9,7 +9,10 @@
     "android": "expo run:android",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "build": "expo export --platform ios --output-dir dist"
+    "build": "expo export --platform ios --output-dir dist",
+    "storybook": "storybook dev -p 6007 --no-open",
+    "build-storybook": "storybook build -o storybook-static",
+    "test:storybook": "vitest run --project storybook"
   },
   "dependencies": {
     "@formulate/analytics": "workspace:*",
@@ -38,11 +41,20 @@
   "devDependencies": {
     "@formulate/eslint-config": "workspace:*",
     "@formulate/typescript-config": "workspace:*",
+    "@storybook/addon-a11y": "10.6.0",
+    "@storybook/addon-docs": "10.6.0",
+    "@storybook/addon-vitest": "10.6.0",
+    "@storybook/react-native-web-vite": "10.6.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19.2.0",
+    "@vitest/browser-playwright": "4.1.11",
     "eslint": "^10.8.0",
+    "playwright": "1.63.0",
     "postcss": "^8.5.6",
+    "storybook": "10.6.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vite": "8.3.1",
+    "vitest": "4.1.11"
   }
 }

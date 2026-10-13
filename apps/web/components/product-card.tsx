@@ -52,8 +52,10 @@ export const ProductCard = ({
             fetchPriority={fetchPriority}
           />
         ) : (
+          // ink-600, not foreground-muted: ink-500 on this panel is 4.34:1,
+          // under AA (found by the Storybook a11y tests).
           <div
-            className="flex h-full items-center justify-center text-sm text-foreground-muted"
+            className="flex h-full items-center justify-center text-sm text-ink-600"
             aria-hidden="true"
           >
             No image

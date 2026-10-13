@@ -15,7 +15,10 @@
     "codegen": "turbo run codegen",
     "web": "turbo run dev --filter=@formulate/web",
     "mobile": "turbo run dev --filter=@formulate/mobile",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "storybook": "turbo run storybook --filter=@formulate/web --filter=@formulate/mobile",
+    "storybook:build": "pnpm --filter @formulate/web build-storybook && pnpm --filter @formulate/mobile exec storybook build -o ../web/storybook-static/app",
+    "storybook:test": "pnpm --filter @formulate/web test:storybook && pnpm --filter @formulate/mobile test:storybook"
   },
   "devDependencies": {
     "prettier": "^3.6.2",
