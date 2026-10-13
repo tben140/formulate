@@ -109,6 +109,18 @@ visitors with the password" is greyed out and cannot be disabled until the store
 moves to a paid plan or is transferred to a merchant, so every Shopify CLI
 command that renders the storefront needs `SHOPIFY_FLAG_STORE_PASSWORD`.
 
+## Error monitoring
+
+Sentry, in the EU region, with one project per runtime: `web`, `app` and
+`worker`. The theme has no project: Shopify hosts it and its JavaScript is
+small. The rules are the same on all three:
+- errors only;
+- no personal data (user, headers, cookies, bodies and query strings are
+  removed before sending);
+- off when no DSN is set.
+
+Details live in each surface's doc and, for the Worker, in `apps/api/src/index.ts`.
+
 ## CI
 
 `turbo lint typecheck build` runs across the whole workspace on every pull
