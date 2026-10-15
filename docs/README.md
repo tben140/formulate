@@ -33,6 +33,7 @@ vault to browse it as a graph; it is plain markdown either way.
 | ----------------------------------- | ----------------------------------------------------------- |
 | [Recharge](integration-recharge.md) | Installed; one live test subscription. Portal not yet built |
 | [Klaviyo](integration-klaviyo.md)   | Planned. Design only — nothing shipped                      |
+| [PostHog](integration-posthog.md)   | Web, app and theme, with orders from a Shopify custom pixel |
 
 ## Out of scope, kept for reference
 

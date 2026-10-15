@@ -1,5 +1,6 @@
 "use server";
 
+import { cartAttributes } from "@formulate/analytics";
 import {
   describeError,
   describeForShopper,
@@ -7,6 +8,7 @@ import {
   type CartLineInput,
 } from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import {
   cartClient,
@@ -16,6 +18,7 @@ import {
   writeBuyerEmail,
   writeCartId,
 } from "@/lib/cart";
+import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 
 /**
  * Cart mutations, as Server Actions.
@@ -70,7 +73,28 @@ export interface CartActionState {
   readonly cart?: Cart;
   /** Line key of the item just added, so the event can name it. */
   readonly addedLineId?: string;
+  /**
+   * How many this add added. The line's own quantity also counts earlier adds
+   * of the same product, so analytics can't use it.
+   */
+  readonly addedQuantity?: number;
 }
+
+/** PostHog's anonymous ids are v4 UUIDs; anything else is ignored. */
+const ANALYTICS_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Attributes for a new cart: the visitor's PostHog id and "web", so the
+ * custom pixel can credit the order (packages/analytics, `cartAttributes`).
+ * Only with tracking consent, checked here on the cookie rather than trusted
+ * from the form, and only for an id that looks like one of ours.
+ */
+const newCartAttributes = async (formData: FormData) => {
+  const id = String(formData.get("analyticsId") ?? "");
+  if (!ANALYTICS_ID.test(id)) return undefined;
+  const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
+  return consent === "granted" ? cartAttributes(id, "web") : undefined;
+};
 
 const revalidate = () => revalidatePath("/", "layout");
 
@@ -115,6 +139,7 @@ export const addToCart = async (
     cartId: await readCartId(),
     lines: [line],
     email: readBuyerEmail,
+    attributes: await newCartAttributes(formData),
   });
 
   if (!result.ok) {
@@ -143,6 +168,7 @@ export const addToCart = async (
     token: Date.now(),
     cart: result.data,
     addedLineId: addedLine?.id,
+    addedQuantity: line.quantity ?? 1,
   };
 };
 

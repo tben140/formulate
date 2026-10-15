@@ -75,6 +75,14 @@ const identity = () => {
   return { distinctId, sessionId: session.id };
 };
 
+/**
+ * The shopper's PostHog id, or null without a key or consent. For tagging a
+ * new cart so the custom pixel credits its order to this shopper
+ * (packages/analytics, `cartAttributes`).
+ */
+export const analyticsDistinctId = (): string | null =>
+  POSTHOG_KEY && trackingConsent() === "granted" ? identity().distinctId : null;
+
 /** The client, or null without a key or consent. */
 export const analytics = (): ProductAnalytics | null => {
   if (!POSTHOG_KEY || trackingConsent() !== "granted") return null;

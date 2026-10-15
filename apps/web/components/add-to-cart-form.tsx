@@ -23,6 +23,7 @@ import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 import { analytics } from "@/lib/product-analytics";
 
+import { AnalyticsIdField } from "./analytics-id-field";
 import { useCartUi } from "./cart-provider";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -101,10 +102,18 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
     if (state.cart && line) {
       track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
-      const added = addedToCartProperties(line);
+      const added = addedToCartProperties(line, state.addedQuantity);
       if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
     }
-  }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
+  }, [
+    state.token,
+    state.status,
+    state.cart,
+    state.addedLineId,
+    state.addedQuantity,
+    openCart,
+    storeDomain,
+  ]);
 
   const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
   const displayPrice =
@@ -139,6 +148,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       className="mt-6"
     >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
+      <AnalyticsIdField />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
 
       {product.options.map((option) =>

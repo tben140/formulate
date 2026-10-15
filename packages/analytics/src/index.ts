@@ -1,6 +1,7 @@
 export {
   EVENTS,
   addedToCart,
+  collectionTitles,
   formatEventPrice,
   legacyIdFromGid,
   productUrl,
@@ -32,6 +33,7 @@ export {
 export type { SubscribeResult, SubscriptionSource } from "./subscribe";
 
 export {
+  CART_ATTRIBUTES,
   PAGEVIEW,
   POSTHOG_HOST,
   PRODUCT_EVENTS,
@@ -39,6 +41,7 @@ export {
   SESSION_IDLE_MS,
   addedToCartProperties,
   anonymousId,
+  cartAttributes,
   cartViewedProperties,
   checkoutStartedProperties,
   productRef,

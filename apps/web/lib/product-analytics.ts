@@ -65,6 +65,16 @@ const identity = (): AnalyticsIdentity => {
   return { distinctId, sessionId };
 };
 
+/**
+ * The visitor's PostHog id, read without side effects, or null without consent
+ * or before the first event has created one. For tagging a new cart so its
+ * order is credited to this visitor (components/analytics-id-field.tsx).
+ */
+export const storedDistinctId = (): string | null =>
+  POSTHOG_KEY && typeof window !== "undefined" && readConsent() === "granted"
+    ? (read()?.distinctId ?? null)
+    : null;
+
 let client: ProductAnalytics | null = null;
 let referrerSent = false;
 
