@@ -43,13 +43,21 @@ module.exports = {
     },
     assert: {
       assertions: {
-        "categories:performance": ["error", { minScore: 0.5, ...median }],
+        // Ratcheted to just under recent CI actuals (SHO-68, 2026-10-07): single
+        // runs ranged perf 0.82-0.99, LCP up to 3.6 s, TBT up to 650 ms, CLS
+        // 0.003, and these are medians of three. The old floors (0.5, 6 s,
+        // 1.2 s) passed a deliberate 2 s regression (SHO-29).
+        //
+        // ⚠️ Simulated Lighthouse can't see server time behind a streamed
+        // response: a 2 s server wait still scored 0.93. e2e/performance.spec.ts
+        // times what actually arrives, and is the gate for that.
+        "categories:performance": ["error", { minScore: 0.8, ...median }],
         "categories:accessibility": ["error", { minScore: 0.95, ...median }],
         // Core Web Vitals. Lab data has no INP, so Total Blocking Time stands in
         // for it; field INP comes from Vercel Speed Insights.
-        "largest-contentful-paint": ["error", { maxNumericValue: 6000, ...median }],
-        "cumulative-layout-shift": ["error", { maxNumericValue: 0.1, ...median }],
-        "total-blocking-time": ["error", { maxNumericValue: 1200, ...median }],
+        "largest-contentful-paint": ["error", { maxNumericValue: 4000, ...median }],
+        "cumulative-layout-shift": ["error", { maxNumericValue: 0.05, ...median }],
+        "total-blocking-time": ["error", { maxNumericValue: 600, ...median }],
       },
     },
     upload: {
