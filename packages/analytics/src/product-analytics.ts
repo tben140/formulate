@@ -20,6 +20,8 @@
  * which isn't ours to design. This one is.
  */
 
+import { collectionTitles } from "./events";
+
 /** EU Cloud: the project lives in the EU (2026-10-09). */
 export const POSTHOG_HOST = "https://eu.i.posthog.com";
 
@@ -34,11 +36,43 @@ export const PRODUCT_EVENTS = {
   addedToCart: "product_added_to_cart",
   cartViewed: "cart_viewed",
   checkoutStarted: "checkout_started",
+  /**
+   * Sent only by the Shopify custom pixel (pixel/posthog.js), because only
+   * Shopify's checkout knows an order was placed. Every surface's orders go
+   * through it, so this is the one event all three share by construction.
+   */
+  orderCompleted: "order_completed",
 } as const;
 
 export type ProductEventName = (typeof PRODUCT_EVENTS)[keyof typeof PRODUCT_EVENTS];
 
-export type Surface = "web" | "app";
+/**
+ * `theme` events come from the Shopify custom pixel, which runs on the Liquid
+ * theme's pages and on every checkout.
+ */
+export type Surface = "web" | "app" | "theme";
+
+/**
+ * Cart attributes that hand checkout what the pixel needs to credit an order:
+ * whose visit it was, and from which surface. Set by web and the app when they
+ * create a cart, with tracking consent only. Checkout has no other way to
+ * know: it runs on Shopify's domain, where neither app's storage reaches.
+ *
+ * Underscored, which by Shopify convention marks them as private to the store.
+ * They still land on the order, as note attributes, in the admin.
+ */
+export const CART_ATTRIBUTES = {
+  distinctId: "_posthog_id",
+  surface: "_surface",
+} as const;
+
+export const cartAttributes = (
+  distinctId: string,
+  surface: Exclude<Surface, "theme">,
+): readonly { readonly key: string; readonly value: string }[] => [
+  { key: CART_ATTRIBUTES.distinctId, value: distinctId },
+  { key: CART_ATTRIBUTES.surface, value: surface },
+];
 
 /** The product a product-level event is about. */
 export interface ProductRef {
@@ -52,6 +86,11 @@ export interface ProductEventProperties {
   readonly product_viewed: ProductRef & {
     readonly price: number;
     readonly currency: string;
+    /**
+     * The product's collection titles, sorted: the same list as Klaviyo's
+     * `Categories`. Absent on the theme, whose pixel events don't carry them.
+     */
+    readonly collections?: readonly string[];
   };
   readonly variant_selected: ProductRef & {
     readonly variant_id: string;
@@ -78,6 +117,15 @@ export interface ProductEventProperties {
     readonly cart_value: number;
     readonly currency: string;
     /** Whether any line is a subscription: the Recharge half of the funnel. */
+    readonly has_subscription: boolean;
+  };
+  readonly order_completed: {
+    /** Numeric Shopify order id. */
+    readonly order_id: string;
+    readonly item_count: number;
+    /** What the shopper paid, including tax and shipping. */
+    readonly order_value: number;
+    readonly currency: string;
     readonly has_subscription: boolean;
   };
 }
@@ -277,23 +325,37 @@ export const productRef = (product: ProductLike): ProductRef => ({
 });
 
 export const productViewedProperties = (
-  product: ProductLike & { readonly priceRange: { readonly minVariantPrice: MoneyLike } },
+  product: ProductLike & {
+    readonly priceRange: { readonly minVariantPrice: MoneyLike };
+    readonly collections?: {
+      readonly nodes: readonly { readonly title: string }[];
+    } | null;
+  },
 ): ProductEventProperties["product_viewed"] => ({
   ...productRef(product),
   price: Number(product.priceRange.minVariantPrice.amount),
   currency: product.priceRange.minVariantPrice.currencyCode,
+  collections: collectionTitles(product),
 });
 
-/** Null when the line isn't a product variant (nothing to attribute it to). */
+/**
+ * Null when the line isn't a product variant (nothing to attribute it to).
+ *
+ * ⚠️ `quantity` is what this add added, not the line's total. Adding a product
+ * already in the cart grows its line in place, so the line's quantity counts
+ * every earlier add too. Callers pass what they asked for; the line's quantity
+ * is only the default for a first add.
+ */
 export const addedToCartProperties = (
   line: CartLineLike,
+  quantity: number = line.quantity,
 ): ProductEventProperties["product_added_to_cart"] | null => {
   const { merchandise } = line;
   if (!merchandise.product || !merchandise.id || !merchandise.price) return null;
   return {
     ...productRef(merchandise.product),
     variant_id: numericId(merchandise.id),
-    quantity: line.quantity,
+    quantity,
     // The unit price charged, not the variant's list price: a subscription
     // line costs less (15% here), and a funnel's revenue must say so.
     price: line.cost

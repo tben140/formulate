@@ -14,6 +14,7 @@ import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 import { analytics } from "@/lib/product-analytics";
 
+import { AnalyticsIdField } from "./analytics-id-field";
 import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
 
 const IDLE: CartActionState = { status: "idle" };
@@ -66,7 +67,7 @@ const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
         const line = next.cart?.lines.nodes.find((l) => l.id === next.addedLineId);
         if (next.cart && line)
           track(EVENTS.addedToCart, addedToCart(next.cart, line, storeDomain));
-        const added = line ? addedToCartProperties(line) : null;
+        const added = line ? addedToCartProperties(line, next.addedQuantity) : null;
         if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
         // The drawer's heading survives the re-render and announces the new
         // count, which is also the confirmation a screen reader needs. Made
@@ -118,6 +119,7 @@ const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
           }}
         >
           <input type="hidden" name="merchandiseId" value={suggestion.variantId} />
+          <AnalyticsIdField />
           <button
             type="submit"
             aria-disabled={pending || undefined}
