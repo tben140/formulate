@@ -235,23 +235,24 @@ reads as a working integration that collects nothing.
 ### Step 2 has no equivalent on native
 
 There is no `klaviyo.js` in the Expo app, no `__kla_id` cookie, and therefore
-nothing caching events and nothing to flush. The identity is **ours to store**:
-`apps/mobile/lib/klaviyo.ts` writes the subscribed address to the OS keychain,
-and that is what a later `POST /client/events/` (SHO-109) attaches events to.
+nothing caching events and nothing to flush. The identity is held by Klaviyo's
+React Native SDK, which `apps/mobile/lib/klaviyo.ts` hands the subscribed
+address with `setEmail`, and that is what the app's events (SHO-109) attach to.
 
 So the same two-step shape holds on all three surfaces, but the second step is
-a call into someone else's script on two of them and a write to our own storage
-on the third. Worth stating plainly, because "identify" reads like one
+a call into someone else's script on two of them and a call into the native
+SDK on the third. Worth stating plainly, because "identify" reads like one
 mechanism and is in fact two:
 
-| Surface | Identity lives in                    | Releases cached events? |
-| ------- | ------------------------------------ | ----------------------- |
-| Web     | `klaviyo.js` + `__kla_id` cookie      | **Yes** — that is the point |
-| Theme   | `klaviyo.js` + `__kla_id` cookie      | **Yes**                 |
-| Mobile  | `expo-secure-store` (OS keychain)     | Nothing to release      |
+| Surface | Identity lives in                | Releases cached events?     |
+| ------- | -------------------------------- | --------------------------- |
+| Web     | `klaviyo.js` + `__kla_id` cookie | **Yes** — that is the point |
+| Theme   | `klaviyo.js` + `__kla_id` cookie | **Yes**                     |
+| Mobile  | Klaviyo's native SDK             | Nothing to release          |
 
 Verified by killing the app and cold-starting it: the address survives, which
-is the property SHO-109 depends on.
+is the property SHO-109 depends on. ⚠️ On mobile `setEmail` happens only with
+tracking consent, as `identify` does on web (see Privacy).
 
 ### ⚠️ `/client/` endpoints are browser-only in practice, not just by docs
 
@@ -502,6 +503,27 @@ about systems we do not own. See [Recharge](integration-recharge.md).
 
 ## Verification
 
+### The app's events (SHO-109)
+
+The app sends the same three events as web, built by the same functions in
+`packages/analytics` and sent through the SDK's `createEvent`:
+
+| Event            | Where                                     | Builder           |
+| ---------------- | ----------------------------------------- | ----------------- |
+| Viewed Product   | `app/products/[handle].tsx`               | `viewedProduct`   |
+| Added to Cart    | `lib/use-purchase.ts`, on a confirmed add | `addedToCart`     |
+| Started Checkout | `components/cart-sheet.tsx`               | `startedCheckout` |
+
+- **Names are the shared strings** (`EVENTS`), not the SDK's `EventName` enum.
+  The enum's native values are the same strings, and Klaviyo matches a metric
+  by name.
+- **Each event gets a random `uniqueId`.** Without one the SDK de-duplicates on
+  the time to the second, so two adds within a second would record one.
+- **`$value` is also sent as the event's `value`**, which is where the Events
+  API reads revenue from.
+- **Nothing is queued before a choice.** Web holds early events until the
+  shopper accepts; the app has no script to drain a queue, so they are dropped.
+
 Not "the code ran". **Events must be visible in Klaviyo's own activity feed**,
 and a flow must be observed firing from a real trigger. An integration verified
 only by its own logs has not been verified.
@@ -511,11 +533,11 @@ only by its own logs has not been verified.
 Onsite tracking sets a cookie (`__kla_id`) and sends behavioural events. Neither
 is strictly necessary, so under PECR both need consent **before** they happen.
 
-| Surface | Tracking consent                                                                                                                    |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Theme   | Klaviyo's app embed defers to Shopify's Customer Privacy API. Nothing we wrote.                                                     |
-| Web     | Our own banner. `klaviyo.js` is not loaded until the shopper accepts. [ADR 0008](adr/0008-headless-tracking-consent-is-our-own.md) |
-| Mobile  | No behavioural events yet. They go behind an in-app choice when [SHO-109] lands.                                                    |
+| Surface | Tracking consent                                                                                                                                              |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Theme   | Klaviyo's app embed defers to Shopify's Customer Privacy API. Nothing we wrote.                                                                               |
+| Web     | Our own banner. `klaviyo.js` is not loaded until the shopper accepts. [ADR 0008](adr/0008-headless-tracking-consent-is-our-own.md)                            |
+| Mobile  | The app's own banner, one choice for Klaviyo and PostHog. The SDK isn't even initialised until the shopper accepts; withdrawing resets its profile. [SHO-109] |
 
 ⚠️ **Tracking consent and marketing consent are different things.** The email
 capture form records marketing consent, the right to email someone. The banner
@@ -523,9 +545,9 @@ records tracking consent, the right to watch what they browse. One does not
 imply the other: a subscriber who declined tracking gets the emails and no
 browse or cart-abandonment flows.
 
-This matters when reading numbers. Decliners are invisible to Klaviyo on both
-the theme and web, so flow volume counts **consenting** shoppers, not all of
-them. Comparing surfaces is only fair because both now gate the same way.
+This matters when reading numbers. Decliners are invisible to Klaviyo on all
+three surfaces, so flow volume counts **consenting** shoppers, not all of them.
+Comparing surfaces is only fair because all three now gate the same way.
 
 Vercel Analytics on the web surface is cookieless and stores nothing on the
 device, so it sits outside this entirely.

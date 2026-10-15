@@ -2,33 +2,34 @@ import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
-  closeAnalyticsChoice,
-  POSTHOG_KEY,
-  setAnalyticsConsent,
-  useAnalyticsChoiceReopened,
-  useAnalyticsConsent,
-} from "../lib/product-analytics";
+  closeTrackingChoice,
+  setTrackingConsent,
+  TRACKING_AVAILABLE,
+  useTrackingChoiceReopened,
+  useTrackingConsent,
+} from "../lib/tracking-consent";
 
 /**
- * The app's analytics choice (SHO-87), the counterpart of web's cookie banner:
- * shown until the shopper chooses, and again from "Privacy choices" in the
- * footer.
+ * The app's tracking choice, for PostHog and Klaviyo together, the counterpart
+ * of web's cookie banner: shown until the shopper chooses, and again from
+ * "Privacy choices" in the footer. The wording matches web's, which covers the
+ * same two vendors.
  *
  * Not a blocking modal, and Accept and Decline are the same size, the same
  * style and one tap each: a choice made under pressure, or with refusal made
  * harder, isn't valid consent (the ICO's guidance, as web's banner notes).
  */
 export const AnalyticsConsent = () => {
-  const consent = useAnalyticsConsent();
-  const reopened = useAnalyticsChoiceReopened();
+  const consent = useTrackingConsent();
+  const reopened = useTrackingChoiceReopened();
   const { bottom } = useSafeAreaInsets();
 
-  if (!POSTHOG_KEY || consent === "loading" || (consent !== "unset" && !reopened))
+  if (!TRACKING_AVAILABLE || consent === "loading" || (consent !== "unset" && !reopened))
     return null;
 
   const choose = async (next: "granted" | "denied") => {
-    await setAnalyticsConsent(next);
-    closeAnalyticsChoice();
+    await setTrackingConsent(next);
+    closeTrackingChoice();
     // No event here: the screen tracker in app/_layout.tsx re-sends the
     // current screen as soon as the choice becomes "granted".
   };
@@ -43,12 +44,13 @@ export const AnalyticsConsent = () => {
       style={{ paddingBottom: bottom + 16 }}
     >
       <Text accessibilityRole="header" className="font-semibold text-foreground">
-        Analytics
+        Tracking
       </Text>
       <Text className="mt-1 text-sm text-foreground-muted">
-        With your permission, PostHog measures how the app is used so we can improve it.
-        Nothing is tracked unless you accept. You can change your mind from Privacy
-        choices at the bottom of any screen.
+        With your permission, Klaviyo remembers what you browse and add to your basket so
+        we can email you reminders, and PostHog measures how the app is used so we can
+        improve it. Nothing is tracked unless you accept. You can change your mind from
+        Privacy choices at the bottom of any screen.
       </Text>
       <View className="mt-3 flex-row gap-2">
         <Pressable
