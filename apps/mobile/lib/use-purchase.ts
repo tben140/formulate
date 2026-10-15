@@ -1,4 +1,9 @@
-import { PRODUCT_EVENTS, addedToCartProperties } from "@formulate/analytics";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  addedToCart,
+  addedToCartProperties,
+} from "@formulate/analytics";
 import {
   defaultSelectedOptions,
   findVariantByOptions,
@@ -8,7 +13,9 @@ import {
 } from "@formulate/shopify";
 import { useState } from "react";
 
+import { trackEvent } from "./klaviyo";
 import { analytics } from "./product-analytics";
+import { STORE_DOMAIN } from "./storefront";
 import { useAddToCart } from "./use-cart";
 
 export type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -108,6 +115,9 @@ export const usePurchase = (product: Product) => {
           const added = line ? addedToCartProperties(line) : null;
           if (added)
             analytics()?.capture(PRODUCT_EVENTS.addedToCart, { ...added, quantity: 1 });
+          // Klaviyo's Added to Cart (SHO-109), built exactly as web builds it.
+          if (line && "product" in line.merchandise)
+            trackEvent(EVENTS.addedToCart, addedToCart(cart, line, STORE_DOMAIN));
         },
       },
     );

@@ -1,7 +1,9 @@
 import {
+  EVENTS,
   PRODUCT_EVENTS,
   cartViewedProperties,
   checkoutStartedProperties,
+  startedCheckout,
 } from "@formulate/analytics";
 import { formatMoney } from "@formulate/shopify";
 import { Image } from "expo-image";
@@ -16,7 +18,9 @@ import {
 } from "react-native";
 
 import { useCheckout } from "../lib/checkout";
+import { trackEvent } from "../lib/klaviyo";
 import { analytics } from "../lib/product-analytics";
+import { STORE_DOMAIN } from "../lib/storefront";
 import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
 
 import { FreeShippingBar } from "./free-shipping-bar";
@@ -278,6 +282,8 @@ export const CartSheet = ({
                   PRODUCT_EVENTS.checkoutStarted,
                   checkoutStartedProperties(cart),
                 );
+                // Klaviyo's Started Checkout (SHO-109), as web sends it.
+                trackEvent(EVENTS.startedCheckout, startedCheckout(cart, STORE_DOMAIN));
                 checkout.present(cart.checkoutUrl);
               }}
               accessibilityRole="button"
