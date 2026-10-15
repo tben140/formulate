@@ -53,7 +53,9 @@ describe("freeShippingProgress", () => {
 
   it("respects a currency with no minor units", () => {
     const threshold = { amount: "5000", currencyCode: "JPY" };
-    expect(freeShippingProgress({ amount: "3200", currencyCode: "JPY" }, threshold)).toEqual({
+    expect(
+      freeShippingProgress({ amount: "3200", currencyCode: "JPY" }, threshold),
+    ).toEqual({
       kind: "away",
       remaining: { amount: "1800", currencyCode: "JPY" },
       fraction: 0.64,

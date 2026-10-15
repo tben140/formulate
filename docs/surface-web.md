@@ -110,13 +110,13 @@ from the reports before they are uploaded.
 Budgets are generous on purpose: for now the gate only has to exist and catch
 a regression. They ratchet at phase exit (SHO-68).
 
-| Metric | Budget (error) | Baseline, 28 Sep 2026 |
-| --- | --- | --- |
-| Performance score | ≥ 50 | 57–73 |
-| Accessibility score | ≥ 95 | 100 |
-| LCP | ≤ 6.0 s | 2.9–5.2 s |
-| CLS | ≤ 0.1 | 0.000 |
-| TBT | ≤ 1200 ms | 360–1025 ms |
+| Metric              | Budget (error) | Baseline, 28 Sep 2026 |
+| ------------------- | -------------- | --------------------- |
+| Performance score   | ≥ 50           | 57–73                 |
+| Accessibility score | ≥ 95           | 100                   |
+| LCP                 | ≤ 6.0 s        | 2.9–5.2 s             |
+| CLS                 | ≤ 0.1          | 0.000                 |
+| TBT                 | ≤ 1200 ms      | 360–1025 ms           |
 
 The baseline comes from a production build of the combined September PR batch,
 measured on the development droplet. That machine is a shared CPU, so TBT

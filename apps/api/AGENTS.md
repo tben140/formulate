@@ -90,7 +90,7 @@ It is documented as "permissive, eventually consistent, and intentionally
 designed to not be used as an accurate accounting system". Do not reinstate it.
 
 A Durable Object replaces it: single-threaded and serialised, so the
-read-modify-write cannot interleave. The *rule* lives in
+read-modify-write cannot interleave. The _rule_ lives in
 `src/rate-limit-policy.ts` as a pure function so it can be tested without a
 runtime; the DO is a storage shell.
 

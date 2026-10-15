@@ -115,7 +115,7 @@ ever tells you an event was dropped.
 
 Email capture (`components/email-capture.tsx`) does two things and both are
 required: `POST /client/subscriptions/` creates the profile and records
-consent, then `identify` tells the script in *this tab* who the visitor is,
+consent, then `identify` tells the script in _this tab_ who the visitor is,
 which is what flushes the cached events. The first alone leaves them cached.
 
 There is no already-subscribed state to render. Klaviyo returns `202` for a new
