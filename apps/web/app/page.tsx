@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { getNavLinks } from "@/lib/nav";
+import { getRoutineGoals } from "@/lib/routine";
 import { storefront } from "@/lib/storefront";
 
 export const metadata: Metadata = { title: "Formulate" };
@@ -23,9 +24,10 @@ const FEATURED_COUNT = 4;
  * this page, with no deploy.
  */
 const HomePage = async () => {
-  const [navLinks, cardsResult] = await Promise.all([
+  const [navLinks, cardsResult, routineGoals] = await Promise.all([
     getNavLinks(),
     storefront.request(CollectionCardsQuery, {}),
+    getRoutineGoals(),
   ]);
 
   if (!cardsResult.ok) return <StorefrontErrorState error={cardsResult.error} />;
@@ -59,14 +61,25 @@ const HomePage = async () => {
           Buy once or subscribe. Subscriptions can be skipped, paused or cancelled at any
           time.
         </p>
-        {featuredLink ? (
-          <Link
-            href={featuredLink.path}
-            className="mt-8 inline-block rounded-md bg-brand-600 px-6 py-3 font-semibold text-surface hover:bg-brand-700"
-          >
-            Shop {featuredLink.title}
-          </Link>
-        ) : null}
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          {featuredLink ? (
+            <Link
+              href={featuredLink.path}
+              className="inline-block rounded-md bg-brand-600 px-6 py-3 font-semibold text-surface hover:bg-brand-700"
+            >
+              Shop {featuredLink.title}
+            </Link>
+          ) : null}
+          {/* The routine quiz (SHO-161), once its goals exist in Shopify. */}
+          {routineGoals.length > 0 ? (
+            <Link
+              href="/routine"
+              className="inline-block rounded-md border border-foreground px-6 py-3 font-semibold text-foreground hover:bg-surface"
+            >
+              Find your routine
+            </Link>
+          ) : null}
+        </div>
       </section>
 
       {categories.length > 0 ? (
