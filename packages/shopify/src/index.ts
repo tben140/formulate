@@ -49,6 +49,7 @@ export {
   NavMenuQuery,
   ProductByHandleQuery,
   ProductRecommendationsQuery,
+  RoutineGoalsQuery,
   ShopNameQuery,
   SitemapCollectionsQuery,
   SitemapProductsQuery,
@@ -93,3 +94,25 @@ export {
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
 export type { ProductFilter } from "./generated/graphql";
+
+export {
+  BUDGETS,
+  DIETS,
+  FORMATS,
+  MAX_GOALS,
+  MAX_PRODUCTS,
+  parseAnswers,
+  scoreRoutine,
+  serializeAnswers,
+} from "./routine-quiz";
+export type {
+  Budget,
+  Diet,
+  FormatPreference,
+  QuizAnswers,
+  Routine,
+  RoutineGoal,
+  RoutineItem,
+  RoutineProduct,
+} from "./routine-quiz";
+export { toRoutineGoals } from "./routine-quiz-data";

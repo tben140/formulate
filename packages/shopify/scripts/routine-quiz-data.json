@@ -1,0 +1,55 @@
+{
+  "$comment": "The routine quiz's data (SHO-161), applied by setup-routine-quiz.mjs. Goal order inside each list is relevance order. Labels are goals, never symptoms (ADR 0009). Where a product has an authorised claim that fits the goal, it's listed first (docs/claims-wording.md). Vegan tags only where docs/catalogue/double-helix/README.md says so.",
+  "goals": [
+    {
+      "key": "energy",
+      "label": "Energy",
+      "products": ["magnesium-glycinate", "vitamin-c-zinc", "daily-multivitamin"]
+    },
+    {
+      "key": "focus",
+      "label": "Focus",
+      "products": [
+        "citicoline-l-theanine-daily-sticks",
+        "magnesium-glycinate",
+        "citicoline",
+        "l-theanine"
+      ]
+    },
+    {
+      "key": "training",
+      "label": "Training",
+      "products": [
+        "creatine-monohydrate",
+        "whey-protein",
+        "plant-protein",
+        "electrolyte-powder"
+      ]
+    },
+    {
+      "key": "everyday",
+      "label": "Everyday health",
+      "products": [
+        "vitamin-d3",
+        "daily-multivitamin",
+        "omega-3-algae-oil",
+        "omega-3-fish-oil"
+      ]
+    },
+    {
+      "key": "immunity",
+      "label": "Immunity",
+      "products": ["vitamin-d3", "vitamin-c-zinc", "vitamin-e-selenium"]
+    }
+  ],
+  "veganTags": [
+    "vitamin-d3",
+    "l-theanine",
+    "lions-mane-mushroom",
+    "citicoline",
+    "vitamin-e-selenium",
+    "live-cultures",
+    "omega-3-algae-oil",
+    "turmeric-curcumin"
+  ]
+}
