@@ -1,11 +1,34 @@
 /**
  * The collection the storefront opens on.
  *
- * `automated-collection` is a seeded smart collection on the demo store
- * (products priced between £200 and £800), which gives the slice eight real
- * products to render.
+ * `best-sellers` is the Double Helix catalogue's collection that is published
+ * to the Headless channel (6 products, measured 2026-09-26). It replaced
+ * `automated-collection`, the snowboard seed collection, which is now empty,
+ * and an empty collection resolves without an error, so a stale handle
+ * produces a blank landing page rather than a failure anyone notices.
+ *
+ * ⚠️ Two copies cannot import this and must be changed with it:
+ * `apps/theme/sections/featured-collection.liquid` (Liquid) and
+ * `scripts/smoke-test.mjs` (plain Node, no TypeScript).
  */
-export const DEFAULT_COLLECTION_HANDLE = "automated-collection";
+export const DEFAULT_COLLECTION_HANDLE = "best-sellers";
+
+/**
+ * The notice every surface shows above its content: this is a demo store.
+ *
+ * Shared by web and mobile so the wording cannot drift. The Liquid theme cannot
+ * import it, so `apps/theme/sections/demo-notice.liquid` defaults to a copy —
+ * change both together.
+ *
+ * Every claim in it is true and should stay true: checkout runs with Shopify's
+ * test gateway, which accepts only test card numbers, so no one can be charged.
+ * See docs/demo-store.md.
+ */
+export const DEMO_STORE_NOTICE = {
+  label: "Demo store",
+  message:
+    "this is a portfolio project. Checkout runs in test mode: you won't be charged and nothing will be shipped.",
+} as const;
 
 /**
  * Must match the schema version codegen ran against — see codegen.ts. Bumping

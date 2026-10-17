@@ -59,6 +59,15 @@ block for the React surfaces and a plain `:root` block for the theme. The
 declaration list is built once and shared by both writers, so the two outputs
 cannot drift.
 
+**Typefaces are tokens too** (SHO-110): DM Sans for everything, DM Mono for
+prices. The font files live in `packages/tokens/fonts/` and a generated
+`fonts.css` declares them under their real family names. Web bundles that file
+through Next's CSS pipeline, and the theme's sync script copies it and the files
+into `assets/`. Web deliberately avoids `next/font`, which renames the family to
+a hash. React Native can't use a CSS font stack, so `fontFamily` also carries a
+bare `family` name for it. The mobile app still uses the platform font until the
+fonts are bundled with `expo-font`.
+
 **UI components are deliberately not shared.** A React Native `<View>` and a
 Liquid `<div>` are not the same thing, and forcing an abstraction over three
 rendering models produces something that fits none of them well. Parity is
@@ -82,12 +91,13 @@ work for anyone who never runs this repository's tooling. Regenerate it with
 
 The repository is public. Nothing secret is committed.
 
-| File                     | Used by                                                  | Committed |
-| ------------------------ | -------------------------------------------------------- | --------- |
-| `apps/web/.env.local`    | Next.js, and the `packages/shopify` smoke test           | No        |
-| `apps/mobile/.env.local` | Expo (`EXPO_PUBLIC_` prefix)                             | No        |
-| `apps/theme/.env.local`  | `shopify theme dev/push/pull`, via `scripts/with-env.sh` | No        |
-| `.env.example`           | Documentation                                            | Yes       |
+| File                                                                                 | Used by                                                  | Committed |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------- | --------- |
+| `apps/web/.env.local`                                                                | Next.js, and the `packages/shopify` smoke test           | No        |
+| `apps/mobile/.env.local`                                                             | Expo (`EXPO_PUBLIC_` prefix)                             | No        |
+| `apps/theme/.env.local`                                                              | `shopify theme dev/push/pull`, via `scripts/with-env.sh` | No        |
+| `apps/api/.dev.vars`                                                                 | `wrangler dev` for the worker (Klaviyo **private** key)  | No        |
+| `apps/*/.env.example`, `apps/theme/.env.local.example`, `apps/api/.dev.vars.example` | Documentation, one per app                               | Yes       |
 
 The Storefront access token is _public by design_ — it ships inside the Expo
 bundle, which is exactly what that credential is for. The **Admin** API token is

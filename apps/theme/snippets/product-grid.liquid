@@ -7,10 +7,39 @@
   both sections would be a maintenance trap.
 
   @param {object} products - A product list (e.g. collection.products).
+  @param {number} [section_index] - The calling section's section.index. A snippet can't read `section` itself; nil when the position is unknown.
 {% enddoc %}
+
+{% comment %}
+  Image loading (SHO-143). Without a `loading` argument, image_tag loads every
+  card eagerly in the first three sections, so a 50-product collection fetched
+  50 images up front. Only the first row can be on screen at load: at most
+  three cards, the widest row.
+
+  The first card is the Largest Contentful Paint candidate, so it also gets
+  fetchpriority high, but only when its section is first on the page. The
+  caller passes section.index in, because a rendered snippet can't see
+  `section`. It is nil in the theme editor and the Section Rendering API, and
+  Shopify's guidance is that nil must fall to the safe side: eager, normal
+  priority. So the lazy case is the positive comparison, as Shopify recommends.
+
+  A grid in the fourth section or later is lazy throughout, matching
+  image_tag's own default: it is below the fold, and eager cards there would
+  compete with what is on screen. `section_index > 3` is false for nil, so the
+  editor and Section Rendering API still get eager images.
+{% endcomment %}
 
 <ul class="product-grid" role="list">
   {% for product in products %}
+    {%- liquid
+      assign image_loading = 'eager'
+      assign image_priority = 'auto'
+      if forloop.index > 3 or section_index > 3
+        assign image_loading = 'lazy'
+      elsif forloop.first and section_index == 1
+        assign image_priority = 'high'
+      endif
+    -%}
     <li>
       <a class="product-card" href="{{ product.url }}">
         <div class="product-card__media">
@@ -20,7 +49,9 @@
               image: product.featured_image,
               width: 600,
               height: 600,
-              crop: 'center'
+              crop: 'center',
+              loading: image_loading,
+              fetchpriority: image_priority
             %}
           {% else %}
             <span class="product-card__placeholder">No image</span>

@@ -35,7 +35,7 @@ Consequences, all intentional:
 ## Structure
 
 ```
-assets/     tokens.css (generated), critical.css, component.js, media-gallery.js
+assets/     tokens.css, fonts.css and the DM Sans/Mono .woff2 files (all synced), critical.css, component.js, …
 blocks/     group, text — nestable theme blocks
 config/     settings_schema.json, settings_data.json
 layout/     theme.liquid, password.liquid
@@ -112,7 +112,7 @@ missing.
 
 ```bash
 pnpm --filter @formulate/theme lint     # shopify theme check — no store access needed
-pnpm --filter @formulate/theme build    # regenerate assets/tokens.css
+pnpm --filter @formulate/theme build    # regenerate assets/tokens.css, fonts.css and font files
 pnpm --filter @formulate/theme dev      # shopify theme dev  (needs the password)
 pnpm --filter @formulate/theme push     # shopify theme push --unpublished
 ```
@@ -134,6 +134,28 @@ It lives in `apps/theme/.env.local` rather than a shell profile because the
 password belongs to _one store_, not to a machine. A shell profile would make it
 global state leaking into every project, and would need permanently excluding
 from synced dotfiles.
+
+### Lighthouse in CI
+
+`.github/workflows/lighthouse-theme.yml` runs Shopify's
+[`lighthouse-ci-action`](https://github.com/Shopify/lighthouse-ci-action) on PRs
+that touch `apps/theme/` and weekly on main. It pushes the theme as a temporary
+development theme, audits the home, `magnesium-glycinate` and `best-sellers`
+pages through the storefront password, then deletes the theme. Floors are the
+same as web: performance ≥ 0.5, accessibility ≥ 0.95.
+
+It needs three repository secrets, and skips with a notice until they exist:
+`SHOP_STORE` (`<store>.myshopify.com`), `SHOP_PASSWORD` (the storefront
+password) and `SHOP_THEME_ACCESS_PASSWORD`, a password from Shopify's **Theme
+Access** app.
+
+Not Dev Dashboard app credentials, though the action's README recommends
+them. With those the token is valid, but Shopify refuses `themeCreate` to any
+app without a theme-editing exemption ("needs write_themes and an exemption
+from Shopify to modify themes"), which a new app doesn't have. Theme Access
+passwords are Shopify's sanctioned route for CI theme pushes, and because the
+workflow names the product and collection to audit, the action never needs the
+Admin API, which a Theme Access password can't reach.
 
 ## Scope
 

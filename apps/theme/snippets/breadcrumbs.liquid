@@ -1,0 +1,27 @@
+{% doc %}
+  A breadcrumb trail, matching apps/web's components/breadcrumbs.tsx: a
+  labelled nav holding an ordered list, the current page marked
+  aria-current="page" and not linked. The separators are decoration, hidden
+  from screen readers.
+
+  @param {string} current - The current page's title, the last crumb.
+  @param {object} [parent] - A collection between Home and the current page.
+    Not called `collection`: that's a global object on collection pages, which
+    a rendered snippet still sees, so the page would appear twice.
+{% enddoc %}
+
+<nav class="breadcrumbs" aria-label="{{ 'general.breadcrumb' | t }}">
+  <ol class="breadcrumbs__list" role="list">
+    <li><a href="{{ routes.root_url }}">{{ 'general.home' | t }}</a></li>
+    {% if parent %}
+      <li>
+        <span aria-hidden="true">›</span>
+        <a href="{{ parent.url }}">{{ parent.title }}</a>
+      </li>
+    {% endif %}
+    <li>
+      <span aria-hidden="true">›</span>
+      <span aria-current="page">{{ current }}</span>
+    </li>
+  </ol>
+</nav>

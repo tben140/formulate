@@ -1,8 +1,10 @@
 import {
   createCartClient,
   describeError,
+  describeForShopper,
   type Cart,
   type CartLineInput,
+  type StorefrontError,
 } from "@formulate/shopify";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -28,6 +30,23 @@ const cartClient = createCartClient(storefront);
 const CART_KEY = ["cart"] as const;
 
 /**
+ * An Error whose message a shopper can read, with the developer detail logged.
+ *
+ * These errors surface in the UI, so they carry `describeForShopper` rather
+ * than `describeError` — which names transports and ids, and reads as a crash.
+ */
+const shopperError = (error: StorefrontError): Error => {
+  if (__DEV__) console.warn(`[cart] ${describeError(error)}`);
+  return new Error(describeForShopper(error));
+};
+
+/** What an add returns: the cart, plus a note when fewer were added than asked. */
+export interface AddToCartResult {
+  readonly cart: Cart;
+  readonly notice?: string;
+}
+
+/**
  * The current cart, or null when there isn't one.
  *
  * A completed cart resolves to null — Shopify stops returning it once the order
@@ -43,7 +62,7 @@ export const useCart = () =>
       if (!id) return null;
 
       const result = await cartClient.get(id);
-      if (!result.ok) throw new Error(describeError(result.error));
+      if (!result.ok) throw shopperError(result.error);
 
       if (!result.data) await clearCartId();
       return result.data;
@@ -57,9 +76,7 @@ export const useAddToCart = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (line: CartLineInput): Promise<Cart> => {
-      const existingId = await readCartId();
-
+    mutationFn: async (line: CartLineInput): Promise<AddToCartResult> => {
       /*
        * A cart created for a shopper we already know carries their email from
        * the start, which is what lets Shopify record an *attributable*
@@ -67,30 +84,31 @@ export const useAddToCart = () => {
        *
        * The address comes from the Klaviyo SDK rather than local storage — it
        * is the same value the SDK attaches events to, so there is one identity
-       * rather than two that can drift.
+       * rather than two that can drift. It is only read if a cart is created.
+       *
+       * ⚠️ Only a cart Shopify says no longer exists is replaced, and within
+       * this same add. Any other failure keeps the stored id: the cart is still
+       * fine, and clearing it would silently lose everything in it. See
+       * `addLinesOrCreate` in packages/shopify (SHO-122).
        */
-      const result = existingId
-        ? await cartClient.addLines(existingId, [line])
-        : await cartClient.create({
-            lines: [line],
-            email: (await readIdentifiedEmail()) ?? undefined,
-          });
+      const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
+        cartId: await readCartId(),
+        lines: [line],
+        email: readIdentifiedEmail,
+      });
 
       if (!result.ok) {
-        // A stored cart can expire or have been completed, in which case
-        // addLines fails against an id that no longer resolves. Clearing lets
-        // the next attempt start a fresh cart rather than failing forever.
-        if (existingId) await clearCartId();
-        throw new Error(describeError(result.error));
+        if (storedCartGone) await clearCartId();
+        throw shopperError(result.error);
       }
 
       await writeCartId(result.data.id);
-      return result.data;
+      return { cart: result.data, ...(notice ? { notice } : {}) };
     },
     // Every mutation returns the complete cart, so the cache is seeded directly
     // rather than invalidated — no refetch, and no window where the badge and
     // the sheet disagree.
-    onSuccess: (cart) => queryClient.setQueryData(CART_KEY, cart),
+    onSuccess: ({ cart }) => queryClient.setQueryData(CART_KEY, cart),
   });
 };
 
@@ -111,7 +129,7 @@ export const useUpdateCartLine = () => {
       // Quantity zero is how Shopify expresses removal on an update, so the
       // caller never has to choose between two mutations.
       const result = await cartClient.updateLines(id, [{ id: lineId, quantity }]);
-      if (!result.ok) throw new Error(describeError(result.error));
+      if (!result.ok) throw shopperError(result.error);
 
       return result.data;
     },

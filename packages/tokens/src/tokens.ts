@@ -63,7 +63,13 @@ export const colours = {
   "foreground-muted": ink[500],
   border: ink[200],
   danger: "#dc2626",
-  success: "#16a34a",
+  /**
+   * Green-700, not green-600 (#16a34a). Success is used as **text** ("Added to
+   * your cart.", "You're on the list."), and #16a34a is 3.30:1 on white,
+   * short of WCAG AA's 4.5:1 for body text (SHO-133). This is 5.02:1 on
+   * surface and 4.58:1 on surface-muted.
+   */
+  success: "#15803d",
 } as const;
 
 /** Base-4 scale. Keys become Tailwind's `--spacing-*` namespace. */
@@ -101,6 +107,53 @@ export const fontSize = {
   "3xl": "30px",
 } as const;
 
-export const tokens = { colours, spacing, radius, fontSize } as const;
+/**
+ * Typefaces (SHO-110, decided 2026-09-29): DM Sans for everything, DM Mono for
+ * numbers a shopper compares (prices, quantities).
+ *
+ * Each has two forms because the surfaces can't share one:
+ *
+ *   `stack`   CSS `font-family`, with fallbacks. Web and the Liquid theme.
+ *   `family`  A single family name. ⚠️ React Native cannot resolve a CSS stack:
+ *             it looks up exactly one name, which must match a font bundled
+ *             with the app (expo-font), or it silently uses the system font.
+ *
+ * The font files live in `packages/tokens/fonts/` and are served by web and the
+ * theme under the family name exactly as written here. Web deliberately does
+ * not use `next/font`, which renames the family to a hash and would break
+ * parity with the theme.
+ */
+export const fontFamily = {
+  sans: {
+    family: "DM Sans",
+    stack: '"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  },
+  mono: {
+    family: "DM Mono",
+    stack: '"DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+  },
+} as const;
+
+/**
+ * The font files behind `fontFamily`, one per weight actually used. The
+ * surfaces use 400, 500 and 600 only (checked 2026-09-29), so nothing else
+ * ships. Latin subset, from Fontsource's build of the Google Fonts release
+ * (@fontsource/dm-sans 5.3.0).
+ *
+ * Bold is 600, not 700: the theme maps `<b>`, `<strong>` and h3–h6 to 600 so
+ * no browser fakes a heavier weight. The 400 italic exists for `<em>` in
+ * merchant rich text (product descriptions in the theme). Browsers only
+ * download a face when text uses it, so the web app pays nothing for it.
+ */
+export const fontFaces = [
+  { family: fontFamily.sans.family, weight: 400, style: "normal", file: "dm-sans-latin-400-normal.woff2" },
+  { family: fontFamily.sans.family, weight: 400, style: "italic", file: "dm-sans-latin-400-italic.woff2" },
+  { family: fontFamily.sans.family, weight: 500, style: "normal", file: "dm-sans-latin-500-normal.woff2" },
+  { family: fontFamily.sans.family, weight: 600, style: "normal", file: "dm-sans-latin-600-normal.woff2" },
+  { family: fontFamily.mono.family, weight: 400, style: "normal", file: "dm-mono-latin-400-normal.woff2" },
+  { family: fontFamily.mono.family, weight: 500, style: "normal", file: "dm-mono-latin-500-normal.woff2" },
+] as const;
+
+export const tokens = { colours, spacing, radius, fontSize, fontFamily } as const;
 
 export type Tokens = typeof tokens;

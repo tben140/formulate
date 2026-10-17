@@ -12,9 +12,14 @@
     "main": {
       "type": "product",
       "settings": {}
+    },
+    "pairs": {
+      "type": "pairs-well-with",
+      "settings": {}
     }
   },
   "order": [
-    "main"
+    "main",
+    "pairs"
   ]
 }

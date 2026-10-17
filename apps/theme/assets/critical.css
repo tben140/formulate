@@ -61,6 +61,20 @@ p:empty {
   display: none;
 }
 
+/*
+ * DM Sans ships 400, 500 and 600 only (packages/tokens). Browsers default
+ * <b>, <strong> and h3–h6 to bold (700), which would be synthesised, a smeared
+ * fake bold. Merchant rich text uses all of these, so bold here means 600.
+ */
+b,
+strong,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+}
+
 :is(p, h1, h2, h3, h4, h5, h6):first-child,
 :empty:first-child + :where(p, h1, h2, h3, h4, h5, h6) {
   margin-block-start: 0;
@@ -73,7 +87,7 @@ p:empty {
 
 /** Theme styles below */
 body {
-  font-family: var(--font-primary--family);
+  font-family: var(--font-sans);
   background-color: var(--color-background);
   color: var(--color-foreground);
 }
@@ -263,6 +277,15 @@ a:hover {
   margin-inline-start: auto;
 }
 
+/* The search link now takes the push to the right; the cart sits beside it. */
+.site-header__search {
+  margin-inline-start: auto;
+}
+
+.site-header__search + .site-header__cart {
+  margin-inline-start: 0;
+}
+
 .site-header__cart-link {
   display: inline-flex;
   align-items: center;
@@ -411,6 +434,34 @@ a:hover {
   color: var(--color-foreground);
 }
 
+.free-shipping {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.free-shipping__message {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.free-shipping__track {
+  height: 6px;
+  margin-top: var(--spacing-2);
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--color-ink-100);
+}
+
+.free-shipping__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-brand-600);
+}
+
+.free-shipping__fill--unlocked {
+  background: var(--color-success);
+}
+
 .cart-drawer__empty {
   flex: 1;
   padding: var(--spacing-8) var(--spacing-4);
@@ -418,12 +469,107 @@ a:hover {
   color: var(--color-foreground-muted);
 }
 
-.cart-drawer__lines {
+/* Lines and suggestions scroll together; the footer stays put. */
+.cart-drawer__scroll {
   flex: 1;
+  overflow-y: auto;
+}
+
+.cart-drawer__lines {
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
+}
+
+/* Suggestions (SHO-116), matching apps/web's CartSuggestions. */
+.cart-suggestions {
+  padding: var(--spacing-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.cart-suggestions__title {
+  margin: 0 0 var(--spacing-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.cart-suggestions__list {
+  display: grid;
+  gap: var(--spacing-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cart-suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.cart-suggestion__image {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+
+.cart-suggestion__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-suggestion__title,
+.cart-suggestion__price {
+  margin: 0;
+}
+
+.cart-suggestion__title {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cart-suggestion__price {
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
+
+/* A failed one-tap add, added by cart-drawer.js. */
+.cart-suggestion__error {
+  margin: var(--spacing-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-danger);
+}
+
+.cart-suggestion__add {
+  padding: var(--spacing-1) var(--spacing-3);
+  border: 1px solid var(--color-brand-600);
+  border-radius: var(--radius-md);
+  background: none;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-brand-600);
+  cursor: pointer;
+}
+
+.cart-suggestion__add:hover {
+  background-color: var(--color-brand-50);
+}
+
+.cart-suggestion__add[aria-disabled="true"] {
+  cursor: wait;
+}
+
+.cart-suggestion__view {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-brand-600);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .cart-line {
@@ -556,6 +702,11 @@ a:hover {
   background-color: var(--color-brand-700);
 }
 
+.product-form__submit[aria-disabled="true"],
+.product-form__sticky-submit[aria-disabled="true"] {
+  cursor: wait;
+}
+
 .product-form__submit:disabled {
   background-color: var(--color-ink-300);
   cursor: not-allowed;
@@ -611,6 +762,13 @@ a:hover {
   outline-offset: 2px;
 }
 
+/* Matches apps/web: struck through and muted, but still selectable. The
+   visually hidden "(sold out)" inside the label says it for screen readers. */
+.product-form__pill--sold-out {
+  color: var(--color-foreground-muted);
+  text-decoration: line-through;
+}
+
 .product-form__select {
   width: 100%;
   padding: var(--spacing-2) var(--spacing-3);
@@ -645,13 +803,366 @@ a:hover {
   color: var(--color-foreground-muted);
 }
 
+/*
+ * Muted grey on a selected card's brand-50 is 4.34:1, under AA's 4.5:1 (it
+ * passes on white, at 4.76:1). Selected cards keep full-strength text; a sold-out
+ * value still reads as one from its line-through.
+ */
+.product-form__plan:has(input:checked) .product-form__plan-price,
+.product-form__pill--sold-out:has(input:checked) {
+  color: var(--color-foreground);
+}
+
 .product-form__price {
   margin-block-end: var(--spacing-4);
   font-size: var(--text-2xl);
+  /* 500, not 600: DM Mono ships in 400 and 500, and apps/web matches. */
+  font-weight: 500;
+}
+
+/* Sticky add to cart (SHO-117). Small screens only, matching apps/web's
+   md:hidden at 768px. Slides up from below; product-form.js adds
+   .is-visible and removes `inert` while the main button is off screen. */
+.product-form__sticky {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  transform: translateY(100%);
+  transition: transform 200ms;
+}
+
+.product-form__sticky.is-visible {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-form__sticky {
+    transition: none;
+  }
+}
+
+@media (min-width: 48rem) {
+  .product-form__sticky {
+    display: none;
+  }
+}
+
+/* A failed add's message, on its own line above the title and button. */
+.product-form__sticky-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.product-form__sticky-error[hidden] {
+  display: none;
+}
+
+.product-form__sticky-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-form__sticky-title,
+.product-form__sticky-detail {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.product-form__sticky-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.product-form__sticky-detail {
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
+
+.product-form__sticky-submit {
+  flex-shrink: 0;
+  padding: var(--spacing-2) var(--spacing-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-600);
+  font-size: var(--text-sm);
   font-weight: 600;
+  color: var(--color-surface);
+  cursor: pointer;
+}
+
+.product-form__sticky-submit:hover {
+  background-color: var(--color-brand-700);
+}
+
+.product-form__sticky-submit:disabled {
+  background-color: var(--color-ink-300);
+  cursor: not-allowed;
 }
 
 .product-form__status {
   margin-block-start: var(--spacing-3);
   font-size: var(--text-sm);
+}
+
+/*
+ * Breadcrumbs (snippets/breadcrumbs.liquid), matching apps/web's
+ * components/breadcrumbs.tsx. Here rather than in the snippet, because a
+ * snippet can't own a stylesheet.
+ */
+/* No top margin: the trail sits inside a section that already has its top
+   padding, so the gap above it matches every other page. */
+.breadcrumbs {
+  margin-block: 0 var(--spacing-6);
+  font-size: var(--text-sm);
+}
+
+.breadcrumbs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-foreground-muted);
+}
+
+.breadcrumbs__list li {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.breadcrumbs__list a {
+  color: inherit;
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+
+.breadcrumbs__list a:hover {
+  color: var(--color-foreground);
+  text-decoration: underline;
+}
+
+.breadcrumbs__list [aria-current="page"] {
+  color: var(--color-foreground);
+}
+
+/*
+ * Collection filters (snippets/collection-filters.liquid), matching apps/web's
+ * components/collection-filters.tsx. Here because a snippet can't own a
+ * stylesheet.
+ */
+.collection-filters {
+  margin-block-end: var(--spacing-6);
+}
+
+.collection-filters__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--spacing-2) var(--spacing-4);
+}
+
+.collection-filters__panel {
+  inline-size: 100%;
+}
+
+@media (min-width: 40rem) {
+  .collection-filters__panel {
+    inline-size: auto;
+  }
+}
+
+.collection-filters__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+}
+
+.collection-filters__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.collection-filters__toggle:hover {
+  border-color: var(--color-brand-400);
+}
+
+.collection-filters__panel[open] .collection-filters__chevron {
+  transform: rotate(180deg);
+}
+
+.collection-filters__badge {
+  padding-inline: var(--spacing-2);
+  border-radius: var(--radius-full);
+  background: var(--color-brand-600);
+  color: var(--color-surface);
+  font-size: var(--text-xs);
+}
+
+.collection-filters__form {
+  display: grid;
+  gap: var(--spacing-6);
+  margin-block-start: var(--spacing-3);
+  padding: var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+@media (min-width: 40rem) {
+  .collection-filters__form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-inline-size: 32rem;
+  }
+}
+
+.collection-filters__group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.collection-filters__legend {
+  margin-block-end: var(--spacing-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.collection-filters__values {
+  display: grid;
+  gap: var(--spacing-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.collection-filters__value {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--text-sm);
+}
+
+.collection-filters__value input {
+  inline-size: 1rem;
+  block-size: 1rem;
+  accent-color: var(--color-brand-600);
+}
+
+.collection-filters__value.is-empty,
+.collection-filters__count {
+  color: var(--color-foreground-muted);
+}
+
+.collection-filters__price {
+  display: flex;
+  gap: var(--spacing-4);
+}
+
+.collection-filters__price-field {
+  display: grid;
+  gap: var(--spacing-1);
+  font-size: var(--text-sm);
+}
+
+.collection-filters__price-field input {
+  inline-size: 6rem;
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.collection-filters__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 40rem) {
+  .collection-filters__actions {
+    grid-column: 1 / -1;
+  }
+}
+
+.collection-filters__apply {
+  padding: var(--spacing-2) var(--spacing-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-brand-600);
+  color: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.collection-filters__apply:hover {
+  background: var(--color-brand-700);
+}
+
+.collection-filters__clear {
+  font-size: var(--text-sm);
+  color: var(--color-brand-600);
+  text-underline-offset: 4px;
+}
+
+.collection-filters__count-total {
+  margin: 0;
+  padding-block: var(--spacing-2);
+  font-size: var(--text-sm);
+  color: var(--color-foreground-muted);
+}
+
+.collection-filters__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: var(--spacing-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.collection-filters__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  color: var(--color-foreground);
+  text-decoration: none;
+}
+
+.collection-filters__chip:hover {
+  border-color: var(--color-brand-400);
+}
+
+/*
+ * Prices in DM Mono (SHO-110), the theme's equivalent of apps/web's
+ * `font-mono` on the same elements.
+ */
+.product-card__price,
+.product-form__price,
+.product-form__plan-price,
+.cart-line__price,
+.cart-drawer__subtotal-value {
+  font-family: var(--font-mono);
 }
