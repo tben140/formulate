@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   AccessibilityInfo,
+  Keyboard,
   Platform,
   Pressable,
   Text,
@@ -80,6 +81,9 @@ export const EmailCapture = () => {
 
   const onSubmit = async () => {
     if (pending) return;
+    // The result message sits below the field, which is exactly where the
+    // keyboard is. Closing it on submit is what makes the outcome visible.
+    Keyboard.dismiss();
     setPending(true);
 
     const result = await subscribe(email);

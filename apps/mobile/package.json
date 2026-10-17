@@ -9,9 +9,11 @@
     "android": "expo run:android",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "build": "expo export --platform ios --output-dir dist"
+    "build": "expo export --platform ios --output-dir dist",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "@formulate/analytics": "workspace:*",
     "@formulate/shopify": "workspace:*",
     "@formulate/tokens": "workspace:*",
@@ -38,6 +40,7 @@
   "devDependencies": {
     "@formulate/eslint-config": "workspace:*",
     "@formulate/typescript-config": "workspace:*",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19.2.0",
     "eslint": "^10.8.0",

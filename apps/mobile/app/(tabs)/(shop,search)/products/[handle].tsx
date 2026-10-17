@@ -2,15 +2,17 @@ import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AddToCart } from "../../components/add-to-cart";
-import { useCartUi } from "../../components/cart-provider";
-import { PairsWellWith } from "../../components/pairs-well-with";
-import { SiteFooter } from "../../components/site-footer";
-import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
-import { useProduct } from "../../lib/queries";
-import { usePurchase, type Product } from "../../lib/use-purchase";
+import { AddToCart } from "../../../../components/add-to-cart";
+import { useCartUi } from "../../../../components/cart-provider";
+import { PairsWellWith } from "../../../../components/pairs-well-with";
+import { SiteFooter } from "../../../../components/site-footer";
+import {
+  STICKY_BAR_HEIGHT,
+  StickyAddToCart,
+} from "../../../../components/sticky-add-to-cart";
+import { useProduct } from "../../../../lib/queries";
+import { usePurchase, type Product } from "../../../../lib/use-purchase";
 
 /** Whether the software keyboard is showing. The "did" events fire on both platforms. */
 const useKeyboardOpen = () => {
@@ -73,7 +75,6 @@ const ProductScreen = () => {
  */
 const ProductBody = ({ product }: { product: Product }) => {
   const { openCart } = useCartUi();
-  const { bottom } = useSafeAreaInsets();
   const purchase = usePurchase(product);
 
   /*
@@ -117,7 +118,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         contentContainerStyle={{
           padding: 16,
           gap: 16,
-          paddingBottom: STICKY_BAR_HEIGHT + bottom + 16,
+          // No home-indicator inset: the tab bar below the screen takes it.
+          paddingBottom: STICKY_BAR_HEIGHT + 16,
         }}
         /*
           The footer's email field is the last thing in this view, so the
@@ -126,6 +128,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         */
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode="on-drag"
+        // Sign up takes one tap with the keyboard up; see collection-view.tsx.
+        keyboardShouldPersistTaps="handled"
         scrollEventThrottle={32}
         /*
           ⚠️ Read the event before calling setView. React Native recycles the

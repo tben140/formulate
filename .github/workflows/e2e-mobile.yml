@@ -1,0 +1,107 @@
+name: E2E (mobile)
+
+# The Playwright suite in apps/mobile/e2e (the tab bar, search, filters), run
+# against Expo's web build on the runner (SHO-151). It tests navigation and
+# screens through react-native-web, not native rendering; see
+# apps/mobile/playwright.config.ts for what it does and doesn't cover.
+#
+# Unlike web's e2e there is no deployment to test against, so the app is
+# bundled here, and Metro inlines the EXPO_PUBLIC_ values at bundle time.
+
+on:
+  pull_request:
+    paths:
+      - apps/mobile/**
+      - packages/**
+      - pnpm-lock.yaml
+      - .github/workflows/e2e-mobile.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/mobile/**
+      - packages/**
+      - pnpm-lock.yaml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E (mobile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # The Storefront token is public by design (it ships inside the app), but
+      # this repository never commits one, so it comes from a secret. Empty on
+      # forks and until it is added, and the job then skips rather than fails.
+      STOREFRONT_TOKEN: ${{ secrets.SHOPIFY_STOREFRONT_TOKEN }}
+      SHOP_STORE: ${{ secrets.SHOP_STORE }}
+
+    steps:
+      - name: Skip without the store secrets
+        if: env.STOREFRONT_TOKEN == '' || env.SHOP_STORE == ''
+        run: echo "::notice::Mobile e2e skipped - SHOPIFY_STOREFRONT_TOKEN and SHOP_STORE secrets are not both set."
+
+      - uses: actions/checkout@v5
+        if: env.STOREFRONT_TOKEN != '' && env.SHOP_STORE != ''
+
+      - uses: pnpm/action-setup@v4
+        if: env.STOREFRONT_TOKEN != '' && env.SHOP_STORE != ''
+
+      - uses: actions/setup-node@v5
+        if: env.STOREFRONT_TOKEN != '' && env.SHOP_STORE != ''
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - if: env.STOREFRONT_TOKEN != '' && env.SHOP_STORE != ''
+        run: pnpm install --frozen-lockfile
+
+      # The browser build must match the pinned @playwright/test exactly.
+      - name: Install Chromium
+        if: env.STOREFRONT_TOKEN != '' && env.SHOP_STORE != ''
+        run: pnpm --filter @formulate/mobile exec playwright install --with-deps chromium
+
+      - name: Run the suite
+        if: env.STOREFRONT_TOKEN != '' && env.SHOP_STORE != ''
+        run: |
+          # SHOP_STORE may be the store's handle or its full domain.
+          case "$SHOP_STORE" in
+            *.*) domain="$SHOP_STORE" ;;
+            *) domain="$SHOP_STORE.myshopify.com" ;;
+          esac
+          export EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN="$domain"
+          export EXPO_PUBLIC_SHOPIFY_STOREFRONT_TOKEN="$STOREFRONT_TOKEN"
+          pnpm --filter @formulate/mobile test:e2e
+
+      # Traces record the app bundle and its API requests, both of which carry
+      # the token. Strip it before anything is uploaded, as web's e2e does with
+      # its bypass secret.
+      - name: Redact the Storefront token from reports
+        if: failure() && env.STOREFRONT_TOKEN != ''
+        working-directory: apps/mobile
+        run: |
+          for dir in playwright-report test-results; do
+            [ -d "$dir" ] || continue
+            find "$dir" -type f ! -name "*.zip" -print0 | xargs -0 -r sed -i "s/${STOREFRONT_TOKEN}/REDACTED/g"
+            # Traces are zip files, which sed can't rewrite. Drop any that
+            # still contain the token rather than upload it.
+            find "$dir" -name "*.zip" -print0 | while IFS= read -r -d '' zip; do
+              if unzip -p "$zip" | grep -q "${STOREFRONT_TOKEN}"; then rm "$zip"; fi
+            done
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-mobile-report
+          path: |
+            apps/mobile/playwright-report
+            apps/mobile/test-results
+          retention-days: 14

@@ -24,8 +24,10 @@ export const SiteFooter = () => (
       footer, so it appears on every screen from one place rather than being
       remembered per screen.
 
-      ⚠️ Both callers need `automaticallyAdjustKeyboardInsets` on their scroll
-      container because of this. The footer is the last thing in a scroll view,
+      ⚠️ Every caller needs `automaticallyAdjustKeyboardInsets` and
+      `keyboardShouldPersistTaps="handled"` on its scroll container because of
+      this. Without the second, Sign up takes two taps while the keyboard is
+      up: the first only closes it (SHO-120). The footer is the last thing in a scroll view,
       so the software keyboard covers the field it belongs to the moment it
       opens. On web the browser scrolls the focused input into view for free;
       here nothing does.
