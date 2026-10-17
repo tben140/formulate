@@ -3,19 +3,21 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
 import { DemoNotice } from "@/components/demo-notice";
 import { EmailCapture } from "@/components/email-capture";
+import { HydrogenScripts, ShopifyPageViews } from "@/components/shopify-scripts";
 import { SiteNav } from "@/components/site-nav";
 import {
   CookiePreferencesButton,
   TrackingConsentProvider,
 } from "@/components/tracking-consent";
 import { getCart } from "@/lib/cart";
+import { getShopId, STORE_DOMAIN } from "@/lib/hydrogen";
 import { getLegalLinks, getNavLinks } from "@/lib/nav";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 import { baseOpenGraph, isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
@@ -55,10 +57,11 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   // In parallel: neither depends on the other, and both are on every page.
-  const [cart, navLinks, legalLinks] = await Promise.all([
+  const [cart, navLinks, legalLinks, shopId] = await Promise.all([
     getCart(),
     getNavLinks(),
     getLegalLinks(),
+    getShopId(),
   ]);
   // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
   // no request at all.
@@ -179,6 +182,16 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         */}
         <Analytics />
         <SpeedInsights />
+
+        {/* SHO-170 spike: Shopify's scripts, consent and analytics bus. */}
+        {shopId ? (
+          <>
+            <HydrogenScripts shopId={shopId} myshopifyDomain={STORE_DOMAIN} />
+            <Suspense fallback={null}>
+              <ShopifyPageViews />
+            </Suspense>
+          </>
+        ) : null}
       </body>
     </html>
   );

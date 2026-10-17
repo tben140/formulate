@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { createContext, useContext, useId, useState, type ReactNode } from "react";
 
+import { CONSENT_EVENT } from "@/components/shopify-scripts";
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
 import {
   discardQueuedEvents,
@@ -99,6 +100,8 @@ export const TrackingConsentProvider = ({
 
   const choose = (next: Exclude<TrackingConsent, "unset">) => {
     writeConsent(next);
+    // SHO-170 spike: tells Shopify's Customer Privacy API (components/shopify-scripts.tsx).
+    window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: next }));
 
     if (next === "denied") {
       discardQueuedEvents();
