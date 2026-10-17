@@ -30,3 +30,10 @@ export {
 } from "./subscribe";
 
 export type { SubscribeResult, SubscriptionSource } from "./subscribe";
+
+export {
+  backInStockPayload,
+  backInStockUrl,
+  catalogVariantId,
+  submitBackInStock,
+} from "./back-in-stock";

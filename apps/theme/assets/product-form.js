@@ -5,6 +5,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
 /**
  * @typedef {Object} VariantData
  * @property {number} id
+ * @property {string} title
  * @property {boolean} available
  * @property {string[]} options Option values, in the product's option order.
  * @property {string} price Already formatted by Liquid's `money` filter.
@@ -95,7 +96,9 @@ class ProductForm extends Component {
     // different variant. Trusting it skipped the rebuild, and an add could
     // send one variant's selling plan with another variant's id.
     const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
-    this.#plansBuiltFor = rendered ? Number(this.refs.planList?.dataset.builtFor) || null : null;
+    this.#plansBuiltFor = rendered
+      ? Number(this.refs.planList?.dataset.builtFor) || null
+      : null;
     this.#sync();
     this.#observeMainButton();
   }
@@ -223,6 +226,18 @@ class ProductForm extends Component {
     }
 
     this.#markSoldOut(chosen);
+
+    // For the restock alert below the form (SHO-118), which follows whichever
+    // variant is chosen. An event rather than a reference: the form doesn't
+    // need to know the alert exists.
+    this.dispatchEvent(
+      new CustomEvent("product-form:variant-change", {
+        bubbles: true,
+        detail: match
+          ? { id: match.id, title: match.title, available: match.available }
+          : null,
+      }),
+    );
   }
 
   /**
@@ -379,7 +394,8 @@ class ProductForm extends Component {
     } catch (error) {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
-      const message = error instanceof Error ? error.message : "Could not update your cart.";
+      const message =
+        error instanceof Error ? error.message : "Could not update your cart.";
       if (status) status.textContent = message;
       // The status line sits by the main button, off screen whenever the bar
       // is up, so the bar shows the message too. Not a live region: the
