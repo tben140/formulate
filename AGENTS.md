@@ -169,6 +169,14 @@ hand-edit `theme.css`, `tokens.css`, or `apps/theme/assets/tokens.css`.
   Read the existing log before writing one — the standard there is the standard.
 - Only commit or push when asked.
 
+## Marketing copy
+
+Any wording that describes what a product does, in product copy, push,
+email, the quiz or campaigns, must follow
+[`docs/claims-wording.md`](docs/claims-wording.md): authorised health claims
+only, never medicinal claims, and honest urgency. If a claim isn't on the GB
+register in that form, leave it out.
+
 ## Decision records
 
 When you make a decision that would look arbitrary to someone encountering it
