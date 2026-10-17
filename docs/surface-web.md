@@ -14,17 +14,19 @@
 
 ## Routes
 
-| Route                   | What it does                             |
-| ----------------------- | ---------------------------------------- |
-| `/`                     | Redirects to `/collections/best-sellers` |
-| `/collections/[handle]` | Product grid                             |
-| `/products/[handle]`    | Product detail with variants             |
+| Route                   | What it does                                               |
+| ----------------------- | ---------------------------------------------------------- |
+| `/`                     | Home page: introduction, category cards, featured products |
+| `/collections/[handle]` | Product grid, with filters and paging                      |
+| `/products/[handle]`    | Product detail with variants and subscribe-and-save        |
+| `/search`               | Search results                                             |
+| `/policies/[handle]`    | The store's policies, from Shopify                         |
 
-The homepage is a redirect rather than a page. This is the one place where the
-web app and the Liquid theme deliberately diverge in structure: a theme's
-homepage is a real, merchant-editable page, so `apps/theme` renders the
-collection through a `featured-collection` section instead of redirecting. Both
-land the visitor on the same products.
+The home page is driven by the Shopify menu "Shop" (the header's): its
+collections become the category cards, in menu order, and its first collection
+is the featured one, so reordering the menu changes the page with no deploy. The
+theme's home page is edited in the theme editor instead. Both land the visitor
+on the same products.
 
 ## Data access
 
@@ -126,10 +128,10 @@ metric to watch: on both pages the LCP element is a product image with
 
 ## Not built yet
 
-Cart, checkout, customer accounts, and the read-only Recharge portal. Cart is
-first, and everything else waits on it — see the
-[domain model's cart section](domain-model.md#cart) for the persistence design
-and the `?key=` trap.
+The cart (a drawer, held in an httpOnly cookie) and the handoff to Shopify's
+checkout are built; see the [domain model's cart section](domain-model.md#cart)
+for the persistence design and the `?key=` trap. Still in review: customer
+sign-in and order history (#76) and the read-only Recharge portal (#80).
 
 ## Related
 
