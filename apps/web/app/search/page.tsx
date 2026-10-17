@@ -102,12 +102,17 @@ const SearchPage = async ({ searchParams }: PageProps) => {
             </p>
           ) : (
             <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {result.data.search.nodes.map((product) =>
+              {result.data.search.nodes.map((product, index) =>
                 product.__typename === "Product" ? (
                   <li key={product.id}>
                     <ProductCard
                       product={product}
                       sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
+                      // The first result's image is the LCP; lazy, it waited
+                      // ~1.3 s to start on a phone (SHO-148, as SHO-143 found
+                      // on collections). Only the first: see the collection page.
+                      loading={index === 0 ? "eager" : "lazy"}
+                      fetchPriority={index === 0 ? "high" : "auto"}
                     />
                   </li>
                 ) : null,
