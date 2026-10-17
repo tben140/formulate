@@ -1,4 +1,4 @@
-# Formulate — project docs
+# Double Helix — project docs
 
 Architecture, domain notes and decision records for a Shopify storefront built
 three ways over one data and design layer.

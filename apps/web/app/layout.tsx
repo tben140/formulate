@@ -97,7 +97,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                   href="/"
                   className="order-1 text-lg font-semibold tracking-tight text-foreground"
                 >
-                  Formulate
+                  Double Helix
                 </Link>
                 <SiteNav links={navLinks} />
                 <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
@@ -140,7 +140,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                 */}
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground-muted">
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                    <p>&copy; {new Date().getFullYear()} Formulate</p>
+                    <p>&copy; {new Date().getFullYear()} Double Helix</p>
                     {legalLinks.length > 0 ? (
                       <nav aria-label="Legal">
                         <ul className="flex flex-wrap gap-x-4 gap-y-1">
