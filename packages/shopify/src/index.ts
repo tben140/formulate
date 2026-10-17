@@ -12,6 +12,14 @@ export type {
   UserErrorShape,
 } from "./errors";
 
+export {
+  PREDICTIVE_SEARCH,
+  suggestionTerm,
+  suggestionsStatus,
+  toProductSuggestions,
+} from "./predictive-search";
+export type { ProductSuggestion } from "./predictive-search";
+
 export { formatMoney } from "./format-money";
 
 export {
