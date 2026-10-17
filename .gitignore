@@ -66,6 +66,8 @@ playwright-report/
 blob-report/
 # Playwright auth state (Vercel bypass cookie, e2e/global-setup.ts)
 apps/web/e2e/.auth/
+# Theme e2e: the storefront password session (apps/theme/e2e/global-setup.ts)
+apps/theme/e2e/.auth/
 
 # Lighthouse CI output (apps/web/lighthouserc.cjs)
 .lighthouseci/
