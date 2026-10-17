@@ -1,0 +1,12 @@
+# Generated, and committed. CI regenerates these and fails on any difference
+# (.github/workflows/ci.yml), so they must stay exactly as the generator
+# writes them.
+packages/shopify/src/generated/
+packages/tokens/theme.css
+packages/tokens/tokens.css
+apps/theme/assets/tokens.css
+
+# Written by Shopify's theme editor, which rewrites them in its own format on
+# every save and theme pull.
+apps/theme/templates/*.json
+apps/theme/sections/*-group.json

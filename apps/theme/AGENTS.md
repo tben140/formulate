@@ -147,7 +147,7 @@ judges fake and returns `202` regardless. `klaviyo_list_id` must also be a
 ## ⚠️ Theme settings are direct children of `current`
 
 In `config/settings_data.json` there is **no `settings` object** to nest them
-in. `blocks` is a reserved key that sits *alongside* the settings, which makes
+in. `blocks` is a reserved key that sits _alongside_ the settings, which makes
 it look like a sibling of some wrapper. It is not:
 
 ```jsonc
