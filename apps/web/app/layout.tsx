@@ -120,6 +120,14 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                     </svg>
                     Search
                   </Link>
+                  {/* Always "Account": the layout doesn't read the session,
+                      so signed in or out, one link and /account decides. */}
+                  <Link
+                    href="/account"
+                    className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
+                  >
+                    Account
+                  </Link>
                   <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
                 </div>
               </nav>

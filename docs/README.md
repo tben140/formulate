@@ -29,10 +29,11 @@ vault to browse it as a graph; it is plain markdown either way.
 
 ## Integrations
 
-| Note                                | Status                                                      |
-| ----------------------------------- | ----------------------------------------------------------- |
-| [Recharge](integration-recharge.md) | Installed; one live test subscription. Portal not yet built |
-| [Klaviyo](integration-klaviyo.md)   | Planned. Design only — nothing shipped                      |
+| Note                                                  | Status                                                      |
+| ----------------------------------------------------- | ----------------------------------------------------------- |
+| [Recharge](integration-recharge.md)                   | Installed; one live test subscription. Portal not yet built |
+| [Klaviyo](integration-klaviyo.md)                     | Planned. Design only — nothing shipped                      |
+| [Customer accounts](integration-customer-accounts.md) | Web sign-in and order history (SHO-70). App not yet built   |
 
 ## Out of scope, kept for reference
 
