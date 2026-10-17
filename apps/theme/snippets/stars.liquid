@@ -1,0 +1,32 @@
+{% comment %}
+  Five stars for a product's rating, from Shopify's standard review metafields
+  (reviews.rating, reviews.rating_count), which Judge.me keeps in sync: the
+  same fields apps/web and the app read (packages/shopify reviews.ts).
+
+  Renders nothing without reviews. One image with a text name, so a screen
+  reader hears "4.5 out of 5 stars from 12 reviews", not five shapes.
+
+  @param {product} product
+  @param {boolean} [show_count] - "(12)" beside the stars
+  @param {string} [size] - 'small' on cards
+{% endcomment %}
+{%- liquid
+  assign rating = product.metafields.reviews.rating.value
+  assign rating_count = product.metafields.reviews.rating_count.value | default: 0
+  assign scale_max = rating.scale_max | default: 5 | times: 1.0
+  assign average = rating.rating | times: 5.0 | divided_by: scale_max | round: 1
+  assign fill_percent = average | divided_by: 5.0 | times: 100 | round
+-%}
+{%- if rating != blank and rating_count > 0 -%}
+<span
+  class="stars{% if size == 'small' %} stars--small{% endif %}"
+  role="img"
+  aria-label="{{ 'product.rating_label' | t: average: average, count: rating_count }}"
+>
+  <span class="stars__track" aria-hidden="true">★★★★★</span>
+  <span class="stars__fill" aria-hidden="true" style="inline-size: {{ fill_percent }}%">★★★★★</span>
+</span>
+{%- if show_count -%}
+  <span class="stars__count" aria-hidden="true">({{ rating_count }})</span>
+{%- endif -%}
+{%- endif -%}

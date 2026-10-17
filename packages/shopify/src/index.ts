@@ -12,6 +12,16 @@ export type {
   UserErrorShape,
 } from "./errors";
 
+export {
+  formatReviewDate,
+  ratingLabel,
+  reviewSummary,
+  reviewerDisplayName,
+  singleRatingLabel,
+  starFills,
+} from "./reviews";
+export type { PublicReview, ReviewSummary } from "./reviews";
+
 export { formatMoney } from "./format-money";
 
 export {
