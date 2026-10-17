@@ -25,10 +25,12 @@ const withBypass = (path) =>
     ? `${base}${path}?x-vercel-protection-bypass=${encodeURIComponent(bypass)}&x-vercel-set-bypass-cookie=true`
     : `${base}${path}`;
 
-// One listing and one product page: the two templates every shopper sees, and
-// the same pair the theme's Lighthouse run audits. `/` is left out because it
-// is a redirect to a collection, so it would audit the redirect, not a page.
-const PATHS = ["/collections/best-sellers", "/products/magnesium-glycinate"];
+// The home page, a listing and a product page: the three templates most
+// shoppers see, and the same three Shopify's action audits on the theme (its
+// entrypoint lists `/`, a product and a collection). The home page was left
+// out while `/` redirected to a collection; it has been a real page since
+// SHO-61. Search results join once predictive search (SHO-103) is in.
+const PATHS = ["/", "/collections/best-sellers", "/products/magnesium-glycinate"];
 
 /**
  * Median of three runs, per metric, so one noisy run can neither pass nor fail

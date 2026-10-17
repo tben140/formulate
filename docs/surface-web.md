@@ -92,9 +92,10 @@ Two sources, measuring different things:
 
 - **Lab: Lighthouse CI** (`.github/workflows/lighthouse-web.yml`, config in
   `apps/web/lighthouserc.cjs`). Runs against every Vercel deployment once
-  Vercel reports it ready, and weekly against production. Mobile profile, three
-  runs per page, median judged. The table and full reports land on the
-  workflow run.
+  Vercel reports it ready, and weekly against production. Three pages (home, a
+  collection, a product), the same three the theme's run audits. Mobile
+  profile, three runs per page, the median of each metric judged. The table and
+  full reports land on the workflow run.
 - **Field: Vercel Speed Insights.** Real visitors' LCP, CLS and INP. Lab data
   has no INP, so Lighthouse gates on Total Blocking Time instead.
 
