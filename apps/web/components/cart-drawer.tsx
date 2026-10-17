@@ -1,10 +1,11 @@
 "use client";
 
-import { EVENTS, startedCheckout } from "@formulate/analytics";
+import { EVENTS, adBeginCheckout, startedCheckout } from "@formulate/analytics";
 import { formatMoney, type Cart, type CartSuggestion } from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
+import { newEventId, trackAd } from "@/lib/ad-pixels";
 import { track } from "@/lib/klaviyo";
 
 import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
@@ -219,9 +220,10 @@ export const CartDrawer = ({
               // cross-origin, so there is no "after" — the page is gone.
               // Klaviyo's onsite script queues and flushes, which is what makes
               // a beacon unnecessary here.
-              onClick={() =>
-                track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain))
-              }
+              onClick={() => {
+                track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain));
+                trackAd(adBeginCheckout(cart, newEventId()));
+              }}
               className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface hover:bg-brand-700"
             >
               Checkout

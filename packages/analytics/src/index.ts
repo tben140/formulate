@@ -30,3 +30,17 @@ export {
 } from "./subscribe";
 
 export type { SubscribeResult, SubscriptionSource } from "./subscribe";
+
+export {
+  addToCart as adAddToCart,
+  beginCheckout as adBeginCheckout,
+  catalogueId,
+  metaCustomData,
+  parseAdEvent,
+  toGa4,
+  toMetaPixel,
+  toMetaServerEvent,
+  viewItem as adViewItem,
+} from "./ad-events";
+
+export type { AdEvent, AdEventName, AdItem, MetaServerContext } from "./ad-events";

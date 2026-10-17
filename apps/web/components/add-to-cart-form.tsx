@@ -1,6 +1,6 @@
 "use client";
 
-import { EVENTS, addedToCart } from "@formulate/analytics";
+import { EVENTS, adAddToCart, addedToCart } from "@formulate/analytics";
 import {
   defaultSelectedOptions,
   findVariantByOptions,
@@ -13,6 +13,7 @@ import {
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
+import { newEventId, trackAd } from "@/lib/ad-pixels";
 import { track } from "@/lib/klaviyo";
 
 import { useCartUi } from "./cart-provider";
@@ -93,6 +94,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
     if (state.cart && line) {
       track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
+      trackAd(adAddToCart(line, newEventId()));
     }
   }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
 
