@@ -3,6 +3,7 @@ api_version = "2026-07"
 [[extensions]]
 name = "Subscription summary"
 handle = "subscription-summary"
+uid = "063c654c-e11a-ee1c-69c1-717e9fe9376b41edc1a3"
 type = "ui_extension"
 
 # Under the order summary's list of items, only when the order has a

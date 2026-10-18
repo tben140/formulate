@@ -3,6 +3,7 @@ api_version = "2026-07"
 [[extensions]]
 name = "What happens next"
 handle = "order-next-steps"
+uid = "1890d6dc-4a3f-ceb0-1fc7-46196f1e18f499bdb8d6"
 type = "ui_extension"
 
 # The thank-you page, on every plan.

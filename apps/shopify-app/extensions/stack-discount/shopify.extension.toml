@@ -3,6 +3,7 @@ api_version = "2026-07"
 [[extensions]]
 name = "t:name"
 handle = "stack-discount"
+uid = "66205e31-93ee-f565-e188-e5e23eb01e3dea2014c8"
 type = "function"
 description = "t:description"
 
