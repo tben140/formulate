@@ -27,7 +27,8 @@ export const createHydrogenClient = (request: Request | { headers: Headers }) =>
     requestContext,
     config: {
       storeDomain: STORE_DOMAIN,
-      publicStorefrontToken: process.env.SHOPIFY_STOREFRONT_TOKEN,
+      // Empty (as in CI builds) means none: Hydrogen rejects an empty string.
+      publicStorefrontToken: process.env.SHOPIFY_STOREFRONT_TOKEN || undefined,
     },
   });
   return { requestContext, storefrontClient };
