@@ -45,7 +45,20 @@ const config: ExpoConfig = {
   userInterfaceStyle: "light",
   ios: {
     supportsTablet: true,
+    // ⚠️ Permanent once the first build is uploaded to App Store Connect.
+    // Shoppers never see it; the display name is `name` above.
     bundleIdentifier: "com.tben140.formulate",
+    // iOS universal links, the twin of `androidAppLinks`: product, collection
+    // and search URLs on the web domain open in the app. iOS checks the
+    // domain's /.well-known/apple-app-site-association (served by apps/web,
+    // which needs APPLE_TEAM_ID). Needs a paid Apple developer account.
+    ...(webHost ? { associatedDomains: [`applinks:${webHost}`] } : {}),
+    config: {
+      // The app only uses standard HTTPS, which is exempt from US export
+      // rules. Saying so here skips App Store Connect's encryption question
+      // on every TestFlight upload.
+      usesNonExemptEncryption: false,
+    },
   },
   android: {
     package: "com.tben140.formulate",
@@ -59,6 +72,11 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
   },
+  // Set by `eas init` (see docs/apple-developer-setup.md). Read from the
+  // environment so the config works before the EAS project exists.
+  ...(process.env.EAS_PROJECT_ID
+    ? { extra: { eas: { projectId: process.env.EAS_PROJECT_ID } } }
+    : {}),
 };
 
 export default config;
