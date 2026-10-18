@@ -8,8 +8,10 @@
 
 client_id = "25a2aa35a50545b4b2146c5162def482"
 name = "Double Helix"
-application_url = "https://example.com"
-embedded = true
+# No admin screens of its own: the app is Functions and checkout extensions,
+# so it isn't embedded, and "open app" lands on the source.
+application_url = "https://github.com/tben140/formulate"
+embedded = false
 
 [webhooks]
 api_version = "2026-10"
