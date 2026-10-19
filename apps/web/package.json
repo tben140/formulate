@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test": "vitest run"
   },
   "dependencies": {
     "@formulate/analytics": "workspace:*",
@@ -32,6 +33,7 @@
     "@types/react-dom": "^19.2.0",
     "eslint": "^10.8.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "4.1.11"
   }
 }

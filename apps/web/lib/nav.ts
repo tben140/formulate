@@ -5,7 +5,7 @@ import {
   toNavLinks,
   type NavLink,
 } from "@formulate/shopify";
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 
 import { storefront } from "@/lib/storefront";
 
@@ -19,10 +19,24 @@ import { storefront } from "@/lib/storefront";
  * in one render (the header and a product's breadcrumb), and the Storefront
  * API is POST, which Next doesn't deduplicate by itself.
  */
-const getMenuLinks = cache(async (handle: string): Promise<NavLink[]> => {
+const fetchMenuLinks = async (handle: string): Promise<NavLink[]> => {
+  "use cache";
+  // SHO-150 spike: menus change rarely; a menu edit can revalidate the tag.
+  cacheLife("hours");
+  cacheTag(`menu:${handle}`);
   const result = await storefront.request(NavMenuQuery, { handle });
-  return result.ok ? toNavLinks(result.data.menu?.items) : [];
-});
+  // Throw rather than cache an outage as "no links" for hours.
+  if (!result.ok) throw new Error(`menu ${handle} unavailable`);
+  return toNavLinks(result.data.menu?.items);
+};
+
+const getMenuLinks = async (handle: string): Promise<NavLink[]> => {
+  try {
+    return await fetchMenuLinks(handle);
+  } catch {
+    return [];
+  }
+};
 
 /** The header's collection links. */
 export const getNavLinks = () => getMenuLinks(NAV_MENU_HANDLE);

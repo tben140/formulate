@@ -1,5 +1,5 @@
 import { viewedProduct } from "@formulate/analytics";
-import { breadcrumbCollection } from "@formulate/shopify";
+import { breadcrumbCollection, SitemapProductsQuery } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -12,9 +12,24 @@ import { PairsWellWith } from "@/components/pairs-well-with";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
+import { storefront } from "@/lib/storefront";
 import { getNavLinks } from "@/lib/nav";
 import { baseOpenGraph } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "@/lib/structured-data";
+
+/**
+ * SHO-150 spike: prerender every product page at build. Handles added later
+ * still render on their first visit, inside the static shell. Cache
+ * Components requires at least one param; an outage at build falls back to
+ * one known handle rather than failing the build.
+ */
+export const generateStaticParams = async () => {
+  const result = await storefront.request(SitemapProductsQuery, {});
+  const handles = result.ok ? result.data.products.nodes.map((node) => node.handle) : [];
+  return (handles.length > 0 ? handles : ["magnesium-glycinate"]).map((handle) => ({
+    handle,
+  }));
+};
 
 interface PageProps {
   readonly params: Promise<{ handle: string }>;
