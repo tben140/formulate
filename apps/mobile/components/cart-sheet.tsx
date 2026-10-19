@@ -1,19 +1,13 @@
 import { formatMoney } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
 import { useCheckout } from "../lib/checkout";
 import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
 
 import { FreeShippingBar } from "./free-shipping-bar";
+import { Text } from "./text";
 
 /**
  * The cart, as a bottom sheet.
@@ -230,7 +224,7 @@ export const CartSheet = ({
                         </Pressable>
                       </View>
 
-                      <Text className="text-sm text-foreground">
+                      <Text className="text-sm text-foreground font-mono">
                         {formatMoney(line.cost.totalAmount)}
                       </Text>
                     </View>
@@ -245,7 +239,7 @@ export const CartSheet = ({
           <View className="border-t border-border px-4 pb-8 pt-4">
             <View className="mb-3 flex-row items-center justify-between">
               <Text className="text-sm text-foreground-muted">Subtotal</Text>
-              <Text className="text-sm font-medium text-foreground">
+              <Text className="text-sm font-medium text-foreground font-mono">
                 {formatMoney(cart.cost.subtotalAmount)}
               </Text>
             </View>

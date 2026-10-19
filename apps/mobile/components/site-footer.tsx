@@ -1,6 +1,7 @@
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { EmailCapture } from "./email-capture";
+import { Text } from "./text";
 
 /**
  * Site footer, mirroring apps/web's app/layout.tsx and apps/theme's

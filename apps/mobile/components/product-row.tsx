@@ -1,7 +1,8 @@
 import { formatMoney, type MoneyLike } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { Text } from "./text";
 
 export type ProductRowData = {
   readonly handle: string;
@@ -30,7 +31,7 @@ export const ProductRow = ({ product }: { readonly product: ProductRowData }) =>
       />
       <View className="flex-1">
         <Text className="text-base font-medium text-foreground">{product.title}</Text>
-        <Text className="mt-1 text-sm text-foreground-muted">
+        <Text className="mt-1 font-mono text-sm text-foreground-muted">
           {formatMoney(product.priceRange.minVariantPrice)}
         </Text>
       </View>
