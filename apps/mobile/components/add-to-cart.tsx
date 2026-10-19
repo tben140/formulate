@@ -95,7 +95,7 @@ export const AddToCart = ({
 
       {allocations.length > 0 ? (
         <View>
-          <Text className="mb-2 text-sm font-semibold text-foreground font-mono">
+          <Text className="mb-2 text-sm font-semibold text-foreground">
             Purchase options
           </Text>
           <View className="gap-2">
