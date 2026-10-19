@@ -18,8 +18,17 @@ allowBuilds:
   # Ships a platform binary and needs its postinstall step to unpack it.
   workerd: true
 
-minimumReleaseAgeExclude:
-  - eslint@10.8.0
+# Supply-chain guard: a version must be 7 days old before pnpm will install it
+# (10080 minutes). Hijacked releases are usually caught and pulled within
+# hours to days, so this keeps them out without holding fixes back for long.
+# The policy, and the 2-day fast track for security fixes, is in AGENTS.md
+# under "Dependencies". pnpm's own default is only 1 day.
+minimumReleaseAge: 10080
+
+# Fast-tracked versions, one line each, each with a comment saying which
+# advisory it fixes and when it may be removed (once it's 7 days old).
+# Empty for now.
+minimumReleaseAgeExclude: []
 
 # @shopify/hydrogen-react declares a hard (non-optional) peer dependency on
 # vite, because it is built for the Hydrogen/Vite stack. We only use its
