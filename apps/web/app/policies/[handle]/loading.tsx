@@ -1,13 +1,16 @@
 /**
- * SHO-150 spike: the Suspense boundary every page streams into, so the layout
- * (header, nav, footer) is a prerendered shell and per-request pages arrive
- * behind it. Pages whose data is all cached prerender in full and never show
- * this.
+ * The Suspense boundary a policy page streams into (Cache Components). Tall,
+ * like the policy text, so the footer doesn't jump when it arrives.
  */
 const Loading = () => (
-  <p role="status" className="py-8 text-foreground-muted">
-    Loading…
-  </p>
+  <div role="status" aria-label="Loading" className="min-h-[70vh]">
+    <div className="h-9 w-64 rounded-md bg-surface-muted" />
+    <div className="mt-6 space-y-3">
+      {Array.from({ length: 8 }, (_, index) => (
+        <div key={index} className="h-4 w-full rounded bg-surface-muted" />
+      ))}
+    </div>
+  </div>
 );
 
 export { Loading as default };

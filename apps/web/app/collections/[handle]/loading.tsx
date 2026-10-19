@@ -1,13 +1,11 @@
+import { ListingSkeleton } from "@/components/listing-skeleton";
+
 /**
- * SHO-150 spike: the Suspense boundary every page streams into, so the layout
- * (header, nav, footer) is a prerendered shell and per-request pages arrive
- * behind it. Pages whose data is all cached prerender in full and never show
- * this.
+ * The Suspense boundary this page streams into (Cache Components): the
+ * layout is a prerendered shell, and this page's results depend on the URL's
+ * filters, so they arrive per request. See ListingSkeleton for why it's
+ * page-shaped.
  */
-const Loading = () => (
-  <p role="status" className="py-8 text-foreground-muted">
-    Loading…
-  </p>
-);
+const Loading = () => <ListingSkeleton />;
 
 export { Loading as default };
