@@ -9,7 +9,8 @@
             "id": "gid://shopify/CartLine/1",
             "sellingPlanAllocation": {
               "sellingPlan": {
-                "id": "gid://shopify/SellingPlan/1"
+                "id": "gid://shopify/SellingPlan/1",
+                "recurringDeliveries": true
               }
             },
             "merchandise": {
@@ -23,7 +24,8 @@
             "id": "gid://shopify/CartLine/2",
             "sellingPlanAllocation": {
               "sellingPlan": {
-                "id": "gid://shopify/SellingPlan/1"
+                "id": "gid://shopify/SellingPlan/1",
+                "recurringDeliveries": true
               }
             },
             "merchandise": {
@@ -37,7 +39,8 @@
             "id": "gid://shopify/CartLine/3",
             "sellingPlanAllocation": {
               "sellingPlan": {
-                "id": "gid://shopify/SellingPlan/1"
+                "id": "gid://shopify/SellingPlan/1",
+                "recurringDeliveries": true
               }
             },
             "merchandise": {

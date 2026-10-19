@@ -35,7 +35,11 @@ export function cartLinesDiscountsGenerateRun(
     if (line.merchandise.__typename === "ProductVariant") {
       products.add(line.merchandise.product.id);
     }
-    if (line.sellingPlanAllocation) subscriptionLines.push(line.id);
+    // Subscriptions only: pre-orders and try-before-you-buy also use selling
+    // plans, but deliver once, so they keep the 10%.
+    if (line.sellingPlanAllocation?.sellingPlan.recurringDeliveries) {
+      subscriptionLines.push(line.id);
+    }
   }
 
   const oneOffLines = input.cart.lines.length - subscriptionLines.length;

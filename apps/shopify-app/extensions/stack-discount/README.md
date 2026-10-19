@@ -6,6 +6,8 @@ theme without a code, and shows at checkout as "Build your stack: 10% off".
 
 - **Different products**, not lines: two sizes of the same supplement count once.
 - **Subscriptions count towards the three, but aren't discounted again.**
+  (Only plans with recurring deliveries: a pre-order or try-before-you-buy
+  plan keeps the 10%.)
   They already have their subscribe-and-save price, so subscription lines are
   excluded from the 10%.
 - `STACK_SIZE` and `STACK_PERCENT` in `src/cart_lines_discounts_generate_run.ts`.
