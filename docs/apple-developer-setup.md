@@ -54,10 +54,8 @@ npx eas-cli device:create   # registers the iPhone (open the link on it)
 npx eas-cli build --platform ios --profile development
 ```
 
-Needs `expo-dev-client` in apps/mobile. ⚠️ **Not added yet:** its current
-dependencies (expo-dev-launcher 57.0.21, expo-dev-menu 57.0.20) were
-published on 12 October and pass the 7-day rule from 19 October 14:30. Add
-it then with `pnpm --filter @formulate/mobile add expo-dev-client@~57.0.19`.
+Uses `expo-dev-client` (57.0.19, added on 19 October once its dependencies
+passed the 7-day rule).
 
 The **preview** profile is the same for sharing an installable build with
 registered devices, without the store.
