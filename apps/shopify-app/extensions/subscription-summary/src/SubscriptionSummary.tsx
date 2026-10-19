@@ -59,7 +59,8 @@ const SubscriptionSummary = () => {
           );
         })}
         <s-text color="subdued">
-          Each delivery is charged when it's sent. You can skip, pause or cancel any time
+          Each delivery is charged on its renewal date. You can skip, pause or cancel any
+          time
           {manageUrl.startsWith("https://") ? (
             <>
               {" "}

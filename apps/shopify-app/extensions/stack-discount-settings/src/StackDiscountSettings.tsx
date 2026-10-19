@@ -1,6 +1,6 @@
 import "@shopify/ui-extensions/preact";
 import { render } from "preact";
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 /**
  * "Build your stack" on Shopify's Discounts page.
@@ -19,10 +19,19 @@ const StackDiscountSettings = () => {
   const discounts = shopify.discounts;
   const classes = discounts.discountClasses.value;
 
+  const [classError, setClassError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (classes.length !== 1 || classes[0] !== "order") {
-      void discounts.updateDiscountClasses(["order"]);
-    }
+    if (classes.length === 1 && classes[0] === "order") return;
+    void discounts.updateDiscountClasses(["order"]).then((result) => {
+      // Saved as anything but an order discount, the Function returns nothing,
+      // so a failure here must be visible rather than silent.
+      setClassError(
+        result.success
+          ? null
+          : "Couldn't set this to an order discount. Choose “Order” as the discount class before saving.",
+      );
+    });
   }, [classes.join()]);
 
   return (
@@ -32,6 +41,7 @@ const StackDiscountSettings = () => {
       <s-heading>Build your stack</s-heading>
       <s-section>
         <s-stack gap="base">
+          {classError ? <s-banner tone="critical">{classError}</s-banner> : null}
           <s-paragraph>
             10% off one-off items when an order has 3 or more different products.
           </s-paragraph>

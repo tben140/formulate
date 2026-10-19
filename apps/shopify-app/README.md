@@ -5,12 +5,12 @@ code. It has **no admin pages** of its own, and asks for one permission,
 `write_discounts`, which a discount Function needs before its discounts can
 be created on the Discounts page. Everything here runs inside Shopify.
 
-| Extension            | Kind                                   | What it does                                             | Code                              |
-| -------------------- | -------------------------------------- | -------------------------------------------------------- | --------------------------------- |
-| Cart limits          | Cart and checkout validation Function  | At most 6 of any one product per order, on every surface | `extensions/cart-limits`          |
-| Build your stack     | Discount Function                      | 10% off one-off items with 3+ different products         | `extensions/stack-discount`       |
-| Subscription summary | Checkout UI extension                  | "Your subscriptions" under the items at checkout         | `extensions/subscription-summary` |
-| What happens next    | Checkout UI extension (thank-you page) | Dispatch, tracking and subscription next steps           | `extensions/order-next-steps`     |
+| Extension            | Kind                                   | What it does                                                                                                                                     | Code                              |
+| -------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| Cart limits          | Cart and checkout validation Function  | At most 6 of any one product per order, in carts and checkout on web, the app and the theme (not POS, Admin API orders or subscription renewals) | `extensions/cart-limits`          |
+| Build your stack     | Discount Function                      | 10% off one-off items with 3+ different products                                                                                                 | `extensions/stack-discount`       |
+| Subscription summary | Checkout UI extension                  | "Your subscriptions" under the items at checkout                                                                                                 | `extensions/subscription-summary` |
+| What happens next    | Checkout UI extension (thank-you page) | Dispatch, tracking and subscription next steps                                                                                                   | `extensions/order-next-steps`     |
 
 The two checkout panels share `shared/subscription-plan.ts`, which reads a
 selling plan's frequency and discount. Each extension's README has the detail.
@@ -21,12 +21,16 @@ From this folder, on a machine where the Shopify CLI is logged in to the
 Double Helix organisation:
 
 ```sh
-npx shopify app deploy --allow-updates --version <x.y.z> --message "<what changed>"
+npx shopify app deploy --allow-updates --version 0.6.0 --message "What changed"
 ```
 
-This builds all four extensions, uploads them as a new app version and
-releases it. Shoppers see nothing new until the matching admin step below
-is done. **Commit any `uid` lines the deploy writes** into the extensions'
+This builds every extension, uploads them as a new app version and
+**releases it straight away**. On a store where the app is already set up
+(rule on, discount created, panels placed), shoppers get the new code
+immediately: a deploy is not a preview. To upload without releasing, add
+`--no-release` and release the version later from the Dev Dashboard. On a
+store where nothing is switched on yet, nothing shows until the admin steps
+below. **Commit any `uid` lines the deploy writes** into the extensions'
 `shopify.extension.toml` files: Shopify identifies each extension by them,
 and without them the next deploy creates duplicates.
 
