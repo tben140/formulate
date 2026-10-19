@@ -1,8 +1,9 @@
 # Double Helix (Shopify app)
 
 The app in Shopify's Dev Dashboard that carries the store's Shopify-side
-code. It has **no admin screens** and asks for **no permissions**:
-everything here runs inside Shopify.
+code. It has **no admin pages** of its own, and asks for one permission,
+`write_discounts`, which a discount Function needs before its discounts can
+be created on the Discounts page. Everything here runs inside Shopify.
 
 | Extension            | Kind                                   | What it does                                             | Code                              |
 | -------------------- | -------------------------------------- | -------------------------------------------------------- | --------------------------------- |
@@ -34,7 +35,8 @@ Not deployed from CI yet.
 ## Turning it on (once per store)
 
 1. **Install:** Dev Dashboard → Double Helix → Install app → choose the store.
-   There's nothing to approve, because the app asks for no permissions.
+   Approve `write_discounts`. (After a permission change, Settings → Apps →
+   Double Helix asks you to approve the update.)
 2. **Cart limit:** Settings → Checkout → Checkout rules → Add rule →
    _Cart limits_ → Save, then turn it on.
 3. **Discount:** Discounts → Create discount → _Build your stack_ →
