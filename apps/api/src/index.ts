@@ -104,7 +104,12 @@ const json = (body: Outcome, status: number): Response =>
 const backInStock = async (raw: string, env: Env): Promise<Response> => {
   let body: { email?: unknown; variant?: unknown };
   try {
-    body = JSON.parse(raw) as typeof body;
+    const parsed: unknown = JSON.parse(raw);
+    // `null`, an array or a number parses fine but can't be destructured.
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return json({ ok: false, reason: "rejected" }, 400);
+    }
+    body = parsed as typeof body;
   } catch {
     return json({ ok: false, reason: "rejected" }, 400);
   }

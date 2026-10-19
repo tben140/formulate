@@ -57,6 +57,9 @@ export const BackInStockForm = ({
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // The controls stay focusable while sending (aria-disabled, not
+    // disabled; SHO-134), so a second submit is ignored here instead.
+    if (pending) return;
     startTransition(async () => {
       const result = await notifyWhenBackInStock(email, variantId);
       if (result.ok) {
@@ -103,13 +106,16 @@ export const BackInStockForm = ({
           placeholder="you@company.com"
           aria-describedby={`${hintId} ${messageId}`}
           aria-invalid={failed}
-          disabled={pending}
-          className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-sm text-foreground placeholder:text-foreground-muted focus:border-brand-600 focus:outline-2 focus:outline-offset-2 focus:outline-brand-600 disabled:bg-ink-100"
+          aria-disabled={pending || undefined}
+          readOnly={pending}
+          className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-sm text-foreground placeholder:text-foreground-muted focus:border-brand-600 focus:outline-2 focus:outline-offset-2 focus:outline-brand-600 aria-disabled:bg-ink-100"
         />
         <button
           type="submit"
-          disabled={pending}
-          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-surface hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+          // aria-disabled, not disabled: a focused control that becomes
+          // disabled drops focus to <body> (SHO-134).
+          aria-disabled={pending || undefined}
+          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-surface hover:bg-brand-700 aria-disabled:cursor-wait aria-disabled:bg-ink-300"
         >
           {pending ? "Sending…" : "Notify me"}
         </button>
