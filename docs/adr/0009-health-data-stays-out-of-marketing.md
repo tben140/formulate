@@ -1,6 +1,6 @@
 # ADR 0009 — Health and test data stay out of marketing and recommendations
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-10-19)
 - **Date:** 2026-10-16
 
 ## Context
