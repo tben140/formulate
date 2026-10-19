@@ -803,6 +803,16 @@ a:hover {
   color: var(--color-foreground-muted);
 }
 
+/*
+ * Muted grey on a selected card's brand-50 is 4.34:1, under AA's 4.5:1 (it
+ * passes on white, at 4.76:1). Selected cards keep full-strength text; a sold-out
+ * value still reads as one from its line-through.
+ */
+.product-form__plan:has(input:checked) .product-form__plan-price,
+.product-form__pill--sold-out:has(input:checked) {
+  color: var(--color-foreground);
+}
+
 .product-form__price {
   margin-block-end: var(--spacing-4);
   font-size: var(--text-2xl);
@@ -944,8 +954,11 @@ a:hover {
   text-decoration: underline;
 }
 
-.breadcrumbs__list [aria-current='page'] {
+.breadcrumbs__list [aria-current="page"] {
   color: var(--color-foreground);
+}
+
+/*
  * Collection filters (snippets/collection-filters.liquid), matching apps/web's
  * components/collection-filters.tsx. Here because a snippet can't own a
  * stylesheet.
@@ -1140,7 +1153,9 @@ a:hover {
 
 .collection-filters__chip:hover {
   border-color: var(--color-brand-400);
+}
 
+/*
  * Prices in DM Mono (SHO-110), the theme's equivalent of apps/web's
  * `font-mono` on the same elements.
  */
