@@ -27,6 +27,7 @@ const androidAppLinks = webHost
         action: "VIEW",
         autoVerify: true,
         data: [
+          { scheme: "https", host: webHost, path: "/" },
           { scheme: "https", host: webHost, pathPrefix: "/products/" },
           { scheme: "https", host: webHost, pathPrefix: "/collections/" },
           { scheme: "https", host: webHost, path: "/search" },

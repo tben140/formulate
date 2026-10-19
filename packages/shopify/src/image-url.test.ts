@@ -31,6 +31,15 @@ describe("sizedImageUrl", () => {
     expect(new URL(twice).searchParams.getAll("width")).toEqual(["256"]);
   });
 
+  it("drops an earlier height and crop when re-sized by width only", () => {
+    const sized =
+      "https://cdn.shopify.com/s/files/1/a.png?v=1&width=640&height=640&crop=center";
+    const url = new URL(sizedImageUrl(sized, { width: 128 }));
+    expect(url.searchParams.get("width")).toBe("128");
+    expect(url.searchParams.has("height")).toBe(false);
+    expect(url.searchParams.has("crop")).toBe(false);
+  });
+
   it("leaves other hosts and unparseable strings alone", () => {
     expect(sizedImageUrl("https://example.com/a.png", { width: 100 })).toBe(
       "https://example.com/a.png",
