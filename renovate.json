@@ -10,7 +10,11 @@
   "schedule": [
     "before 6am on monday"
   ],
-  "minimumReleaseAge": "3 days",
+  "minimumReleaseAge": "7 days",
+  "vulnerabilityAlerts": {
+    "description": "Security fixes take the 2-day fast track in AGENTS.md (Dependencies) instead of the 7-day default.",
+    "minimumReleaseAge": "2 days"
+  },
   "prConcurrentLimit": 5,
   "labels": [
     "dependencies"

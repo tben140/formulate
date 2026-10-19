@@ -28,6 +28,7 @@ from neglect.
 | [0006](0006-checkout-handoff-differs-per-surface.md)    | Checkout handoff differs per surface             | Accepted | 2026-07-26 |
 | [0007](0007-mobile-consent-goes-through-a-worker.md)    | Mobile marketing consent via a Worker            | Accepted | 2026-08-11 |
 | [0008](0008-headless-tracking-consent-is-our-own.md)    | Headless tracking consent is our own             | Accepted | 2026-09-23 |
+| [0009](0009-health-data-stays-out-of-marketing.md)      | Health and test data stay out of marketing       | Accepted | 2026-10-16 |
 | [0011](0011-adopt-hydrogen-on-web-in-stages.md)         | Adopt Hydrogen on web, in stages, behind a trial | Accepted | 2026-10-16 |
 
 ## Writing a new one
