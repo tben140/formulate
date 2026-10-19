@@ -29,8 +29,9 @@ redirect_urls = [ ]
 # shopify-events). Production only: one app has one delivery address, and
 # previews keep the hourly backstop.
 #
-# ⚠️ Before deploying: replace the uri's host with the production domain (Ben
-# confirms it), and check the product trigger names. price and compareAtPrice
+# The uri is production (web-six-murex-18.vercel.app, built from main), so
+# deliveries only work once the batch with the receiver is merged. Check the
+# product trigger names at the first deploy. price and compareAtPrice
 # are from Shopify's reference; title, handle and status follow the same
 # pattern. A wrong one fails `shopify app deploy`, so nothing ships broken.
 [events]
@@ -47,7 +48,7 @@ api_version = "2026-10"
     "product.variants.price",
     "product.variants.compareAtPrice",
   ]
-  uri = "https://PRODUCTION-DOMAIN/api/shopify-events"
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
   query = """
   query product_changed($productId: ID!) {
     product(id: $productId) { handle collections(first: 20) { nodes { handle } } }
@@ -60,7 +61,7 @@ api_version = "2026-10"
   handle = "stock-changed"
   topic = "InventoryItem"
   actions = ["update"]
-  uri = "https://PRODUCTION-DOMAIN/api/shopify-events"
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
   query = """
   query stock_changed($inventoryItemId: ID!) {
     inventoryItem(id: $inventoryItemId) {
@@ -74,7 +75,7 @@ api_version = "2026-10"
   topic = "Collection"
   actions = ["update"]
   triggers = ["collection.title", "collection.handle", "collection.descriptionHtml"]
-  uri = "https://PRODUCTION-DOMAIN/api/shopify-events"
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
   query = """
   query collection_changed($collectionId: ID!) {
     collection(id: $collectionId) { handle }
@@ -87,10 +88,10 @@ api_version = "2026-10"
   handle = "catalogue-added-or-removed"
   topic = "Product"
   actions = ["create", "delete"]
-  uri = "https://PRODUCTION-DOMAIN/api/shopify-events"
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
 
   [[events.subscription]]
   handle = "collections-added-or-removed"
   topic = "Collection"
   actions = ["create", "delete"]
-  uri = "https://PRODUCTION-DOMAIN/api/shopify-events"
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
