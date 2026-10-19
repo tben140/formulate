@@ -27,5 +27,6 @@ test("home introduces the shop, lists categories and features the first collecti
     "href",
     "/collections/best-sellers",
   );
-  expect(await featured.locator('a[href^="/products/"]').count()).toBeGreaterThan(0);
+  // The featured products are the links in the section's list.
+  await expect(featured.getByRole("list").getByRole("link").first()).toBeVisible();
 });
