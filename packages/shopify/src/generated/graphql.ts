@@ -2643,7 +2643,7 @@ export const RoutineGoalsDocument = new TypedDocumentString(`
                   }
                 }
               }
-              variants(first: 1) {
+              variants(first: 10) {
                 nodes {
                   id
                   availableForSale

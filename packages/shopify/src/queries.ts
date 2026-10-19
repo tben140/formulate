@@ -690,8 +690,8 @@ export const ProductRecommendationsQuery = graphql(`
  * product. See `toRoutineGoals` in ./routine-quiz-data.
  *
  * Products come from the metaobject's ordered `products` list; the merchant's
- * order is the relevance order. One variant per product: the quiz suggests a
- * product, and its first variant is the default size.
+ * order is the relevance order. The quiz offers each product's first size
+ * that's in stock, so up to 10 variants are read.
  */
 export const RoutineGoalsQuery = graphql(`
   query RoutineGoals {
@@ -730,7 +730,7 @@ export const RoutineGoalsQuery = graphql(`
                     }
                   }
                 }
-                variants(first: 1) {
+                variants(first: 10) {
                   nodes {
                     id
                     availableForSale

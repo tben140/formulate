@@ -289,6 +289,36 @@ describe("reading Shopify's data", () => {
     });
   });
 
+  it("offers the first size in stock, not a sold-out first size", () => {
+    const node = productNode("Recharge");
+    const soldOut = {
+      ...node.variants.nodes[0]!,
+      id: "gid://shopify/ProductVariant/200mg",
+      availableForSale: false,
+    };
+    const data = {
+      metaobjects: {
+        nodes: [
+          {
+            handle: "energy",
+            key: { value: "energy" },
+            label: { value: "Energy" },
+            products: {
+              references: {
+                nodes: [{ ...node, variants: { nodes: [soldOut, node.variants.nodes[0]!] } }],
+              },
+            },
+          },
+        ],
+      },
+    } as never;
+    const [goal] = toRoutineGoals(data);
+    expect(goal?.products[0]).toMatchObject({
+      available: true,
+      variantId: "gid://shopify/ProductVariant/1",
+    });
+  });
+
   it("never offers a plan no app owns: falls back to one-off at full price", () => {
     const [goal] = toRoutineGoals(response(null));
     expect(goal?.products[0]).toMatchObject({ sellingPlanId: null, monthlyPrice: 17.95 });
