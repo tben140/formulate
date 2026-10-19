@@ -45,7 +45,12 @@ const decode = (text: string): string =>
         entity[1]?.toLowerCase() === "x"
           ? Number.parseInt(entity.slice(2), 16)
           : Number.parseInt(entity.slice(1), 10);
-      return Number.isFinite(code) && code > 0 ? String.fromCodePoint(code) : match;
+      if (!Number.isFinite(code) || code <= 0) return match;
+      // Beyond Unicode, or a lone surrogate: U+FFFD, as browsers do.
+      // String.fromCodePoint throws above 0x10FFFF, which would take the
+      // whole description (and the page) down.
+      if (code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return "\uFFFD";
+      return String.fromCodePoint(code);
     }
     return ENTITIES[entity.toLowerCase()] ?? match;
   });

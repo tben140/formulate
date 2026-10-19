@@ -17,6 +17,13 @@ describe("descriptionBlocks", () => {
     ]);
   });
 
+  it("turns a character code beyond Unicode into U+FFFD instead of throwing", () => {
+    expect(() => descriptionBlocks("<p>A &#x110000; B &#xD800;</p>")).not.toThrow();
+    expect(descriptionBlocks("<p>A &#x110000; B</p>")).toEqual([
+      { kind: "paragraph", text: "A \uFFFD B" },
+    ]);
+  });
+
   it("drops inline tags but keeps their text, and turns <br> into a newline", () => {
     expect(
       descriptionBlocks(
