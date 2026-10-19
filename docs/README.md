@@ -30,10 +30,10 @@ vault to browse it as a graph; it is plain markdown either way.
 
 ## Integrations
 
-| Note                                | Status                                                      |
-| ----------------------------------- | ----------------------------------------------------------- |
-| [Recharge](integration-recharge.md) | Installed; one live test subscription. Portal not yet built |
-| [Klaviyo](integration-klaviyo.md)   | Planned. Design only — nothing shipped                      |
+| Note                                | Status                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
+| [Recharge](integration-recharge.md) | Installed; subscription flows live in Klaviyo. Read-only portal in review (#80)      |
+| [Klaviyo](integration-klaviyo.md)   | Live on web and the theme: email capture, events, flows. App events in review (#107) |
 
 ## Out of scope, kept for reference
 
