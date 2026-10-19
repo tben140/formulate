@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit's automated review on pull requests. Free for public
+# repositories. Every key here is checked against the schema above.
+#
+# The project's own rules live in AGENTS.md (root and per app); CodeRabbit
+# reads them as review criteria (knowledge_base.code_guidelines below), so
+# they are written down once, for humans, Claude and CodeRabbit alike.
+
+language: en-GB
+
+reviews:
+  # Balanced feedback: real problems, without nitpicking style the linters
+  # and Prettier already enforce.
+  profile: chill
+  high_level_summary: true
+  poem: false
+  in_progress_fortune: false
+  collapse_walkthrough: true
+  # This repository's PRs carry their own "Verified" sections, so CodeRabbit's
+  # summary goes in its walkthrough comment and the description is left alone.
+  high_level_summary_in_walkthrough: true
+
+  auto_review:
+    enabled: true
+    # Drafts are skipped. This repo keeps work in draft until it's ready to
+    # review, and reviewing 30 open drafts at once would bury them in comments.
+    # Mark a PR ready, or comment `@coderabbitai review`, to have one reviewed.
+    drafts: false
+    # Most PRs here don't target main: they target the integration branch or
+    # stack on each other's branches. Without these, CodeRabbit would skip them.
+    base_branches:
+      - "integration/.*"
+      - "tben140/.*"
+
+  path_filters:
+    # Generated, and checked by CI instead (codegen and token drift steps).
+    - "!packages/shopify/src/generated/**"
+    - "!packages/tokens/theme.css"
+    - "!packages/tokens/tokens.css"
+    - "!apps/theme/assets/tokens.css"
+    - "!pnpm-lock.yaml"
+
+  path_instructions:
+    - path: "apps/api/**"
+      instructions: |
+        A public Cloudflare Worker holding Klaviyo, Recharge and Shopify Admin
+        credentials. Flag, as a serious issue:
+        - any customer id, email or record id taken from a request rather than
+          from Shopify's answer to the caller's Customer Account token;
+        - an upstream (Klaviyo, Recharge, Shopify) error body or object
+          returned to the caller, or Admin data returned without a field
+          whitelist;
+        - CORS headers, or a new runtime dependency;
+        - an email address, token or key in a log line;
+        - a secret added to `vars` in wrangler.jsonc instead of as a secret.
+    - path: "packages/shopify/**"
+      instructions: |
+        Shared by the web app and the React Native app, so it must stay
+        platform-neutral: bare `fetch`, no DOM or Node-only APIs, no
+        Shopify runtime dependency. Flag anything that would break in Hermes.
+    - path: "apps/web/**"
+      instructions: |
+        Next.js App Router. The Storefront token is server-only: flag any
+        `NEXT_PUBLIC_` exposure of it, any Admin token, and any client
+        component that calls Shopify or the Worker directly. Interactive
+        elements must stay keyboard- and screen-reader-accessible (WCAG 2.2 AA).
+    - path: "apps/mobile/**"
+      instructions: |
+        Expo / React Native. Everything prefixed `EXPO_PUBLIC_` ships in the
+        app bundle, so it must be safe to publish. Customer tokens belong in
+        the keychain (expo-secure-store), never AsyncStorage. Check
+        accessibility props (role, label, state) on touchables.
+    - path: "apps/theme/**"
+      instructions: |
+        Shopify Liquid theme with no build step and web components extending
+        assets/component.js. Note that `t` output is already HTML-escaped (so
+        `| t | escape` double-escapes), and copy belongs in locales, not markup.
+    - path: "**/e2e/**"
+      instructions: |
+        Playwright end-to-end tests against the real development store. Flag
+        fixed sleeps where a web-first assertion would do, and selectors that
+        aren't based on role, label or text.
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "AGENTS.md"
+      - "apps/*/AGENTS.md"
