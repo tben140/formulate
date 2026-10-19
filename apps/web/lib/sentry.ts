@@ -43,6 +43,13 @@ export const scrubEvent = (event: ErrorEvent): ErrorEvent => {
     delete event.request.headers;
     delete event.request.data;
   }
+  // Sentry's Next.js integration also copies a failed server request's path,
+  // query included, into contexts.nextjs.request_path (CodeRabbit on #97).
+  // A failed sign-in callback would otherwise send its authorisation code.
+  const nextjs = event.contexts?.nextjs as { request_path?: unknown } | undefined;
+  if (nextjs && typeof nextjs.request_path === "string") {
+    nextjs.request_path = stripQuery(nextjs.request_path);
+  }
   delete event.user;
   return event;
 };
