@@ -205,6 +205,7 @@ const Results = ({
   onEdit,
   onSave,
   onForget,
+  storageError,
 }: {
   readonly goals: readonly RoutineGoal[];
   readonly answers: QuizAnswers;
@@ -212,6 +213,7 @@ const Results = ({
   readonly onEdit: () => void;
   readonly onSave: () => void;
   readonly onForget: () => void;
+  readonly storageError: string | null;
 }) => {
   const routine = useMemo(() => scoreRoutine(answers, goals), [answers, goals]);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(
@@ -254,6 +256,13 @@ const Results = ({
         <Pressable accessibilityRole="button" onPress={onEdit}>
           <Text className={link}>Change my answers</Text>
         </Pressable>
+        {/* A saved routine can stop matching (products sold out, prices up),
+            and it must still be possible to forget it. */}
+        {saved ? (
+          <Pressable accessibilityRole="button" onPress={onForget}>
+            <Text className={link}>Forget my routine</Text>
+          </Pressable>
+        ) : null}
         <TalkToUs />
       </View>
     );
@@ -367,6 +376,11 @@ const Results = ({
           <Text className={link}>{saved ? "Forget my routine" : "Save my routine"}</Text>
         </Pressable>
       </View>
+      {storageError ? (
+        <Text accessibilityLiveRegion="polite" className="text-sm text-foreground">
+          {storageError}
+        </Text>
+      ) : null}
 
       <TalkToUs />
     </View>
@@ -379,6 +393,7 @@ const RoutineScreen = () => {
   const [saved, setSaved] = useState(false);
   const [editing, setEditing] = useState(false);
   const [loadedSaved, setLoadedSaved] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   // A saved routine opens straight to its results.
   useEffect(() => {
@@ -467,9 +482,20 @@ const RoutineScreen = () => {
           answers={answers}
           saved={saved}
           onEdit={() => setEditing(true)}
-          onSave={() => void writeSavedAnswers(answers).then(() => setSaved(true))}
+          storageError={storageError}
+          onSave={() =>
+            void writeSavedAnswers(answers).then((ok) => {
+              setSaved(ok);
+              setStorageError(ok ? null : "Saving isn't available here.");
+            })
+          }
           onForget={() =>
-            void clearSavedAnswers().then(() => {
+            void clearSavedAnswers().then((ok) => {
+              if (!ok) {
+                setStorageError("Your routine couldn't be removed. Please try again.");
+                return;
+              }
+              setStorageError(null);
               setSaved(false);
               setAnswers(null);
             })

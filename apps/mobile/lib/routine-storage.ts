@@ -8,8 +8,8 @@ import * as SecureStore from "expo-secure-store";
  * not tracking. Goals, not health data (ADR 0009).
  *
  * The keychain because it's what the app already uses; the value isn't
- * secret. On the web build secure-store is unavailable, so reads and writes
- * quietly do nothing there.
+ * secret. On the web build secure-store is unavailable: writes and deletes
+ * report `false`, so the screen can say saving isn't available there.
  */
 const ROUTINE_KEY = "formulate.routine.answers";
 
@@ -24,18 +24,22 @@ export const readSavedAnswers = async (
   }
 };
 
-export const writeSavedAnswers = async (answers: QuizAnswers): Promise<void> => {
+/** Whether the answers were saved. */
+export const writeSavedAnswers = async (answers: QuizAnswers): Promise<boolean> => {
   try {
     await SecureStore.setItemAsync(ROUTINE_KEY, serializeAnswers(answers));
+    return true;
   } catch {
-    // Unavailable (the web build): the routine still works, it just isn't kept.
+    return false;
   }
 };
 
-export const clearSavedAnswers = async (): Promise<void> => {
+/** Whether the saved answers were removed. */
+export const clearSavedAnswers = async (): Promise<boolean> => {
   try {
     await SecureStore.deleteItemAsync(ROUTINE_KEY);
+    return true;
   } catch {
-    // As above.
+    return false;
   }
 };
