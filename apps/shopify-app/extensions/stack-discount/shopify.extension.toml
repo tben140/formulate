@@ -3,6 +3,7 @@ api_version = "2026-07"
 [[extensions]]
 name = "t:name"
 handle = "stack-discount"
+uid = "66205e31-93ee-f565-e188-e5e23eb01e3dea2014c8"
 type = "function"
 description = "t:description"
 
@@ -14,3 +15,7 @@ description = "t:description"
   [extensions.build]
   command = ""
   path = "dist/function.wasm"
+
+  # The Discounts page panel (../stack-discount-settings).
+  [extensions.ui]
+  handle = "stack-discount-settings"
