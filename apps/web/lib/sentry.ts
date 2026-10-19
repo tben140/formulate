@@ -15,6 +15,14 @@ export const sentryOptions = {
   enabled: Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN),
   environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? "development",
   sendDefaultPii: false,
+  /*
+   * React's streaming renderer logs this whenever a visitor leaves a page
+   * before it finishes arriving (a closed tab, a fast click, a weak signal).
+   * Nothing is wrong and the shopper isn't affected, but as an error event it
+   * would fill the free plan's quota and bury real issues (investigated
+   * 2026-10-18; Ben chose to ignore it on 2026-10-19).
+   */
+  ignoreErrors: ["The destination stream closed early."],
   beforeSend: (event: ErrorEvent) => scrubEvent(event),
   beforeBreadcrumb: <B extends { data?: Record<string, unknown> }>(breadcrumb: B) =>
     scrubBreadcrumb(breadcrumb),
