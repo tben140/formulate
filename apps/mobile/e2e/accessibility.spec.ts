@@ -19,8 +19,10 @@ const scan = async (page: Page) => {
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .disableRules(["document-title"])
     .analyze();
+  // The element's HTML as well as its selector: react-native-web's class
+  // names (r-backgroundColor-…) say nothing about which component it is.
   return result.violations.flatMap((v) =>
-    v.nodes.map((n) => `${v.id}: ${n.target.join(" ")}`),
+    v.nodes.map((n) => `${v.id}: ${n.target.join(" ")} ${n.html.slice(0, 300)}`),
   );
 };
 
