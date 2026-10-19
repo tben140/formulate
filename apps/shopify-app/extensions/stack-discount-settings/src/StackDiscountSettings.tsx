@@ -23,15 +23,14 @@ const StackDiscountSettings = () => {
 
   useEffect(() => {
     if (classes.length === 1 && classes[0] === "order") return;
-    void discounts.updateDiscountClasses(["order"]).then((result) => {
-      // Saved as anything but an order discount, the Function returns nothing,
-      // so a failure here must be visible rather than silent.
-      setClassError(
-        result.success
-          ? null
-          : "Couldn't set this to an order discount. Choose “Order” as the discount class before saving.",
-      );
-    });
+    const result = discounts.updateDiscountClasses(["order"]);
+    // Saved as anything but an order discount, the Function returns nothing,
+    // so a failure here must be visible rather than silent.
+    setClassError(
+      result.success
+        ? null
+        : "Couldn't set this to an order discount. Choose “Order” as the discount class before saving.",
+    );
   }, [classes.join()]);
 
   return (
