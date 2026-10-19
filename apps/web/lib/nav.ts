@@ -15,27 +15,17 @@ import { storefront } from "@/lib/storefront";
  * A failed or missing menu returns no links rather than an error: the page
  * still works without them, and a navigation outage shouldn't take it down.
  *
- * Wrapped in `cache` because the layout and a page can both need the same menu
- * in one render (the header and a product's breadcrumb), and the Storefront
- * API is POST, which Next doesn't deduplicate by itself.
+ * Cached ("use cache", tagged `menu:<handle>`, hourly): menus change rarely,
+ * and the layout and a page can both need the same menu in one render.
  */
-const fetchMenuLinks = async (handle: string): Promise<NavLink[]> => {
+const getMenuLinks = async (handle: string): Promise<NavLink[]> => {
   "use cache";
-  // SHO-150 spike: menus change rarely; a menu edit can revalidate the tag.
-  cacheLife("hours");
   cacheTag(`menu:${handle}`);
   const result = await storefront.request(NavMenuQuery, { handle });
-  // Throw rather than cache an outage as "no links" for hours.
-  if (!result.ok) throw new Error(`menu ${handle} unavailable`);
-  return toNavLinks(result.data.menu?.items);
-};
-
-const getMenuLinks = async (handle: string): Promise<NavLink[]> => {
-  try {
-    return await fetchMenuLinks(handle);
-  } catch {
-    return [];
-  }
+  // An outage is returned as "no links" but kept only for a minute, so it's
+  // never remembered for hours. Throwing instead would fail prerendering.
+  cacheLife(result.ok ? "hours" : "minutes");
+  return result.ok ? toNavLinks(result.data.menu?.items) : [];
 };
 
 /** The header's collection links. */
