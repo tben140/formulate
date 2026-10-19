@@ -35,6 +35,10 @@ class BackInStock extends Component {
   /** @override */
   connectedCallback() {
     super.connectedCallback();
+    // Hidden in the markup so it can't submit without this script (see
+    // back-in-stock.liquid); shown once the script owns submission.
+    const form = this.querySelector("form");
+    if (form) form.hidden = false;
     this.addEventListener("submit", this.#onSubmit, { signal: this.signal });
     this.addEventListener("input", this.#clear, { signal: this.signal });
     document.addEventListener("product-form:variant-change", this.#onVariantChange, {
