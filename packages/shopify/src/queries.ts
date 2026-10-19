@@ -491,7 +491,7 @@ export const CartFields = graphql(`
  * is normal rather than exceptional.
  */
 // Every cart document carries the shopper's tracking choice as
-// `@inContext(visitorConsent:)`. See `VisitorConsentInput` in ./cart for why.
+// `@inContext(visitorConsent:)`. See `visitorConsentFor` in ./cart for why.
 export const CartQuery = graphql(`
   query Cart($id: ID!, $visitorConsent: VisitorConsent!)
   @inContext(visitorConsent: $visitorConsent) {

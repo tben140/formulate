@@ -559,4 +559,43 @@ describe("visitor consent on every cart request", () => {
     expect(consentOf(req, 0)).toEqual(refused);
     expect(consentOf(req, 1)).toEqual(allowed);
   });
+
+  it.each([
+    [
+      "create",
+      (c: ReturnType<typeof createCartClient>) => c.create({ lines: [] }),
+      "cartCreate",
+    ],
+    [
+      "updateLines",
+      (c: ReturnType<typeof createCartClient>) =>
+        c.updateLines("gid://shopify/Cart/x?key=y", []),
+      "cartLinesUpdate",
+    ],
+    [
+      "removeLines",
+      (c: ReturnType<typeof createCartClient>) =>
+        c.removeLines("gid://shopify/Cart/x?key=y", []),
+      "cartLinesRemove",
+    ],
+    [
+      "setBuyerIdentity",
+      (c: ReturnType<typeof createCartClient>) =>
+        c.setBuyerIdentity("gid://shopify/Cart/x?key=y", { countryCode: "GB" } as never),
+      "cartBuyerIdentityUpdate",
+    ],
+  ] as const)("states refusal on %s too", async (_name, call, field) => {
+    const req = ok({ [field]: { cart: null, userErrors: [] } });
+    await call(createCartClient({ request: req } as never));
+    expect(consentOf(req)).toEqual(refused);
+  });
+
+  it("treats a choice that can't be read as refusal, and still sends the request", async () => {
+    const req = ok({ cart: null });
+    const result = await createCartClient({ request: req } as never, {
+      trackingChoice: () => Promise.reject(new Error("cookies() unavailable")),
+    }).get("gid://shopify/Cart/x?key=y");
+    expect(result.ok).toBe(true);
+    expect(consentOf(req)).toEqual(refused);
+  });
 });

@@ -341,8 +341,15 @@ export const createCartClient = (
   storefront: StorefrontClient,
   { trackingChoice }: CartClientOptions = {},
 ): CartClient => {
-  const consent = async (): Promise<VisitorConsent> =>
-    visitorConsentFor((await trackingChoice?.()) ?? "unset");
+  // A choice that can't be read counts as refused: the safe direction, and
+  // the cart request (and dead-cart recovery) still goes ahead.
+  const consent = async (): Promise<VisitorConsent> => {
+    try {
+      return visitorConsentFor((await trackingChoice?.()) ?? "unset");
+    } catch {
+      return visitorConsentFor("unset");
+    }
+  };
 
   const requestCreate = async (options: Parameters<CartClient["create"]>[0]) =>
     storefront.request(CartCreateMutation, {
