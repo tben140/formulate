@@ -26,7 +26,7 @@ export const PairsWellWith = ({ productId }: { readonly productId: string }) => 
     <View className="mt-4 gap-3 border-t border-border pt-4">
       <Text
         accessibilityRole="header"
-        className="text-base font-semibold text-foreground font-mono"
+        className="text-base font-semibold text-foreground"
       >
         Pairs well with
       </Text>
