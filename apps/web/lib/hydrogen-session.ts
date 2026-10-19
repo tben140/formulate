@@ -14,12 +14,13 @@ import type { NextRequest } from "next/server";
 const COOKIE = "dh_hydrogen_session";
 
 export const createSessionManager = (request: NextRequest) => {
+  // Unsigned client input: anything but a plain object counts as empty.
   let data: Record<string, unknown> = {};
   try {
-    data = JSON.parse(request.cookies.get(COOKIE)?.value ?? "{}") as Record<
-      string,
-      unknown
-    >;
+    const parsed: unknown = JSON.parse(request.cookies.get(COOKIE)?.value ?? "{}");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      data = parsed as Record<string, unknown>;
+    }
   } catch {
     data = {};
   }

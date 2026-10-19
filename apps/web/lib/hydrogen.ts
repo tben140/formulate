@@ -36,10 +36,24 @@ export const createHydrogenClient = (request: Request | { headers: Headers }) =>
 
 const SHOP_ID_QUERY = gql(`query ShopId { shop { id } }`);
 
-/** The shop's GID, which ShopifyScripts needs. Once per render. */
+/**
+ * The shop's GID, which ShopifyScripts needs. Once per render.
+ *
+ * Never throws: it runs in the root layout, and Shopify's analytics are
+ * optional, so a failed request means "no Shopify scripts on this page", not
+ * "no page". Hydrogen throws on transport failures and returns GraphQL errors.
+ */
 export const getShopId = cache(async (): Promise<string | null> => {
   if (!STORE_DOMAIN) return null;
-  const { storefrontClient } = createHydrogenClient({ headers: new Headers() });
-  const result = await storefrontClient.graphql(SHOP_ID_QUERY);
-  return result.data?.shop.id ?? null;
+  try {
+    const { storefrontClient } = createHydrogenClient({ headers: new Headers() });
+    const result = await storefrontClient.graphql(SHOP_ID_QUERY);
+    if (result.errors?.length) {
+      console.error("[hydrogen] shop id query returned errors", result.errors);
+    }
+    return result.data?.shop.id ?? null;
+  } catch (error) {
+    console.error("[hydrogen] shop id query failed", error);
+    return null;
+  }
 });

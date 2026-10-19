@@ -59,19 +59,25 @@ export const HydrogenScripts = ({
     consent={{
       mode: "custom-banner",
       async setup() {
-        const privacy = window.Shopify!.customerPrivacy!;
+        const privacy = window.Shopify?.customerPrivacy;
+        if (!privacy) {
+          // Shopify's consent script didn't load (blocked, offline). Events
+          // then stay buffered: nothing is sent without a choice.
+          throw new Error("Shopify Customer Privacy API is unavailable");
+        }
         const sync = (choice: Choice) =>
           privacy.setTrackingConsent(toPreferences(choice));
 
-        // Later changes from the footer's "Cookie preferences".
+        const saved = readConsent();
+        await sync(saved === "unset" ? await nextChoice() : saved);
+
+        // Later changes from the footer's "Cookie preferences". Registered
+        // after the first choice, so that choice isn't synced twice.
         window.addEventListener(CONSENT_EVENT, (event) => {
           void Promise.resolve(sync((event as CustomEvent<Choice>).detail)).catch(
             console.error,
           );
         });
-
-        const saved = readConsent();
-        await sync(saved === "unset" ? await nextChoice() : saved);
       },
     }}
   />
