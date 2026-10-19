@@ -5,6 +5,7 @@ query CartInput {
       sellingPlanAllocation {
         sellingPlan {
           id
+          recurringDeliveries
         }
       }
       merchandise {
