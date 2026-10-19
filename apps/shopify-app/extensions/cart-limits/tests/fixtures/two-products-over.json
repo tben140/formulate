@@ -35,11 +35,11 @@
             "errors": [
               {
                 "message": "You can buy up to 6 of Magnesium Glycinate in one order.",
-                "target": "$.cart.lines[0].quantity"
+                "target": "$.cart"
               },
               {
                 "message": "You can buy up to 6 of Creatine Monohydrate in one order.",
-                "target": "$.cart.lines[1].quantity"
+                "target": "$.cart"
               }
             ]
           }
