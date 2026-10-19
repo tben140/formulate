@@ -46,7 +46,9 @@ const RoutinePage = async ({
             don&apos;t ask about your health.
           </p>
         </div>
-        {params.has("goals") && !answers && !editing ? (
+        {/* A submitted form always sends diet and budget (required radios);
+            unticked goal boxes send nothing, so goals can't signal a submit. */}
+        {(params.has("diet") || params.has("budget")) && !answers && !editing ? (
           <p role="alert" className="text-sm text-foreground">
             Choose at least one goal to see your routine.
           </p>

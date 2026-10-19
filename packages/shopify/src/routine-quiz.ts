@@ -120,7 +120,8 @@ export const parseAnswers = (
   if (goals.length === 0) return null;
   if (!DIETS.includes(diet as Diet)) return null;
   if (format !== "" && !FORMATS.includes(format as FormatPreference)) return null;
-  if (!budget || !(budget in BUDGETS)) return null;
+  // An own-property check: `in` would also accept "toString" and friends.
+  if (!budget || !Object.hasOwn(BUDGETS, budget)) return null;
 
   return {
     goals,

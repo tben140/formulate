@@ -185,6 +185,8 @@ describe("answers in the URL", () => {
     ["bad diet", "goals=focus&diet=keto&format=&budget=any"],
     ["bad format", "goals=focus&diet=none&format=gummies&budget=any"],
     ["bad budget", "goals=focus&diet=none&format=&budget=1000"],
+    ["an inherited property as budget", "goals=focus&diet=none&format=&budget=toString"],
+    ["__proto__ as budget", "goals=focus&diet=none&format=&budget=__proto__"],
   ])("is incomplete with %s", (_name, query) => {
     expect(parseAnswers(new URLSearchParams(query), known)).toBeNull();
   });
@@ -305,7 +307,9 @@ describe("reading Shopify's data", () => {
             label: { value: "Energy" },
             products: {
               references: {
-                nodes: [{ ...node, variants: { nodes: [soldOut, node.variants.nodes[0]!] } }],
+                nodes: [
+                  { ...node, variants: { nodes: [soldOut, node.variants.nodes[0]!] } },
+                ],
               },
             },
           },
