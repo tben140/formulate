@@ -1,6 +1,7 @@
 # ADR 0011 — Adopt framework-agnostic Hydrogen on web, in stages, behind a trial
 
-- **Status:** Proposed. The trial (SHO-170) can't start before 23 October 2026.
+- **Status:** Accepted (2026-10-19). Stage 0, the trial, ran on 17 October
+  (results on SHO-170); stage 1 is PR #127.
 - **Date:** 2026-10-16
 
 ## Context
@@ -47,12 +48,12 @@ with Shopify's systems** without exposing the token or hijacking globals
 **Adopt Hydrogen on web in stages, each one only if the trial shows it's
 better than what we have. The app keeps `packages/shopify`.**
 
-### Stage 0: the trial (SHO-170), from 23 October
+### Stage 0: the trial (SHO-170), done 17 October
 
 On a branch, with no merge commitment:
 
-1. Install `@shopify/hydrogen@2026.10.0` (14-day rule; 2026.10.1 from
-   27 October). **Do not run `npx @shopify/hydrogen setup`** until Ben has
+1. Install `@shopify/hydrogen@2026.10.0` (the release-age rule became 7
+   days on 17 October, which allowed it). **Do not run `npx @shopify/hydrogen setup`** until Ben has
    read the skills it writes into `.claude/skills`. Install with pnpm instead.
 2. `proxy.ts` with `handleShopifyRoutes` and a **public** Storefront client
    whose token is read on the server only. Keep the variable name without
