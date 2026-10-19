@@ -99,3 +99,10 @@ export {
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
 export type { ProductFilter } from "./generated/graphql";
+
+export {
+  limitMessage,
+  MAX_PER_PRODUCT,
+  maxQuantityForLine,
+  quantityOfProduct,
+} from "./cart-limit";

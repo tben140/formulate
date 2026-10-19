@@ -1,7 +1,13 @@
 "use client";
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
-import { formatMoney, type Cart, type CartSuggestion } from "@formulate/shopify";
+import {
+  formatMoney,
+  limitMessage,
+  maxQuantityForLine,
+  type Cart,
+  type CartSuggestion,
+} from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
@@ -156,6 +162,12 @@ export const CartDrawer = ({
                             name="quantity"
                             type="number"
                             min={0}
+                            // At most 6 of a product per order, counting its
+                            // other lines (MAX_PER_PRODUCT; the Function is the
+                            // real rule). The browser refuses a higher number
+                            // with its own message before anything is sent.
+                            max={maxQuantityForLine(lines, line.id)}
+                            title={limitMessage(variant.product.title)}
                             defaultValue={line.quantity}
                             className="w-16 rounded-md border border-border px-2 py-1 text-sm"
                           />
