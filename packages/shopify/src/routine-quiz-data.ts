@@ -26,7 +26,12 @@ type ProductNode = NonNullable<GoalNode["products"]>["references"] extends infer
  */
 export const toRoutineProduct = (node: ProductNode): RoutineProduct | null => {
   if (!node || !("id" in node)) return null;
-  const variant = node.variants.nodes[0];
+  // The first size that's in stock, so one sold-out size (Magnesium
+  // Glycinate's 200 mg, at times) doesn't hide the whole product. If none is,
+  // the first: the product then counts as unavailable.
+  const variant =
+    node.variants.nodes.find((candidate) => candidate.availableForSale) ??
+    node.variants.nodes[0];
   if (!variant) return null;
 
   const allocations = purchasableAllocations(
