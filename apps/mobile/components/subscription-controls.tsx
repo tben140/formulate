@@ -33,6 +33,7 @@ const Button = ({
   tone = "secondary",
   accessibilityHint,
   accessibilityLabel,
+  locked,
 }: {
   label: string;
   onPress: () => void;
@@ -41,17 +42,22 @@ const Button = ({
   tone?: "primary" | "secondary";
   accessibilityHint?: string;
   accessibilityLabel?: string;
+  /** Another change is saving: one at a time, so results can't cross. */
+  locked?: boolean;
 }) => (
   <Pressable
     onPress={onPress}
-    disabled={busy || disabled}
+    disabled={busy || disabled || locked}
     accessibilityRole="button"
-    accessibilityState={{ busy: Boolean(busy), disabled: Boolean(busy || disabled) }}
+    accessibilityState={{
+      busy: Boolean(busy),
+      disabled: Boolean(busy || disabled || locked),
+    }}
     accessibilityHint={accessibilityHint}
     accessibilityLabel={accessibilityLabel}
     className={`min-h-11 justify-center rounded-md px-4 py-2 ${
       tone === "primary" ? "bg-brand-600" : "border border-border"
-    } ${busy || disabled ? "opacity-60" : ""}`}
+    } ${busy || disabled || locked ? "opacity-60" : ""}`}
   >
     <Text
       className={`text-sm font-semibold ${tone === "primary" ? "text-surface" : "text-foreground"}`}
@@ -75,10 +81,12 @@ const Outcome = ({
   outcome,
   onUndo,
   undoing,
+  locked,
 }: {
   outcome: { action: string; result: SubscriptionChangeResult } | null;
   onUndo: (chargeId: number) => void;
   undoing: boolean;
+  locked: boolean;
 }) => {
   const message = outcome
     ? outcome.result.ok
@@ -109,7 +117,12 @@ const Outcome = ({
         {message}
       </Text>
       {skipped ? (
-        <Button label="Undo" busy={undoing} onPress={() => onUndo(skipped)} />
+        <Button
+          label="Undo"
+          busy={undoing}
+          locked={locked}
+          onPress={() => onUndo(skipped)}
+        />
       ) : null}
     </View>
   );
@@ -163,6 +176,7 @@ export const SubscriptionControls = ({
     <Outcome
       outcome={outcome}
       undoing={busy("unskip")}
+      locked={change.isPending}
       onUndo={(chargeId) => run({ action: "unskip", chargeId })}
     />
   );
@@ -173,6 +187,7 @@ export const SubscriptionControls = ({
         {outcomeView}
         <View className="mt-4 flex-row">
           <Button
+            locked={change.isPending}
             tone="primary"
             label="Restart this subscription"
             busy={busy("reactivate")}
@@ -204,6 +219,7 @@ export const SubscriptionControls = ({
       {subscription.is_skippable ? (
         <Section title="Skip the next delivery">
           <Button
+            locked={change.isPending}
             label="Skip next delivery"
             accessibilityHint="Nothing is charged or sent; the one after goes ahead as normal."
             busy={busy("skip")}
@@ -215,6 +231,7 @@ export const SubscriptionControls = ({
       <Section title="Pause">
         {Array.from({ length: MAX_PAUSE_MONTHS }, (_, i) => i + 1).map((months) => (
           <Button
+            locked={change.isPending}
             key={months}
             label={months === 1 ? "1 month" : `${months} months`}
             accessibilityHint={`Moves the next delivery back by ${months === 1 ? "a month" : `${months} months`}.`}
@@ -228,6 +245,7 @@ export const SubscriptionControls = ({
         <Section title="Move the next delivery">
           {shifts.map((shift) => (
             <Button
+              locked={change.isPending}
               key={shift.label}
               label={shift.label}
               busy={busy("reschedule", shift.date)}
@@ -240,6 +258,7 @@ export const SubscriptionControls = ({
       <Section title="Quantity per delivery">
         <View className="flex-row items-center gap-3">
           <Button
+            locked={change.isPending}
             label="−"
             accessibilityLabel="One fewer"
             disabled={quantity <= 1}
@@ -252,12 +271,14 @@ export const SubscriptionControls = ({
             {quantity}
           </Text>
           <Button
+            locked={change.isPending}
             label="+"
             accessibilityLabel="One more"
             disabled={quantity >= MAX_SUBSCRIPTION_QUANTITY}
             onPress={() => setQuantity((q) => Math.min(MAX_SUBSCRIPTION_QUANTITY, q + 1))}
           />
           <Button
+            locked={change.isPending}
             label="Update"
             disabled={quantity === subscription.quantity}
             busy={busy("quantity")}

@@ -177,10 +177,12 @@ export const useChangeSubscription = (subscriptionId: number) => {
   return useMutation({
     mutationFn: (change: SubscriptionChange) =>
       changeSubscription(subscriptionId, change),
-    onSuccess: async (result) => {
+    // Not awaited: TanStack waits for this before the screen's own onSuccess,
+    // and the message shouldn't wait for the refetch.
+    onSuccess: (result) => {
       if (!result.ok) return;
-      await queryClient.invalidateQueries({ queryKey: [...CUSTOMER_KEY, "portal"] });
-      await queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({ queryKey: [...CUSTOMER_KEY, "portal"] });
+      void queryClient.invalidateQueries({
         queryKey: [...CUSTOMER_KEY, "subscription"],
       });
     },

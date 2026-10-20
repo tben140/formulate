@@ -183,6 +183,8 @@ type AdminSubscription = {
   status?: unknown;
   is_skippable?: unknown;
   next_charge_scheduled_at?: unknown;
+  order_interval_frequency?: unknown;
+  charge_interval_frequency?: unknown;
   external_product_id?: { ecommerce?: unknown } | null;
 };
 type AdminCharge = {
@@ -356,6 +358,14 @@ export const actOnSubscription = async (
     }
     case "frequency": {
       if (!isActive) return fail(409, "not-allowed");
+      // Prepaid: charged every N deliveries. Writing one frequency to both
+      // intervals would turn it into charge-every-delivery, so it's refused.
+      if (
+        String(subscription.charge_interval_frequency) !==
+        String(subscription.order_interval_frequency)
+      ) {
+        return fail(409, "not-allowed");
+      }
       const productId = subscription.external_product_id?.ecommerce;
       if (typeof productId !== "string") return fail(409, "not-allowed");
       const offered = await offeredIntervals(env, productId);

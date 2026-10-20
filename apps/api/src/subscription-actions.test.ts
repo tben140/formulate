@@ -298,6 +298,17 @@ describe("the actions", () => {
     expect(writes(calls)).toEqual([]);
   });
 
+  it("won't change the frequency of a prepaid subscription", async () => {
+    const calls = stubUpstream({
+      sub: subscription({ order_interval_frequency: 30, charge_interval_frequency: 90 }),
+    });
+    expect(
+      (await act({ subscriptionId: SUB, action: "frequency", frequency: 60, unit: "day" }))
+        .status,
+    ).toBe(409);
+    expect(writes(calls)).toEqual([]);
+  });
+
   it("cancels with one of the portal's reasons and an optional comment", async () => {
     const calls = stubUpstream();
     const result = await act({

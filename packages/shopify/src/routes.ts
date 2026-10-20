@@ -37,6 +37,7 @@ export const SHARED_ROUTES = [
   // The subscription portal (SHO-72).
   "/account/subscriptions",
   "/account/subscriptions/[id]",
+  "/account/subscriptions/[id]/cancel",
   // Account deletion's confirmation (SHO-90).
   "/account/delete",
 ] as const;

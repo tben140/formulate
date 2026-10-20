@@ -23,6 +23,16 @@ const SECONDARY =
   "rounded-md border border-border px-4 py-2 text-sm font-semibold hover:bg-surface-muted";
 const FIELD = "rounded-md border border-border bg-surface px-3 py-2 text-sm";
 
+/**
+ * 1 to the cap, plus the current quantity if it's above it (set before the
+ * cap, or by the merchant), so the menu shows what the customer has. Saving
+ * it unchanged is refused by the Worker; any lower number works.
+ */
+const quantityOptions = (current: number): number[] => {
+  const options = Array.from({ length: MAX_SUBSCRIPTION_QUANTITY }, (_, i) => i + 1);
+  return current > MAX_SUBSCRIPTION_QUANTITY ? [...options, current] : options;
+};
+
 /** Every form carries the subscription; the Worker checks it's the customer's. */
 const Hidden = ({ id, action }: { id: number; action: string }) => (
   <>
@@ -136,13 +146,11 @@ export const SubscriptionControls = ({
               defaultValue={String(subscription.quantity)}
               className={FIELD}
             >
-              {Array.from({ length: MAX_SUBSCRIPTION_QUANTITY }, (_, i) => i + 1).map(
-                (n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ),
-              )}
+              {quantityOptions(subscription.quantity).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
             </select>
           </label>
           <SubmitButton className={SECONDARY} pendingLabel="Saving…">
