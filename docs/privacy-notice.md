@@ -47,6 +47,11 @@ genetic data (ADR 0009). We don't sell your personal data.
 - **Website:** the banner asks before anything is tracked. Until you accept,
   no tracking script loads and no tracking cookie is set. Change your mind any
   time from **Cookie preferences** in the footer.
+- **Visitors in the US:** while the banner is still waiting for your answer,
+  the page remembers what you view and add to your basket, in the page itself
+  only. If you then accept, that activity from the same page is sent too. If
+  you decline or leave, it's thrown away. Outside the US nothing from before
+  your choice is kept or sent. _(PR #135)_
 - **App:** the same question, in the app. Change it from **Privacy choices** in
   the app's footer.
 - **Checkout:** your choice goes with your basket to Shopify's checkout, so
