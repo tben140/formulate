@@ -39,6 +39,7 @@
     "react-native-web": "~0.21.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@formulate/eslint-config": "workspace:*",
     "@formulate/typescript-config": "workspace:*",
     "@playwright/test": "1.63.0",

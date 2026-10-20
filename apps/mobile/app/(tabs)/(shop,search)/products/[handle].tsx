@@ -47,7 +47,7 @@ const ProductScreen = () => {
   if (isPending) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Loading product" />
       </View>
     );
   }
@@ -171,6 +171,9 @@ const ProductBody = ({ product }: { product: Product }) => {
         {/* Full width inside the screen's 16 pt padding, and square. */}
         <ShopImage
           url={product.featuredImage?.url}
+          // Content here, not decoration: the merchant's alt text, or the
+          // product's name when there's none.
+          alt={product.featuredImage?.altText || product.title}
           width={imageSize}
           height={imageSize}
           style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}

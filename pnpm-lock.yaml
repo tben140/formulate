@@ -126,6 +126,9 @@ importers:
         specifier: ~0.21.2
         version: 0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
     devDependencies:
+      '@axe-core/playwright':
+        specifier: 4.13.0
+        version: 4.13.0(playwright-core@1.63.0)
       '@formulate/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
