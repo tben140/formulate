@@ -15,7 +15,14 @@ const mockMutation = {
   mutate: jest.fn<(change: Change, callbacks?: Callbacks) => void>(),
   isPending: false,
 };
+// Records router.dismissTo: back to the subscription screen underneath.
 const mockReplace = jest.fn();
+const mockQuery: {
+  isPending: boolean;
+  isError: boolean;
+  error?: Error;
+  data?: unknown;
+} = { isPending: false, isError: false };
 const mockSubscription = {
   id: 891037192,
   status: "active",
@@ -26,13 +33,10 @@ const mockSubscription = {
 
 jest.mock("../../lib/use-customer", () => ({
   useChangeSubscription: () => mockMutation,
-  useSubscription: () => ({
-    isPending: false,
-    data: { subscription: mockSubscription, upcoming: [] },
-  }),
+  useSubscription: () => mockQuery,
 }));
 jest.mock("expo-router", () => ({
-  router: { replace: (path: string) => mockReplace(path), back: jest.fn() },
+  router: { dismissTo: (path: string) => mockReplace(path), back: jest.fn() },
   useLocalSearchParams: () => ({ id: "891037192" }),
 }));
 
@@ -45,6 +49,9 @@ const answer = async (result: unknown) => {
 beforeEach(() => {
   mockMutation.mutate.mockReset();
   mockReplace.mockReset();
+  mockQuery.isError = false;
+  mockQuery.error = undefined;
+  mockQuery.data = { subscription: mockSubscription, upcoming: [] };
 });
 
 test("cancelling needs no reason: one press sends 'other'", async () => {
@@ -94,4 +101,15 @@ test("a refusal stays on the screen as an alert", async () => {
   expect(screen.getByRole("alert")).toHaveTextContent(
     "We couldn't make that change just now. Please try again in a moment.",
   );
+});
+
+test("a failed load says so, as an alert, rather than 'can't be cancelled'", async () => {
+  mockQuery.isError = true;
+  mockQuery.error = new Error("We couldn't load your subscriptions just now.");
+  mockQuery.data = undefined;
+  await render(<CancelScreen />);
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "We couldn't load your subscriptions just now.",
+  );
+  expect(screen.queryByText(/can't be cancelled/)).toBeNull();
 });

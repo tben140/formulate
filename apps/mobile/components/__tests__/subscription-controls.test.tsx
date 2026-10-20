@@ -26,6 +26,11 @@ jest.mock("expo-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+const DAY = 24 * 60 * 60 * 1000;
+const isoIn = (days: number) =>
+  new Date(Date.now() + days * DAY).toISOString().slice(0, 10);
+const NEXT = isoIn(60);
+
 const subscription = (overrides: Partial<RechargeSubscription> = {}) =>
   ({
     id: 891037192,
@@ -36,7 +41,8 @@ const subscription = (overrides: Partial<RechargeSubscription> = {}) =>
     quantity: 1,
     order_interval_frequency: "30",
     order_interval_unit: "day",
-    next_charge_scheduled_at: "2027-03-01",
+    // Relative to today, so the "later" dates never fall into the past.
+    next_charge_scheduled_at: NEXT,
     presentment_currency: "GBP",
     is_skippable: true,
     is_swappable: true,
@@ -84,12 +90,12 @@ test("pause and move send whole months and real dates", async () => {
   await fireEvent.press(screen.getByRole("button", { name: "1 week later" }));
   expect(mockMutation.mutate.mock.calls.at(-1)?.[0]).toEqual({
     action: "reschedule",
-    date: "2027-03-08",
+    date: isoIn(67),
   });
 });
 
 test("never offers a date before tomorrow", async () => {
-  const soon = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const soon = isoIn(3);
   await render(
     <SubscriptionControls
       subscription={subscription({ next_charge_scheduled_at: soon })}
