@@ -10,6 +10,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { ShopifyProductViewed } from "@/components/shopify-scripts";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
@@ -102,6 +103,18 @@ const ProductPage = async ({ params }: PageProps) => {
         <TrackViewedProduct
           payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
         />
+        {product.variants.nodes[0] ? (
+          <ShopifyProductViewed
+            product={{
+              id: product.id,
+              title: product.title,
+              vendor: product.vendor,
+              price: product.variants.nodes[0].price,
+              variantId: product.variants.nodes[0].id,
+              variantTitle: product.variants.nodes[0].title,
+            }}
+          />
+        ) : null}
 
         <div className="overflow-hidden rounded-lg border border-border bg-surface-muted">
           {product.featuredImage ? (
