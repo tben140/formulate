@@ -82,12 +82,13 @@ work for anyone who never runs this repository's tooling. Regenerate it with
 
 The repository is public. Nothing secret is committed.
 
-| File                     | Used by                                                  | Committed |
-| ------------------------ | -------------------------------------------------------- | --------- |
-| `apps/web/.env.local`    | Next.js, and the `packages/shopify` smoke test           | No        |
-| `apps/mobile/.env.local` | Expo (`EXPO_PUBLIC_` prefix)                             | No        |
-| `apps/theme/.env.local`  | `shopify theme dev/push/pull`, via `scripts/with-env.sh` | No        |
-| `.env.example`           | Documentation                                            | Yes       |
+| File                                                                                 | Used by                                                  | Committed |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------- | --------- |
+| `apps/web/.env.local`                                                                | Next.js, and the `packages/shopify` smoke test           | No        |
+| `apps/mobile/.env.local`                                                             | Expo (`EXPO_PUBLIC_` prefix)                             | No        |
+| `apps/theme/.env.local`                                                              | `shopify theme dev/push/pull`, via `scripts/with-env.sh` | No        |
+| `apps/api/.dev.vars`                                                                 | `wrangler dev` for the worker (Klaviyo **private** key)  | No        |
+| `apps/*/.env.example`, `apps/theme/.env.local.example`, `apps/api/.dev.vars.example` | Documentation, one per app                               | Yes       |
 
 The Storefront access token is _public by design_ — it ships inside the Expo
 bundle, which is exactly what that credential is for. The **Admin** API token is

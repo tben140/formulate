@@ -19,7 +19,7 @@ export const StorefrontErrorState = ({ error }: { error: StorefrontError }) => (
 
     {error.kind === "config" ? (
       <p className="text-foreground-muted">
-        Copy <code className="font-mono">.env.example</code> to{" "}
+        Copy <code className="font-mono">apps/web/.env.example</code> to{" "}
         <code className="font-mono">apps/web/.env.local</code> and fill in the Storefront
         token.
       </p>
