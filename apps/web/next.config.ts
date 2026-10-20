@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // SHO-150 spike: Partial Prerendering via Cache Components.
+  cacheComponents: true,
+
   /**
    * The workspace packages ship raw TypeScript rather than a build output, so
    * Next compiles them itself. This is what removes a `build` step (and a

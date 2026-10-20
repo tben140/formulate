@@ -1,16 +1,10 @@
 import { SitemapCollectionsQuery, SitemapProductsQuery } from "@formulate/shopify";
 import type { MetadataRoute } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 
+import { TAGS } from "@/lib/cache-tags";
 import { absoluteUrl } from "@/lib/site";
 import { storefront } from "@/lib/storefront";
-
-/**
- * Rebuilt at most hourly. A sitemap Next builds once at deploy time would miss
- * every product added afterwards; one rebuilt per request would query Shopify
- * for every crawler hit. An hour is well inside how often search engines read
- * it.
- */
-export const revalidate = 3600;
 
 /**
  * Walks a Storefront connection to the end. 250 is the API's page maximum.
@@ -41,6 +35,16 @@ const collectAll = async <T>(
  * own, at the store domain.
  */
 const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
+  /*
+   * Cached for an hour, and cleared sooner by a Shopify Event when a product
+   * or collection is created or deleted (app/api/shopify-events). A sitemap
+   * built once at deploy would miss new products; one built per request would
+   * query Shopify for every crawler hit.
+   */
+  "use cache";
+  cacheLife("hours");
+  cacheTag(TAGS.sitemap);
+
   const [products, collections] = await Promise.all([
     collectAll(async (after) => {
       const result = await storefront.request(SitemapProductsQuery, { after });

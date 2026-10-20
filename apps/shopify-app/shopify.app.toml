@@ -16,9 +16,82 @@ api_version = "2026-10"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = ""
+# read_products and read_inventory: the Events subscriptions below (SHO-171).
+scopes = "read_products,read_inventory"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [ ]
+
+# Shopify Events (SHO-171): when something a web page shows changes, Shopify
+# calls the web store, which clears that page's cache (apps/web/app/api/
+# shopify-events). Production only: one app has one delivery address, and
+# previews keep the hourly backstop.
+#
+# The uri is production (web-six-murex-18.vercel.app, built from main), so
+# deliveries only work once the batch with the receiver is merged. Check the
+# product trigger names at the first deploy. price and compareAtPrice
+# are from Shopify's reference; title, handle and status follow the same
+# pattern. A wrong one fails `shopify app deploy`, so nothing ships broken.
+[events]
+api_version = "2026-10"
+
+  [[events.subscription]]
+  handle = "product-changed"
+  topic = "Product"
+  actions = ["update"]
+  triggers = [
+    "product.title",
+    "product.handle",
+    "product.status",
+    "product.variants.price",
+    "product.variants.compareAtPrice",
+  ]
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
+  query = """
+  query product_changed($productId: ID!) {
+    product(id: $productId) { handle collections(first: 20) { nodes { handle } } }
+  }
+  """
+
+  # Stock: changes to an item's levels arrive on the item itself, so no
+  # narrower trigger is needed. Sold-out states read this.
+  [[events.subscription]]
+  handle = "stock-changed"
+  topic = "InventoryItem"
+  actions = ["update"]
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
+  query = """
+  query stock_changed($inventoryItemId: ID!) {
+    inventoryItem(id: $inventoryItemId) {
+      variant { product { handle collections(first: 20) { nodes { handle } } } }
+    }
+  }
+  """
+
+  [[events.subscription]]
+  handle = "collection-changed"
+  topic = "Collection"
+  actions = ["update"]
+  triggers = ["collection.title", "collection.handle", "collection.descriptionHtml"]
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
+  query = """
+  query collection_changed($collectionId: ID!) {
+    collection(id: $collectionId) { handle }
+  }
+  """
+
+  # Created or deleted products and collections refresh the home page's
+  # cards and the sitemap. A delete has no data to query.
+  [[events.subscription]]
+  handle = "catalogue-added-or-removed"
+  topic = "Product"
+  actions = ["create", "delete"]
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
+
+  [[events.subscription]]
+  handle = "collections-added-or-removed"
+  topic = "Collection"
+  actions = ["create", "delete"]
+  uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
