@@ -116,6 +116,10 @@ const holdsEventsBeforeChoice = (): Promise<boolean> =>
  *   visitors), so that accepting on this page sends them, as Klaviyo's embed on
  *   the theme does. Otherwise dropped, even if the shopper accepts later.
  */
+// Bumped by `discardQueuedEvents`, so a call still waiting on the region
+// answer when the shopper declines is dropped, even if they accept later.
+let generation = 0;
+
 const push = (call: unknown[]): void => {
   if (!KLAVIYO_PUBLIC_KEY || typeof window === "undefined") return;
   const consent = readConsent();
@@ -124,9 +128,12 @@ const push = (call: unknown[]): void => {
     queue().push(call);
     return;
   }
+  const startedIn = generation;
   void holdsEventsBeforeChoice().then((holds) => {
     // The shopper may have declined while the answer was on its way.
-    if (holds && readConsent() !== "denied") queue().push(call);
+    if (holds && startedIn === generation && readConsent() !== "denied") {
+      queue().push(call);
+    }
   });
 };
 
@@ -164,6 +171,7 @@ export const identify = (email: string): void => {
  * immediately — and withdrawing consent reloads the page instead.
  */
 export const discardQueuedEvents = (): void => {
+  generation += 1;
   if (Array.isArray(window._learnq)) window._learnq.length = 0;
 };
 
