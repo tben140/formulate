@@ -25,9 +25,10 @@ reviews:
     enabled: true
     # Drafts are reviewed too. Nearly every PR here opens as a draft and stays
     # one until just before it merges, so skipping drafts meant almost nothing
-    # was reviewed (Ben, 2026-10-19). Reviews run when a PR opens and on each
-    # push, so older drafts get theirs on their next push, or on demand with
-    # `@coderabbitai review`.
+    # was reviewed (Ben, 2026-10-19). CodeRabbit reads this file from the PR's
+    # own branch, so a branch made before this setting gets automatic reviews
+    # only once it has this file (merge the base in); until then, ask with
+    # `@coderabbitai full review`.
     drafts: true
     # Most PRs here don't target main: they target the integration branch or
     # stack on each other's branches. Without these, CodeRabbit would skip them.
