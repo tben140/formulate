@@ -91,25 +91,24 @@ export const addToCart = async (
     ...(sellingPlanId ? { sellingPlanId } : {}),
   };
 
-  const existingId = await readCartId();
-
   /*
    * A cart created for a shopper we already know carries their email from the
    * start. That is what lets Shopify record an *attributable* abandoned
    * checkout if they leave without buying — see `create` in packages/shopify.
+   *
+   * ⚠️ Only a cart Shopify says no longer exists is replaced, and it is
+   * replaced within this same add. Any other failure keeps the cookie: the
+   * cart is still fine, and clearing it would silently lose everything in it.
+   * See `addLinesOrCreate` and `isCartGone` in packages/shopify (SHO-122).
    */
-  const result = existingId
-    ? await cartClient.addLines(existingId, [line])
-    : await cartClient.create({
-        lines: [line],
-        email: (await readBuyerEmail()) ?? undefined,
-      });
+  const { result, storedCartGone } = await cartClient.addLinesOrCreate({
+    cartId: await readCartId(),
+    lines: [line],
+    email: readBuyerEmail,
+  });
 
   if (!result.ok) {
-    // A cart the shopper still has a cookie for can expire or be completed, in
-    // which case addLines fails on an id that no longer resolves. Clearing lets
-    // the next attempt start a fresh cart rather than failing forever.
-    if (existingId) await clearCartId();
+    if (storedCartGone) await clearCartId();
     return { status: "error", message: describeError(result.error) };
   }
 

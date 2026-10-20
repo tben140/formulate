@@ -1,8 +1,8 @@
 export { createStorefrontClient } from "./client";
 export type { StorefrontClient, StorefrontClientConfig } from "./client";
 
-export { createCartClient, isCartId } from "./cart";
-export type { Cart, CartClient } from "./cart";
+export { createCartClient, isCartGone, isCartId } from "./cart";
+export type { AddLinesOutcome, Cart, CartClient } from "./cart";
 
 export { describeError } from "./errors";
 export type {
