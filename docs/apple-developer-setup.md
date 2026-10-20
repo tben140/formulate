@@ -27,9 +27,8 @@ npx eas-cli init            # creates the EAS project; prints its id
 
 - Put the printed project id in `EAS_PROJECT_ID`: an EAS environment
   variable for all profiles, and `apps/mobile/.env.local` locally. Not secret.
-- Bundle identifier: `com.tben140.formulate` (app.config.ts). **It becomes
-  permanent at the first upload.** Shoppers never see it; change it before
-  step 3 if you'd rather it said something else.
+- Bundle identifier: `com.tben140.doublehelix` (app.config.ts, chosen
+  2026-10-20). **It becomes permanent at the first upload.**
 
 ## 3. First build and TestFlight (Ben approves, EAS does the rest)
 

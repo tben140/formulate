@@ -38,7 +38,9 @@ const androidAppLinks = webHost
   : [];
 
 const config: ExpoConfig = {
-  name: "Formulate",
+  // The name on the home screen and in TestFlight (#96 makes the same change
+  // on the batch; the brand is Double Helix).
+  name: "Double Helix",
   slug: "formulate",
   scheme: "formulate",
   version: "0.1.0",
@@ -48,7 +50,7 @@ const config: ExpoConfig = {
     supportsTablet: true,
     // ⚠️ Permanent once the first build is uploaded to App Store Connect.
     // Shoppers never see it; the display name is `name` above.
-    bundleIdentifier: "com.tben140.formulate",
+    bundleIdentifier: "com.tben140.doublehelix",
     // iOS universal links, the twin of `androidAppLinks`: product, collection
     // and search URLs on the web domain open in the app. iOS checks the
     // domain's /.well-known/apple-app-site-association (served by apps/web,
@@ -62,7 +64,7 @@ const config: ExpoConfig = {
     },
   },
   android: {
-    package: "com.tben140.formulate",
+    package: "com.tben140.doublehelix",
     intentFilters: androidAppLinks,
   },
   web: {
