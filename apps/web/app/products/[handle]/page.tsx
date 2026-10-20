@@ -1,22 +1,67 @@
 import { viewedProduct } from "@formulate/analytics";
-import { DEFAULT_COLLECTION_HANDLE, ProductByHandleQuery } from "@formulate/shopify";
+import { DEFAULT_COLLECTION_HANDLE } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
+import { JsonLd } from "@/components/json-ld";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
-import { storefront } from "@/lib/storefront";
+import { getProduct } from "@/lib/catalogue";
+import { baseOpenGraph } from "@/lib/site";
+import { breadcrumbJsonLd, metaDescription, productJsonLd } from "@/lib/structured-data";
 
 interface PageProps {
   readonly params: Promise<{ handle: string }>;
 }
 
+/**
+ * The merchant's SEO overrides win; the product's own title and description
+ * are the fallback. A failed query or missing product returns nothing here and
+ * lets the page render its error or 404, which carry their own titles.
+ */
+export const generateMetadata = async ({ params }: PageProps): Promise<Metadata> => {
+  const { handle } = await params;
+  const result = await getProduct(handle);
+  const product = result.ok ? result.data.product : null;
+  if (!product) return {};
+
+  const description = metaDescription(product.seo.description ?? product.description);
+  const image = product.featuredImage;
+
+  return {
+    title: product.seo.title ?? product.title,
+    ...(description ? { description } : {}),
+    // Relative, resolved against metadataBase. Query strings are dropped on
+    // purpose: tracking parameters must not create duplicate URLs.
+    alternates: { canonical: `/products/${product.handle}` },
+    openGraph: {
+      ...baseOpenGraph,
+      url: `/products/${product.handle}`,
+      title: product.title,
+      ...(description ? { description } : {}),
+      ...(image
+        ? {
+            images: [
+              {
+                url: image.url,
+                ...(image.width ? { width: image.width } : {}),
+                ...(image.height ? { height: image.height } : {}),
+                alt: image.altText ?? product.title,
+              },
+            ],
+          }
+        : {}),
+    },
+  };
+};
+
 const ProductPage = async ({ params }: PageProps) => {
   const { handle } = await params;
 
-  const result = await storefront.request(ProductByHandleQuery, { handle });
+  const result = await getProduct(handle);
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
@@ -25,6 +70,14 @@ const ProductPage = async ({ params }: PageProps) => {
 
   return (
     <article className="grid gap-8 md:grid-cols-2">
+      <JsonLd data={productJsonLd(product)} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: product.title, path: `/products/${product.handle}` },
+        ])}
+      />
+
       {/*
         Built here, on the server, so the store domain never reaches the client
         bundle — only the emitting needs a browser.

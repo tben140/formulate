@@ -95,6 +95,17 @@ the failure is what stops it being removed.
 
 Keep that standard. A comment restating the code is worse than none.
 
+## Parity overrides
+
+Features ship on all three surfaces by default: that is the point of the
+project, and [ADR 0005](docs/adr/0005-parity-means-design-not-data.md) says what
+parity means. A feature that deliberately skips a surface is an **override**, and
+every override is listed here with its reason. An unlisted gap is a bug.
+
+| Feature                                          | Surfaces   | Why not everywhere                                                                                                                                                                                                                                       |
+| ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SEO: metadata, structured data, sitemap (SHO-64) | Web, theme | A native app has no crawlable pages. The theme already gets it from Shopify (`structured_data`, `canonical_url`, the platform sitemap), so only `apps/web` needs code. Its routes are in `app/robots.ts`, `app/sitemap.ts` and `lib/structured-data.ts`. |
+
 ## The shared package rule
 
 **`packages/shopify` must stay platform-neutral.** Both React surfaces import it.
