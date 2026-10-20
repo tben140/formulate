@@ -56,6 +56,15 @@ const CancelScreen = () => {
       </View>
     );
   }
+  if (query.isError) {
+    // The load failed, which isn't the same as "can't be cancelled": say so,
+    // and announce it, as the subscription screen does.
+    return (
+      <Text accessibilityRole="alert" className="p-4 text-foreground">
+        {query.error.message}
+      </Text>
+    );
+  }
   const subscription = query.data?.subscription;
   if (!subscription || subscription.status !== "active") {
     return (
@@ -75,7 +84,9 @@ const CancelScreen = () => {
         }
         // Back to the subscription, which says what happened (and offers Undo).
         const charge = result.skippedChargeId ? `&charge=${result.skippedChargeId}` : "";
-        router.replace(`/account/subscriptions/${id}?done=${next.action}${charge}`);
+        // dismissTo, not replace: back to the subscription screen already
+        // underneath, so Back doesn't show it twice.
+        router.dismissTo(`/account/subscriptions/${id}?done=${next.action}${charge}`);
       },
     });
   };

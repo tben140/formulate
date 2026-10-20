@@ -4,7 +4,12 @@ import {
   rechargeList,
   type RechargeAdminEnv,
 } from "./recharge-admin";
-import { bearerToken, verifyCustomer, type CustomerEnv } from "./shopify-customer";
+import {
+  bearerToken,
+  verifyCustomer,
+  withinCustomerLimit,
+  type CustomerEnv,
+} from "./shopify-customer";
 
 /**
  * Changes to a subscription from the portal (SHO-73, SHO-74), made with the
@@ -79,7 +84,8 @@ export type ActionResult =
           | "invalid"
           | "not-found"
           | "not-allowed"
-          | "unavailable";
+          | "unavailable"
+          | "rate-limited";
       };
     };
 
@@ -275,6 +281,7 @@ export const actOnSubscription = async (
 
   const customer = await verifyCustomer(env, token);
   if (!customer) return fail(401, "unauthorized");
+  if (!(await withinCustomerLimit(env, customer.id))) return fail(429, "rate-limited");
   const rechargeId = await rechargeCustomerId(env, customer.id);
   if (rechargeId === null) return fail(502, "unavailable");
   if (rechargeId === "none") return fail(404, "not-found");
