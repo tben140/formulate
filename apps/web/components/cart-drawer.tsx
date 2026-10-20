@@ -91,9 +91,7 @@ export const CartDrawer = ({
         </header>
 
         {/* Above the lines, so it is read before the list rather than after it. */}
-        <FreeShippingBar
-          subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
-        />
+        <FreeShippingBar lines={lines} />
 
         {lines.length === 0 ? (
           <p className="flex-1 px-4 py-8 text-sm text-foreground-muted">

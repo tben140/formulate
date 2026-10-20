@@ -1,7 +1,7 @@
 import {
-  freeShippingMessage,
-  freeShippingProgress,
-  type MoneyLike,
+  cartFreeShippingMessage,
+  freeShippingForCart,
+  type FreeShippingLine,
 } from "@formulate/shopify";
 
 /**
@@ -15,20 +15,20 @@ import {
  * The bar is decoration and hidden from assistive tech. The sentence carries
  * the information, so nothing depends on seeing the colour or the width.
  */
-export const FreeShippingBar = ({ subtotal }: { subtotal: MoneyLike | null }) => {
-  const progress = subtotal ? freeShippingProgress(subtotal) : null;
+export const FreeShippingBar = ({ lines }: { lines: readonly FreeShippingLine[] }) => {
+  const progress = freeShippingForCart(lines);
 
   return (
     <div className={progress ? "border-b border-border px-4 py-3" : undefined}>
       <p role="status" className="text-sm">
-        {progress ? freeShippingMessage(progress) : null}
+        {progress ? cartFreeShippingMessage(progress) : null}
       </p>
 
       {progress ? (
         <div aria-hidden className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-100">
           <div
             className={`h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none ${
-              progress.kind === "unlocked" ? "bg-success" : "bg-brand-600"
+              progress.kind !== "away" ? "bg-success" : "bg-brand-600"
             }`}
             style={{ width: `${Math.floor(progress.fraction * 100)}%` }}
           />

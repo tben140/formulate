@@ -1,7 +1,7 @@
 import {
-  freeShippingMessage,
-  freeShippingProgress,
-  type MoneyLike,
+  cartFreeShippingMessage,
+  freeShippingForCart,
+  type FreeShippingLine,
 } from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 import { AccessibilityInfo, Platform, Text, View } from "react-native";
@@ -20,12 +20,12 @@ import { AccessibilityInfo, Platform, Text, View } from "react-native";
  * the sheet's own arrival.
  */
 export const FreeShippingBar = ({
-  subtotal,
+  lines,
 }: {
-  readonly subtotal: MoneyLike | null;
+  readonly lines: readonly FreeShippingLine[];
 }) => {
-  const progress = subtotal ? freeShippingProgress(subtotal) : null;
-  const message = progress ? freeShippingMessage(progress) : "";
+  const progress = freeShippingForCart(lines);
+  const message = progress ? cartFreeShippingMessage(progress) : "";
 
   const previous = useRef<string | null>(null);
 
@@ -52,7 +52,7 @@ export const FreeShippingBar = ({
       >
         <View
           className={`h-full rounded-full ${
-            progress.kind === "unlocked" ? "bg-success" : "bg-brand-600"
+            progress.kind !== "away" ? "bg-success" : "bg-brand-600"
           }`}
           style={{ width: `${Math.floor(progress.fraction * 100)}%` }}
         />
