@@ -55,6 +55,52 @@ describe("descriptionBlocks", () => {
     ]);
   });
 
+  it("finds a list wrapped in a <div> (Shopify's editor does this)", () => {
+    expect(
+      descriptionBlocks("<div><p>Contains:</p><ul><li>Oats</li><li>Milk</li></ul></div>"),
+    ).toEqual([
+      { kind: "paragraph", text: "Contains:" },
+      { kind: "list", ordered: false, items: ["Oats", "Milk"] },
+    ]);
+  });
+
+  it("isn't fooled by > inside an attribute", () => {
+    expect(descriptionBlocks('<p><span title="a > b">Take daily</span></p>')).toEqual([
+      { kind: "paragraph", text: "Take daily" },
+    ]);
+  });
+
+  it("decodes every named character, not just a short list", () => {
+    expect(descriptionBlocks("<p>Caf&eacute; &copy; 10&micro;g &frac12;</p>")).toEqual([
+      { kind: "paragraph", text: "Café © 10µg ½" },
+    ]);
+  });
+
+  it("flattens a nested list into its outer list", () => {
+    expect(
+      descriptionBlocks("<ul><li>Morning<ul><li>with food</li></ul></li><li>Evening</li></ul>"),
+    ).toEqual([
+      { kind: "list", ordered: false, items: ["Morning", "with food", "Evening"] },
+    ]);
+  });
+
+  it("drops scripts and styles, and keeps headings with inline tags", () => {
+    expect(
+      descriptionBlocks(
+        "<style>p{}</style><h2>How to <em>use</em></h2><script>alert(1)</script><p>Daily.</p>",
+      ),
+    ).toEqual([
+      { kind: "heading", text: "How to use" },
+      { kind: "paragraph", text: "Daily." },
+    ]);
+  });
+
+  it("ends a list left open at the end", () => {
+    expect(descriptionBlocks("<ol><li>Mix<li>Drink")).toEqual([
+      { kind: "list", ordered: true, items: ["Mix", "Drink"] },
+    ]);
+  });
+
   it("gives nothing for no description", () => {
     expect(descriptionBlocks(null)).toEqual([]);
     expect(descriptionBlocks("")).toEqual([]);
