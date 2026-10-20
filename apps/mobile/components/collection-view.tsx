@@ -72,6 +72,13 @@ export const CollectionView = ({
       */
       automaticallyAdjustKeyboardInsets
       keyboardDismissMode="on-drag"
+      /*
+        A tap on Sign up while the keyboard is up must press it. The default
+        ("never") spends the first tap dismissing the keyboard, so the button
+        needed two taps (SHO-120, confirmed on a phone 2026-10-04). "handled"
+        lets taps on controls through; a tap on empty space still dismisses.
+      */
+      keyboardShouldPersistTaps="handled"
       ListHeaderComponent={
         <View className="mb-2">
           {titleInHeader ? <Stack.Screen options={{ title: collection.title }} /> : null}
