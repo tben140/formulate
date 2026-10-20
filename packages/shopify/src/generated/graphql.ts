@@ -1444,12 +1444,15 @@ export type VariantOptionFilter = {
 
 export type CollectionProductsQueryVariables = Exact<{
   handle: string;
-  first: number;
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  last?: number | null | undefined;
+  before?: string | null | undefined;
   filters?: Array<ProductFilter> | ProductFilter | null | undefined;
 }>;
 
 
-export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } } | null };
+export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { pageInfo: { hasNextPage: boolean, hasPreviousPage: boolean, startCursor: string | null, endCursor: string | null }, filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } } | null };
 
 export type ProductByHandleQueryVariables = Exact<{
   handle: string;
@@ -1464,12 +1467,15 @@ export type ProductCardFieldsFragment = { id: string, handle: string, title: str
 
 export type SearchProductsQueryVariables = Exact<{
   query: string;
-  first: number;
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  last?: number | null | undefined;
+  before?: string | null | undefined;
   filters?: Array<ProductFilter> | ProductFilter | null | undefined;
 }>;
 
 
-export type SearchProductsQuery = { search: { totalCount: number, productFilters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<
+export type SearchProductsQuery = { search: { totalCount: number, pageInfo: { hasNextPage: boolean, hasPreviousPage: boolean, startCursor: string | null, endCursor: string | null }, productFilters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<
       | { __typename: 'Article' }
       | { __typename: 'Page' }
       | { __typename: 'Product', id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }
@@ -1721,7 +1727,7 @@ export const CartFieldsFragmentDoc = new TypedDocumentString(`
 }
     `, {"fragmentName":"CartFields"}) as unknown as TypedDocumentString<CartFieldsFragment, unknown>;
 export const CollectionProductsDocument = new TypedDocumentString(`
-    query CollectionProducts($handle: String!, $first: Int!, $filters: [ProductFilter!]) {
+    query CollectionProducts($handle: String!, $first: Int, $after: String, $last: Int, $before: String, $filters: [ProductFilter!]) {
   collection(handle: $handle) {
     id
     title
@@ -1730,7 +1736,20 @@ export const CollectionProductsDocument = new TypedDocumentString(`
       title
       description
     }
-    products(first: $first, sortKey: COLLECTION_DEFAULT, filters: $filters) {
+    products(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      sortKey: COLLECTION_DEFAULT
+      filters: $filters
+    ) {
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
       filters {
         ...FilterFields
       }
@@ -1879,9 +1898,23 @@ export const ProductByHandleDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<ProductByHandleQuery, ProductByHandleQueryVariables>;
 export const SearchProductsDocument = new TypedDocumentString(`
-    query SearchProducts($query: String!, $first: Int!, $filters: [ProductFilter!]) {
-  search(query: $query, first: $first, types: [PRODUCT], productFilters: $filters) {
+    query SearchProducts($query: String!, $first: Int, $after: String, $last: Int, $before: String, $filters: [ProductFilter!]) {
+  search(
+    query: $query
+    first: $first
+    after: $after
+    last: $last
+    before: $before
+    types: [PRODUCT]
+    productFilters: $filters
+  ) {
     totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
     productFilters {
       ...FilterFields
     }

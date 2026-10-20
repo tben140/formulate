@@ -126,6 +126,9 @@ importers:
       '@formulate/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      '@github-ui/storybook-addon-performance-panel':
+        specifier: 1.3.0
+        version: 1.3.0(@storybook/icons@2.1.0(react@19.2.3))(@storybook/react@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))(supports-color@10.2.2)(typescript@6.0.3))(react@19.2.3)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))
       '@storybook/addon-a11y':
         specifier: 10.6.0
         version: 10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))
@@ -135,6 +138,9 @@ importers:
       '@storybook/addon-vitest':
         specifier: 10.6.0
         version: 10.6.0(@vitest/browser-playwright@4.1.11)(@vitest/browser@4.1.11(vite@8.3.1(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))(vitest@4.1.11))(@vitest/runner@3.2.7)(react@19.2.3)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))(vitest@4.1.11)
+      '@storybook/icons':
+        specifier: 2.1.0
+        version: 2.1.0(react@19.2.3)
       '@storybook/react-native-web-vite':
         specifier: 10.6.0
         version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.17)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)(rollup@4.62.4)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.1(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
@@ -226,6 +232,9 @@ importers:
       '@formulate/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      '@github-ui/storybook-addon-performance-panel':
+        specifier: 1.3.0
+        version: 1.3.0(@storybook/icons@2.1.0(react@19.2.3))(@storybook/react@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))(supports-color@10.2.2)(typescript@6.0.3))(react@19.2.3)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))
       '@playwright/test':
         specifier: 1.63.0
         version: 1.63.0
@@ -238,6 +247,9 @@ importers:
       '@storybook/addon-vitest':
         specifier: 10.6.0
         version: 10.6.0(@vitest/browser-playwright@4.1.11)(@vitest/browser@4.1.11(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))(vitest@4.1.11))(@vitest/runner@3.2.7)(react@19.2.3)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))(vitest@4.1.11)
+      '@storybook/icons':
+        specifier: 2.1.0
+        version: 2.1.0(react@19.2.3)
       '@storybook/nextjs-vite':
         specifier: 10.6.0
         version: 10.6.0(@babel/core@7.29.7(supports-color@10.2.2))(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(next@16.2.11(@babel/core@7.29.7(supports-color@10.2.2))(@playwright/test@1.63.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(rollup@4.62.4)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
@@ -1333,6 +1345,19 @@ packages:
 
   '@fastify/busboy@3.2.0':
     resolution: {integrity: sha512-m9FVDXU3GT2ITSe0UaMA5rU3QkfC/UXtCU8y0gSN/GugTqtVldOBWIB5V6V3sbmenVZUIpU6f+mPEO2+m5iTaA==}
+
+  '@github-ui/storybook-addon-performance-panel@1.3.0':
+    resolution: {integrity: sha512-fg17g+tMIxf43yswT87r0nFnnEqG6xxX+Y4hsBgMiZbYPnGC9Xkiv6zLq3jzTsLYZK02Cb96gOZZqb6NWc4WsA==}
+    peerDependencies:
+      '@storybook/icons': ^2.0.0
+      '@storybook/react': ^10.0.0 || >=11.0.0-0 <12.0.0-0
+      react: 19.2.3
+      storybook: ^10.0.0 || >=11.0.0-0 <12.0.0-0
+    peerDependenciesMeta:
+      '@storybook/react':
+        optional: true
+      react:
+        optional: true
 
   '@google/model-viewer@4.3.1':
     resolution: {integrity: sha512-GP+inXhAtY31E8rILVmByA6z8CZZjdlNajddppyI1/j1eIaSQiZcMRaUqTFe7+jv4mzRzwKIOiKBud0apiv+WQ==}
@@ -8798,6 +8823,14 @@ snapshots:
       js-yaml: 4.3.0
 
   '@fastify/busboy@3.2.0': {}
+
+  '@github-ui/storybook-addon-performance-panel@1.3.0(@storybook/icons@2.1.0(react@19.2.3))(@storybook/react@10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))(supports-color@10.2.2)(typescript@6.0.3))(react@19.2.3)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))':
+    dependencies:
+      '@storybook/icons': 2.1.0(react@19.2.3)
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3)
+    optionalDependencies:
+      '@storybook/react': 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.3))(supports-color@10.2.2)(typescript@6.0.3)
+      react: 19.2.3
 
   '@google/model-viewer@4.3.1(three@0.183.2)':
     dependencies:

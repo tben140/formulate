@@ -172,17 +172,14 @@ Test order #1001 (£774.90, PAID) is the reference — see
 
 ## Customer
 
-Deliberately undecided, and worth being honest about why.
+**Shopify's Customer Account API** (passwordless, hosted sign-in), decided in
+SHO-70. Classic accounts would have meant building password handling for a
+system Shopify is retiring. How it works, and what's set up where:
+[integration-customer-accounts.md](integration-customer-accounts.md).
 
-Shopify now has two account systems: classic customer accounts and the newer
-**Customer Account API** with passwordless login. Recharge's customer portal is a
-third session on top. Nothing in this project authenticates a customer yet, so
-committing to one would be guessing.
-
-The first thing that forces the decision is the read-only Recharge portal, and
-that note records the constraint: a Recharge portal session is issued by
-Recharge, not by Shopify, so "log in" there does not mean the same thing as
-"log in" to the storefront.
+A Recharge portal session is still a separate thing: Recharge issues it, in
+exchange for this one. "Signed in" to the storefront doesn't by itself mean
+signed in to the portal.
 
 ## Subscription
 

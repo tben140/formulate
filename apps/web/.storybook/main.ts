@@ -13,7 +13,15 @@ import type { StorybookConfig } from "@storybook/nextjs-vite";
 const config: StorybookConfig = {
   framework: "@storybook/nextjs-vite",
   stories: ["../components/**/*.stories.tsx"],
-  addons: ["@storybook/addon-docs", "@storybook/addon-a11y", "@storybook/addon-vitest"],
+  addons: [
+    "@storybook/addon-docs",
+    "@storybook/addon-a11y",
+    "@storybook/addon-vitest",
+    // GitHub's ⚡ Performance panel: frame rate, INP, long tasks, layout shift
+    // and React render timings for the open story. It only measures while the
+    // panel is open.
+    "@github-ui/storybook-addon-performance-panel",
+  ],
   // globals.css inlines the tokens' fonts.css, whose `./fonts/` URLs then
   // resolve next to the built stylesheet in assets/. Serve the font files there.
   staticDirs: [{ from: "../../../packages/tokens/fonts", to: "/assets/fonts" }],

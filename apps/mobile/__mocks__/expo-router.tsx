@@ -3,7 +3,7 @@ import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 
 /**
  * expo-router for Storybook: there's no navigator in a story, so `Link`
  * renders its child (or children) without navigating, and the hooks return
- * fixed values. Registered with `sb.mock` in .storybook/preview.tsx.
+ * fixed values. Swapped in at resolve time by .storybook/story-mocks.ts.
  */
 export const Link = ({
   children,
