@@ -1,12 +1,16 @@
 import {
-  DEFAULT_API_VERSION,
-  isTokenExpiring,
   type AuthCrypto,
   type CustomerAccountConfig,
   type CustomerTokens,
+  DEFAULT_API_VERSION,
+  describeCustomerAccountError,
+  isTokenExpiring,
+  refreshTokens,
 } from "@formulate/shopify";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+import { siteUrl } from "./site";
 
 /**
  * Customer sign-in for the web app: configuration and where the tokens live
@@ -199,4 +203,33 @@ export const requireCustomerTokens = async (
   if (!tokens) redirect(`/account/login?return_to=${back}`);
   if (isTokenExpiring(tokens)) redirect(`/account/refresh?return_to=${back}`);
   return tokens;
+};
+
+/**
+ * The signed-in buyer's tokens for a **Server Action**, renewed in place when
+ * they're about to expire.
+ *
+ * `requireCustomerTokens` sends an expiring session through /account/refresh,
+ * which is right for a page but would throw away a form submission (CodeRabbit
+ * on #136: a cancellation and its reason would be lost). A Server Action can
+ * set cookies, so it refreshes here and carries on. Signed out, or a refresh
+ * Shopify refuses, still goes to sign-in.
+ */
+export const customerTokensForAction = async (
+  returnTo: string,
+): Promise<CustomerTokens> => {
+  const tokens = await readCustomerTokens();
+  const signIn = `/account/login?return_to=${encodeURIComponent(safeReturnTo(returnTo))}`;
+  if (!tokens) redirect(signIn);
+  if (!isTokenExpiring(tokens)) return tokens;
+
+  const origin = requestOrigin(await headers(), siteUrl.origin);
+  const result = await refreshTokens(customerAccountConfig, tokens, { origin });
+  if (!result.ok) {
+    console.error(describeCustomerAccountError(result.error));
+    await clearCustomerTokens();
+    redirect(signIn);
+  }
+  await writeCustomerTokens(result.data);
+  return result.data;
 };

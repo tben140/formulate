@@ -120,6 +120,10 @@ const SubscriptionScreen = () => {
       ) : null}
 
       <SubscriptionControls
+        // The cancel screen comes back here with dismissTo, to this same
+        // mounted screen: a new outcome in the URL starts the controls afresh
+        // so they show it.
+        key={`${done ?? ""}:${charge ?? ""}`}
         subscription={subscription}
         arrivedAfter={
           done

@@ -1,3 +1,4 @@
+import { ACCOUNT_IP_LIMIT, LIMIT } from "./rate-limit-policy";
 import type { RateLimiter } from "./rate-limiter";
 
 export { RateLimiter } from "./rate-limiter";
@@ -171,9 +172,13 @@ export default {
      * would make this control trivially bypassable.
      */
     const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+    // Signed-in routes come from web's server, one IP for every customer:
+    // a looser backstop here, and a per-customer limit once Shopify has said
+    // who's calling (see withinCustomerLimit in src/shopify-customer.ts).
+    const isAccount = new URL(request.url).pathname.startsWith("/account/");
     const { success } = await env.RATE_LIMITER.get(
-      env.RATE_LIMITER.idFromName(ip),
-    ).limit();
+      env.RATE_LIMITER.idFromName(isAccount ? `account:${ip}` : ip),
+    ).limit(isAccount ? ACCOUNT_IP_LIMIT : LIMIT);
     if (!success) {
       return json({ ok: false, reason: "rate-limited" }, 429);
     }

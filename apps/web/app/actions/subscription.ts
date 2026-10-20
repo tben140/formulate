@@ -3,7 +3,7 @@
 import { isCancelReason, type SubscriptionChange } from "@formulate/recharge";
 import { redirect } from "next/navigation";
 
-import { requireCustomerTokens } from "@/lib/customer-account";
+import { customerTokensForAction } from "@/lib/customer-account";
 import { changeSubscription } from "@/lib/recharge";
 
 /**
@@ -65,7 +65,7 @@ export const changeSubscriptionAction = async (form: FormData): Promise<never> =
   const id = wholeNumber(field(form, "subscriptionId"));
   if (!id) redirect("/account/subscriptions");
   const page = `/account/subscriptions/${id}`;
-  const tokens = await requireCustomerTokens(page);
+  const tokens = await customerTokensForAction(page);
 
   const change = toChange(form);
   if (!change) redirect(`${page}?error=invalid`);

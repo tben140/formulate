@@ -203,6 +203,34 @@ describe("⚠️ whose subscription", () => {
   });
 });
 
+describe("the per-customer limit", () => {
+  it("is keyed by the verified customer, and stops before Recharge", async () => {
+    const calls = stubUpstream();
+    const keys: string[] = [];
+    const limited: ActionsEnv = {
+      ...env,
+      RATE_LIMITER: {
+        idFromName: (name: string) => {
+          keys.push(name);
+          return name;
+        },
+        get: () => ({ limit: () => Promise.resolve({ success: false }) }),
+      } as unknown as ActionsEnv["RATE_LIMITER"],
+    };
+    const result = await actOnSubscription(
+      limited,
+      request(),
+      JSON.stringify({ subscriptionId: SUB, action: "skip" }),
+      NOW,
+    );
+    expect(result).toEqual({ status: 429, body: { ok: false, reason: "rate-limited" } });
+    expect(keys).toEqual([`customer:${CUSTOMER_ID}`]);
+    expect(
+      calls.filter((c) => c.url.startsWith("https://api.rechargeapps.com/")),
+    ).toEqual([]);
+  });
+});
+
 describe("the actions", () => {
   it("skips the next delivery of just this subscription, and offers the charge for undo", async () => {
     const calls = stubUpstream();
@@ -303,8 +331,14 @@ describe("the actions", () => {
       sub: subscription({ order_interval_frequency: 30, charge_interval_frequency: 90 }),
     });
     expect(
-      (await act({ subscriptionId: SUB, action: "frequency", frequency: 60, unit: "day" }))
-        .status,
+      (
+        await act({
+          subscriptionId: SUB,
+          action: "frequency",
+          frequency: 60,
+          unit: "day",
+        })
+      ).status,
     ).toBe(409);
     expect(writes(calls)).toEqual([]);
   });
