@@ -35,7 +35,8 @@
     "remove_for": "{{ title }} from cart"
   },
   "collections": {
-    "title": "Collections"
+    "title": "Collections",
+    "nav_label": "Collections"
   },
   "customers": {
     "login": {

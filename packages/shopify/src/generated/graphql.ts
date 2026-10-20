@@ -1265,6 +1265,35 @@ export type DeliveryAddressValidationStrategy =
    */
   | 'STRICT';
 
+/** A menu item type. */
+export type MenuItemType =
+  /** An article link. */
+  | 'ARTICLE'
+  /** A blog link. */
+  | 'BLOG'
+  /** A catalog link. */
+  | 'CATALOG'
+  /** A collection link. */
+  | 'COLLECTION'
+  /** A collection link. */
+  | 'COLLECTIONS'
+  /** A customer account page link. */
+  | 'CUSTOMER_ACCOUNT_PAGE'
+  /** A frontpage link. */
+  | 'FRONTPAGE'
+  /** An http link. */
+  | 'HTTP'
+  /** A metaobject page link. */
+  | 'METAOBJECT'
+  /** A page link. */
+  | 'PAGE'
+  /** A product link. */
+  | 'PRODUCT'
+  /** A search link. */
+  | 'SEARCH'
+  /** A shop policy link. */
+  | 'SHOP_POLICY';
+
 /** The preferred delivery methods such as shipping, local pickup or through pickup points. */
 export type PreferenceDeliveryMethodType =
   /** A delivery method used to let buyers collect purchases at designated locations like parcel lockers. */
@@ -1288,6 +1317,13 @@ export type ProductByHandleQueryVariables = Exact<{
 
 
 export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, vendor: string, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
+
+export type NavMenuQueryVariables = Exact<{
+  handle: string;
+}>;
+
+
+export type NavMenuQuery = { menu: { items: Array<{ id: string, title: string, type: MenuItemType, url: string | null }> } | null };
 
 export type ShopNameQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1573,6 +1609,18 @@ export const ProductByHandleDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<ProductByHandleQuery, ProductByHandleQueryVariables>;
+export const NavMenuDocument = new TypedDocumentString(`
+    query NavMenu($handle: String!) {
+  menu(handle: $handle) {
+    items {
+      id
+      title
+      type
+      url
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<NavMenuQuery, NavMenuQueryVariables>;
 export const ShopNameDocument = new TypedDocumentString(`
     query ShopName {
   shop {

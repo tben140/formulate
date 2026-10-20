@@ -33,9 +33,13 @@ export {
   CartLinesUpdateMutation,
   CartQuery,
   CollectionProductsQuery,
+  NavMenuQuery,
   ProductByHandleQuery,
   ShopNameQuery,
 } from "./queries";
+
+export { NAV_MENU_HANDLE, toNavLinks } from "./nav";
+export type { NavLink } from "./nav";
 
 export {
   DEFAULT_API_VERSION,

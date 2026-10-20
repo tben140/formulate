@@ -57,6 +57,7 @@ const RootLayout = () => {
             }}
           >
             <Stack.Screen name="index" options={{ title: "Formulate" }} />
+            <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
             <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
           </Stack>
         </CartProvider>

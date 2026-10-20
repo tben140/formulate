@@ -1,7 +1,10 @@
 import {
   CollectionProductsQuery,
+  NAV_MENU_HANDLE,
+  NavMenuQuery,
   ProductByHandleQuery,
   describeError,
+  toNavLinks,
 } from "@formulate/shopify";
 import { useQuery } from "@tanstack/react-query";
 
@@ -41,4 +44,20 @@ export const useProduct = (handle: string) =>
     queryFn: async () =>
       unwrap(await storefront.request(ProductByHandleQuery, { handle })),
     enabled: handle.length > 0,
+  });
+
+/**
+ * The collection links from the Shopify menu (SHO-60), the same menu the web
+ * header and the theme read. The menu changes rarely, so it stays fresh for
+ * ten minutes rather than refetching on every screen.
+ */
+export const useNavLinks = () =>
+  useQuery({
+    queryKey: ["nav", NAV_MENU_HANDLE],
+    queryFn: async () =>
+      toNavLinks(
+        unwrap(await storefront.request(NavMenuQuery, { handle: NAV_MENU_HANDLE })).menu
+          ?.items,
+      ),
+    staleTime: 10 * 60_000,
   });

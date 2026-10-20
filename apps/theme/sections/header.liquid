@@ -17,12 +17,43 @@
       {{ section.settings.wordmark | default: shop.name }}
     </a>
 
+    {% comment %}
+      The same Shopify menu the web and mobile apps read (handle `shop`,
+      SHO-60), chosen in header-group.json. `link.current` marks the page
+      you're on, as `aria-current` for screen readers and underlined.
+    {% endcomment %}
     {% if section.settings.menu != blank %}
-      <ul class="site-header__menu" role="list">
+      <ul class="site-header__menu" role="list" aria-label="{{ 'collections.nav_label' | t }}">
         {% for link in section.settings.menu.links %}
-          <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+          <li>
+            <a
+              href="{{ link.url }}"
+              {% if link.current %}
+                aria-current="page"
+              {% endif %}
+            >
+              {{- link.title -}}
+            </a>
+          </li>
         {% endfor %}
       </ul>
+      {% comment %}
+        On narrow screens the menu scrolls sideways and the current collection
+        may be past the edge, so bring it into view (as apps/web's SiteNav
+        does). scrollLeft rather than scrollIntoView, which could also scroll
+        the page. Without JavaScript the menu still scrolls by hand.
+      {% endcomment %}
+      <script>
+        (() => {
+          const menu = document.currentScript.previousElementSibling;
+          const current = menu.querySelector('[aria-current="page"]');
+          if (!current || menu.scrollWidth <= menu.clientWidth) return;
+          const left = current.offsetLeft - menu.offsetLeft;
+          if (left < menu.scrollLeft || left + current.offsetWidth > menu.scrollLeft + menu.clientWidth) {
+            menu.scrollLeft = left - (menu.clientWidth - current.offsetWidth) / 2;
+          }
+        })();
+      </script>
     {% endif %}
 
     {% comment %}
@@ -71,22 +102,64 @@
     text-decoration: none;
   }
 
+  /*
+   * Matches apps/web's header: one row from 48rem up, and below that the menu
+   * drops to its own sideways-scrolling row, so the wordmark and cart keep
+   * their places however many collections the menu holds.
+   */
+  .site-header__nav {
+    flex-wrap: wrap;
+    row-gap: var(--spacing-3);
+  }
+
   .site-header__menu {
+    order: 3;
     display: flex;
-    gap: var(--spacing-4);
+    gap: var(--spacing-5);
+    inline-size: 100%;
     margin: 0;
-    padding: 0;
+    padding: 0 0 var(--spacing-1);
+    overflow-x: auto;
     list-style: none;
     font-size: var(--text-sm);
+    white-space: nowrap;
+    mask-image: linear-gradient(to right, black 85%, transparent);
+  }
+
+  .site-header__cart {
+    order: 2;
+    margin-inline-start: auto;
+  }
+
+  @media (min-width: 48rem) {
+    .site-header__menu {
+      order: 2;
+      flex: 1;
+      inline-size: auto;
+      padding: 0;
+      mask-image: none;
+    }
+
+    .site-header__cart {
+      order: 3;
+    }
   }
 
   .site-header__menu a {
     color: var(--color-foreground-muted);
     text-decoration: none;
+    text-underline-offset: 4px;
   }
 
   .site-header__menu a:hover {
     color: var(--color-foreground);
+    text-decoration: underline;
+  }
+
+  .site-header__menu a[aria-current='page'] {
+    color: var(--color-foreground);
+    font-weight: 500;
+    text-decoration: underline;
   }
 {% endstylesheet %}
 
