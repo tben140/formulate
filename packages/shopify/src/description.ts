@@ -6,11 +6,14 @@
  * flavours…"). `descriptionHtml` keeps the structure, but the app can't render
  * HTML and web shouldn't inject merchant markup. So both render these blocks.
  *
- * Handles what Shopify's editor produces: paragraphs, headings, bulleted and
- * numbered lists, line breaks and inline formatting (whose tags are dropped,
- * keeping the text). Anything else is read as text. Not a general HTML parser,
- * and not trying to be.
+ * Read with htmlparser2, so nesting (a list inside a `<div>`), `>` inside an
+ * attribute and every named character (`&eacute;`) come out right. Headings,
+ * paragraphs and lists keep their shape; inline formatting keeps its text and
+ * loses its tags; `<br>` is a line break. Nested lists flatten into the outer
+ * one. Scripts, styles and other non-text elements are dropped.
  */
+
+import { Parser } from "htmlparser2";
 
 export type DescriptionBlock =
   | { readonly kind: "heading"; readonly text: string }
@@ -21,51 +24,45 @@ export type DescriptionBlock =
       readonly items: readonly string[];
     };
 
-const ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-  ndash: "–",
-  mdash: "—",
-  hellip: "…",
-  rsquo: "’",
-  lsquo: "‘",
-  rdquo: "”",
-  ldquo: "“",
-  pound: "£",
-};
+/** Tags that end the text before them and start a new block. */
+const BLOCK_TAGS = new Set([
+  "p",
+  "div",
+  "blockquote",
+  "section",
+  "article",
+  "header",
+  "footer",
+  "aside",
+  "figure",
+  "figcaption",
+  "pre",
+  "table",
+  "tr",
+  "td",
+  "th",
+  "dl",
+  "dt",
+  "dd",
+  "hr",
+]);
+const HEADING = /^h[1-6]$/;
+/** Their text is never shown. */
+const SKIPPED_TAGS = new Set(["script", "style", "template", "noscript", "svg", "iframe"]);
 
-const decode = (text: string): string =>
-  text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
-    if (entity[0] === "#") {
-      const code =
-        entity[1]?.toLowerCase() === "x"
-          ? Number.parseInt(entity.slice(2), 16)
-          : Number.parseInt(entity.slice(1), 10);
-      if (!Number.isFinite(code) || code <= 0) return match;
-      // Beyond Unicode, or a lone surrogate: U+FFFD, as browsers do.
-      // String.fromCodePoint throws above 0x10FFFF, which would take the
-      // whole description (and the page) down.
-      if (code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return "\uFFFD";
-      return String.fromCodePoint(code);
-    }
-    return ENTITIES[entity.toLowerCase()] ?? match;
-  });
+// `<br>` is held as U+2028 while text is gathered, so collapsing whitespace
+// can tell it from newlines in the source, which are only spacing.
+const BR = "\u2028";
 
-/** Inline content to text: <br> becomes a newline, other tags go, spaces collapse. */
-const inlineText = (html: string): string =>
-  decode(
-    html
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<[^>]+>/g, "")
-      .replace(/[ \t\r\f\v]+/g, " ")
-      .replace(/ *\n */g, "\n"),
-  ).trim();
+/** Whitespace collapses to one space; each `<br>` becomes a newline. */
+const tidy = (text: string): string =>
+  text
+    .replace(/[ \t\r\n\f\v\u00a0]+/g, " ")
+    .replaceAll(BR, "\n")
+    .replace(/ *\n */g, "\n")
+    .trim();
 
-const BLOCK = /<(p|h[1-6]|ul|ol|div|blockquote)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+type OpenList = { ordered: boolean; items: string[] };
 
 export const descriptionBlocks = (
   html: string | null | undefined,
@@ -73,31 +70,75 @@ export const descriptionBlocks = (
   if (!html) return [];
   const blocks: DescriptionBlock[] = [];
 
-  const pushText = (raw: string) => {
-    const text = inlineText(raw);
-    if (text) blocks.push({ kind: "paragraph", text });
+  let text = "";
+  let headingDepth = 0;
+  let skipDepth = 0;
+  // The outermost open list; items of lists nested inside it join it.
+  let list: OpenList | null = null;
+  let listDepth = 0;
+
+  const flush = () => {
+    const done = tidy(text);
+    text = "";
+    if (!done) return;
+    if (list) list.items.push(done);
+    else if (headingDepth > 0) blocks.push({ kind: "heading", text: done });
+    else blocks.push({ kind: "paragraph", text: done });
   };
 
-  let last = 0;
-  for (const match of html.matchAll(BLOCK)) {
-    // Loose text between blocks still counts.
-    pushText(html.slice(last, match.index));
-    last = match.index + match[0].length;
+  const endList = () => {
+    if (list?.items.length) blocks.push({ kind: "list", ...list });
+    list = null;
+  };
 
-    const tag = (match[1] ?? "").toLowerCase();
-    const inner = match[2] ?? "";
-    if (tag === "ul" || tag === "ol") {
-      const items = [...inner.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)]
-        .map((item) => inlineText(item[1] ?? ""))
-        .filter(Boolean);
-      if (items.length) blocks.push({ kind: "list", ordered: tag === "ol", items });
-    } else if (tag.startsWith("h")) {
-      const text = inlineText(inner);
-      if (text) blocks.push({ kind: "heading", text });
-    } else {
-      pushText(inner);
-    }
-  }
-  pushText(html.slice(last));
+  const startsBlock = (name: string) =>
+    name === "li" || HEADING.test(name) || BLOCK_TAGS.has(name);
+
+  const parser = new Parser(
+    {
+      onopentag(name) {
+        if (SKIPPED_TAGS.has(name)) {
+          skipDepth += 1;
+          return;
+        }
+        if (skipDepth > 0) return;
+        if (name === "br") {
+          text += BR;
+        } else if (name === "ul" || name === "ol") {
+          flush();
+          if (listDepth === 0) list = { ordered: name === "ol", items: [] };
+          listDepth += 1;
+        } else if (startsBlock(name)) {
+          flush();
+          if (HEADING.test(name)) headingDepth += 1;
+        }
+      },
+      ontext(chunk) {
+        if (skipDepth === 0) text += chunk;
+      },
+      onclosetag(name) {
+        if (SKIPPED_TAGS.has(name)) {
+          skipDepth = Math.max(0, skipDepth - 1);
+          return;
+        }
+        if (skipDepth > 0) return;
+        if (name === "ul" || name === "ol") {
+          flush();
+          listDepth = Math.max(0, listDepth - 1);
+          if (listDepth === 0) endList();
+        } else if (startsBlock(name)) {
+          flush();
+          if (HEADING.test(name)) headingDepth = Math.max(0, headingDepth - 1);
+        }
+      },
+    },
+    { decodeEntities: true, lowerCaseTags: true },
+  );
+  parser.write(html);
+  parser.end();
+  flush();
+  // htmlparser2 closes tags left open at the end, so a list is already ended;
+  // this only guards against a parser that doesn't.
+  endList();
   return blocks;
 };
