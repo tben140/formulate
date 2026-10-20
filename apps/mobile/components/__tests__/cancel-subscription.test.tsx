@@ -60,7 +60,7 @@ test("cancelling needs no reason: one press sends 'other'", async () => {
   expect(lastChange()).toEqual({ action: "cancel", reason: "other" });
   await answer({ ok: true });
   expect(mockReplace).toHaveBeenCalledWith(
-    "/account/subscriptions/891037192?done=cancel",
+    expect.stringMatching(/^\/account\/subscriptions\/891037192\?done=cancel&at=\d+$/),
   );
 });
 
@@ -87,7 +87,9 @@ test("the offers make their change instead, and say so on the subscription", asy
   expect(lastChange()).toEqual({ action: "skip" });
   await answer({ ok: true, skippedChargeId: 555 });
   expect(mockReplace).toHaveBeenCalledWith(
-    "/account/subscriptions/891037192?done=skip&charge=555",
+    expect.stringMatching(
+      /^\/account\/subscriptions\/891037192\?done=skip&charge=555&at=\d+$/,
+    ),
   );
   await fireEvent.press(screen.getByRole("button", { name: "Get 1 per delivery" }));
   expect(lastChange()).toEqual({ action: "quantity", quantity: 1 });
