@@ -9,6 +9,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Read-only token: the job checks out, installs and builds, and writes nothing
+# back to the repository. Without this the token gets the repository's default
+# permissions (CodeQL actions/missing-workflow-permissions, SHO-147).
+permissions:
+  contents: read
+
 jobs:
   verify:
     # ⚠️ Do NOT rename this job. Branch protection requires the status check
