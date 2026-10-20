@@ -1,13 +1,20 @@
 import { DEFAULT_COLLECTION_HANDLE, formatMoney } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
+import { useState } from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
+import { CollectionFilters } from "../components/collection-filters";
 import { SiteFooter } from "../components/site-footer";
 import { useCollection } from "../lib/queries";
 
 const CollectionScreen = () => {
-  const { data, isPending, isError, error } = useCollection(DEFAULT_COLLECTION_HANDLE);
+  // The same filter query string web and the theme keep in the URL.
+  const [filterQuery, setFilterQuery] = useState("");
+  const { data, isPending, isError, error } = useCollection(
+    DEFAULT_COLLECTION_HANDLE,
+    filterQuery,
+  );
 
   if (isPending) {
     return (
@@ -64,7 +71,20 @@ const CollectionScreen = () => {
               {collection.description}
             </Text>
           ) : null}
+          <View className="mt-4">
+            <CollectionFilters
+              filters={collection.products.filters}
+              query={filterQuery}
+              onChange={setFilterQuery}
+              productCount={collection.products.nodes.length}
+            />
+          </View>
         </View>
+      }
+      ListEmptyComponent={
+        <Text className="py-12 text-center text-foreground-muted">
+          No products match these filters.
+        </Text>
       }
       ListFooterComponent={<SiteFooter />}
       renderItem={({ item }) => (

@@ -3,8 +3,10 @@ import { DEFAULT_COLLECTION_HANDLE, ProductByHandleQuery } from "@formulate/shop
 import { Image } from "@shopify/hydrogen-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
+import { PairsWellWith } from "@/components/pairs-well-with";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { storefront } from "@/lib/storefront";
@@ -71,6 +73,11 @@ const ProductPage = async ({ params }: PageProps) => {
           whatever the shopper had chosen.
         */}
         <AddToCartForm product={product} />
+
+        {/* No fallback: nothing at all is better than a loading box here. */}
+        <Suspense fallback={null}>
+          <PairsWellWith productId={product.id} />
+        </Suspense>
       </div>
     </article>
   );

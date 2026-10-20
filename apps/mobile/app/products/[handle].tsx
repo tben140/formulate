@@ -4,6 +4,7 @@ import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
 import { AddToCart } from "../../components/add-to-cart";
 import { useCartUi } from "../../components/cart-provider";
+import { PairsWellWith } from "../../components/pairs-well-with";
 import { SiteFooter } from "../../components/site-footer";
 import { useProduct } from "../../lib/queries";
 
@@ -81,6 +82,8 @@ const ProductScreen = () => {
         price at once next to a picker that changes the price.
       */}
       <AddToCart product={product} onAdded={openCart} />
+
+      <PairsWellWith productId={product.id} />
 
       <SiteFooter />
     </ScrollView>

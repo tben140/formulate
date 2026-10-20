@@ -51,7 +51,28 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
               >
                 Formulate
               </Link>
-              <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
+              <div className="flex items-center gap-2">
+                {/* A link to the search page, not an inline field: it works
+                    without JavaScript and keeps the header compact on a phone. */}
+                <Link
+                  href="/search"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="8.5" cy="8.5" r="5.5" />
+                    <path d="m13 13 4 4" strokeLinecap="round" />
+                  </svg>
+                  Search
+                </Link>
+                <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
+              </div>
             </nav>
           </header>
 

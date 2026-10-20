@@ -1,25 +1,44 @@
-import { CollectionProductsQuery, formatMoney } from "@formulate/shopify";
+import {
+  CollectionProductsQuery,
+  formatMoney,
+  productFiltersFromParams,
+  withoutEmptyFilters,
+} from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
+import { CollectionFilters } from "@/components/collection-filters";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { toSearchParams } from "@/lib/search-params";
 import { storefront } from "@/lib/storefront";
 
 interface PageProps {
   /** Next 15+ passes route params as a Promise. */
   readonly params: Promise<{ handle: string }>;
+  /** The filters, in the Liquid theme's format (see packages/shopify filters.ts). */
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export const metadata: Metadata = { title: "Collection — Formulate" };
 
-const CollectionPage = async ({ params }: PageProps) => {
+const CollectionPage = async ({ params, searchParams }: PageProps) => {
   const { handle } = await params;
+  const query = toSearchParams(await searchParams);
 
+  // The filter form submits its empty fields too (an untouched price box), so
+  // tidy the URL once: shared links stay readable, and it works without JS.
+  const tidy = withoutEmptyFilters(query);
+  if (tidy)
+    redirect(tidy.size ? `/collections/${handle}?${tidy}` : `/collections/${handle}`);
+
+  // One request: the filters come from the parameter names alone, and the
+  // response carries the filters on offer, with counts for this selection.
   const result = await storefront.request(CollectionProductsQuery, {
     handle,
     first: 24,
+    filters: productFiltersFromParams(query),
   });
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
@@ -35,6 +54,19 @@ const CollectionPage = async ({ params }: PageProps) => {
           <p className="mt-2 max-w-2xl text-foreground-muted">{collection.description}</p>
         ) : null}
       </header>
+
+      <CollectionFilters
+        filters={collection.products.filters}
+        params={query}
+        path={`/collections/${handle}`}
+        productCount={collection.products.nodes.length}
+      />
+
+      {collection.products.nodes.length === 0 ? (
+        <p className="py-12 text-center text-foreground-muted">
+          No products match these filters.
+        </p>
+      ) : null}
 
       <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {collection.products.nodes.map((product) => (

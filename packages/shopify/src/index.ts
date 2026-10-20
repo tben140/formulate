@@ -33,6 +33,9 @@ export {
   CartLinesUpdateMutation,
   CartQuery,
   CollectionProductsQuery,
+  ComplementaryProductsQuery,
+  PredictiveSearchQuery,
+  SearchProductsQuery,
   ProductByHandleQuery,
   ShopNameQuery,
 } from "./queries";
@@ -51,3 +54,16 @@ export type {
   CollectionProductsQuery as CollectionProductsResult,
   ProductByHandleQuery as ProductByHandleResult,
 } from "./generated/graphql";
+
+export {
+  activeFilterCount,
+  isSelected,
+  paramValue,
+  productFiltersFromParams,
+  withoutEmptyFilters,
+  withoutFilters,
+  withPriceRange,
+  withValueToggled,
+} from "./filters";
+export type { FilterLike, FilterValueLike } from "./filters";
+export type { ProductFilter } from "./generated/graphql";
