@@ -1,10 +1,15 @@
 packages:
   - "apps/*"
+  # Shopify Functions and checkout extensions, each its own package.
+  - "apps/shopify-app/extensions/*"
   - "packages/*"
 
 # Native resolver used by eslint-import-resolver-typescript (pulled in by
 # eslint-config-expo). It ships a Rust binary and needs its postinstall step.
 allowBuilds:
+  # Pulled in by Shopify's function tooling. Its postinstall only prints a
+  # donation message, so it stays off.
+  core-js: false
   # Bundler used by @shopify/cli; ships prebuilt platform binaries.
   esbuild: true
   # Image processing used by Next.js and Expo tooling; ships prebuilt binaries.
