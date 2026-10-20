@@ -33,6 +33,62 @@
       </button>
     </header>
 
+    {% comment %}
+      Free standard delivery progress. The theme's copy of apps/web's
+      <FreeShippingBar />; the logic is packages/shopify's freeShippingProgress,
+      which Liquid cannot import, so it is restated here.
+
+      It has to be inside this section: the section is what the Section
+      Rendering API re-renders, so anything outside it would render once and
+      then silently stop updating.
+
+      The same rules as the headless surfaces:
+        - measured against the items subtotal (after line discounts, before
+          cart-level codes), never the total, which includes delivery
+        - compared only in the threshold's own currency, and hidden otherwise
+        - the sentence carries the meaning; the bar is aria-hidden decoration
+
+      Not role="status" here. This markup is replaced wholesale on every
+      change, and a live region that arrives already filled in is often not
+      announced. assets/cart-drawer.js copies the sentence into a region that
+      persists instead.
+    {% endcomment %}
+    {%- liquid
+      assign free_shipping_threshold = section.settings.free_shipping_threshold | times: 100 | round
+      assign free_shipping_subtotal = cart.items_subtotal_price
+      assign show_free_shipping = false
+      if cart.item_count > 0 and free_shipping_threshold > 0
+        if cart.currency.iso_code == section.settings.free_shipping_currency
+          assign show_free_shipping = true
+        endif
+      endif
+    -%}
+    {% if show_free_shipping %}
+      {%- liquid
+        if free_shipping_subtotal >= free_shipping_threshold
+          assign free_shipping_percent = 100
+        else
+          assign free_shipping_percent = free_shipping_subtotal | times: 100 | divided_by: free_shipping_threshold
+        endif
+      -%}
+      <div class="free-shipping">
+        <p class="free-shipping__message" data-free-shipping-message>
+          {%- if free_shipping_subtotal >= free_shipping_threshold -%}
+            {{- 'cart.free_shipping.unlocked' | t -}}
+          {%- else -%}
+            {%- assign free_shipping_remaining = free_shipping_threshold | minus: free_shipping_subtotal | money -%}
+            {{- 'cart.free_shipping.away' | t: amount: free_shipping_remaining -}}
+          {%- endif -%}
+        </p>
+        <div class="free-shipping__track" aria-hidden="true">
+          <div
+            class="free-shipping__fill{% if free_shipping_percent == 100 %} free-shipping__fill--unlocked{% endif %}"
+            style="width: {{ free_shipping_percent }}%;"
+          ></div>
+        </div>
+      </div>
+    {% endif %}
+
     {% if cart.item_count == 0 %}
       <p class="cart-drawer__empty">{{ 'cart.empty' | t }}</p>
     {% else %}
@@ -149,6 +205,21 @@
 {% schema %}
 {
   "name": "t:general.cart",
-  "settings": []
+  "settings": [
+    {
+      "type": "number",
+      "id": "free_shipping_threshold",
+      "label": "Free delivery threshold",
+      "info": "Must match the price condition on the store's free delivery rate. Also set in packages/shopify/src/free-shipping.ts for web and mobile. 0 hides the bar.",
+      "default": 40
+    },
+    {
+      "type": "text",
+      "id": "free_shipping_currency",
+      "label": "Free delivery threshold currency",
+      "info": "ISO code. The bar only shows for carts in this currency.",
+      "default": "GBP"
+    }
+  ]
 }
 {% endschema %}
