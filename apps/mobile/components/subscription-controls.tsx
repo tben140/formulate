@@ -94,9 +94,12 @@ const Outcome = ({
       : changeErrorMessage(outcome.result.reason)
     : null;
 
+  // Keyed on the outcome, not its text: pausing twice gives the same message,
+  // and the second still has to be announced. Each change is a new object.
   useEffect(() => {
     if (message) AccessibilityInfo.announceForAccessibility(message);
-  }, [message]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `message` derives from `outcome`
+  }, [outcome]);
 
   if (!outcome || !message) return null;
   const skipped =
