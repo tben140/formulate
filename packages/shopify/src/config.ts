@@ -8,6 +8,23 @@
 export const DEFAULT_COLLECTION_HANDLE = "automated-collection";
 
 /**
+ * The notice every surface shows above its content: this is a demo store.
+ *
+ * Shared by web and mobile so the wording cannot drift. The Liquid theme cannot
+ * import it, so `apps/theme/sections/demo-notice.liquid` defaults to a copy —
+ * change both together.
+ *
+ * Every claim in it is true and should stay true: checkout runs with Shopify's
+ * test gateway, which accepts only test card numbers, so no one can be charged.
+ * See docs/demo-store.md.
+ */
+export const DEMO_STORE_NOTICE = {
+  label: "Demo store",
+  message:
+    "this is a portfolio project. Checkout runs in test mode: you won't be charged and nothing will be shipped.",
+} as const;
+
+/**
  * Must match the schema version codegen ran against — see codegen.ts. Bumping
  * one without the other is how generated types silently drift from reality.
  */
