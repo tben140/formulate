@@ -35,7 +35,7 @@ Consequences, all intentional:
 ## Structure
 
 ```
-assets/     tokens.css (generated), critical.css, component.js, media-gallery.js
+assets/     tokens.css, fonts.css and the DM Sans/Mono .woff2 files (all synced), critical.css, component.js, …
 blocks/     group, text — nestable theme blocks
 config/     settings_schema.json, settings_data.json
 layout/     theme.liquid, password.liquid
@@ -112,7 +112,7 @@ missing.
 
 ```bash
 pnpm --filter @formulate/theme lint     # shopify theme check — no store access needed
-pnpm --filter @formulate/theme build    # regenerate assets/tokens.css
+pnpm --filter @formulate/theme build    # regenerate assets/tokens.css, fonts.css and font files
 pnpm --filter @formulate/theme dev      # shopify theme dev  (needs the password)
 pnpm --filter @formulate/theme push     # shopify theme push --unpublished
 ```
