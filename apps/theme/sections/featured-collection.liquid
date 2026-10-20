@@ -10,6 +10,12 @@
   (DEFAULT_COLLECTION_HANDLE in packages/shopify/src/config.ts) when the
   merchant has not picked one in the theme editor.
 
+  ⚠️ Liquid cannot import that constant, so the handle below is a copy. It has
+  already drifted once: the constant moved to `best-sellers` while this still
+  said `automated-collection`, and because a stale handle resolves to an empty
+  collection rather than an error, the homepage silently rendered the "no
+  collection selected" branch. Change both together.
+
   Uses the same snippet and styles as the collection template, so the two
   cannot drift.
 {% endcomment %}
@@ -17,7 +23,7 @@
 {% liquid
   assign featured = section.settings.collection
   unless featured
-    assign featured = collections['automated-collection']
+    assign featured = collections['best-sellers']
   endunless
 %}
 

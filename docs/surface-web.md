@@ -14,11 +14,11 @@
 
 ## Routes
 
-| Route                   | What it does                                     |
-| ----------------------- | ------------------------------------------------ |
-| `/`                     | Redirects to `/collections/automated-collection` |
-| `/collections/[handle]` | Product grid                                     |
-| `/products/[handle]`    | Product detail with variants                     |
+| Route                   | What it does                             |
+| ----------------------- | ---------------------------------------- |
+| `/`                     | Redirects to `/collections/best-sellers` |
+| `/collections/[handle]` | Product grid                             |
+| `/products/[handle]`    | Product detail with variants             |
 
 The homepage is a redirect rather than a page. This is the one place where the
 web app and the Liquid theme deliberately diverge in structure: a theme's
