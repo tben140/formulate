@@ -1,4 +1,5 @@
 import {
+  submitBackInStock,
   looksFakeToKlaviyo,
   submitSubscription,
   type EventName,
@@ -200,5 +201,27 @@ export const subscribe = async (email: string): Promise<SubscribeResult> => {
   }
 
   if (result.ok) identify(email);
+  return result;
+};
+
+/**
+ * Asks Klaviyo to email `email` once when `variantId` (a Storefront gid) is
+ * back in stock (SHO-118). Not a marketing subscription: no list, no consent
+ * recorded, and no `identify`, so it starts no tracking either.
+ */
+export const notifyWhenBackInStock = async (
+  email: string,
+  variantId: string,
+): Promise<SubscribeResult> => {
+  const result = await submitBackInStock({
+    publicKey: KLAVIYO_PUBLIC_KEY,
+    email,
+    variant: variantId,
+  });
+  if (!result.ok && result.reason === "rejected") {
+    console.error(
+      `[klaviyo] back-in-stock rejected (${result.status}): ${result.detail}`,
+    );
+  }
   return result;
 };
