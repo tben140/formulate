@@ -25,10 +25,11 @@ const Row = ({ label, value }: { label: string; value: string }) => (
 
 /** One subscription and its controls, matching apps/web's /account/subscriptions/[id]. */
 const SubscriptionScreen = () => {
-  const { id, done, charge } = useLocalSearchParams<{
+  const { id, done, charge, at } = useLocalSearchParams<{
     id: string;
     done?: string;
     charge?: string;
+    at?: string;
   }>();
   const query = useSubscription(id);
 
@@ -123,7 +124,7 @@ const SubscriptionScreen = () => {
         // The cancel screen comes back here with dismissTo, to this same
         // mounted screen: a new outcome in the URL starts the controls afresh
         // so they show it.
-        key={`${done ?? ""}:${charge ?? ""}`}
+        key={`${done ?? ""}:${charge ?? ""}:${at ?? ""}`}
         subscription={subscription}
         arrivedAfter={
           done

@@ -86,7 +86,11 @@ const CancelScreen = () => {
         const charge = result.skippedChargeId ? `&charge=${result.skippedChargeId}` : "";
         // dismissTo, not replace: back to the subscription screen already
         // underneath, so Back doesn't show it twice.
-        router.dismissTo(`/account/subscriptions/${id}?done=${next.action}${charge}`);
+        router.dismissTo(
+          // `at` makes every return unique, so repeating the same action
+          // (pausing twice) still remounts the controls and is announced.
+          `/account/subscriptions/${id}?done=${next.action}${charge}&at=${Date.now()}`,
+        );
       },
     });
   };
@@ -134,7 +138,11 @@ const CancelScreen = () => {
         <Text className="font-semibold text-foreground">
           Why are you cancelling? <Text className="font-normal">(optional)</Text>
         </Text>
-        <View accessibilityRole="radiogroup" className="mt-3 gap-1">
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel="Why are you cancelling? (optional)"
+          className="mt-3 gap-1"
+        >
           {CANCEL_REASONS.map((option) => {
             const checked = reason === option.value;
             return (
