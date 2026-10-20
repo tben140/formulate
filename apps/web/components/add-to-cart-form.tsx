@@ -2,7 +2,6 @@
 
 import { EVENTS, addedToCart } from "@formulate/analytics";
 import {
-  SUBSCRIBER_GIFT,
   defaultSelectedOptions,
   findVariantByOptions,
   formatMoney,
@@ -244,11 +243,6 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
               </label>
             ))}
           </div>
-          {SUBSCRIBER_GIFT.enabled ? (
-            <p className="mt-2 text-sm text-foreground-muted">
-              {SUBSCRIBER_GIFT.message}
-            </p>
-          ) : null}
         </fieldset>
       ) : null}
 

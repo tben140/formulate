@@ -1,9 +1,4 @@
-import {
-  SUBSCRIBER_GIFT,
-  findVariantByOptions,
-  formatMoney,
-  withOption,
-} from "@formulate/shopify";
+import { findVariantByOptions, formatMoney, withOption } from "@formulate/shopify";
 import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 
 import type { Product, Purchase } from "../lib/use-purchase";
@@ -135,11 +130,6 @@ export const AddToCart = ({
               </Pressable>
             ))}
           </View>
-          {SUBSCRIBER_GIFT.enabled ? (
-            <Text className="mt-2 text-sm text-foreground-muted">
-              {SUBSCRIBER_GIFT.message}
-            </Text>
-          ) : null}
         </View>
       ) : null}
 
