@@ -3,6 +3,7 @@ import type { RateLimiter } from "./rate-limiter";
 export { RateLimiter } from "./rate-limiter";
 
 import { deleteAccount, previewDeletion, type DeletionEnv } from "./account-deletion";
+import { actOnSubscription } from "./subscription-actions";
 import { listSubscriptions } from "./subscriptions";
 
 import {
@@ -199,6 +200,12 @@ export default {
     // The subscription portal (SHO-72): the same token check, read-only.
     if (pathname === "/account/subscriptions") {
       const { status, body } = await listSubscriptions(env, request);
+      return respond(body, status);
+    }
+    // Portal changes (SHO-73, SHO-74): the same token check, and the
+    // subscription named must be the caller's. See src/subscription-actions.ts.
+    if (pathname === "/account/subscriptions/action") {
+      const { status, body } = await actOnSubscription(env, request, raw);
       return respond(body, status);
     }
     if (pathname === "/account/deletion") {
