@@ -8,6 +8,7 @@ import {
   type CustomerOrderResult,
   type CustomerOrdersResult,
 } from "@formulate/shopify";
+import type { SubscriptionChange } from "@formulate/recharge";
 import {
   useInfiniteQuery,
   useMutation,
@@ -26,6 +27,7 @@ import {
   signOut,
 } from "./customer-account";
 import {
+  changeSubscription,
   isRechargeConfigured,
   loadPortal,
   loadSubscription,
@@ -165,6 +167,26 @@ export const useSubscription = (id: string) =>
   });
 
 /** What deleting the account would cancel (SHO-90). Fresh each visit: no caching. */
+/**
+ * One change to a subscription. On success the portal and this subscription
+ * are fetched again, so every screen shows the new state; the result (and a
+ * skip's charge id, for Undo) goes back to the screen to announce.
+ */
+export const useChangeSubscription = (subscriptionId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (change: SubscriptionChange) =>
+      changeSubscription(subscriptionId, change),
+    onSuccess: async (result) => {
+      if (!result.ok) return;
+      await queryClient.invalidateQueries({ queryKey: [...CUSTOMER_KEY, "portal"] });
+      await queryClient.invalidateQueries({
+        queryKey: [...CUSTOMER_KEY, "subscription"],
+      });
+    },
+  });
+};
+
 export const useDeletionPreview = () =>
   useQuery({
     queryKey: [...CUSTOMER_KEY, "deletion-preview"],

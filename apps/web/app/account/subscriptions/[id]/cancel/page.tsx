@@ -1,3 +1,4 @@
+import { CANCEL_REASONS } from "@formulate/recharge";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -16,16 +17,6 @@ export const metadata: Metadata = {
 interface PageProps {
   readonly params: Promise<{ id: string }>;
 }
-
-/** As the Worker's CANCEL_REASONS (apps/api src/subscription-actions.ts). */
-const REASONS = [
-  ["too-much-product", "I have too much"],
-  ["too-expensive", "It costs too much"],
-  ["not-working-for-me", "It isn't right for me"],
-  ["trying-something-else", "I'm trying something else"],
-  ["moving-or-travelling", "I'm moving or travelling"],
-  ["other", "Something else"],
-] as const;
 
 const OFFER =
   "rounded-md border border-border px-4 py-2 text-sm font-semibold hover:bg-surface-muted";
@@ -116,7 +107,7 @@ const CancelPage = async ({ params }: PageProps) => {
             Why are you cancelling? <span className="font-normal">(optional)</span>
           </legend>
           <div className="mt-3 flex flex-col gap-2 text-sm">
-            {REASONS.map(([value, label]) => (
+            {CANCEL_REASONS.map(({ value, label }) => (
               <label key={value} className="flex items-center gap-2">
                 <input type="radio" name="reason" value={value} />
                 {label}

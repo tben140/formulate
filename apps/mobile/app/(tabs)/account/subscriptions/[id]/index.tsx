@@ -11,9 +11,10 @@ import { formatMoney } from "@formulate/shopify";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 
-import { Text } from "../../../../components/text";
-import { isRechargeConfigured } from "../../../../lib/recharge";
-import { useSubscription } from "../../../../lib/use-customer";
+import { SubscriptionControls } from "../../../../../components/subscription-controls";
+import { Text } from "../../../../../components/text";
+import { isRechargeConfigured } from "../../../../../lib/recharge";
+import { useSubscription } from "../../../../../lib/use-customer";
 
 const Row = ({ label, value }: { label: string; value: string }) => (
   <View className="flex-row justify-between gap-4 border-b border-border py-2">
@@ -22,9 +23,13 @@ const Row = ({ label, value }: { label: string; value: string }) => (
   </View>
 );
 
-/** One subscription, matching apps/web's /account/subscriptions/[id]. */
+/** One subscription and its controls, matching apps/web's /account/subscriptions/[id]. */
 const SubscriptionScreen = () => {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, done, charge } = useLocalSearchParams<{
+    id: string;
+    done?: string;
+    charge?: string;
+  }>();
   const query = useSubscription(id);
 
   if (!isRechargeConfigured) {
@@ -62,7 +67,7 @@ const SubscriptionScreen = () => {
   const upcoming = chargesForSubscription(query.data.upcoming, subscription.id);
 
   return (
-    <ScrollView contentContainerClassName="p-4">
+    <ScrollView contentContainerClassName="p-4" keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: subscription.product_title }} />
       {subscription.variant_title ? (
         <Text className="mb-2 text-foreground-muted">{subscription.variant_title}</Text>
@@ -114,10 +119,17 @@ const SubscriptionScreen = () => {
         </View>
       ) : null}
 
-      <Text className="mt-6 text-sm text-foreground-muted">
-        Changing, pausing or cancelling a subscription is coming soon. For now, use the
-        link in any of our subscription emails.
-      </Text>
+      <SubscriptionControls
+        subscription={subscription}
+        arrivedAfter={
+          done
+            ? {
+                action: done,
+                chargeId: charge && /^\d+$/.test(charge) ? Number(charge) : undefined,
+              }
+            : undefined
+        }
+      />
     </ScrollView>
   );
 };

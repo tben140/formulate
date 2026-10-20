@@ -1,9 +1,10 @@
 "use server";
 
+import { isCancelReason, type SubscriptionChange } from "@formulate/recharge";
 import { redirect } from "next/navigation";
 
 import { requireCustomerTokens } from "@/lib/customer-account";
-import { changeSubscription, type SubscriptionChange } from "@/lib/recharge";
+import { changeSubscription } from "@/lib/recharge";
 
 /**
  * The subscription portal's changes (SHO-73, SHO-74), as one Server Action.
@@ -50,7 +51,8 @@ const toChange = (form: FormData): SubscriptionChange | null => {
     }
     case "cancel": {
       // A reason helps, but cancelling must never depend on giving one.
-      const reason = field(form, "reason") || "other";
+      const given = field(form, "reason");
+      const reason = isCancelReason(given) ? given : "other";
       const comment = field(form, "comment");
       return { action: "cancel", reason, ...(comment ? { comment } : {}) };
     }

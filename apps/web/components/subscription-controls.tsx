@@ -1,4 +1,11 @@
-import type { RechargeSubscription } from "@formulate/recharge";
+import {
+  changeDoneMessage,
+  changeErrorMessage,
+  isoDateFrom,
+  MAX_PAUSE_MONTHS,
+  MAX_SUBSCRIPTION_QUANTITY,
+  type RechargeSubscription,
+} from "@formulate/recharge";
 import Link from "next/link";
 
 import { changeSubscriptionAction } from "@/app/actions/subscription";
@@ -10,18 +17,11 @@ import { SubmitButton } from "./submit-button";
  * forms posting to one Server Action, so they work without JavaScript.
  */
 
-/** As the cart and the Worker: never more than 6 of one product. */
-const MAX_QUANTITY = 6;
-
 const PRIMARY =
   "rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-surface hover:bg-brand-700";
 const SECONDARY =
   "rounded-md border border-border px-4 py-2 text-sm font-semibold hover:bg-surface-muted";
 const FIELD = "rounded-md border border-border bg-surface px-3 py-2 text-sm";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const isoDay = (offsetDays: number, now = Date.now()) =>
-  new Date(now + offsetDays * DAY_MS).toISOString().slice(0, 10);
 
 /** Every form carries the subscription; the Worker checks it's the customer's. */
 const Hidden = ({ id, action }: { id: number; action: string }) => (
@@ -84,9 +84,11 @@ export const SubscriptionControls = ({
           <label className="flex flex-col gap-1 text-sm">
             Move the next delivery back by
             <select name="months" defaultValue="1" className={FIELD}>
-              <option value="1">1 month</option>
-              <option value="2">2 months</option>
-              <option value="3">3 months</option>
+              {Array.from({ length: MAX_PAUSE_MONTHS }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {n === 1 ? "1 month" : `${n} months`}
+                </option>
+              ))}
             </select>
           </label>
           <SubmitButton className={SECONDARY} pendingLabel="Pausing…">
@@ -107,8 +109,8 @@ export const SubscriptionControls = ({
               type="date"
               name="date"
               required
-              min={isoDay(1)}
-              max={isoDay(365)}
+              min={isoDateFrom(new Date(), 1)}
+              max={isoDateFrom(new Date(), 365)}
               defaultValue={
                 subscription.next_charge_scheduled_at?.slice(0, 10) ?? undefined
               }
@@ -134,11 +136,13 @@ export const SubscriptionControls = ({
               defaultValue={String(subscription.quantity)}
               className={FIELD}
             >
-              {Array.from({ length: MAX_QUANTITY }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
+              {Array.from({ length: MAX_SUBSCRIPTION_QUANTITY }, (_, i) => i + 1).map(
+                (n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ),
+              )}
             </select>
           </label>
           <SubmitButton className={SECONDARY} pendingLabel="Saving…">
@@ -159,22 +163,6 @@ export const SubscriptionControls = ({
   );
 };
 
-const DONE: Record<string, string> = {
-  skip: "Your next delivery is skipped.",
-  unskip: "Your next delivery is back on.",
-  reschedule: "Your next delivery date has changed.",
-  pause: "Paused. Your next delivery has moved back.",
-  quantity: "Quantity updated.",
-  cancel: "Your subscription is cancelled. You can restart it here any time.",
-  reactivate: "Your subscription is active again.",
-};
-
-const ERRORS: Record<string, string> = {
-  "not-allowed": "That change isn't available for this subscription.",
-  invalid: "That didn't look right. Check the date or amount and try again.",
-  "not-found": "We couldn't find that subscription.",
-};
-
 /**
  * The outcome of the last change, read from the URL. `role="status"` so a
  * screen reader announces it after the page reloads with it.
@@ -193,12 +181,11 @@ export const ChangeMessage = ({
   if (error) {
     return (
       <p role="alert" className="mt-6 rounded-md border border-danger px-4 py-3 text-sm">
-        {ERRORS[error] ??
-          "We couldn't make that change just now. Please try again in a moment."}
+        {changeErrorMessage(error)}
       </p>
     );
   }
-  const message = done ? DONE[done] : undefined;
+  const message = done ? changeDoneMessage(done) : null;
   if (!message) return null;
   return (
     <div

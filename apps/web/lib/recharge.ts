@@ -2,6 +2,8 @@ import {
   sortSubscriptions,
   type RechargeCharge,
   type RechargeSubscription,
+  type SubscriptionChange,
+  type SubscriptionChangeResult,
 } from "@formulate/recharge";
 import type { CustomerTokens } from "@formulate/shopify";
 
@@ -127,20 +129,6 @@ export const loadSubscription = async (
     : { kind: "not-found" };
 };
 
-/** The changes the portal can ask for (apps/api src/subscription-actions.ts). */
-export type SubscriptionChange =
-  | { readonly action: "skip" }
-  | { readonly action: "unskip"; readonly chargeId: number }
-  | { readonly action: "reschedule"; readonly date: string }
-  | { readonly action: "pause"; readonly months: number }
-  | { readonly action: "quantity"; readonly quantity: number }
-  | { readonly action: "cancel"; readonly reason: string; readonly comment?: string }
-  | { readonly action: "reactivate" };
-
-export type ChangeResult =
-  | { readonly ok: true; readonly skippedChargeId?: number }
-  | { readonly ok: false; readonly reason: string };
-
 /**
  * Asks the Worker to change one subscription. The Worker checks the
  * subscription is this customer's before touching it, so the id here is only
@@ -150,7 +138,7 @@ export const changeSubscription = async (
   tokens: CustomerTokens,
   subscriptionId: number,
   change: SubscriptionChange,
-): Promise<ChangeResult> => {
+): Promise<SubscriptionChangeResult> => {
   if (!isRechargeConfigured) return { ok: false, reason: "not-configured" };
   try {
     const response = await fetch(`${API_URL}/account/subscriptions/action`, {
