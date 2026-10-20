@@ -454,13 +454,29 @@ only by its own logs has not been verified.
 
 ## Privacy
 
-Onsite tracking sets cookies that are not strictly necessary, which is a consent
-question in the UK and EU. The current position is that this is a demonstration
-store with no real customers, and a consent banner is out of scope — but it is a
-real gap and should be stated as one rather than left for someone to notice.
+Onsite tracking sets a cookie (`__kla_id`) and sends behavioural events. Neither
+is strictly necessary, so under PECR both need consent **before** they happen.
 
-Note the contrast with Vercel Analytics on the web surface, which is cookieless
-and therefore clear of this entirely.
+| Surface | Tracking consent                                                                                                                    |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Theme   | Klaviyo's app embed defers to Shopify's Customer Privacy API. Nothing we wrote.                                                     |
+| Web     | Our own banner. `klaviyo.js` is not loaded until the shopper accepts. [ADR 0008](adr/0008-headless-tracking-consent-is-our-own.md) |
+| Mobile  | No behavioural events yet. They go behind an in-app choice when [SHO-109] lands.                                                    |
+
+⚠️ **Tracking consent and marketing consent are different things.** The email
+capture form records marketing consent, the right to email someone. The banner
+records tracking consent, the right to watch what they browse. One does not
+imply the other: a subscriber who declined tracking gets the emails and no
+browse or cart-abandonment flows.
+
+This matters when reading numbers. Decliners are invisible to Klaviyo on both
+the theme and web, so flow volume counts **consenting** shoppers, not all of
+them. Comparing surfaces is only fair because both now gate the same way.
+
+Vercel Analytics on the web surface is cookieless and stores nothing on the
+device, so it sits outside this entirely.
+
+[SHO-109]: https://linear.app/shopify-project/issue/SHO-109
 
 ## Related
 
