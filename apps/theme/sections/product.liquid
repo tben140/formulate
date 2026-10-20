@@ -26,6 +26,7 @@
           width="{{ product.featured_image.width }}"
           height="{{ product.featured_image.height }}"
           loading="eager"
+          fetchpriority="high"
         >
       {% else %}
         <span class="product__placeholder">No image</span>
