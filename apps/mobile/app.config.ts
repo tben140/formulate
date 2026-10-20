@@ -46,10 +46,10 @@ const config: ExpoConfig = {
   userInterfaceStyle: "light",
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.tben140.formulate",
+    bundleIdentifier: "com.tben140.doublehelix",
   },
   android: {
-    package: "com.tben140.formulate",
+    package: "com.tben140.doublehelix",
     intentFilters: androidAppLinks,
   },
   web: {
