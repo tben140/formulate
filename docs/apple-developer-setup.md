@@ -25,8 +25,9 @@ npx eas-cli login           # the Expo account, as with `expo login`
 npx eas-cli init            # creates the EAS project; prints its id
 ```
 
-- Put the printed project id in `EAS_PROJECT_ID`: an EAS environment
-  variable for all profiles, and `apps/mobile/.env.local` locally. Not secret.
+- Done 2026-10-20: the project is `@tben140/formulate`, and its id is in
+  `app.config.ts` (`extra.eas.projectId`). `eas init` can't write to a `.ts`
+  config, so it prints the id instead. `EAS_PROJECT_ID` still overrides it.
 - Bundle identifier: `com.tben140.doublehelix` (app.config.ts, chosen
   2026-10-20). **It becomes permanent at the first upload.**
 

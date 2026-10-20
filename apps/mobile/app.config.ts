@@ -75,11 +75,14 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
   },
-  // Set by `eas init` (see docs/apple-developer-setup.md). Read from the
-  // environment so the config works before the EAS project exists.
-  ...(process.env.EAS_PROJECT_ID
-    ? { extra: { eas: { projectId: process.env.EAS_PROJECT_ID } } }
-    : {}),
+  // The EAS project (@tben140/formulate), from `eas init` on 2026-10-20. Not a
+  // secret: it names the project, it grants nothing. EAS_PROJECT_ID can
+  // still override it, e.g. for a fork with its own project.
+  extra: {
+    eas: {
+      projectId: process.env.EAS_PROJECT_ID ?? "a9820ed7-2f31-472f-b472-5a7f5545b16e",
+    },
+  },
 };
 
 export default config;
