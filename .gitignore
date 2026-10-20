@@ -54,3 +54,18 @@ pnpm-debug.log*
 # .obsidian/ holds per-machine UI state (open panes, window size, hotkeys) that
 # would churn on every commit.
 .obsidian/
+
+# Wrangler's local secrets for apps/api. Holds the Klaviyo PRIVATE key.
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Playwright output (apps/web/e2e)
+test-results/
+playwright-report/
+blob-report/
+# Playwright auth state (Vercel bypass cookie, e2e/global-setup.ts)
+apps/web/e2e/.auth/
+
+# Lighthouse CI output (apps/web/lighthouserc.cjs)
+.lighthouseci/

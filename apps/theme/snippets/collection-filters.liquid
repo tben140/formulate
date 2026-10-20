@@ -1,0 +1,171 @@
+{% doc %}
+  Search & Discovery filters for a collection (SHO-153), matching apps/web's
+  components/collection-filters.tsx: a Filter disclosure holding a GET form,
+  active filters as removable chips, and a product count.
+
+  No JavaScript. Liquid's own `collection.filters` writes the same query
+  string the headless surfaces read (`filter.v.option.flavour=Vanilla`,
+  `filter.v.price.lte=20`), so a filtered URL is the same everywhere.
+
+  Shared by collections and search (Liquid's `search` object has the same
+  filters), so the two can't drift.
+
+  @param {object[]} filters - `collection.filters` or `search.filters`.
+  @param {string} action - Where the form submits: the listing's own URL.
+  @param {string} clear_url - The listing with every filter removed.
+  @param {number} count - How many products match.
+  @param {string} [terms] - The search terms, kept when filters change.
+  @param {string} [sort_by] - The current sort, kept when filters change.
+{% enddoc %}
+
+{%- liquid
+  assign active_count = 0
+  for filter in filters
+    if filter.type == 'price_range'
+      if filter.min_value.value != null
+        assign active_count = active_count | plus: 1
+      endif
+      if filter.max_value.value != null
+        assign active_count = active_count | plus: 1
+      endif
+    else
+      assign active_count = active_count | plus: filter.active_values.size
+    endif
+  endfor
+-%}
+
+{%- if filters.size > 0 -%}
+  <div class="collection-filters">
+    <div class="collection-filters__bar">
+      <details class="collection-filters__panel">
+        <summary class="collection-filters__toggle">
+          {{ 'collections.filter' | t }}
+          {%- if active_count > 0 -%}
+            <span class="collection-filters__badge">
+              {{- active_count -}}
+              <span class="visually-hidden"> {{ 'collections.active' | t }}</span>
+            </span>
+          {%- endif -%}
+          <span aria-hidden="true" class="collection-filters__chevron">▾</span>
+        </summary>
+
+        <form class="collection-filters__form" method="get" action="{{ action }}">
+          {%- if terms != blank -%}
+            <input type="hidden" name="q" value="{{ terms | escape }}">
+            <input type="hidden" name="type" value="product">
+          {%- endif -%}
+          {%- if sort_by != blank -%}
+            <input type="hidden" name="sort_by" value="{{ sort_by | escape }}">
+          {%- endif -%}
+
+          {%- for filter in filters -%}
+            <fieldset class="collection-filters__group">
+              <legend class="collection-filters__legend">{{ filter.label | escape }}</legend>
+              {%- if filter.type == 'price_range' -%}
+                <div class="collection-filters__price">
+                  <label class="collection-filters__price-field">
+                    {{ 'collections.price_from' | t }}
+                    <span>
+                      <span aria-hidden="true">{{ cart.currency.symbol }}</span>
+                      <input
+                        type="number"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                        name="{{ filter.min_value.param_name }}"
+                        {% if filter.min_value.value != null %}
+                          value="{{ filter.min_value.value | money_without_currency | remove: ',' }}"
+                        {% endif %}
+                        placeholder="0"
+                      >
+                    </span>
+                  </label>
+                  <label class="collection-filters__price-field">
+                    {{ 'collections.price_to' | t }}
+                    <span>
+                      <span aria-hidden="true">{{ cart.currency.symbol }}</span>
+                      <input
+                        type="number"
+                        inputmode="decimal"
+                        min="0"
+                        step="0.01"
+                        name="{{ filter.max_value.param_name }}"
+                        {% if filter.max_value.value != null %}
+                          value="{{ filter.max_value.value | money_without_currency | remove: ',' }}"
+                        {% endif %}
+                        placeholder="{{ filter.range_max | money_without_currency | remove: ',' }}"
+                      >
+                    </span>
+                  </label>
+                </div>
+              {%- else -%}
+                <ul class="collection-filters__values" role="list">
+                  {%- for value in filter.values -%}
+                    <li>
+                      <label class="collection-filters__value{% if value.count == 0 and value.active == false %} is-empty{% endif %}">
+                        <input
+                          type="checkbox"
+                          name="{{ value.param_name }}"
+                          value="{{ value.value | escape }}"
+                          {% if value.active %}checked{% endif %}
+                          {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                        >
+                        {{ value.label | escape }}
+                        <span class="collection-filters__count">({{ value.count }})</span>
+                      </label>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              {%- endif -%}
+            </fieldset>
+          {%- endfor -%}
+
+          <div class="collection-filters__actions">
+            <button type="submit" class="collection-filters__apply">{{ 'collections.apply' | t }}</button>
+            {%- if active_count > 0 -%}
+              <a class="collection-filters__clear" href="{{ clear_url }}">{{ 'collections.clear_all' | t }}</a>
+            {%- endif -%}
+          </div>
+        </form>
+      </details>
+
+      <p class="collection-filters__count-total">
+        {{ 'collections.product_count' | t: count: count }}
+      </p>
+    </div>
+
+    {%- if active_count > 0 -%}
+      <ul class="collection-filters__chips" role="list" aria-label="{{ 'collections.active_filters' | t }}">
+        {%- for filter in filters -%}
+          {%- if filter.type == 'price_range' -%}
+            {%- if filter.min_value.value != null or filter.max_value.value != null -%}
+              <li>
+                <a class="collection-filters__chip" href="{{ filter.url_to_remove }}">
+                  {{ filter.label | escape }}:
+                  {% if filter.min_value.value != null %}{{ filter.min_value.value | money }}{% else %}{{ 0 | money }}{% endif %}
+                  –
+                  {% if filter.max_value.value != null %}{{ filter.max_value.value | money }}{% else %}{{ filter.range_max | money }}{% endif %}
+                  <span aria-hidden="true">×</span>
+                  <span class="visually-hidden">, {{ 'collections.remove_filter' | t }}</span>
+                </a>
+              </li>
+            {%- endif -%}
+          {%- else -%}
+            {%- for value in filter.active_values -%}
+              <li>
+                <a class="collection-filters__chip" href="{{ value.url_to_remove }}">
+                  {{ filter.label | escape }}: {{ value.label | escape }}
+                  <span aria-hidden="true">×</span>
+                  <span class="visually-hidden">, {{ 'collections.remove_filter' | t }}</span>
+                </a>
+              </li>
+            {%- endfor -%}
+          {%- endif -%}
+        {%- endfor -%}
+        <li>
+          <a class="collection-filters__clear" href="{{ clear_url }}">{{ 'collections.clear_all' | t }}</a>
+        </li>
+      </ul>
+    {%- endif -%}
+  </div>
+{%- endif -%}

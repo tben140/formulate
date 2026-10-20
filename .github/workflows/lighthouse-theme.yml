@@ -1,0 +1,132 @@
+name: Lighthouse (theme)
+
+# Shopify's own Lighthouse CI action for apps/theme. It pushes the PR's theme to
+# the store as a temporary development theme, audits the home, product and
+# collection pages through the storefront password, then deletes the theme.
+
+on:
+  # Every PR, not only theme PRs: this is a required check on main (SHO-68),
+  # and a required check that never starts blocks a PR forever. PRs that don't
+  # touch the theme finish in seconds; see the "Decide" step.
+  pull_request:
+  # Weekly run against main, so the theme is still measured when nobody is
+  # changing it (app embeds, store content and Shopify itself all move).
+  schedule:
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse (theme)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # A Theme Access password (the `shptka_` token from Shopify's Theme
+      # Access app), not Dev Dashboard app credentials. The action pushes and
+      # deletes a temporary theme with the Shopify CLI, and Shopify refuses
+      # themeCreate to an app without a theme-editing exemption (tried
+      # 2026-10-01: "Access denied for themeCreate field ... needs write_themes
+      # and an exemption"). Theme Access passwords carry that exemption; they
+      # exist for exactly this. The Admin API is never called: both page
+      # handles are set below.
+      # All empty on forks and until they are added, and the job then skips
+      # rather than failing.
+      SHOP_STORE: ${{ secrets.SHOP_STORE }}
+      SHOP_THEME_ACCESS_PASSWORD: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+      # Development stores are always password protected, so without this the
+      # audit reaches the password page and fails rather than skipping.
+      SHOP_PASSWORD: ${{ secrets.SHOP_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The PR's base commit too, to see whether the theme changed.
+          fetch-depth: 0
+
+      # Whether there's anything to audit. Pull requests that don't touch the
+      # theme (or this workflow) pass at once; scheduled and manual runs always
+      # audit. Without credentials (forks, before secrets exist) it skips too.
+      - name: Decide whether to audit
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -z "$SHOP_THEME_ACCESS_PASSWORD" ] || [ -z "$SHOP_STORE" ] || [ -z "$SHOP_PASSWORD" ]; then
+            echo "::notice::Theme Lighthouse skipped - SHOP_STORE, SHOP_THEME_ACCESS_PASSWORD and SHOP_PASSWORD secrets are not all set."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BASE...$HEAD" | grep -qE '^(apps/theme/|\.github/workflows/lighthouse-theme\.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No theme changes in this PR - nothing to audit."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The action is meant to delete its temporary theme on exit, but its
+      # cleanup never runs: it tests `${theme+x}` while the script stores the
+      # theme in `preview_id` (988f0ee, found 2026-10-01). So this job notes the
+      # development themes that exist before, and deletes the new one after.
+      - name: Record development themes before the audit
+        id: themes-before
+        if: steps.gate.outputs.run == 'true'
+        env:
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+          SHOPIFY_CLI_NO_ANALYTICS: "1"
+        run: >-
+          npx --yes @shopify/cli@4.6.0 theme list --store "$SHOP_STORE"
+          --role development --json > "$RUNNER_TEMP/themes-before.json"
+
+      # Pinned to the commit behind the v1 tag (2026-04-13). The action receives
+      # credentials that can write themes, so a moved tag should not be able to
+      # change what runs with them.
+      - uses: shopify/lighthouse-ci-action@988f0eeb44ad5f298bd47150e5b9b01c27ead975 # v1
+        if: steps.gate.outputs.run == 'true'
+        with:
+          store: ${{ secrets.SHOP_STORE }}
+          # Passed to the CLI as SHOPIFY_CLI_THEME_TOKEN. Don't also pass
+          # client_id/client_secret: the action prefers those when present.
+          access_token: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+          # Development stores are always password protected.
+          password: ${{ secrets.SHOP_PASSWORD }}
+          theme_root: apps/theme
+          # The same product and a listing page the web workflow audits.
+          product_handle: magnesium-glycinate
+          collection_handle: best-sellers
+          # Ratcheted (SHO-68, 2026-10-07). Recent medians are 0.74-0.89; a 2 s
+          # main-thread block scored 0.55 and passed the old 0.5 floor (SHO-29).
+          # The action only takes minimum scores, so this is the theme's whole
+          # performance budget.
+          lhci_min_score_performance: 0.7
+          lhci_min_score_accessibility: 0.95
+
+      # Only a theme that is new since the step above AND named the way the
+      # action's CLI names it, "Development (<hash>-<12-hex container id>)".
+      # A developer's own `theme dev` theme (named after their machine) can't
+      # match, even if one appears mid-run.
+      - name: Delete the development theme this run created
+        if: always() && steps.themes-before.outcome == 'success'
+        env:
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+          SHOPIFY_CLI_NO_ANALYTICS: "1"
+        run: |
+          cli() { npx --yes @shopify/cli@4.6.0 "$@" --store "$SHOP_STORE"; }
+          cli theme list --role development --json > "$RUNNER_TEMP/themes-after.json"
+          ids=$(jq -r --slurpfile before "$RUNNER_TEMP/themes-before.json" '
+            [.[] | select(.name | test("^Development \\([0-9a-f]+-[0-9a-f]{12}\\)$")) | .id]
+            - [$before[0][].id] | .[]' "$RUNNER_TEMP/themes-after.json")
+          if [ -z "$ids" ]; then echo "No temporary theme to delete."; exit 0; fi
+          for id in $ids; do
+            echo "Deleting temporary development theme $id"
+            cli theme delete --theme "$id" --force
+          done

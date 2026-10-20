@@ -1,0 +1,142 @@
+{% comment %}
+  "Pairs well with" (SHO-153), matching apps/web's
+  components/pairs-well-with.tsx: the complementary products set per product
+  in Shopify's Search & Discovery app.
+
+  Shopify's recommendations are only available through its recommendations
+  endpoint, so this renders in two passes, as Shopify's own themes do:
+
+    1. On the product page, `recommendations.performed?` is false and only the
+       empty <pairs-well-with> element is output.
+    2. assets/pairs-well-with.js requests this same section from
+       `routes.product_recommendations_url` with `intent=complementary`, where
+       the list is filled in, and swaps it in.
+
+  Without JavaScript nothing shows, which is the right fallback for an extra
+  suggestion. Merchandising only: no copy suggesting a benefit of taking the
+  products together. Sold-out products are skipped, as the Storefront API does
+  for the headless surfaces.
+{% endcomment %}
+
+<pairs-well-with
+  class="container"
+  data-url="{{ routes.product_recommendations_url }}?product_id={{ product.id }}&limit=4&intent=complementary&section_id={{ section.id }}"
+>
+  {%- if recommendations.performed? and recommendations.products_count > 0 -%}
+    {%- liquid
+      assign shown = 0
+      for item in recommendations.products
+        if item.available
+          assign shown = shown | plus: 1
+        endif
+      endfor
+    -%}
+    {%- if shown > 0 -%}
+      <section class="pairs-well-with" aria-labelledby="pairs-well-with-{{ section.id }}">
+        <h2 id="pairs-well-with-{{ section.id }}" class="pairs-well-with__title">
+          {{ 'product.pairs_well_with' | t }}
+        </h2>
+        <ul class="pairs-well-with__list" role="list">
+          {%- assign listed = 0 -%}
+          {%- for item in recommendations.products -%}
+            {%- if item.available and listed < 3 -%}
+              {%- assign listed = listed | plus: 1 -%}
+              <li>
+                <a class="pairs-well-with__item" href="{{ item.url }}">
+                  {%- if item.featured_image -%}
+                    <img
+                      class="pairs-well-with__image"
+                      src="{{ item.featured_image | image_url: width: 128, height: 128, crop: 'center' }}"
+                      alt=""
+                      width="64"
+                      height="64"
+                      loading="lazy"
+                    >
+                  {%- endif -%}
+                  <span class="pairs-well-with__text">
+                    <span class="pairs-well-with__name">{{ item.title }}</span>
+                    <span class="pairs-well-with__price">{{ item.price | money }}</span>
+                  </span>
+                </a>
+              </li>
+            {%- endif -%}
+          {%- endfor -%}
+        </ul>
+      </section>
+    {%- endif -%}
+  {%- endif -%}
+</pairs-well-with>
+
+{% stylesheet %}
+  pairs-well-with {
+    display: block;
+  }
+
+  .pairs-well-with {
+    max-inline-size: 32rem;
+    margin-block-end: var(--spacing-12);
+    padding-block-start: var(--spacing-6);
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .pairs-well-with__title {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: 600;
+  }
+
+  .pairs-well-with__list {
+    display: grid;
+    gap: var(--spacing-3);
+    margin: var(--spacing-4) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pairs-well-with__item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-foreground);
+    text-decoration: none;
+  }
+
+  .pairs-well-with__item:hover {
+    border-color: var(--color-brand-400);
+  }
+
+  .pairs-well-with__image {
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+    object-fit: cover;
+  }
+
+  .pairs-well-with__text {
+    display: grid;
+    min-inline-size: 0;
+  }
+
+  .pairs-well-with__name {
+    overflow: hidden;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pairs-well-with__price {
+    font-size: var(--text-sm);
+    color: var(--color-foreground-muted);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Pairs well with",
+  "enabled_on": { "templates": ["product"] }
+}
+{% endschema %}

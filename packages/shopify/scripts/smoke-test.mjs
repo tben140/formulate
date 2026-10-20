@@ -16,7 +16,7 @@ const apiVersion = process.env.SHOPIFY_API_VERSION ?? "2026-04";
 if (!domain || !token) {
   console.error(
     "Missing SHOPIFY_STORE_DOMAIN or SHOPIFY_STOREFRONT_TOKEN.\n" +
-      "Copy .env.example to apps/web/.env.local and fill it in.",
+      "Copy apps/web/.env.example to apps/web/.env.local and fill it in.",
   );
   process.exit(1);
 }
@@ -45,7 +45,9 @@ const response = await fetch(`https://${domain}/api/${apiVersion}/graphql.json`,
   },
   body: JSON.stringify({
     query,
-    variables: { handle: "automated-collection" },
+    // A copy of DEFAULT_COLLECTION_HANDLE in src/config.ts; this script runs as
+    // plain Node and cannot import TypeScript. Change both together.
+    variables: { handle: "best-sellers" },
   }),
 });
 

@@ -1,6 +1,11 @@
 "use server";
 
-import { describeError, type Cart, type CartLineInput } from "@formulate/shopify";
+import {
+  describeError,
+  describeForShopper,
+  type Cart,
+  type CartLineInput,
+} from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -39,6 +44,11 @@ import {
  */
 export interface CartActionState {
   readonly status: "idle" | "success" | "error";
+  /**
+   * Shown to the shopper: an error on failure, or on success a note that fewer
+   * were added than asked for (see `notice` in packages/shopify). Always
+   * shopper-facing text — never `describeError`, which is for logs.
+   */
   readonly message?: string;
   /**
    * Bumped on every successful add.
@@ -91,26 +101,28 @@ export const addToCart = async (
     ...(sellingPlanId ? { sellingPlanId } : {}),
   };
 
-  const existingId = await readCartId();
-
   /*
    * A cart created for a shopper we already know carries their email from the
    * start. That is what lets Shopify record an *attributable* abandoned
    * checkout if they leave without buying — see `create` in packages/shopify.
+   *
+   * ⚠️ Only a cart Shopify says no longer exists is replaced, and it is
+   * replaced within this same add. Any other failure keeps the cookie: the
+   * cart is still fine, and clearing it would silently lose everything in it.
+   * See `addLinesOrCreate` and `isCartGone` in packages/shopify (SHO-122).
    */
-  const result = existingId
-    ? await cartClient.addLines(existingId, [line])
-    : await cartClient.create({
-        lines: [line],
-        email: (await readBuyerEmail()) ?? undefined,
-      });
+  const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
+    cartId: await readCartId(),
+    lines: [line],
+    email: readBuyerEmail,
+  });
 
   if (!result.ok) {
-    // A cart the shopper still has a cookie for can expire or be completed, in
-    // which case addLines fails on an id that no longer resolves. Clearing lets
-    // the next attempt start a fresh cart rather than failing forever.
-    if (existingId) await clearCartId();
-    return { status: "error", message: describeError(result.error) };
+    if (storedCartGone) await clearCartId();
+    // The detail for whoever reads the logs; the shopper gets something
+    // they can act on, not "Storefront rejected the operation: …gid://…".
+    console.error(`[cart] add failed: ${describeError(result.error)}`);
+    return { status: "error", message: describeForShopper(result.error) };
   }
 
   await writeCartId(result.data.id);
@@ -127,6 +139,7 @@ export const addToCart = async (
 
   return {
     status: "success",
+    ...(notice ? { message: notice } : {}),
     token: Date.now(),
     cart: result.data,
     addedLineId: addedLine?.id,

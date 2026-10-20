@@ -62,3 +62,9 @@ export const useCartUi = (): CartUiValue => {
   }
   return value;
 };
+
+/**
+ * The cart drawer's heading. A suggestion add hands focus to it, because the
+ * button that had focus leaves the list (see cart-suggestions.tsx).
+ */
+export const CART_DRAWER_TITLE_ID = "cart-drawer-title";

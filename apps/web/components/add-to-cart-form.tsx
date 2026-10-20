@@ -10,7 +10,7 @@ import {
   type ProductByHandleResult,
   type SelectedOption,
 } from "@formulate/shopify";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
@@ -102,8 +102,32 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
 
   const soldOut = Boolean(variant && !variant.availableForSale);
 
+  const buttonLabel = pending
+    ? "Adding…"
+    : soldOut
+      ? "Sold out"
+      : !variant
+        ? "Unavailable in this combination"
+        : "Add to cart";
+
+  // Nothing to add: no variant for this combination, or it's sold out.
+  const unavailable = !variant || soldOut;
+
+  const primaryButton = useRef<HTMLButtonElement>(null);
+  const stickyVisible = useOffScreen(primaryButton);
+
   return (
-    <form action={formAction} className="mt-6">
+    <form
+      action={formAction}
+      // The buttons are never natively `disabled` (see below), so the form
+      // refuses here instead: a second submit while one is in flight would add
+      // the item twice, and there's nothing to add when it's unavailable.
+      // React skips the action when onSubmit prevents default.
+      onSubmit={(event) => {
+        if (pending || unavailable) event.preventDefault();
+      }}
+      className="mt-6"
+    >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
 
@@ -123,13 +147,23 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                 );
 
                 return (
+                  // The radio is sr-only, so the global :focus-visible outline
+                  // would draw on a clipped 1px box. The label shows it instead,
+                  // matching the theme's .product-form__pill (WCAG 2.4.7).
                   <label
                     key={value.name}
-                    className={`cursor-pointer rounded-md border px-3 py-2 text-sm ${
+                    className={`cursor-pointer rounded-md border px-3 py-2 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 ${
                       checked
                         ? "border-brand-600 bg-brand-50 font-medium"
                         : "border-border hover:border-foreground-muted"
-                    } ${match && !match.availableForSale ? "text-foreground-muted line-through" : ""}`}
+                    } ${
+                      // Muted grey on the selected card's brand-50 is 4.34:1,
+                      // under AA's 4.5:1, so a selected sold-out value keeps
+                      // full-strength text and relies on the line-through.
+                      match && !match.availableForSale
+                        ? `line-through ${checked ? "" : "text-foreground-muted"}`
+                        : ""
+                    }`}
                   >
                     <input
                       type="radio"
@@ -188,7 +222,15 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                   {choice.label}
                 </span>
                 {choice.price ? (
-                  <span className="text-foreground-muted">
+                  <span
+                    // Full-strength on the selected card: muted grey on
+                    // brand-50 is 4.34:1, under AA's 4.5:1.
+                    className={`font-mono ${
+                      effectivePlanId === choice.id
+                        ? "text-foreground"
+                        : "text-foreground-muted"
+                    }`}
+                  >
                     {/*
                       The leading space is for the accessible name, not the
                       layout — flex handles the visual gap. Without it the
@@ -205,21 +247,27 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       ) : null}
 
       {displayPrice ? (
-        <p className="mb-4 text-2xl font-semibold">{formatMoney(displayPrice)}</p>
+        // DM Mono ships in 400 and 500 only; semibold would be synthesised.
+        <p className="mb-4 font-mono text-2xl font-medium">{formatMoney(displayPrice)}</p>
       ) : null}
 
+      {/*
+        ⚠️ `aria-disabled`, never `disabled` (SHO-134). A focused button that
+        becomes disabled drops focus to <body>, so the cart drawer, which
+        returns focus to whatever had it when it opened, would send a keyboard
+        user back to the top of the page on close. That happens while an add is
+        in flight, and also after one: adding the last unit in stock
+        revalidates the page, the variant comes back sold out, and the button
+        that has focus would turn disabled in the same render.
+      */}
       <button
+        ref={primaryButton}
         type="submit"
-        disabled={!variant || soldOut || pending}
-        className="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-surface hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-ink-300"
+        aria-disabled={pending || unavailable || undefined}
+        data-unavailable={unavailable || undefined}
+        className="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-surface hover:bg-brand-700 aria-disabled:cursor-wait data-unavailable:cursor-not-allowed data-unavailable:bg-ink-300 data-unavailable:hover:bg-ink-300"
       >
-        {pending
-          ? "Adding…"
-          : soldOut
-            ? "Sold out"
-            : !variant
-              ? "Unavailable in this combination"
-              : "Add to cart"}
+        {buttonLabel}
       </button>
 
       {/*
@@ -228,13 +276,195 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         announced. `polite` rather than `assertive`: nothing here is urgent
         enough to interrupt.
       */}
+      {/*
+        Inside the same form and fed by the same render, so it cannot disagree
+        with the controls above: one state, two views of it (SHO-117). Its
+        button submits this form, with the same variant and plan.
+      */}
+      <StickyAddToCart
+        visible={stickyVisible}
+        title={product.title}
+        variantTitle={variant && variant.title !== "Default Title" ? variant.title : null}
+        planName={chosenAllocation?.sellingPlan.name ?? null}
+        price={displayPrice ? formatMoney(displayPrice) : null}
+        buttonLabel={buttonLabel}
+        unavailable={unavailable}
+        busy={pending}
+        error={state.status === "error" ? (state.message ?? null) : null}
+        returnFocusTo={primaryButton}
+      />
+
       <p role="status" aria-live="polite" className="mt-3 text-sm">
         {state.status === "error" ? (
           <span className="text-danger">{state.message}</span>
         ) : state.status === "success" ? (
-          <span className="text-success">Added to your cart.</span>
+          // A message on success means fewer were added than asked for, which
+          // the shopper needs to notice — so it is not styled as a success.
+          state.message ? (
+            <span className="text-foreground">{state.message}</span>
+          ) : (
+            <span className="text-success">Added to your cart.</span>
+          )
         ) : null}
       </p>
     </form>
+  );
+};
+
+/**
+ * True while `target` is not on screen, above or below.
+ *
+ * An IntersectionObserver rather than a scroll-position threshold: a threshold
+ * is a number that silently goes wrong when anything above the button changes
+ * height.
+ *
+ * Either direction, not only "scrolled past". On a phone this PDP is image
+ * first and the button sits near the end: measured on Whey Protein at 390px,
+ * the button starts 993px down a 1,308px page and is still on screen at the
+ * bottom of the scroll. A bar that waited for the button to leave upwards
+ * would never appear. What it is for here is the opposite case: a shopper
+ * looking at the product above the button.
+ */
+const useOffScreen = (target: React.RefObject<HTMLElement | null>): boolean => {
+  const [offScreen, setOffScreen] = useState(false);
+
+  useEffect(() => {
+    const element = target.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry) setOffScreen(!entry.isIntersecting);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [target]);
+
+  return offScreen;
+};
+
+/** Tailwind's `md`. The bar is a small-viewport affordance only. */
+const SMALL_VIEWPORT = "(max-width: 767px)";
+
+/**
+ * Whether a media query matches, kept current: rotating a phone or tablet can
+ * cross `md`, and the bar's page padding has to follow.
+ */
+const useMediaQuery = (query: string): boolean =>
+  useSyncExternalStore(
+    (onChange) => {
+      const list = window.matchMedia(query);
+      list.addEventListener("change", onChange);
+      return () => list.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(query).matches,
+    // On the server there is no viewport: no bar, so no padding.
+    () => false,
+  );
+
+const StickyAddToCart = ({
+  visible,
+  title,
+  variantTitle,
+  planName,
+  price,
+  buttonLabel,
+  unavailable,
+  busy,
+  error,
+  returnFocusTo,
+}: {
+  readonly visible: boolean;
+  readonly title: string;
+  readonly variantTitle: string | null;
+  readonly planName: string | null;
+  readonly price: string | null;
+  readonly buttonLabel: string;
+  /** Nothing to add. aria-disabled, never disabled: see the main button. */
+  readonly unavailable: boolean;
+  /** An add is in flight. aria-disabled too. */
+  readonly busy: boolean;
+  /** A failed add's message, shown in the bar too: the form's own is off screen. */
+  readonly error: string | null;
+  /** Where focus goes if the bar hides while it holds focus. */
+  readonly returnFocusTo: React.RefObject<HTMLElement | null>;
+}) => {
+  const bar = useRef<HTMLDivElement>(null);
+  const small = useMediaQuery(SMALL_VIEWPORT);
+
+  /*
+   * Pads the page by the bar's height while it shows, so it never sits on top
+   * of the last line of content (the footer's sign-up). Only on small
+   * viewports, where the bar exists at all. Follows the viewport crossing `md`
+   * (rotation) and the bar's own height (an error line), not just `visible`.
+   */
+  useEffect(() => {
+    const element = bar.current;
+    if (!visible || !small || !element) return;
+
+    const previous = document.body.style.paddingBottom;
+    const pad = () => {
+      document.body.style.paddingBottom = `${element.offsetHeight}px`;
+    };
+    pad();
+    const observer = new ResizeObserver(pad);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      document.body.style.paddingBottom = previous;
+    };
+  }, [visible, small]);
+
+  /*
+   * The bar goes inert as it hides. If its button had focus (a keyboard or
+   * screen reader user who just used it), focus would fall back to <body>, the
+   * top of the page. The main button is on screen by then, by definition, so
+   * focus moves there instead.
+   */
+  useEffect(() => {
+    if (visible) return;
+    if (bar.current?.contains(document.activeElement)) {
+      returnFocusTo.current?.focus({ preventScroll: true });
+    }
+  }, [visible, returnFocusTo]);
+
+  const detail = [variantTitle, planName].filter(Boolean).join(" · ");
+
+  return (
+    <div
+      ref={bar}
+      // Out of the tab order and the accessibility tree while hidden. Two live
+      // "Add to cart" buttons, one of them invisible, would be worse than one.
+      inert={!visible}
+      className={`fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface px-4 py-3 transition-transform duration-200 motion-reduce:transition-none md:hidden ${
+        visible ? "translate-y-0" : "translate-y-full"
+      }`}
+    >
+      {/*
+        Not a live region: the form's status line already announces the error,
+        and two would read it twice. This is for sighted shoppers, who can't
+        see that line while the bar is up.
+      */}
+      {error ? <p className="mb-2 text-sm text-danger">{error}</p> : null}
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{title}</p>
+          <p className="truncate text-xs text-foreground-muted">
+            {[detail, price].filter(Boolean).join(" — ")}
+          </p>
+        </div>
+        <button
+          type="submit"
+          aria-disabled={busy || unavailable || undefined}
+          data-unavailable={unavailable || undefined}
+          // Starts with the visible text, so voice control users can say what
+          // they see (WCAG 2.5.3), and adds the product so a screen reader's
+          // list of buttons can tell this one from the main button.
+          aria-label={`${buttonLabel}, ${title}${variantTitle ? `, ${variantTitle}` : ""}`}
+          className="shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-surface hover:bg-brand-700 aria-disabled:cursor-wait data-unavailable:cursor-not-allowed data-unavailable:bg-ink-300 data-unavailable:hover:bg-ink-300"
+        >
+          {buttonLabel}
+        </button>
+      </div>
+    </div>
   );
 };
