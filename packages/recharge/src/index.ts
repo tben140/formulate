@@ -28,3 +28,18 @@ export {
   subscriptionStatusLabel,
 } from "./display";
 export type { Money } from "./display";
+
+export {
+  CANCEL_REASONS,
+  MAX_PAUSE_MONTHS,
+  MAX_SUBSCRIPTION_QUANTITY,
+  changeDoneMessage,
+  changeErrorMessage,
+  isCancelReason,
+  isoDateFrom,
+} from "./changes";
+export type {
+  CancelReason,
+  SubscriptionChange,
+  SubscriptionChangeResult,
+} from "./changes";

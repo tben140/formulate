@@ -1,5 +1,14 @@
-import { rechargeCustomerId, rechargeList, type RechargeAdminEnv } from "./recharge-admin";
-import { bearerToken, verifyCustomer, type CustomerEnv } from "./shopify-customer";
+import {
+  rechargeCustomerId,
+  rechargeList,
+  type RechargeAdminEnv,
+} from "./recharge-admin";
+import {
+  bearerToken,
+  verifyCustomer,
+  withinCustomerLimit,
+  type CustomerEnv,
+} from "./shopify-customer";
 
 /**
  * The subscription portal's data (SHO-71, SHO-72), read with the Recharge
@@ -75,7 +84,8 @@ export type SubscriptionsResult =
       readonly status: number;
       readonly body: {
         readonly ok: false;
-        readonly reason: "unauthorized" | "not-configured" | "unavailable";
+        readonly reason:
+          "unauthorized" | "not-configured" | "unavailable" | "rate-limited";
       };
     };
 
@@ -92,6 +102,9 @@ export const listSubscriptions = async (
 
   const customer = await verifyCustomer(env, token);
   if (!customer) return { status: 401, body: { ok: false, reason: "unauthorized" } };
+  if (!(await withinCustomerLimit(env, customer.id))) {
+    return { status: 429, body: { ok: false, reason: "rate-limited" } };
+  }
 
   const rechargeId = await rechargeCustomerId(env, customer.id);
   if (rechargeId === null) {

@@ -9,10 +9,15 @@
  * act on someone else's account.
  */
 
+import { CUSTOMER_LIMIT } from "./rate-limit-policy";
+import type { RateLimiter } from "./rate-limiter";
+
 export interface CustomerEnv {
   /** Plain vars: they name the store, they grant nothing. */
   readonly SHOPIFY_SHOP_ID: string;
   readonly SHOPIFY_API_VERSION: string;
+  /** The Worker's limiter; absent in unit tests, which then skip the limit. */
+  readonly RATE_LIMITER?: DurableObjectNamespace<RateLimiter>;
 }
 
 export interface VerifiedCustomer {
@@ -55,4 +60,20 @@ export const verifyCustomer = async (
   return id
     ? { id, email: body?.data?.customer?.emailAddress?.emailAddress ?? null }
     : null;
+};
+
+/**
+ * The per-customer limit for signed-in routes: CUSTOMER_LIMIT a minute for
+ * each verified customer, whichever server or phone they call from. Keyed by
+ * Shopify's id, never by anything in the request.
+ */
+export const withinCustomerLimit = async (
+  env: CustomerEnv,
+  customerId: string,
+): Promise<boolean> => {
+  if (!env.RATE_LIMITER) return true;
+  const { success } = await env.RATE_LIMITER.get(
+    env.RATE_LIMITER.idFromName(`customer:${customerId}`),
+  ).limit(CUSTOMER_LIMIT);
+  return success;
 };

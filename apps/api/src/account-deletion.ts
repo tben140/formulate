@@ -9,6 +9,7 @@ import {
 import {
   bearerToken,
   verifyCustomer,
+  withinCustomerLimit,
   type CustomerEnv,
   type VerifiedCustomer,
 } from "./shopify-customer";
@@ -97,6 +98,7 @@ export type DeletionFailure = {
   readonly ok: false;
   readonly reason:
     | "unauthorized"
+    | "rate-limited"
     | "not-configured"
     | "not-confirmed"
     | "subscriptions"
@@ -188,6 +190,9 @@ const authorise = async (
   }
   const customer = await verifyCustomer(env, token);
   if (!customer) return fail(401, "unauthorized");
+  // Both deletion routes come through here, so both get the per-customer
+  // limit the subscription routes have (see src/shopify-customer.ts).
+  if (!(await withinCustomerLimit(env, customer.id))) return fail(429, "rate-limited");
   const adminToken = await adminAccessToken(env);
   if (!adminToken) return fail(503, "not-configured");
   return { ...customer, adminToken };

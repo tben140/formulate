@@ -188,6 +188,25 @@ describe("⚠️ who can be affected", () => {
     expect(kinds(calls)).toEqual(["verify"]);
   });
 
+  it("stops at the per-customer limit, after Shopify and before anything else", async () => {
+    const calls = stubUpstream();
+    const keys: string[] = [];
+    const limited = {
+      ...env,
+      RATE_LIMITER: {
+        idFromName: (name: string) => {
+          keys.push(name);
+          return name;
+        },
+        get: () => ({ limit: () => Promise.resolve({ success: false }) }),
+      },
+    } as unknown as DeletionEnv;
+    const result = await previewDeletion(limited, request());
+    expect(result.status).toBe(429);
+    expect(keys).toEqual([expect.stringMatching(/^customer:\d+$/)]);
+    expect(kinds(calls)).toEqual(["verify"]);
+  });
+
   it("sends the token to Shopify bare, as the Customer Account API expects", async () => {
     const calls = stubUpstream();
     await previewDeletion(env, request());

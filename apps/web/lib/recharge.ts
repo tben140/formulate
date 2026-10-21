@@ -2,6 +2,8 @@ import {
   sortSubscriptions,
   type RechargeCharge,
   type RechargeSubscription,
+  type SubscriptionChange,
+  type SubscriptionChangeResult,
 } from "@formulate/recharge";
 import type { CustomerTokens } from "@formulate/shopify";
 
@@ -65,7 +67,9 @@ const fetchPortal = async (tokens: CustomerTokens): Promise<WorkerAnswer> => {
 };
 
 const logError = (error: PortalError) =>
-  console.error(`Subscriptions via the Worker failed: ${error.status ?? "network"} ${error.reason}`);
+  console.error(
+    `Subscriptions via the Worker failed: ${error.status ?? "network"} ${error.reason}`,
+  );
 
 export type PortalData =
   | { readonly kind: "not-connected" }
@@ -123,4 +127,34 @@ export const loadSubscription = async (
   return subscription
     ? { kind: "ready", subscription, upcoming: answer.upcoming }
     : { kind: "not-found" };
+};
+
+/**
+ * Asks the Worker to change one subscription. The Worker checks the
+ * subscription is this customer's before touching it, so the id here is only
+ * a request, never trusted.
+ */
+export const changeSubscription = async (
+  tokens: CustomerTokens,
+  subscriptionId: number,
+  change: SubscriptionChange,
+): Promise<SubscriptionChangeResult> => {
+  if (!isRechargeConfigured) return { ok: false, reason: "not-configured" };
+  try {
+    const response = await fetch(`${API_URL}/account/subscriptions/action`, {
+      method: "POST",
+      headers: { "content-type": "application/json", Authorization: tokens.accessToken },
+      body: JSON.stringify({ subscriptionId, ...change }),
+      cache: "no-store",
+    });
+    const body = (await response.json().catch(() => null)) as
+      { ok: true; skippedChargeId?: number } | { ok: false; reason: string } | null;
+    if (body?.ok) return body;
+    const reason = body?.reason ?? "invalid-response";
+    logError({ status: response.status, reason });
+    return { ok: false, reason };
+  } catch (cause) {
+    logError({ status: null, reason: String(cause) });
+    return { ok: false, reason: "unavailable" };
+  }
 };

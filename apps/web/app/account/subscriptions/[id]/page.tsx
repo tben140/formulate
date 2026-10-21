@@ -12,6 +12,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { ChangeMessage, SubscriptionControls } from "@/components/subscription-controls";
 import { requireCustomerTokens } from "@/lib/customer-account";
 import { loadSubscription } from "@/lib/recharge";
 
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
 
 interface PageProps {
   readonly params: Promise<{ id: string }>;
+  /** The outcome of the last change (see app/actions/subscription.ts). */
+  readonly searchParams: Promise<{ done?: string; error?: string; charge?: string }>;
 }
 
 const Row = ({ label, value }: { label: string; value: string }) => (
@@ -32,11 +35,12 @@ const Row = ({ label, value }: { label: string; value: string }) => (
 );
 
 /**
- * One subscription and its queued deliveries. Another customer's id is a 404,
- * as for orders: Recharge scopes the session to this customer.
+ * One subscription, its queued deliveries, and the changes the customer can
+ * make. Another customer's id is a 404, as for orders: it isn't in their list.
  */
-const SubscriptionPage = async ({ params }: PageProps) => {
+const SubscriptionPage = async ({ params, searchParams }: PageProps) => {
   const { id } = await params;
+  const { done, error, charge } = await searchParams;
   const path = `/account/subscriptions/${id}`;
   const tokens = await requireCustomerTokens(path);
   const data = await loadSubscription(tokens, id);
@@ -72,6 +76,12 @@ const SubscriptionPage = async ({ params }: PageProps) => {
       <h1 className="text-3xl font-semibold tracking-tight">
         {subscription.product_title}
       </h1>
+      <ChangeMessage
+        subscriptionId={subscription.id}
+        done={done}
+        error={error}
+        chargeId={charge}
+      />
       {subscription.variant_title ? (
         <p className="mt-1 text-foreground-muted">{subscription.variant_title}</p>
       ) : null}
@@ -110,10 +120,7 @@ const SubscriptionPage = async ({ params }: PageProps) => {
         </>
       ) : null}
 
-      <p className="mt-8 text-sm text-foreground-muted">
-        Changing, pausing or cancelling a subscription is coming soon. For now, use the
-        link in any of our subscription emails.
-      </p>
+      <SubscriptionControls subscription={subscription} />
     </article>
   );
 };
