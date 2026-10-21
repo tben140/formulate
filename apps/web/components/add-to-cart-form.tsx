@@ -15,9 +15,9 @@ import {
   renewalTerms,
   savingMessage,
   SUBSCRIPTION_BENEFITS,
-  subscriptionSaving,
   deliveryPromise,
-  isIntroductoryPlan,
+  deliveryQuote,
+  supplyLabel,
   selectionStatus,
   withOption,
   type ProductByHandleResult,
@@ -104,21 +104,20 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     }
   }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
 
+  // One delivery of an option: a 60- or 90-day plan ships two or three
+  // 30-day supplies, so the shopper never runs out, and the plan sets the
+  // quantity (deliveryQuote in packages/shopify). Null without a variant.
+  const quoteFor = (id: string) =>
+    variant
+      ? deliveryQuote(
+          variant.price,
+          allocations.find((a) => a.sellingPlan.id === id),
+        )
+      : null;
+  const quote = quoteFor(effectivePlanId);
   // The selection rules are shared with the app (packages/shopify,
   // SHO-127); only the words and the rendering are this surface's.
-  const displayPrice = priceForSelection(variant, allocations, planId);
-  // What a subscription option saves against buying once; null for one-time.
-  const saving = (choice: {
-    id: string;
-    price?: { amount: string; currencyCode: string };
-  }) => {
-    if (!choice.id || !choice.price) return null;
-    // No saving claim for a plan whose price rises later (isIntroductoryPlan).
-    const adjustments =
-      allocations.find((a) => a.sellingPlan.id === choice.id)?.priceAdjustments ?? [];
-    if (isIntroductoryPlan(adjustments)) return null;
-    return subscriptionSaving(variant?.price, choice.price);
-  };
+  const displayPrice = quote?.price ?? priceForSelection(variant, allocations, planId);
   const planName =
     allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
     null;
@@ -153,6 +152,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
+      <input type="hidden" name="quantity" value={quote?.units ?? 1} />
 
       {product.options.map((option) =>
         // A single option called "Title" with one value is Shopify's stand-in
@@ -238,10 +238,16 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                   />
                   <span className="flex flex-col">
                     {choice.label}
-                    {saving(choice) ? (
+                    {supplyLabel(quoteFor(choice.id)?.units ?? 1) ? (
+                      <span className="text-xs text-foreground">
+                        {supplyLabel(quoteFor(choice.id)!.units)} every delivery
+                      </span>
+                    ) : null}
+                    {quoteFor(choice.id)?.saving ? (
                       // What subscribing gives, read with the option's name.
                       <span className="text-xs text-foreground">
-                        {savingMessage(saving(choice)!)} · {SUBSCRIPTION_BENEFITS}
+                        {savingMessage(quoteFor(choice.id)!.saving!)} ·{" "}
+                        {SUBSCRIPTION_BENEFITS}
                       </span>
                     ) : null}
                   </span>
@@ -265,19 +271,19 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       label computes as "One-time purchase£24.95", which is
                       what a screen reader would announce.
                     */}
-                    {saving(choice) ? (
+                    {quoteFor(choice.id)?.saving ? (
                       // The one-time price for the same product, on sale now:
                       // a real comparison, not a "was" price (see
                       // packages/shopify/src/subscribe-and-save.ts).
                       <>
                         <s>
                           <span className="sr-only"> One-time price </span>
-                          {formatMoney(variant!.price)}
+                          {formatMoney(quoteFor(choice.id)!.oneTime)}
                         </s>
                         <span className="sr-only"> Subscription price </span>
                       </>
                     ) : null}
-                    {` ${formatMoney(choice.price)}`}
+                    {` ${formatMoney(quoteFor(choice.id)?.price ?? choice.price)}`}
                   </span>
                 ) : null}
               </label>
@@ -294,7 +300,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
             {formatMoney(displayPrice)}
           </p>
           <p className="mt-1 text-sm text-foreground-muted">
-            {pricePerDay(displayPrice)} · {deliveryPromise()}
+            {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
           </p>
         </div>
       ) : null}
@@ -323,12 +329,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         // (California's Automatic Renewal Law; the UK's DMCC subscription
         // rules from 2027).
         <p className="mt-2 text-xs text-foreground-muted">
-          {renewalTerms(
-            displayPrice,
-            planName,
-            allocations.find((a) => a.sellingPlan.id === effectivePlanId)
-              ?.priceAdjustments[1]?.price,
-          )}
+          {renewalTerms(displayPrice, planName, quote?.later, quote?.units)}
         </p>
       ) : null}
 
