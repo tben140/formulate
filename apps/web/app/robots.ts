@@ -15,7 +15,8 @@ import { absoluteUrl, isIndexable } from "@/lib/site";
 const robots = (): MetadataRoute.Robots =>
   isIndexable
     ? {
-        rules: { userAgent: "*", allow: "/" },
+        // /cart/ makes a cart and redirects to checkout (app/cart/[lines]).
+        rules: { userAgent: "*", allow: "/", disallow: "/cart/" },
         sitemap: absoluteUrl("/sitemap.xml"),
       }
     : { rules: { userAgent: "*", disallow: "/" } };

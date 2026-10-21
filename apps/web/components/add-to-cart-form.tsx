@@ -330,10 +330,10 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         // Express checkout, one-time purchases only: Shop Pay can skip
         // checkout, where the subscription terms are shown, and its cart
         // permalink can't carry a plan (packages/shopify/src/express-checkout.ts).
+        // The permalink is this site's own /cart/{id}:{qty} (app/cart/[lines]).
         <div className="mt-2">
           <ShopPayButton
             variants={[{ id: variant.id, quantity: quote?.units ?? 1 }]}
-            checkoutUrl={`https://${storeDomain}`}
             width="100%"
             borderRadius="8px"
           />
