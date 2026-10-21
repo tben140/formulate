@@ -15,14 +15,20 @@ const ROOT =
     ?.root ?? "/";
 
 /**
- * The free-delivery sentence in rendered drawer markup, or "" when the bar is
- * not showing.
+ * The drawer's progress sentences in rendered markup: free delivery, then
+ * the stack discount (cart-offers.ts), or "" when neither is showing. Both
+ * are announced through the one persistent region, because this markup is
+ * replaced wholesale and a region that arrives already filled is often not
+ * read out.
  *
  * @param {ParentNode | null} root
  * @returns {string}
  */
 const freeShippingMessage = (root) =>
-  root?.querySelector("[data-free-shipping-message]")?.textContent?.trim() ?? "";
+  ["[data-free-shipping-message]", "[data-stack-message]"]
+    .map((selector) => root?.querySelector(selector)?.textContent?.trim() ?? "")
+    .filter(Boolean)
+    .join(". ");
 
 /**
  * The slide-in cart.
