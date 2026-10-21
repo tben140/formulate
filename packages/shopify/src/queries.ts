@@ -54,6 +54,19 @@ export const CollectionProductsQuery = graphql(`
 export const ProductByHandleQuery = graphql(`
   query ProductByHandle($handle: String!) {
     product(handle: $handle) {
+      # Its free gift (custom.free_gift), added nested under it in the cart
+      # (free-gift.ts). A variant's own overrides it.
+      freeGift: metafield(namespace: "custom", key: "free_gift") {
+        reference {
+          ... on ProductVariant {
+            id
+            availableForSale
+            product {
+              title
+            }
+          }
+        }
+      }
       id
       handle
       title
@@ -152,6 +165,17 @@ export const ProductByHandleQuery = graphql(`
           id
           title
           availableForSale
+          freeGift: metafield(namespace: "custom", key: "free_gift") {
+            reference {
+              ... on ProductVariant {
+                id
+                availableForSale
+                product {
+                  title
+                }
+              }
+            }
+          }
           # For the Product structured data on apps/web. Can be null.
           sku
           selectedOptions {
@@ -444,6 +468,15 @@ export const CartFields = graphql(`
       nodes {
         id
         quantity
+        # A nested line is a free gift under the product it came with
+        # (free-gift.ts): no quantity control, no stack credit.
+        ... on CartLine {
+          parentRelationship {
+            parent {
+              id
+            }
+          }
+        }
         cost {
           totalAmount {
             amount

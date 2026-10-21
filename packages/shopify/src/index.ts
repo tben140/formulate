@@ -140,3 +140,5 @@ export type {
 } from "./subscribe-and-save";
 export { cartRenewalTerms, expressCheckoutOnProduct } from "./express-checkout";
 export type { RenewalLine } from "./express-checkout";
+export { freeGiftFor, freeGiftMessage, giftLineToAdd, isNestedLine } from "./free-gift";
+export type { GiftVariantLike, NestedLineLike } from "./free-gift";
