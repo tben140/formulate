@@ -167,7 +167,9 @@ export const AddToCart = ({
                   ) : null}
                 </View>
                 {price(choice) ? (
-                  <View className="flex-row items-baseline gap-2">
+                  // One right-hand column for every price, as on web and the
+                  // theme: struck-through above, subscription price below.
+                  <View className="items-end">
                     {saving(choice) ? (
                       // The one-time price, on sale now: a real comparison
                       // (packages/shopify/src/subscribe-and-save.ts).
@@ -194,7 +196,8 @@ export const AddToCart = ({
 
       {displayPrice ? (
         <View>
-          <Text className="text-2xl font-semibold text-foreground font-mono">
+          {/* pr-3: lined up with the option prices, inside their px-3. */}
+          <Text className="pr-3 text-right text-2xl font-semibold text-foreground font-mono">
             {formatMoney(displayPrice)}
           </Text>
           <Text className="mt-1 text-sm text-foreground-muted">
