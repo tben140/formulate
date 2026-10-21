@@ -1249,6 +1249,10 @@ a:hover {
   border-radius: var(--radius-md);
   object-fit: cover;
 }
+/* The theme's img reset sets display, which would override [hidden]. */
+.product-form__gift-image[hidden] {
+  display: none;
+}
 .product-form__gift-text {
   display: flex;
   flex: 1;
