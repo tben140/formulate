@@ -10,6 +10,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { ProductReviews } from "@/components/product-reviews";
+import { WriteReview } from "@/components/write-review";
 import { Stars } from "@/components/stars";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
@@ -167,6 +168,12 @@ const ProductPage = async ({ params }: PageProps) => {
       <Suspense fallback={null}>
         <ProductReviews handle={product.handle} summary={summary} />
       </Suspense>
+
+      {/* Outside the reviews' Suspense: a product with no reviews yet still
+          needs a way to get its first. Only when the Worker is configured. */}
+      {process.env.FORMULATE_API_URL ? (
+        <WriteReview productId={product.id} productTitle={product.title} />
+      ) : null}
     </>
   );
 };
