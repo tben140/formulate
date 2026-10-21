@@ -1169,22 +1169,23 @@ a:hover {
 
 /* Cart nudges (packages/shopify/src/cart-offers.ts). */
 .cart-line__subscribe {
-  margin-top: 0.25rem;
+  margin-top: var(--spacing-1);
 }
 .cart-line__subscribe-button {
-  min-height: 2.75rem;
+  /* 44px: the minimum touch target (WCAG 2.5.8 asks 24; Apple asks 44). */
+  min-height: calc(var(--spacing-10) + var(--spacing-1));
   background: none;
   border: 0;
   padding: 0;
   color: var(--color-brand-600);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   text-decoration: underline;
   cursor: pointer;
 }
 .cart-drawer__stack {
   margin: 0;
-  padding: 0.5rem 1rem;
+  padding: var(--spacing-2) var(--spacing-4);
   border-bottom: 1px solid var(--color-border);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
