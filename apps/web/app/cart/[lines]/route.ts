@@ -61,8 +61,15 @@ export const GET = async (
     ids: lines.map((line) => line.merchandiseId),
   });
   const giftLines = gifts.ok
-    ? gifts.data.nodes.flatMap((node) => {
+    ? gifts.data.nodes.flatMap((node, index, nodes) => {
         if (!node || !("id" in node)) return [];
+        // One gift per product, even if the link lists it twice.
+        if (
+          nodes.findIndex((other) => other && "id" in other && other.id === node.id) !==
+          index
+        ) {
+          return [];
+        }
         const gift = freeGiftFor(node.product, node);
         return gift
           ? [{ merchandiseId: gift.id, quantity: 1, parent: { merchandiseId: node.id } }]
