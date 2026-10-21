@@ -27,7 +27,8 @@ export const SUBSCRIPTION_BENEFITS = "Free delivery · Skip, pause or cancel any
 
 /** On the product page, near the price. */
 export const deliveryPromise = (): string =>
-  `Free UK delivery on subscriptions, and on orders over ${formatMoney(FREE_SHIPPING_THRESHOLD)}`;
+  // "£40", not "£40.00": a round threshold reads as one, as the theme says it.
+  `Free UK delivery on subscriptions, and on orders over ${formatMoney(FREE_SHIPPING_THRESHOLD).replace(/\.00$/, "")}`;
 
 const minor = (money: MoneyLike): number | null => {
   const value = Number(money.amount);
