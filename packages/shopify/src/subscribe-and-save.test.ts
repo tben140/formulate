@@ -111,7 +111,7 @@ describe("subscribe and save", () => {
 
   it("names the free-delivery threshold from the shared constant", () => {
     expect(deliveryPromise()).toBe(
-      "Free UK delivery on subscriptions, and on orders over £40.00",
+      "Free UK delivery on subscriptions, and on orders over £40",
     );
   });
 });
