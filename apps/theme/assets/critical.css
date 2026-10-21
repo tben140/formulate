@@ -799,7 +799,17 @@ a:hover {
   background-color: var(--color-brand-50);
 }
 
+/*
+ * Every price in one right-hand column: the one-time price, each plan's
+ * struck-through and subscription price stacked, and the price below. Fixed
+ * width, so a long plan name wraps instead of squeezing the prices.
+ */
 .product-form__plan-price {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: flex-end;
+  text-align: end;
   color: var(--color-foreground-muted);
 }
 
@@ -815,6 +825,9 @@ a:hover {
 
 .product-form__price {
   margin-block-end: var(--spacing-4);
+  /* Lined up with the prices in the options above, which end at the card's padding. */
+  padding-inline-end: var(--spacing-3);
+  text-align: end;
   font-size: var(--text-2xl);
   /* 500, not 600: DM Mono ships in 400 and 500, and apps/web matches. */
   font-weight: 500;
@@ -1165,4 +1178,25 @@ a:hover {
 .cart-line__price,
 .cart-drawer__subtotal-value {
   font-family: var(--font-mono);
+}
+
+/* Subscribe-and-save details on the purchase options (subscribe-and-save.ts). */
+.product-form__plan-saving {
+  display: block;
+  margin-top: var(--spacing-1);
+  font-size: var(--text-xs);
+}
+.product-form__plan-was {
+  /* Stacked above the subscription price, so no gap beside it. */
+  margin: 0;
+}
+.product-form__per-day,
+.product-form__renewal {
+  margin-top: var(--spacing-1);
+  font-size: var(--text-sm);
+  color: var(--color-foreground-muted);
+}
+.product-form__renewal {
+  margin-top: var(--spacing-2);
+  font-size: var(--text-xs);
 }
