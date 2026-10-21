@@ -99,4 +99,20 @@ describe("build your stack", () => {
       "Add 2 more different products for 10% off your one-time items",
     );
   });
+
+  it("never counts or offers on a nested free gift", () => {
+    const gift = {
+      parentRelationship: { parent: { id: "line-1" } },
+      sellingPlanAllocation: null,
+      merchandise: { product: { id: "shaker" } },
+    };
+    const product = (id: string) => ({
+      sellingPlanAllocation: null,
+      merchandise: { product: { id } },
+    });
+    expect(stackProgress([product("a"), product("b"), gift])).toEqual({
+      kind: "away",
+      productsNeeded: 1,
+    });
+  });
 });

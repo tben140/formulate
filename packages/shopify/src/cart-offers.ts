@@ -24,6 +24,8 @@ interface OfferAllocation {
 /** What `subscribeOffer` reads from a cart line (CartFields). */
 export interface OfferLine {
   readonly quantity: number;
+  /** Set on a line nested under another (a free gift): never offered. */
+  readonly parentRelationship?: unknown;
   readonly sellingPlanAllocation?: unknown;
   readonly merchandise: {
     readonly price: MoneyLike;
@@ -55,7 +57,7 @@ const minor = (money: MoneyLike): number | null => {
  * lists them (every 30 days, matching the 30-day supply).
  */
 export const subscribeOffer = (line: OfferLine): SubscribeOffer | null => {
-  if (line.sellingPlanAllocation) return null;
+  if (line.sellingPlanAllocation || line.parentRelationship) return null;
   const { merchandise } = line;
   const plan = purchasableAllocations(
     merchandise.product.sellingPlanGroups.nodes,
@@ -97,6 +99,12 @@ export const STACK_PERCENT = 10;
 
 /** What `stackProgress` reads from a cart line. */
 export interface StackLine {
+  /**
+   * Set on a line nested under another: a free gift or add-on. It isn't a
+   * product the shopper chose, so it never counts towards a stack, matching
+   * the stack-discount Function.
+   */
+  readonly parentRelationship?: unknown;
   readonly sellingPlanAllocation?: unknown;
   readonly merchandise: { readonly product: { readonly id: string } };
 }
@@ -110,7 +118,8 @@ export type StackProgress =
  * an empty cart, or one with no one-time items to discount (subscriptions
  * count towards the three, but aren't discounted again).
  */
-export const stackProgress = (lines: readonly StackLine[]): StackProgress | null => {
+export const stackProgress = (allLines: readonly StackLine[]): StackProgress | null => {
+  const lines = allLines.filter((line) => !line.parentRelationship);
   if (!lines.some((line) => !line.sellingPlanAllocation)) return null;
   const products = new Set(lines.map((line) => line.merchandise.product.id)).size;
   return products >= STACK_SIZE
