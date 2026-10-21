@@ -75,8 +75,10 @@ export const AddToCart = ({
                   >
                     <Text
                       className={`text-sm ${
+                        // Muted grey on the selected brand-50 is 4.34:1,
+                        // under AA's 4.5:1: selected keeps full strength.
                         match && !match.availableForSale
-                          ? "text-foreground-muted line-through"
+                          ? `line-through ${checked ? "text-foreground" : "text-foreground-muted"}`
                           : "text-foreground"
                       } ${checked ? "font-medium" : ""}`}
                     >
@@ -115,7 +117,13 @@ export const AddToCart = ({
               >
                 <Text className="text-sm text-foreground">{choice.label}</Text>
                 {choice.price ? (
-                  <Text className="text-sm text-foreground-muted">
+                  <Text
+                    className={`text-sm ${
+                      effectivePlanId === choice.id
+                        ? "text-foreground"
+                        : "text-foreground-muted"
+                    }`}
+                  >
                     {formatMoney(choice.price)}
                   </Text>
                 ) : null}
