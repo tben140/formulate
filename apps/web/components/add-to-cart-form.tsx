@@ -8,8 +8,14 @@ import {
   effectivePlanId as resolvePlanId,
   findVariantByOptions,
   formatMoney,
+  pricePerDay,
   purchasableAllocations,
   purchaseOptions,
+  renewalTerms,
+  savingMessage,
+  SUBSCRIPTION_BENEFITS,
+  subscriptionSaving,
+  deliveryPromise,
   selectionStatus,
   withOption,
   type ProductByHandleResult,
@@ -99,6 +105,12 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
   // The selection rules are shared with the app (packages/shopify,
   // SHO-127); only the words and the rendering are this surface's.
   const displayPrice = priceForSelection(variant, allocations, planId);
+  // What a subscription option saves against buying once; null for one-time.
+  const saving = (choice: {
+    id: string;
+    price?: { amount: string; currencyCode: string };
+  }) =>
+    choice.id && choice.price ? subscriptionSaving(variant?.price, choice.price) : null;
   const planName =
     allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
     null;
@@ -207,15 +219,24 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                     : "border-border hover:border-foreground-muted"
                 }`}
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-start gap-2">
                   <input
                     type="radio"
                     name="purchase-option"
                     value={choice.id}
                     checked={effectivePlanId === choice.id}
                     onChange={() => setPlanId(choice.id)}
+                    className="mt-1"
                   />
-                  {choice.label}
+                  <span className="flex flex-col">
+                    {choice.label}
+                    {saving(choice) ? (
+                      // What subscribing gives, read with the option's name.
+                      <span className="text-xs text-foreground">
+                        {savingMessage(saving(choice)!)} · {SUBSCRIPTION_BENEFITS}
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
                 {choice.price ? (
                   <span
@@ -233,6 +254,18 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       label computes as "One-time purchase£24.95", which is
                       what a screen reader would announce.
                     */}
+                    {saving(choice) ? (
+                      // The one-time price for the same product, on sale now:
+                      // a real comparison, not a "was" price (see
+                      // packages/shopify/src/subscribe-and-save.ts).
+                      <>
+                        <s className="mr-2">
+                          <span className="sr-only"> One-time price </span>
+                          {formatMoney(variant!.price)}
+                        </s>
+                        <span className="sr-only"> Subscription price </span>
+                      </>
+                    ) : null}
                     {` ${formatMoney(choice.price)}`}
                   </span>
                 ) : null}
@@ -244,7 +277,12 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
 
       {displayPrice ? (
         // DM Mono ships in 400 and 500 only; semibold would be synthesised.
-        <p className="mb-4 font-mono text-2xl font-medium">{formatMoney(displayPrice)}</p>
+        <div className="mb-4">
+          <p className="font-mono text-2xl font-medium">{formatMoney(displayPrice)}</p>
+          <p className="mt-1 text-sm text-foreground-muted">
+            {pricePerDay(displayPrice)} · {deliveryPromise()}
+          </p>
+        </div>
       ) : null}
 
       {/*
@@ -265,6 +303,15 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       >
         {buttonLabel}
       </button>
+
+      {effectivePlanId && displayPrice && planName ? (
+        // The renewal terms, before purchase and next to the button
+        // (California's Automatic Renewal Law; the UK's DMCC subscription
+        // rules from 2027).
+        <p className="mt-2 text-xs text-foreground-muted">
+          {renewalTerms(displayPrice, planName)}
+        </p>
+      ) : null}
 
       {/*
         The drawer opening is a visual event a screen reader does not narrate,

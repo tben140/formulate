@@ -145,6 +145,8 @@
           class="product-form__plans"
           data-built-for="{{ current_variant.id }}"
           data-one-time-label="{{ 'product.one_time' | t | escape }}"
+          data-one-time-price-label="{{ 'product.one_time_price' | t | escape }}"
+          data-subscription-price-label="{{ 'product.subscription_price' | t | escape }}"
         >
           <label class="product-form__plan">
             <span>
@@ -165,8 +167,27 @@
                     value="{{ allocation.selling_plan.id }}"
                   >
                   {{ allocation.selling_plan.name }}
+                  {%- assign plan_saving = current_variant.price | minus: allocation.price -%}
+                  {%- if plan_saving > 0 -%}
+                    {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: current_variant.price | round -%}
+                    {%- assign plan_saving_money = plan_saving | money -%}
+                    <span class="product-form__plan-saving">
+                      {{- 'product.subscription_saving' | t: amount: plan_saving_money, percent: plan_percent -}}
+                    </span>
+                  {%- endif -%}
                 </span>
-                <span class="product-form__plan-price">{{ allocation.price | money }}</span>
+                <span class="product-form__plan-price">
+                  {%- if plan_saving > 0 -%}
+                    {%- comment -%}
+                      The one-time price for the same product, on sale now: a
+                      real comparison, not a "was" price
+                      (packages/shopify/src/subscribe-and-save.ts).
+                    {%- endcomment -%}
+                    <s class="product-form__plan-was"><span class="visually-hidden">{{ 'product.one_time_price' | t }} </span>{{ current_variant.price | money }}</s>
+                    <span class="visually-hidden"> {{ 'product.subscription_price' | t }}</span>
+                  {% endif -%}
+                  {{ allocation.price | money }}
+                </span>
               </label>
             {% endif %}
           {% endfor %}
@@ -175,6 +196,13 @@
     {% endif %}
 
     <p ref="price" class="product-form__price">{{ current_variant.price | money }}</p>
+    {%- assign per_day = current_variant.price | divided_by: 30.0 | round -%}
+    <p class="product-form__per-day">
+      <span ref="perDay">
+        {%- if per_day < 100 -%}{{ per_day }}p{%- else -%}{{ per_day | money }}{%- endif %} {{ 'product.per_day' | t -}}
+      </span>
+      · {{ 'product.delivery_promise' | t }}
+    </p>
 
     {% comment %}
       The button's three states are passed as data attributes rather than
@@ -196,6 +224,16 @@
         {{ 'product.sold_out' | t }}
       {% endif %}
     </button>
+
+    {% if product_has_plans %}
+      {% comment %}
+        The renewal terms, before purchase and next to the button: California's
+        Automatic Renewal Law now, the UK's DMCC subscription rules from 2027.
+        Always shown when the product offers subscriptions, so they're there
+        without JavaScript too; each option shows its own price above.
+      {% endcomment %}
+      <p class="product-form__renewal">{{ 'product.renewal_terms' | t }}</p>
+    {% endif %}
 
     {% comment %} Errors and confirmations are announced, because the drawer
       opening is a visual event a screen reader does not narrate. {% endcomment %}
@@ -267,6 +305,7 @@
         "available": {{ variant.available | json }},
         "options": {{ variant.options | json }},
         "price": {{ variant.price | money | json }},
+        "cents": {{ variant.price | json }},
         "plans": [
           {%- assign first_plan = true -%}
           {%- for allocation in variant.selling_plan_allocations -%}
@@ -277,7 +316,17 @@
               {
                 "id": {{ allocation.selling_plan.id | json }},
                 "name": {{ allocation.selling_plan.name | json }},
-                "price": {{ allocation.price | money | json }}
+                "price": {{ allocation.price | money | json }},
+                "cents": {{ allocation.price | json }},
+                {%- assign plan_saving = variant.price | minus: allocation.price -%}
+                {%- if plan_saving > 0 -%}
+                  {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: variant.price | round -%}
+                  {%- assign plan_saving_money = plan_saving | money -%}
+                  {%- assign plan_saving_text = 'product.subscription_saving' | t: amount: plan_saving_money, percent: plan_percent -%}
+                  "saving": {{ plan_saving_text | json }}
+                {%- else -%}
+                  "saving": null
+                {%- endif %}
               }
             {%- endif -%}
           {%- endfor -%}

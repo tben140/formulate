@@ -103,7 +103,13 @@
     "purchase_options": "Purchase options",
     "one_time": "One-time purchase",
     "variant": "Variant",
-    "pairs_well_with": "Pairs well with"
+    "pairs_well_with": "Pairs well with",
+    "subscription_saving": "Save {{ amount }} a delivery ({{ percent }}%) · Free delivery · Skip, pause or cancel any time",
+    "one_time_price": "One-time price",
+    "subscription_price": "Subscription price",
+    "per_day": "a day",
+    "delivery_promise": "Free UK delivery on subscriptions, and on orders over £40",
+    "renewal_terms": "Subscriptions renew automatically: the subscription price shown is charged for each delivery, until you cancel. You can skip, pause or cancel any time from your account."
   },
   "search": {
     "title": "Search",

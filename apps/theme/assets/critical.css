@@ -1166,3 +1166,23 @@ a:hover {
 .cart-drawer__subtotal-value {
   font-family: var(--font-mono);
 }
+
+/* Subscribe-and-save details on the purchase options (subscribe-and-save.ts). */
+.product-form__plan-saving {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+}
+.product-form__plan-was {
+  margin-right: 0.5rem;
+}
+.product-form__per-day,
+.product-form__renewal {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-foreground-muted);
+}
+.product-form__renewal {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+}

@@ -118,3 +118,13 @@ export {
 export type { ProductFilter } from "./generated/graphql";
 export { descriptionBlocks } from "./description";
 export type { DescriptionBlock } from "./description";
+export {
+  SUBSCRIPTION_BENEFITS,
+  SUPPLY_DAYS,
+  deliveryPromise,
+  pricePerDay,
+  renewalTerms,
+  savingMessage,
+  subscriptionSaving,
+} from "./subscribe-and-save";
+export type { SubscriptionSaving } from "./subscribe-and-save";
