@@ -6,9 +6,11 @@
  * subscription, so a new product's groups start outside the profile, and its
  * renewals quietly charge delivery again.
  *
- * This lists the groups that are missing, and with --fix attaches them.
+ * This lists the groups that are missing, and with --fix attaches them. Only
+ * groups owned by the same app as the profile's existing groups count (or
+ * --app-id, for an empty profile), so Shopify's seed plans never join it.
  *
- *   SHOPIFY_STORE_DOMAIN=… SHOPIFY_ADMIN_TOKEN=… node scripts/check-subscription-delivery.mjs [--fix]
+ *   SHOPIFY_STORE_DOMAIN=… SHOPIFY_ADMIN_TOKEN=… node scripts/check-subscription-delivery.mjs [--fix] [--app-id=…]
  *
  * The Admin token needs read_products and read_shipping (write_shipping for
  * --fix). It's a secret: pass it in the environment, never commit it. Exits
@@ -28,14 +30,19 @@ if (!domain || !token) {
 }
 
 const admin = async (query, variables = {}) => {
-  const response = await fetch(`https://${domain}/admin/api/${API_VERSION}/graphql.json`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "X-Shopify-Access-Token": token },
-    body: JSON.stringify({ query, variables }),
-  });
+  const response = await fetch(
+    `https://${domain}/admin/api/${API_VERSION}/graphql.json`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json", "X-Shopify-Access-Token": token },
+      body: JSON.stringify({ query, variables }),
+    },
+  );
   const body = await response.json().catch(() => null);
   if (!response.ok || !body || body.errors) {
-    throw new Error(`Admin API ${response.status}: ${JSON.stringify(body?.errors ?? body)}`);
+    throw new Error(
+      `Admin API ${response.status}: ${JSON.stringify(body?.errors ?? body)}`,
+    );
   }
   return body.data;
 };
@@ -53,35 +60,53 @@ const all = async (query, path) => {
   }
 };
 
-const profiles = await admin(`{ deliveryProfiles(first: 20) { nodes { id name } } }`);
-const profile = profiles.deliveryProfiles.nodes.find((p) => p.name === PROFILE_NAME);
+const profiles = await all(
+  `query ($after: String) { deliveryProfiles(first: 50, after: $after) {
+     nodes { id name } pageInfo { hasNextPage endCursor } } }`,
+  (data) => data.deliveryProfiles,
+);
+const profile = profiles.find((p) => p.name === PROFILE_NAME);
 if (!profile) {
   console.error(`No delivery profile named "${PROFILE_NAME}". See SHO-99.`);
   process.exit(1);
 }
 
-const attached = new Set(
-  (
-    await all(
-      `query ($after: String) { deliveryProfile(id: "${profile.id}") {
-         sellingPlanGroups(first: 100, after: $after) { nodes { id } pageInfo { hasNextPage endCursor } } } }`,
-      (data) => data.deliveryProfile.sellingPlanGroups,
-    )
-  ).map((group) => group.id),
+const attachedGroups = await all(
+  `query ($after: String) { deliveryProfile(id: "${profile.id}") {
+     sellingPlanGroups(first: 100, after: $after) { nodes { id appId } pageInfo { hasNextPage endCursor } } } }`,
+  (data) => data.deliveryProfile.sellingPlanGroups,
 );
+const attached = new Set(attachedGroups.map((group) => group.id));
+
+/*
+ * Which app's plans this profile is for: the app that owns the groups already
+ * in it (Recharge, here). Read from the store rather than hard-coded, and
+ * passed explicitly with --app-id when the profile is still empty. Groups from
+ * any other app, or from none (Shopify's seed plans), are never attached.
+ */
+const appIdArg = process.argv.find((arg) => arg.startsWith("--app-id="))?.split("=")[1];
+const appIds = new Set(
+  appIdArg ? [appIdArg] : attachedGroups.map((g) => g.appId).filter(Boolean),
+);
+if (appIds.size === 0) {
+  console.error(
+    "The profile has no plan groups yet: pass --app-id=<the subscription app's id>.",
+  );
+  process.exit(2);
+}
 
 // Groups reached through products: the app-owned groups aren't listed by the
 // shop-level sellingPlanGroups query, but they are on each product.
 const products = await all(
   `query ($after: String) { products(first: 50, after: $after) {
-     nodes { title sellingPlanGroups(first: 20) { nodes { id name } } }
+     nodes { title sellingPlanGroups(first: 20) { nodes { id name appId } } }
      pageInfo { hasNextPage endCursor } } }`,
   (data) => data.products,
 );
 
 const missing = products.flatMap((product) =>
   product.sellingPlanGroups.nodes
-    .filter((group) => !attached.has(group.id))
+    .filter((group) => appIds.has(group.appId) && !attached.has(group.id))
     .map((group) => ({ ...group, product: product.title })),
 );
 
@@ -91,7 +116,8 @@ if (missing.length === 0) {
 }
 
 console.log(`${missing.length} plan group(s) not in "${PROFILE_NAME}":`);
-for (const group of missing) console.log(`  ${group.product}: ${group.name} (${group.id})`);
+for (const group of missing)
+  console.log(`  ${group.product}: ${group.name} (${group.id})`);
 
 if (!fix) {
   console.log("Run again with --fix to attach them.");
