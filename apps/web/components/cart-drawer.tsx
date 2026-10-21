@@ -5,6 +5,7 @@ import { ShopPayButton } from "@shopify/hydrogen/react";
 import {
   cartRenewalTerms,
   formatMoney,
+  isNestedLine,
   supplyLabel,
   supplyUnits,
   type Cart,
@@ -132,6 +133,26 @@ export const CartDrawer = ({
                 // its only member we select, so codegen flattens it — no
                 // __typename narrowing needed here.
                 const variant = line.merchandise;
+
+                if (isNestedLine(line)) {
+                  // A free gift, under the product it came with
+                  // (packages/shopify/src/free-gift.ts). No controls: Shopify
+                  // removes it with its product, and it's one per line.
+                  return (
+                    <li
+                      key={line.id}
+                      className="flex items-center gap-3 py-2 pl-[5.75rem] pr-4"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-brand-600">Free gift</p>
+                        <p className="truncate text-sm">{variant.product.title}</p>
+                      </div>
+                      <p className="font-mono text-sm">
+                        {formatMoney(line.cost.totalAmount)}
+                      </p>
+                    </li>
+                  );
+                }
 
                 return (
                   <li key={line.id} className="flex gap-3 px-4 py-4">

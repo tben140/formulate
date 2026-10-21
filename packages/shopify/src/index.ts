@@ -63,6 +63,7 @@ export {
   SearchProductsQuery,
   NavMenuQuery,
   ProductByHandleQuery,
+  VariantFreeGiftsQuery,
   ProductRecommendationsQuery,
   ShopNameQuery,
   SitemapCollectionsQuery,

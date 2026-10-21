@@ -58,10 +58,12 @@ export interface NestedLineLike {
   readonly parentRelationship?: { readonly parent: { readonly id: string } } | null;
 }
 
-/** A line nested under another: in this store, a free gift. */
-export const isNestedLine = (line: {
-  readonly parentRelationship?: { readonly parent: { readonly id: string } } | null;
-}): boolean => Boolean(line.parentRelationship);
+/**
+ * A line nested under another: in this store, a free gift. Takes any line:
+ * Shopify's cart lines are a union, and only one member has a parent.
+ */
+export const isNestedLine = (line: object): boolean =>
+  "parentRelationship" in line && Boolean(line.parentRelationship);
 
 /**
  * The cart line to add for a product line's gift, or null when it already has

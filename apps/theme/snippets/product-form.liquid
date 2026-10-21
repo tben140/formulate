@@ -23,6 +23,13 @@
 {% endcomment %}
 
 {% assign current_variant = product.selected_or_first_available_variant %}
+{%- comment -%}
+  The selection's free gift (custom.free_gift: the variant's own, else the
+  product's), in stock only. The Liquid twin of freeGiftFor in
+  packages/shopify/src/free-gift.ts.
+{%- endcomment -%}
+{%- assign current_gift = current_variant.metafields.custom.free_gift.value | default: product.metafields.custom.free_gift.value -%}
+{%- unless current_gift.available -%}{%- assign current_gift = nil -%}{%- endunless -%}
 
 {% comment %} Group ids owned by an installed app. `app_id` is nil for the
   seed groups Shopify creates, which is exactly the discriminator the headless
@@ -41,6 +48,14 @@
   {%- endcomment -%}
   {%- form 'product', product -%}
     <input ref="variantId" type="hidden" name="id" value="{{ current_variant.id }}">
+    {%- comment -%}
+      The free gift for Shopify's express checkout button: these fields nest it
+      under the product ("multiple product checkout"). The normal add puts it
+      in the cart from product-form.js instead. product-form.js keeps both in
+      step with the variant; disabled when there's no gift.
+    {%- endcomment -%}
+    <input ref="giftId" type="hidden" name="shopify-additional-items[1][id]" value="{{ current_gift.id }}" {% unless current_gift %}disabled{% endunless %}>
+    <input ref="giftParent" type="hidden" name="shopify-additional-items[1][parent_id]" value="{{ current_variant.id }}" {% unless current_gift %}disabled{% endunless %}>
     {%- comment -%}
       product-form.js sets this to the chosen plan's supply (2 for a 60-day
       plan, 3 for 90). Without JavaScript it stays 1: the plan radios can't
@@ -234,6 +249,10 @@
       </span>
       {{ 'product.delivery_promise' | t }}
     </p>
+    {%- comment -%} The offer and its condition, where it's offered (free-gift.ts). {%- endcomment -%}
+    <p ref="gift" class="product-form__gift" {% unless current_gift %}hidden{% endunless %}>
+      {%- if current_gift -%}{{ 'product.free_gift' | t: title: current_gift.product.title }}{%- endif -%}
+    </p>
 
     {% comment %}
       The button's three states are passed as data attributes rather than
@@ -364,6 +383,13 @@
         "options": {{ variant.options | json }},
         "price": {{ variant.price | money | json }},
         "cents": {{ variant.price | json }},
+        {%- assign variant_gift = variant.metafields.custom.free_gift.value | default: product.metafields.custom.free_gift.value -%}
+        {%- if variant_gift.available -%}
+          {%- assign variant_gift_text = 'product.free_gift' | t: title: variant_gift.product.title -%}
+          "gift": { "id": {{ variant_gift.id | json }}, "text": {{ variant_gift_text | json }} },
+        {%- else -%}
+          "gift": null,
+        {%- endif -%}
         "plans": [
           {%- assign first_plan = true -%}
           {%- for allocation in variant.selling_plan_allocations -%}

@@ -1626,6 +1626,22 @@ export type ProductRecommendationsQueryVariables = Exact<{
 
 export type ProductRecommendationsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, availableForSale: boolean, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, variants: { nodes: Array<{ id: string, availableForSale: boolean }> } }> | null };
 
+export type VariantFreeGiftsQueryVariables = Exact<{
+  ids: Array<string | number> | string | number;
+}>;
+
+
+export type VariantFreeGiftsQuery = { nodes: Array<
+    | { id: string, freeGift: { reference:
+          | { id: string, availableForSale: boolean, product: { title: string } }
+          | Record<PropertyKey, never>
+         | null } | null, product: { freeGift: { reference:
+            | { id: string, availableForSale: boolean, product: { title: string } }
+            | Record<PropertyKey, never>
+           | null } | null } }
+    | Record<PropertyKey, never>
+   | null> };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -2771,3 +2787,36 @@ export const ProductRecommendationsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<ProductRecommendationsQuery, ProductRecommendationsQueryVariables>;
+export const VariantFreeGiftsDocument = new TypedDocumentString(`
+    query VariantFreeGifts($ids: [ID!]!) {
+  nodes(ids: $ids) {
+    ... on ProductVariant {
+      id
+      freeGift: metafield(namespace: "custom", key: "free_gift") {
+        reference {
+          ... on ProductVariant {
+            id
+            availableForSale
+            product {
+              title
+            }
+          }
+        }
+      }
+      product {
+        freeGift: metafield(namespace: "custom", key: "free_gift") {
+          reference {
+            ... on ProductVariant {
+              id
+              availableForSale
+              product {
+                title
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<VariantFreeGiftsQuery, VariantFreeGiftsQueryVariables>;

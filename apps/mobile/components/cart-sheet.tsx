@@ -1,6 +1,7 @@
 import {
   cartRenewalTerms,
   formatMoney,
+  isNestedLine,
   supplyLabel,
   supplyUnits,
 } from "@formulate/shopify";
@@ -152,6 +153,31 @@ export const CartSheet = ({
           <ScrollView contentContainerClassName="pb-4">
             {lines.map((line) => {
               const variant = line.merchandise;
+
+              if (isNestedLine(line)) {
+                // A free gift, under the product it came with (free-gift.ts).
+                // No controls: Shopify removes it with its product.
+                return (
+                  <View
+                    key={line.id}
+                    accessible
+                    accessibilityLabel={`Free gift: ${variant.product.title}, ${formatMoney(line.cost.totalAmount)}`}
+                    className="flex-row items-center gap-3 border-b border-border py-2 pl-[5.75rem] pr-4"
+                  >
+                    <View className="flex-1">
+                      <Text className="text-xs font-medium text-brand-600">
+                        Free gift
+                      </Text>
+                      <Text numberOfLines={1} className="text-sm text-foreground">
+                        {variant.product.title}
+                      </Text>
+                    </View>
+                    <Text className="text-sm text-foreground font-mono">
+                      {formatMoney(line.cost.totalAmount)}
+                    </Text>
+                  </View>
+                );
+              }
 
               return (
                 <View

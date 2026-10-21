@@ -18,6 +18,8 @@ import {
   deliveryPromise,
   deliveryQuote,
   expressCheckoutOnProduct,
+  freeGiftFor,
+  freeGiftMessage,
   supplyLabel,
   selectionStatus,
   withOption,
@@ -117,6 +119,8 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         )
       : null;
   const quote = quoteFor(effectivePlanId);
+  // This selection's free gift, in stock: added nested under it (free-gift.ts).
+  const gift = freeGiftFor(product, variant);
   // The selection rules are shared with the app (packages/shopify,
   // SHO-127); only the words and the rendering are this surface's.
   const displayPrice = quote?.price ?? priceForSelection(variant, allocations, planId);
@@ -155,6 +159,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
       <input type="hidden" name="quantity" value={quote?.units ?? 1} />
+      <input type="hidden" name="giftId" value={gift?.id ?? ""} />
 
       {product.options.map((option) =>
         // A single option called "Title" with one value is Shopify's stand-in
@@ -304,6 +309,13 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
           <p className="mt-1 text-sm text-foreground-muted">
             {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
           </p>
+          {gift ? (
+            // The offer and its condition, where it's offered: "free" has to
+            // be true and qualified (packages/shopify/src/free-gift.ts).
+            <p className="mt-1 text-sm font-medium text-brand-600">
+              {freeGiftMessage(gift)}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

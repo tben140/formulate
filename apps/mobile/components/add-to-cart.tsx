@@ -1,6 +1,7 @@
 import {
   deliveryPromise,
   expressCheckoutOnProduct,
+  freeGiftMessage,
   findVariantByOptions,
   formatMoney,
   pricePerDay,
@@ -46,6 +47,7 @@ export const AddToCart = ({
     displayPrice,
     quote,
     quoteFor,
+    gift,
     disabled,
     choices,
     label,
@@ -206,6 +208,12 @@ export const AddToCart = ({
           <Text className="mt-1 text-sm text-foreground-muted">
             {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
           </Text>
+          {gift ? (
+            // The offer and its condition, where it's offered (free-gift.ts).
+            <Text className="mt-1 text-sm font-medium text-brand-600">
+              {freeGiftMessage(gift)}
+            </Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -220,7 +228,10 @@ export const AddToCart = ({
         <Text className="text-center text-sm font-semibold text-surface">{label}</Text>
       </Pressable>
 
-      {variant?.availableForSale && expressCheckoutOnProduct(effectivePlanId) ? (
+      {variant?.availableForSale && expressCheckoutOnProduct(effectivePlanId) && !gift ? (
+        // Not with a free gift either: Checkout Kit's product button buys one
+        // variant and can't nest the gift, so it would be lost. The cart's
+        // button includes it.
         // One-time purchases only: a wallet can skip checkout, where the
         // subscription terms are shown (packages/shopify/src/express-checkout.ts).
         <ExpressCheckout variantId={variant.id} quantity={quote?.units ?? 1} />

@@ -754,3 +754,42 @@ export const ProductRecommendationsQuery = graphql(`
     }
   }
 `);
+
+/**
+ * The free gift for each variant (its own, else its product's), for web's
+ * cart permalink route, which builds a Shop Pay checkout without the product
+ * page (free-gift.ts).
+ */
+export const VariantFreeGiftsQuery = graphql(`
+  query VariantFreeGifts($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on ProductVariant {
+        id
+        freeGift: metafield(namespace: "custom", key: "free_gift") {
+          reference {
+            ... on ProductVariant {
+              id
+              availableForSale
+              product {
+                title
+              }
+            }
+          }
+        }
+        product {
+          freeGift: metafield(namespace: "custom", key: "free_gift") {
+            reference {
+              ... on ProductVariant {
+                id
+                availableForSale
+                product {
+                  title
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
