@@ -1166,3 +1166,25 @@ a:hover {
 .cart-drawer__subtotal-value {
   font-family: var(--font-mono);
 }
+
+/* Cart nudges (packages/shopify/src/cart-offers.ts). */
+.cart-line__subscribe {
+  margin-top: 0.25rem;
+}
+.cart-line__subscribe-button {
+  min-height: 2.75rem;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--color-brand-600);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.cart-drawer__stack {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}

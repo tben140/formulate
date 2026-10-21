@@ -264,7 +264,12 @@ class CartDrawer extends Component {
     if (!key) return;
 
     try {
-      const result = await changeItem(key, Number(data.get("quantity") ?? 0));
+      const sellingPlan = data.get("selling_plan");
+      const result = await changeItem(
+        key,
+        Number(data.get("quantity") ?? 0),
+        typeof sellingPlan === "string" && sellingPlan ? sellingPlan : undefined,
+      );
       this.replace(result.sections?.[DRAWER_SECTION] ?? "");
     } catch {
       // A failed quantity change leaves the drawer showing the previous state,

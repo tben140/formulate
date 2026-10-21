@@ -158,6 +158,21 @@ export const updateCartLine = async (formData: FormData): Promise<void> => {
   revalidate();
 };
 
+/**
+ * Switches a one-time line to a subscription ("Subscribe & save" in the
+ * drawer). The plan id comes from the line's own allocations
+ * (subscribeOffer), and Shopify rejects a plan the variant isn't sold on.
+ */
+export const subscribeCartLine = async (formData: FormData): Promise<void> => {
+  const id = String(formData.get("lineId") ?? "");
+  const sellingPlanId = String(formData.get("sellingPlanId") ?? "");
+  const cartId = await readCartId();
+  if (!cartId || !id || !sellingPlanId) return;
+
+  await cartClient.updateLines(cartId, [{ id, sellingPlanId }]);
+  revalidate();
+};
+
 export const removeCartLine = async (formData: FormData): Promise<void> => {
   const lineId = String(formData.get("lineId") ?? "");
   const cartId = await readCartId();

@@ -122,16 +122,26 @@ export const useUpdateCartLine = () => {
     mutationFn: async ({
       lineId,
       quantity,
+      sellingPlanId,
     }: {
       lineId: string;
-      quantity: number;
+      /** Omitted when only the plan changes. */
+      quantity?: number;
+      /** Switches the line to this subscription plan ("Subscribe & save"). */
+      sellingPlanId?: string;
     }): Promise<Cart> => {
       const id = await readCartId();
       if (!id) throw new Error("No cart to update.");
 
       // Quantity zero is how Shopify expresses removal on an update, so the
       // caller never has to choose between two mutations.
-      const result = await cartClient.updateLines(id, [{ id: lineId, quantity }]);
+      const result = await cartClient.updateLines(id, [
+        {
+          id: lineId,
+          ...(quantity !== undefined ? { quantity } : {}),
+          ...(sellingPlanId ? { sellingPlanId } : {}),
+        },
+      ]);
       if (!result.ok) throw shopperError(result.error);
 
       return result.data;

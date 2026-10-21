@@ -1,4 +1,10 @@
-import { formatMoney } from "@formulate/shopify";
+import {
+  formatMoney,
+  stackMessage,
+  stackProgress,
+  subscribeOffer,
+  subscribeOfferLabel,
+} from "@formulate/shopify";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
@@ -140,6 +146,14 @@ export const CartSheet = ({
 
         {/* Above the lines, so VoiceOver reaches it before the list. */}
         <FreeShippingBar lines={lines} />
+        {stackProgress(lines) ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            className="border-b border-border px-4 py-2 text-sm text-foreground"
+          >
+            {stackMessage(stackProgress(lines)!)}
+          </Text>
+        ) : null}
 
         {isPending ? (
           <View className="flex-1 items-center justify-center">
@@ -186,6 +200,28 @@ export const CartSheet = ({
                       <Text className="mt-0.5 text-xs font-medium text-brand-600">
                         {line.sellingPlanAllocation.sellingPlan.name}
                       </Text>
+                    ) : null}
+
+                    {subscribeOffer(line) ? (
+                      // The shopper who skipped the choice on the product page
+                      // (packages/shopify/src/cart-offers.ts).
+                      <Pressable
+                        onPress={() =>
+                          updateLine.mutate({
+                            lineId: line.id,
+                            sellingPlanId: subscribeOffer(line)!.sellingPlanId,
+                          })
+                        }
+                        disabled={updateLine.isPending}
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: updateLine.isPending }}
+                        accessibilityLabel={`${subscribeOfferLabel(subscribeOffer(line)!)} on ${variant.product.title}, ${subscribeOffer(line)!.planName}`}
+                        className="mt-1 min-h-11 justify-center self-start"
+                      >
+                        <Text className="text-xs font-medium text-brand-600 underline">
+                          {subscribeOfferLabel(subscribeOffer(line)!)}
+                        </Text>
+                      </Pressable>
                     ) : null}
 
                     <View className="mt-2 flex-row items-center justify-between">
