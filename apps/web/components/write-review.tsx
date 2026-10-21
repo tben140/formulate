@@ -20,6 +20,8 @@ export const WriteReview = ({
   readonly productTitle: string;
 }) => {
   const [state, action, pending] = useActionState(submitReview, IDLE);
+  // After a failed send, what was typed comes back (React resets the form).
+  const values = state.status === "error" ? state.values : undefined;
 
   if (state.status === "sent") {
     return (
@@ -30,9 +32,20 @@ export const WriteReview = ({
   }
 
   return (
-    <details className="mt-6 rounded-md border border-border px-4 py-3">
+    <details
+      className="mt-6 rounded-md border border-border px-4 py-3"
+      // Open again after a failed send, showing the error.
+      open={state.status === "error" || undefined}
+    >
       <summary className="cursor-pointer text-sm font-semibold">Write a review</summary>
-      <form action={action} className="mt-4 space-y-4 text-sm">
+      <form
+        action={action}
+        // Not natively disabled, so focus isn't dropped; refused here instead.
+        onSubmit={(event) => {
+          if (pending) event.preventDefault();
+        }}
+        className="mt-4 space-y-4 text-sm"
+      >
         <input type="hidden" name="productId" value={productId} />
 
         <fieldset>
@@ -40,7 +53,13 @@ export const WriteReview = ({
           <div className="flex flex-wrap gap-3">
             {[5, 4, 3, 2, 1].map((stars) => (
               <label key={stars} className="flex items-center gap-1">
-                <input type="radio" name="rating" value={stars} required />
+                <input
+                  type="radio"
+                  name="rating"
+                  value={stars}
+                  required
+                  defaultChecked={values?.rating === String(stars)}
+                />
                 {stars} {stars === 1 ? "star" : "stars"}
               </label>
             ))}
@@ -53,6 +72,7 @@ export const WriteReview = ({
           </label>
           <input
             id="review-name"
+            defaultValue={values?.name}
             name="name"
             required
             maxLength={80}
@@ -71,6 +91,7 @@ export const WriteReview = ({
           </label>
           <input
             id="review-email"
+            defaultValue={values?.email}
             name="email"
             type="email"
             required
@@ -90,6 +111,7 @@ export const WriteReview = ({
           </label>
           <input
             id="review-title"
+            defaultValue={values?.title}
             name="title"
             maxLength={120}
             className="w-full rounded-md border border-border px-3 py-2"
@@ -102,6 +124,7 @@ export const WriteReview = ({
           </label>
           <textarea
             id="review-body"
+            defaultValue={values?.body}
             name="body"
             required
             maxLength={2000}
