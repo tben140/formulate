@@ -12,7 +12,9 @@ type Line = CartInput["cart"]["lines"][number];
 /** The variant a line's product gives free: the variant's own, else the product's. */
 const giftOf = (line: Line): string | null =>
   line.merchandise.__typename === "ProductVariant"
-    ? (line.merchandise.freeGift?.value ?? line.merchandise.product.freeGift?.value ?? null)
+    ? (line.merchandise.freeGift?.value ??
+      line.merchandise.product.freeGift?.value ??
+      null)
     : null;
 
 /**
@@ -33,10 +35,14 @@ export function cartLinesDiscountsGenerateRun(
   }
 
   const byId = new Map(input.cart.lines.map((line) => [line.id, line]));
+  // One free gift per product line, even if two gift lines sit under it.
+  const giftedParents = new Set<string>();
   const targets = input.cart.lines.flatMap((line) => {
     const parent = line.parentRelationship && byId.get(line.parentRelationship.parent.id);
     if (!parent || line.merchandise.__typename !== "ProductVariant") return [];
-    return giftOf(parent) === line.merchandise.id ? [{ cartLine: { id: line.id, quantity: 1 } }] : [];
+    if (giftOf(parent) !== line.merchandise.id || giftedParents.has(parent.id)) return [];
+    giftedParents.add(parent.id);
+    return [{ cartLine: { id: line.id, quantity: 1 } }];
   });
 
   if (targets.length === 0) return { operations: [] };
@@ -45,7 +51,9 @@ export function cartLinesDiscountsGenerateRun(
     operations: [
       {
         productDiscountsAdd: {
-          candidates: [{ message: GIFT_MESSAGE, targets, value: { percentage: { value: 100 } } }],
+          candidates: [
+            { message: GIFT_MESSAGE, targets, value: { percentage: { value: 100 } } },
+          ],
           selectionStrategy: ProductDiscountSelectionStrategy.All,
         },
       },
