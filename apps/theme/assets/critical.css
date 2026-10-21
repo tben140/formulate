@@ -1166,3 +1166,26 @@ a:hover {
 .cart-drawer__subtotal-value {
   font-family: var(--font-mono);
 }
+
+/* Cart nudges (packages/shopify/src/cart-offers.ts). */
+.cart-line__subscribe {
+  margin-top: var(--spacing-1);
+}
+.cart-line__subscribe-button {
+  /* 44px: the minimum touch target (WCAG 2.5.8 asks 24; Apple asks 44). */
+  min-height: calc(var(--spacing-10) + var(--spacing-1));
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--color-brand-600);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.cart-drawer__stack {
+  margin: 0;
+  padding: var(--spacing-2) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
