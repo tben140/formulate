@@ -186,10 +186,13 @@ export const CartSheet = ({
                     ) : null}
 
                     <View className="mt-2 flex-row items-center justify-between">
-                      {supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) >
-                      1 ? (
+                      {supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) > 1 &&
+                      line.quantity ===
+                        supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) ? (
                         // A 60- or 90-day plan's quantity is its supply, set by
                         // the plan (deliveryQuote), so it can only be removed.
+                        // Any other quantity (the same plan added twice) keeps
+                        // the stepper, so it can be corrected.
                         <View className="flex-1 flex-row items-center gap-3 pr-3">
                           <Text className="shrink text-xs text-foreground-muted">
                             {supplyLabel(

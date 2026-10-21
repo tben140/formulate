@@ -153,10 +153,13 @@ export const CartDrawer = ({
 
                       <div className="mt-2 flex items-center justify-between gap-2">
                         {supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) >
-                        1 ? (
+                          1 &&
+                        line.quantity ===
+                          supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) ? (
                           // A 60- or 90-day plan's quantity is its supply, set by
-                          // the plan (deliveryQuote), so it can't be changed
-                          // here, only removed.
+                          // the plan (deliveryQuote), so it can only be removed.
+                          // Any other quantity (the same plan added twice) keeps
+                          // the quantity box, so it can be corrected.
                           <p className="text-xs text-foreground-muted">
                             {supplyLabel(
                               supplyUnits(
