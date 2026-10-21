@@ -1,0 +1,30 @@
+query CartInput {
+  cart {
+    lines {
+      id
+      parentRelationship {
+        parent {
+          id
+        }
+      }
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          # A variant's own free gift overrides its product's.
+          freeGift: metafield(namespace: "custom", key: "free_gift") {
+            value
+          }
+          product {
+            freeGift: metafield(namespace: "custom", key: "free_gift") {
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+  discount {
+    discountClasses
+  }
+}

@@ -2,6 +2,13 @@ query CartInput {
   cart {
     lines {
       id
+      # A nested line is a free gift (or another add-on): it neither counts
+      # towards the stack nor gets 10% off.
+      parentRelationship {
+        parent {
+          id
+        }
+      }
       sellingPlanAllocation {
         sellingPlan {
           id
