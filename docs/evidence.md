@@ -104,12 +104,16 @@ End to end, all open PRs combined (2026-10-05, posted on #56):
 
 Counted with `vitest run` / `jest` at the commit named; coverage not re-measured.
 
-| Package                 | Tests | At                    |
-| ----------------------- | ----- | --------------------- |
-| `packages/shopify`      | 106   | `e2876ab` (#139)      |
-| `apps/api` (the Worker) | 84    | `b52d0c7` (#136)      |
-| `packages/recharge`     | 19    | `b52d0c7` (#136)      |
-| `apps/mobile` (Jest)    | 25    | `5616b9e` (#137), new |
+| Package                   | Tests                          | At                              |
+| ------------------------- | ------------------------------ | ------------------------------- |
+| `packages/shopify`        | 106                            | `e2876ab` (#139)                |
+| `apps/api` (the Worker)   | 84                             | `b52d0c7` (#136)                |
+| `packages/recharge`       | 19                             | `b52d0c7` (#136)                |
+| `apps/mobile` (Jest)      | 25                             | `5616b9e` (#137), new           |
+| `packages/shopify`        | 147                            | `a657266` (#146)                |
+| `apps/api` (the Worker)   | 40                             | `ed0ad0f` (#147, on #94's line) |
+| `free-gift` Function      | 6 fixtures, run as WebAssembly | `9abf721` (#145), new           |
+| `stack-discount` Function | 9 fixtures, run as WebAssembly | `9abf721` (#145)                |
 
 The app's Jest suite (new in #137) was checked against its own bugs: putting
 back two issues the reviewer had found on #136, and removing the cart sheet's
@@ -129,6 +133,12 @@ answered before merging. Examples that mattered:
   from one server (#136);
 - prepaid subscriptions that a frequency change would have turned into
   charge-every-delivery (#136).
+- a saving claim and renewal terms that would have been untrue for a plan
+  with an introductory price (#141);
+- a cart that showed "90-day supply" on a line holding two deliveries, with
+  no way to correct it (#143);
+- Shop Pay checkouts from the cart that skipped the analytics event every
+  other checkout records (#144).
 
 ## CI that catches things
 
