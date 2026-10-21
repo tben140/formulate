@@ -11,6 +11,7 @@ import {
   pricePerDay,
   purchasableAllocations,
   purchaseOptions,
+  RENEWAL_SHORT,
   renewalTerms,
   savingMessage,
   SUBSCRIPTION_BENEFITS,
@@ -309,7 +310,12 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         // (California's Automatic Renewal Law; the UK's DMCC subscription
         // rules from 2027).
         <p className="mt-2 text-xs text-foreground-muted">
-          {renewalTerms(displayPrice, planName)}
+          {renewalTerms(
+            displayPrice,
+            planName,
+            allocations.find((a) => a.sellingPlan.id === effectivePlanId)
+              ?.priceAdjustments[1]?.price,
+          )}
         </p>
       ) : null}
 
@@ -508,6 +514,11 @@ const StickyAddToCart = ({
           {buttonLabel}
         </button>
       </div>
+      {planName ? (
+        // This button buys too, so the renewal terms come with it, in brief
+        // (the full terms are beside the main button).
+        <p className="mt-1 text-xs text-foreground-muted">{RENEWAL_SHORT}</p>
+      ) : null}
     </div>
   );
 };

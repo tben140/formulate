@@ -88,6 +88,24 @@ export const pricePerDay = (price: MoneyLike | null | undefined): string | null 
 /**
  * The renewal terms, beside the button whenever a subscription is chosen.
  * `plan` is the selling plan's name, e.g. "Delivery every 30 days".
+ *
+ * `later` is the plan's second price adjustment, for plans whose price
+ * changes after the first delivery (an introductory discount): then both
+ * prices are stated, so the first price is never presented as the price of
+ * every delivery.
  */
-export const renewalTerms = (price: MoneyLike, plan: string): string =>
-  `${plan}: ${formatMoney(price)} is charged for each delivery, automatically, until you cancel. You can skip, pause or cancel any time from your account.`;
+export const renewalTerms = (
+  price: MoneyLike,
+  plan: string,
+  later?: MoneyLike | null,
+): string => {
+  const changes =
+    later && (later.amount !== price.amount || later.currencyCode !== price.currencyCode);
+  const charge = changes
+    ? `${formatMoney(price)} for the first delivery, then ${formatMoney(later)} for each delivery after that, charged automatically`
+    : `${formatMoney(price)} is charged for each delivery, automatically,`;
+  return `${plan}: ${charge} until you cancel. You can skip, pause or cancel any time from your account.`;
+};
+
+/** For the sticky bars, which have room for one line beside their button. */
+export const RENEWAL_SHORT = "Renews automatically until you cancel";

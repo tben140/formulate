@@ -28,6 +28,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLInputElement} [variantId]
  * @property {HTMLElement} [price]
  * @property {HTMLElement} [perDay]
+ * @property {HTMLElement} [renewal]
  * @property {HTMLButtonElement} [submit]
  * @property {HTMLElement} [status]
  * @property {HTMLInputElement | HTMLInputElement[]} [optionInput]
@@ -45,12 +46,13 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * day", or "£1.20 a day". The theme sells in pounds only.
  *
  * @param {number} cents
+ * @param {string} suffix "a day", from the locale (product.per_day).
  */
-const perDayText = (cents) => {
+const perDayText = (cents, suffix) => {
   const perDay = Math.round(cents / 30);
   return perDay < 100
-    ? `${perDay}p a day`
-    : `${new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(perDay / 100)} a day`;
+    ? `${perDay}p ${suffix} ·`
+    : `${new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(perDay / 100)} ${suffix} ·`;
 };
 
 /**
@@ -222,9 +224,18 @@ class ProductForm extends Component {
     // The headline price follows the purchase option, as on web and mobile
     // (SHO-124). The per-option prices in the list were always right.
     if (price && match) price.textContent = effectivePlan?.price ?? match.price;
-    if (this.refs.perDay && match) {
-      this.refs.perDay.textContent = perDayText(effectivePlan?.cents ?? match.cents);
+    const { perDay, renewal } = this.refs;
+    if (perDay) {
+      perDay.hidden = !match;
+      if (match) {
+        perDay.textContent = perDayText(
+          effectivePlan?.cents ?? match.cents,
+          perDay.dataset.perDaySuffix ?? "a day",
+        );
+      }
     }
+    // The renewal terms only while a subscription is selected.
+    if (renewal) renewal.hidden = !effectivePlan;
 
     const label = !match
       ? (submit?.dataset.unavailableLabel ?? "Unavailable")

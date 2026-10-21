@@ -199,7 +199,12 @@ export const AddToCart = ({
         // The renewal terms, before purchase and next to the button
         // (California's Automatic Renewal Law; the UK's DMCC rules from 2027).
         <Text className="text-xs text-foreground-muted">
-          {renewalTerms(displayPrice, planName)}
+          {renewalTerms(
+            displayPrice,
+            planName,
+            allocations.find((a) => a.sellingPlan.id === effectivePlanId)
+              ?.priceAdjustments[1]?.price,
+          )}
         </Text>
       ) : null}
 

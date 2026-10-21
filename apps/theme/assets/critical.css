@@ -1170,19 +1170,19 @@ a:hover {
 /* Subscribe-and-save details on the purchase options (subscribe-and-save.ts). */
 .product-form__plan-saving {
   display: block;
-  margin-top: 0.125rem;
-  font-size: 0.75rem;
+  margin-top: var(--spacing-1);
+  font-size: var(--text-xs);
 }
 .product-form__plan-was {
-  margin-right: 0.5rem;
+  margin-right: var(--spacing-2);
 }
 .product-form__per-day,
 .product-form__renewal {
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
+  margin-top: var(--spacing-1);
+  font-size: var(--text-sm);
   color: var(--color-foreground-muted);
 }
 .product-form__renewal {
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
+  margin-top: var(--spacing-2);
+  font-size: var(--text-xs);
 }

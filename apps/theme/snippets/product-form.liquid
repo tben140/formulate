@@ -167,7 +167,7 @@
                     value="{{ allocation.selling_plan.id }}"
                   >
                   {{ allocation.selling_plan.name }}
-                  {%- assign plan_saving = current_variant.price | minus: allocation.price -%}
+                  {%- assign plan_saving = current_variant.price | minus: allocation.per_delivery_price -%}
                   {%- if plan_saving > 0 -%}
                     {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: current_variant.price | round -%}
                     {%- assign plan_saving_money = plan_saving | money -%}
@@ -198,10 +198,15 @@
     <p ref="price" class="product-form__price">{{ current_variant.price | money }}</p>
     {%- assign per_day = current_variant.price | divided_by: 30.0 | round -%}
     <p class="product-form__per-day">
-      <span ref="perDay">
-        {%- if per_day < 100 -%}{{ per_day }}p{%- else -%}{{ per_day | money }}{%- endif %} {{ 'product.per_day' | t -}}
+      {%- comment -%}
+        Hidden until product-form.js runs: without JavaScript a variant or
+        plan change can't update it, and a stale price per day is worse than
+        none. The delivery line is always true, so it always shows.
+      {%- endcomment -%}
+      <span ref="perDay" data-per-day-suffix="{{ 'product.per_day' | t | escape }}" hidden>
+        {%- if per_day < 100 -%}{{ per_day }}p{%- else -%}{{ per_day | money }}{%- endif %} {{ 'product.per_day' | t }} ·
       </span>
-      · {{ 'product.delivery_promise' | t }}
+      {{ 'product.delivery_promise' | t }}
     </p>
 
     {% comment %}
@@ -229,10 +234,11 @@
       {% comment %}
         The renewal terms, before purchase and next to the button: California's
         Automatic Renewal Law now, the UK's DMCC subscription rules from 2027.
-        Always shown when the product offers subscriptions, so they're there
-        without JavaScript too; each option shows its own price above.
+        product-form.js shows it only while a subscription is selected. Without
+        JavaScript it always shows: it can't follow the radios then, and a
+        disclosure shown slightly too often is better than one missed.
       {% endcomment %}
-      <p class="product-form__renewal">{{ 'product.renewal_terms' | t }}</p>
+      <p ref="renewal" class="product-form__renewal">{{ 'product.renewal_terms' | t }}</p>
     {% endif %}
 
     {% comment %} Errors and confirmations are announced, because the drawer
@@ -317,8 +323,8 @@
                 "id": {{ allocation.selling_plan.id | json }},
                 "name": {{ allocation.selling_plan.name | json }},
                 "price": {{ allocation.price | money | json }},
-                "cents": {{ allocation.price | json }},
-                {%- assign plan_saving = variant.price | minus: allocation.price -%}
+                "cents": {{ allocation.per_delivery_price | json }},
+                {%- assign plan_saving = variant.price | minus: allocation.per_delivery_price -%}
                 {%- if plan_saving > 0 -%}
                   {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: variant.price | round -%}
                   {%- assign plan_saving_money = plan_saving | money -%}
