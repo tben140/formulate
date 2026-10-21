@@ -10,7 +10,8 @@ interface PageProps {
   readonly params: Promise<{ handle: string }>;
 }
 
-export const metadata: Metadata = { title: "Policy — Double Helix" };
+// The root layout's title template adds " — <brand>".
+export const metadata: Metadata = { title: "Policy" };
 
 /**
  * A store policy (privacy, subscription and so on), as written in Shopify

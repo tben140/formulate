@@ -13,6 +13,20 @@
  * Never hand-edit theme.css.
  */
 
+/**
+ * The brand name, everywhere a person reads it: page titles, headers, footers,
+ * the app's name on the home screen.
+ *
+ * Web and the app import it. The Liquid theme can't import TypeScript, so its
+ * Wordmark setting (Theme settings → Brand) keeps its own default, and
+ * `scripts/check-brand.ts` fails the build when the two disagree.
+ *
+ * Not used for Klaviyo's `custom_source` labels ("Double Helix web" and so
+ * on). Those identify data, and segments filter on them, so a rename must not
+ * change them silently.
+ */
+export const BRAND_NAME = "Double Helix";
+
 export interface ColourScale {
   readonly 50: string;
   readonly 100: string;

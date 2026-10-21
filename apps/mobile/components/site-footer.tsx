@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@formulate/tokens";
 import { Text, View } from "react-native";
 
 import { EmailCapture } from "./email-capture";
@@ -33,7 +34,7 @@ export const SiteFooter = () => (
     <EmailCapture />
 
     <Text className="mt-6 text-sm text-foreground-muted">
-      &copy; {new Date().getFullYear()} Double Helix
+      &copy; {new Date().getFullYear()} {BRAND_NAME}
     </Text>
   </View>
 );
