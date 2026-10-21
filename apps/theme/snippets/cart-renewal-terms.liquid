@@ -23,7 +23,15 @@
       {%- if item.selling_plan_allocation -%}
         {%- unless first_item %}; {% endunless -%}
         {%- assign first_item = false -%}
-        {{- item.product.title | escape }} ({{ item.selling_plan_allocation.selling_plan.name | escape }}), {{ item.final_line_price | money }} {{ 'cart.per_delivery' | t -}}
+        {{- item.product.title | escape }} ({{ item.selling_plan_allocation.selling_plan.name | escape }}),
+        {%- assign adjustments = item.selling_plan_allocation.price_adjustments -%}
+        {%- if adjustments.size > 1 and adjustments[1].price != adjustments[0].price -%}
+          {%- comment -%} An introductory plan: its later price too (cartRenewalTerms). {%- endcomment -%}
+          {%- assign first_price = item.final_line_price | money -%}
+          {%- assign later_price = adjustments[1].price | times: item.quantity | money -%}
+          {{ ' ' }}{{ 'cart.introductory_price' | t: first: first_price, later: later_price -}}
+        {%- else %} {{ item.final_line_price | money }} {{ 'cart.per_delivery' | t -}}
+        {%- endif -%}
       {%- endif -%}
     {%- endfor -%}
   {%- endcapture -%}

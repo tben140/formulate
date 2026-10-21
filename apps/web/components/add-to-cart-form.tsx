@@ -334,6 +334,9 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         <div className="mt-2">
           <ShopPayButton
             variants={[{ id: variant.id, quantity: quote?.units ?? 1 }]}
+            // Not while an add is in flight: a second, separate checkout
+            // mid-update would confuse which purchase happened.
+            disabled={pending}
             width="100%"
             borderRadius="8px"
           />

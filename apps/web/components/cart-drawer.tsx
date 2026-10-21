@@ -55,6 +55,21 @@ export const CartDrawer = ({
 
   const lines = cart?.lines.nodes ?? [];
 
+  /*
+   * Shop Pay checkouts are recorded the same way as Checkout. The button takes
+   * no handlers of its own; a click (or Enter, which clicks a link) reaches its
+   * wrapper from the shadow root, so the listener sits there.
+   */
+  const shopPay = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = shopPay.current;
+    if (!element || !cart) return;
+    const record = () =>
+      track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain));
+    element.addEventListener("click", record);
+    return () => element.removeEventListener("click", record);
+  }, [cart, storeDomain]);
+
   return (
     /*
      * The backdrop click below is a mouse convenience with no keyboard
@@ -265,7 +280,7 @@ export const CartDrawer = ({
 
             {/* Express checkout for the whole cart, subscriptions included:
                 the cart's own checkout link, opened in Shop Pay. */}
-            <div className="mt-2">
+            <div ref={shopPay} className="mt-2">
               <ShopPayButton
                 checkoutUrl={cart.checkoutUrl}
                 width="100%"

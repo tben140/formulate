@@ -1,4 +1,5 @@
 import { formatMoney, type MoneyLike } from "./format-money";
+import { isIntroductoryPlan } from "./subscribe-and-save";
 
 /**
  * Express checkout (Shop Pay, Apple Pay): the rules shared by web, the app and
@@ -19,12 +20,20 @@ import { formatMoney, type MoneyLike } from "./format-money";
 
 /** What `cartRenewalTerms` reads from a cart line (CartFields). */
 export interface RenewalLine {
+  readonly quantity: number;
   readonly sellingPlanAllocation?: {
     readonly sellingPlan: { readonly name: string };
+    /** Per unit; a second, different one is an introductory plan's later price. */
+    readonly priceAdjustments?: readonly { readonly price: MoneyLike }[];
   } | null;
   readonly cost: { readonly totalAmount: MoneyLike };
   readonly merchandise: { readonly product: { readonly title: string } };
 }
+
+const times = (money: MoneyLike, quantity: number): MoneyLike => ({
+  amount: ((Math.round(Number(money.amount) * 100) * quantity) / 100).toFixed(2),
+  currencyCode: money.currencyCode,
+});
 
 /** Whether a product page should show express checkout: one-time only. */
 export const expressCheckoutOnProduct = (planId: string): boolean => !planId;
@@ -39,10 +48,16 @@ export const cartRenewalTerms = (lines: readonly RenewalLine[]): string | null =
   const subscriptions = lines.filter((line) => line.sellingPlanAllocation);
   if (subscriptions.length === 0) return null;
   const items = subscriptions
-    .map(
-      (line) =>
-        `${line.merchandise.product.title} (${line.sellingPlanAllocation!.sellingPlan.name}), ${formatMoney(line.cost.totalAmount)} a delivery`,
-    )
+    .map((line) => {
+      const plan = line.sellingPlanAllocation!;
+      const adjustments = plan.priceAdjustments ?? [];
+      // An introductory plan: the cart's price is only the first one, so the
+      // later price is stated too, and when it starts is left to checkout.
+      const price = isIntroductoryPlan(adjustments)
+        ? `${formatMoney(line.cost.totalAmount)} for an introductory period, then ${formatMoney(times(adjustments[1]!.price, line.quantity))} a delivery (checkout shows exactly when it changes)`
+        : `${formatMoney(line.cost.totalAmount)} a delivery`;
+      return `${line.merchandise.product.title} (${plan.sellingPlan.name}), ${price}`;
+    })
     .join("; ");
   return `Subscriptions in this order renew automatically until you cancel: ${items}. You can skip, pause or cancel any time from your account.`;
 };

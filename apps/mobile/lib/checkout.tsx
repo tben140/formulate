@@ -94,10 +94,16 @@ export const ExpressCheckout = (
     readonly onComplete?: () => void;
   },
 ) => {
-  const [failed, setFailed] = useState(false);
-  if (!sheetKit || Platform.OS !== "ios" || failed) return null;
-  const { AcceleratedCheckoutButtons, AcceleratedCheckoutWallet, RenderState } = sheetKit;
   const { onComplete, ...identifier } = props;
+  // What failed to load, so a different cart or product tries again rather
+  // than staying hidden for the life of the screen.
+  const key =
+    "cartId" in identifier
+      ? identifier.cartId
+      : `${identifier.variantId}:${identifier.quantity}`;
+  const [failedFor, setFailedFor] = useState<string | null>(null);
+  if (!sheetKit || Platform.OS !== "ios" || failedFor === key) return null;
+  const { AcceleratedCheckoutButtons, AcceleratedCheckoutWallet, RenderState } = sheetKit;
   return (
     <View className="mt-2">
       <AcceleratedCheckoutButtons
@@ -109,7 +115,7 @@ export const ExpressCheckout = (
         ]}
         onComplete={() => onComplete?.()}
         onRenderStateChange={(event) => {
-          if (event.state === RenderState.Error) setFailed(true);
+          if (event.state === RenderState.Error) setFailedFor(key);
         }}
       />
     </View>

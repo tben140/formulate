@@ -21,7 +21,13 @@ const MAX_LINES = 10;
 
 /** "52871791378744:1,123:2" as cart lines, or null when it isn't one. */
 const parseLines = (segment: string) => {
-  const parts = decodeURIComponent(segment).split(",");
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch {
+    return null; // Malformed percent-encoding: not a permalink.
+  }
+  const parts = decoded.split(",");
   if (parts.length === 0 || parts.length > MAX_LINES) return null;
   const lines = parts.map((part) => {
     const match = /^(\d{1,20}):([1-9]\d{0,2})$/.exec(part);
