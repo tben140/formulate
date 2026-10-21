@@ -92,6 +92,47 @@ subscription id only as a question: it fetches that subscription and acts
 only if its Recharge customer is the caller Shopify verified, and answers
 "not found" otherwise, so ids can't be probed.
 
+**Subscription claims as pure functions, with the law beside them**
+(#141). "Save £2.39 a delivery", the struck-through price, the price per day
+and the renewal terms are computed once, in `packages/shopify`, and rendered
+by all three surfaces (the theme restates them in Liquid). The comment above
+the code says why each is lawful: the struck-through price is the same
+product's one-time price on sale now, a comparison of two real offers (UK
+CMA guidance under the DMCC Act; the FTC's 16 CFR 233), never a "was" price;
+the renewal terms sit beside every button that buys, sticky bars included
+(California's Automatic Renewal Law now, the UK's subscription rules from
+2027). A plan whose price rises after an introductory period gets no saving
+claim at all, rather than one that's only true at first. Rejected: per-surface
+copy, which is how three shops end up making three different promises.
+_Would change:_ a sale on one-time prices (SHO-180), which would make the
+comparison run the other way.
+
+**The plan sets the quantity** (#143). Every product is a 30-day supply, so a
+"every 90 days" plan has to ship three, at three times the price. The supply
+comes from Recharge's own plan option ("90-day"), not a table of our own, so
+a new plan needs no code. Rejected: 60- and 90-day pack variants on every
+product, which would have split stock three ways.
+
+**Express checkout, one-time only on product pages** (#144). Shop Pay and
+Apple Pay can complete a purchase without Shopify's checkout page, which is
+where the subscription terms are otherwise shown. Their product-page buttons
+can't carry a selling plan anyway, so they appear only while one-time is
+selected, and every cart holding a subscription states the renewal terms above
+all its ways to pay. Web's product-page Shop Pay goes through a route of our
+own that builds the cart through the Storefront API, because Shopify's cart
+permalinks are served by the online store, which a password-protected store
+doesn't serve. _Would change:_ wallet buttons that carry selling plans.
+
+**Free gifts as nested cart lines and a discount Function** (#145, #146). The
+gift is a real product, added under the product it comes with, so Shopify
+shows it beneath it in cart, checkout and the order, and removes it with it.
+A discount Function makes it free only while it sits under a product that
+gives it, so it can't be had on its own; the stack discount ignores nested
+lines, so a free gift can't complete a "3 different products" offer. Which
+gift, if any, is a field on the product, not code. Rejected: a Cart Transform
+expanding the product into a bundle, which changes what the order and stock
+records say was sold.
+
 **Performance on iOS in CI** (SHO-26) was dropped for v1. Lighthouse gates web
 and the theme; the app's tests cover behaviour, not speed.
 
@@ -171,6 +212,12 @@ usually after an assumption had already shipped.
   customer `customer_id`; its charges name it `customer.id`. The first
   version of "undo a skip" checked the wrong one and would have refused
   every request. Caught by reading real records before building on them.
+
+- **Three plans, one price.** Every 30-, 60- and 90-day plan showed £13.56,
+  because each shipped a single 30-day unit: a 90-day subscriber would have
+  run out two months before the next delivery. The prices were "correct" for
+  what was configured, and every test passed; it took looking at the page as
+  a shopper to see it. The plan now sets the quantity (#143).
 
 > **TODO (Ben):** the worktree bug and anything from the lab notebook. Add
 > them here in the same form: what was assumed, what was measured, what
