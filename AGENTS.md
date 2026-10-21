@@ -34,6 +34,24 @@ load-bearing and look like neglect from the outside. They are recorded in
 - [TypeScript is `~6.0.3`, not 7](docs/adr/0002-typescript-6-over-7.md). No
   `typescript-eslint` release supports 7.
 
+## Dependencies
+
+**A new version must be 7 days old before it's installed.** pnpm enforces
+this (`minimumReleaseAge` in `pnpm-workspace.yaml`) and Renovate uses the same
+number. The wait keeps out hijacked releases, which are usually caught and
+pulled within hours to days.
+
+- **Security fast track: 2 days.** A version that fixes a published advisory
+  may be installed once it's 2 days old, if it's a patch or minor release from
+  the same publisher and CI passes. Add it to `minimumReleaseAgeExclude` with a
+  comment naming the advisory, and remove the line once the version is 7 days
+  old. Renovate applies the 2 days to security PRs by itself.
+- **Prefer a range that can't reach a release that's too new.** A caret can
+  resolve to a release from yesterday: `~16.3.8` instead of `^16.3.8` kept Next
+  off a two-day-old 16.4.2.
+- **Major versions** also need their changelog read and the full checks run.
+  The age rule doesn't cover breaking changes.
+
 ## Environments and secrets
 
 Every variable is documented in its app's example file, which says what it is
