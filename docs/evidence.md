@@ -60,8 +60,8 @@ competing (SHO-148).
 ### App
 
 **Not measured yet.** Cold start, slow and frozen frames, and scroll
-performance need a device or simulator: Flashlight on Android, Maestro on iOS
-(SHO-25, SHO-26), Sentry vitals (SHO-27). They wait on EAS builds (SHO-24).
+performance need a device or simulator: Flashlight on Android, Maestro on iOS,
+and Sentry's mobile vitals. The work to do so is tracked in Linear.
 
 ## Accessibility
 
