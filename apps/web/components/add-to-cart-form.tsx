@@ -250,7 +250,10 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                   <span
                     // Full-strength on the selected card: muted grey on
                     // brand-50 is 4.34:1, under AA's 4.5:1.
-                    className={`font-mono ${
+                    // One right-hand column for every price: the struck-through
+                    // one-time price stacks above the subscription price, and
+                    // the price below ends on the same edge (as the theme).
+                    className={`flex shrink-0 flex-col items-end text-right font-mono ${
                       effectivePlanId === choice.id
                         ? "text-foreground"
                         : "text-foreground-muted"
@@ -267,7 +270,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       // a real comparison, not a "was" price (see
                       // packages/shopify/src/subscribe-and-save.ts).
                       <>
-                        <s className="mr-2">
+                        <s>
                           <span className="sr-only"> One-time price </span>
                           {formatMoney(variant!.price)}
                         </s>
@@ -286,7 +289,10 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       {displayPrice ? (
         // DM Mono ships in 400 and 500 only; semibold would be synthesised.
         <div className="mb-4">
-          <p className="font-mono text-2xl font-medium">{formatMoney(displayPrice)}</p>
+          {/* pr-3: lined up with the option prices, inside their px-3. */}
+          <p className="pr-3 text-right font-mono text-2xl font-medium">
+            {formatMoney(displayPrice)}
+          </p>
           <p className="mt-1 text-sm text-foreground-muted">
             {pricePerDay(displayPrice)} · {deliveryPromise()}
           </p>
