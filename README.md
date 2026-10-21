@@ -70,10 +70,19 @@ Worker.
   change quantity and cancel (with save offers first, and cancelling never more
   than one page). Every change goes through the Worker, which checks the
   subscription belongs to the signed-in customer before touching it.
+- **Subscription offers that stay true.** One-time against subscribe-and-save
+  with the saving, price per day and renewal terms beside every button that
+  buys; 60- and 90-day plans ship 60 and 90 days of product; carts offer to
+  switch a line to a subscription. Each claim is one shared function with the
+  UK and US rules written beside it.
+- **Express checkout and free gifts.** Shop Pay and Apple Pay on all three
+  surfaces (one-time only on product pages, renewal terms in every cart that
+  holds a subscription), and free gifts as nested cart lines, set per product
+  in Shopify and made free by a discount Function.
 - **Checkout logic as Shopify Functions.** A cart limit (at most 6 of one
-  product), a "build your stack" discount that leaves subscriptions alone, and
-  checkout and thank-you panels that explain what happens next
-  (`apps/shopify-app`).
+  product), a "build your stack" discount that leaves subscriptions and gifts
+  alone, a free-gift discount, and checkout and thank-you panels that explain
+  what happens next (`apps/shopify-app`).
 - **A real billing bug, found and fixed.** Checkout promised free recurring
   delivery that renewals then charged for: the free-delivery threshold was
   judged on the first basket, and renewals are smaller. Fixed with a delivery
