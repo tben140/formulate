@@ -60,6 +60,18 @@ interface Env extends DeletionEnv {
 const MAX_BODY_BYTES = 1024;
 
 /**
+ * The signed-in routes, exactly. Only these get the looser per-IP backstop
+ * (they're called from web's server, one IP for every customer) and then a
+ * per-customer limit. Any other /account/ path is a 404.
+ */
+const ACCOUNT_ROUTES = new Set([
+  "/account/subscriptions",
+  "/account/subscriptions/action",
+  "/account/deletion/preview",
+  "/account/deletion",
+]);
+
+/**
  * The only outcomes a caller ever sees.
  *
  * ⚠️ Klaviyo's error bodies describe the account — a wrong list id says "List
@@ -175,7 +187,7 @@ export default {
     // Signed-in routes come from web's server, one IP for every customer:
     // a looser backstop here, and a per-customer limit once Shopify has said
     // who's calling (see withinCustomerLimit in src/shopify-customer.ts).
-    const isAccount = new URL(request.url).pathname.startsWith("/account/");
+    const isAccount = ACCOUNT_ROUTES.has(new URL(request.url).pathname);
     const { success } = await env.RATE_LIMITER.get(
       env.RATE_LIMITER.idFromName(isAccount ? `account:${ip}` : ip),
     ).limit(isAccount ? ACCOUNT_IP_LIMIT : LIMIT);
@@ -216,6 +228,11 @@ export default {
     if (pathname === "/account/deletion") {
       const { status, body } = await deleteAccount(env, request, raw);
       return respond(body, status);
+    }
+    // Never let an unknown /account/ path fall through to the newsletter
+    // route below: it would be under the looser account limit (#136 review).
+    if (pathname.startsWith("/account/")) {
+      return json({ ok: false, reason: "rejected" }, 404);
     }
 
     let email: unknown;
