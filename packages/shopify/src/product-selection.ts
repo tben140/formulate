@@ -235,7 +235,9 @@ export const purchaseOptions = <P>(
   ...allocations.map((allocation) => ({
     id: allocation.sellingPlan.id,
     label: allocation.sellingPlan.name,
-    price: allocation.priceAdjustments[0]?.price,
+    // A plan with no price adjustment costs the variant's price, as
+    // displayPrice already assumes (#75 review).
+    price: allocation.priceAdjustments[0]?.price ?? variant?.price,
   })),
 ];
 

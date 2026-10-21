@@ -290,6 +290,11 @@ describe("purchase options and price (SHO-127)", () => {
     ]);
   });
 
+  it("prices a plan with no adjustment at the variant's price", () => {
+    const unadjusted = { ...monthly, priceAdjustments: [] };
+    expect(purchaseOptions(variant, [unadjusted])[1]?.price).toBe("30.00");
+  });
+
   it("tells unavailable combinations from sold-out variants", () => {
     expect(selectionStatus(variant)).toBe("available");
     expect(selectionStatus({ ...variant, availableForSale: false })).toBe("soldOut");
