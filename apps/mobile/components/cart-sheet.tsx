@@ -1,8 +1,13 @@
-import { formatMoney, supplyLabel, supplyUnits } from "@formulate/shopify";
+import {
+  cartRenewalTerms,
+  formatMoney,
+  supplyLabel,
+  supplyUnits,
+} from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
-import { useCheckout } from "../lib/checkout";
+import { ExpressCheckout, useCheckout } from "../lib/checkout";
 import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
 
 import { FreeShippingBar } from "./free-shipping-bar";
@@ -279,6 +284,14 @@ export const CartSheet = ({
               Taxes and shipping calculated at checkout.
             </Text>
 
+            {cartRenewalTerms(lines) ? (
+              // Above every way to pay: express checkout can skip Shopify's
+              // checkout page, where the terms would otherwise be shown.
+              <Text className="mb-3 text-xs text-foreground-muted">
+                {cartRenewalTerms(lines)}
+              </Text>
+            ) : null}
+
             <Pressable
               onPress={() => checkout.present(cart.checkoutUrl)}
               accessibilityRole="button"
@@ -288,6 +301,10 @@ export const CartSheet = ({
                 Checkout
               </Text>
             </Pressable>
+
+            {/* A wallet purchase completes here, so the cart is cleared as
+                after checkout; the sheet stays, now showing it empty. */}
+            <ExpressCheckout cartId={cart.id} onComplete={() => clearCart.mutate()} />
           </View>
         ) : null}
       </View>

@@ -1,7 +1,9 @@
 "use client";
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
+import { ShopPayButton } from "@shopify/hydrogen/react";
 import {
+  cartRenewalTerms,
   formatMoney,
   supplyLabel,
   supplyUnits,
@@ -233,6 +235,14 @@ export const CartDrawer = ({
               Taxes and shipping calculated at checkout.
             </p>
 
+            {cartRenewalTerms(lines) ? (
+              // Above every way to pay: Shop Pay below can skip Shopify's
+              // checkout page, where the terms would otherwise be shown.
+              <p className="mb-3 text-xs text-foreground-muted">
+                {cartRenewalTerms(lines)}
+              </p>
+            ) : null}
+
             {/*
               A link, not a button with an onClick. Checkout is a cross-origin
               navigation to Shopify — there is nothing to intercept, and a real
@@ -252,6 +262,16 @@ export const CartDrawer = ({
             >
               Checkout
             </a>
+
+            {/* Express checkout for the whole cart, subscriptions included:
+                the cart's own checkout link, opened in Shop Pay. */}
+            <div className="mt-2">
+              <ShopPayButton
+                checkoutUrl={cart.checkoutUrl}
+                width="100%"
+                borderRadius="8px"
+              />
+            </div>
           </footer>
         ) : null}
       </div>

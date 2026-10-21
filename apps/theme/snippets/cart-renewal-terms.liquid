@@ -1,0 +1,31 @@
+{%- comment -%}
+  The renewal terms for a cart holding a subscription, above every way to pay:
+  the checkout button and the express wallets, which can skip Shopify's
+  checkout page. The Liquid twin of cartRenewalTerms in
+  packages/shopify/src/express-checkout.ts. Renders nothing without a
+  subscription.
+
+  Accepts:
+  - cart: {Object}
+{%- endcomment -%}
+{%- liquid
+  assign subscription_count = 0
+  for item in cart.items
+    if item.selling_plan_allocation
+      assign subscription_count = subscription_count | plus: 1
+    endif
+  endfor
+-%}
+{%- if subscription_count > 0 -%}
+  {%- capture renewal_items -%}
+    {%- assign first_item = true -%}
+    {%- for item in cart.items -%}
+      {%- if item.selling_plan_allocation -%}
+        {%- unless first_item %}; {% endunless -%}
+        {%- assign first_item = false -%}
+        {{- item.product.title | escape }} ({{ item.selling_plan_allocation.selling_plan.name | escape }}), {{ item.final_line_price | money }} {{ 'cart.per_delivery' | t -}}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endcapture -%}
+  <p class="cart-renewal-terms">{{ 'cart.renewal_terms' | t: items: renewal_items }}</p>
+{%- endif -%}

@@ -44,7 +44,9 @@
       "choose": "Choose options",
       "choose_for": "for {{ title }}"
     },
-    "supply": "{{ days }}-day supply ({{ units }} × 30-day packs)"
+    "supply": "{{ days }}-day supply ({{ units }} × 30-day packs)",
+    "renewal_terms": "Subscriptions in this order renew automatically until you cancel: {{ items }}. You can skip, pause or cancel any time from your account.",
+    "per_delivery": "a delivery"
   },
   "collections": {
     "title": "Collections",

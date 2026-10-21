@@ -1207,3 +1207,20 @@ a:hover {
   font-size: var(--text-xs);
   color: var(--color-foreground-muted);
 }
+
+/*
+ * Express checkout (Shop Pay, Apple Pay): Shopify's buttons, styled only
+ * through its custom properties (they sit in a closed shadow root), to match
+ * the theme's buttons. One-time purchases only on the product page.
+ */
+.product-form__express,
+.cart-drawer__express {
+  margin-top: var(--spacing-2);
+  --shopify-accelerated-checkout-button-border-radius: var(--radius-md);
+  --shopify-accelerated-checkout-button-block-size: 48px;
+}
+.cart-renewal-terms {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
