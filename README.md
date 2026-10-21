@@ -182,9 +182,10 @@ belongs behind a Next.js route handler.
 
 You need Node 22 or later and pnpm 11. The repository pins its pnpm version
 (`packageManager` in `package.json`), so `corepack enable` provides the right
-one.
+one. Node 25 and later no longer include Corepack, so install it first there.
 
 ```bash
+npm install --global corepack   # Node 25 and later only
 corepack enable
 pnpm install
 ```
