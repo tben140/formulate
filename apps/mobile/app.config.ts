@@ -47,6 +47,18 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.tben140.doublehelix",
+    // Apple Pay for express checkout (lib/checkout.tsx), only once the
+    // merchant ID exists in the Apple developer account: EAS syncs this
+    // capability, and an unknown merchant ID would fail the build.
+    ...(process.env.EXPO_PUBLIC_APPLE_PAY_MERCHANT_ID
+      ? {
+          entitlements: {
+            "com.apple.developer.in-app-payments": [
+              process.env.EXPO_PUBLIC_APPLE_PAY_MERCHANT_ID,
+            ],
+          },
+        }
+      : {}),
   },
   android: {
     package: "com.tben140.doublehelix",

@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Linking } from "react-native";
+import { useState, type ReactNode } from "react";
+import { Linking, Platform, View } from "react-native";
 
 import { hasNativeSdks } from "./expo-go";
 
@@ -40,10 +40,86 @@ const browserCheckout: Checkout = {
   addEventListener: (() => undefined) as Checkout["addEventListener"],
 };
 
+/**
+ * Apple Pay's merchant identifier ("merchant.com.tben140.doublehelix"), set in
+ * EAS once it exists in the Apple developer account, alongside the matching
+ * entitlement (app.config.ts). Without it only Shop Pay is offered.
+ */
+const applePayMerchantId = process.env.EXPO_PUBLIC_APPLE_PAY_MERCHANT_ID ?? "";
+
 export const CheckoutProvider = ({ children }: { children: ReactNode }) => {
   if (!sheetKit) return <>{children}</>;
-  const { ShopifyCheckoutSheetProvider } = sheetKit;
-  return <ShopifyCheckoutSheetProvider>{children}</ShopifyCheckoutSheetProvider>;
+  const { ShopifyCheckoutSheetProvider, ApplePayContactField } = sheetKit;
+  return (
+    <ShopifyCheckoutSheetProvider
+      configuration={{
+        // Express checkout (ExpressCheckout below). The public Storefront
+        // token needs the write_cart_wallet_payments scope for Apple Pay.
+        acceleratedCheckouts: {
+          storefrontDomain: process.env.EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN ?? "",
+          storefrontAccessToken: process.env.EXPO_PUBLIC_SHOPIFY_STOREFRONT_TOKEN ?? "",
+          ...(applePayMerchantId
+            ? {
+                wallets: {
+                  applePay: {
+                    merchantIdentifier: applePayMerchantId,
+                    contactFields: [ApplePayContactField.email],
+                  },
+                },
+              }
+            : {}),
+        },
+      }}
+    >
+      {children}
+    </ShopifyCheckoutSheetProvider>
+  );
+};
+
+/**
+ * Shop Pay and (once configured) Apple Pay buttons: Checkout Kit's
+ * accelerated checkouts. For a whole cart (`cartId`), or one product bought
+ * once (`variantId` and `quantity`).
+ *
+ * iPhone only (iOS 16+), and only in real builds: Android has no support yet,
+ * and Expo Go has no native module. Renders nothing there, and nothing if the
+ * buttons fail to load (no wallet, a missing scope), so the normal checkout
+ * button is never crowded by an empty space.
+ *
+ * ⚠️ One-time purchases only on product pages, and the cart's renewal terms
+ * shown above it (packages/shopify/src/express-checkout.ts).
+ */
+export const ExpressCheckout = (
+  props: ({ cartId: string } | { variantId: string; quantity: number }) & {
+    readonly onComplete?: () => void;
+  },
+) => {
+  const { onComplete, ...identifier } = props;
+  // What failed to load, so a different cart or product tries again rather
+  // than staying hidden for the life of the screen.
+  const key =
+    "cartId" in identifier
+      ? identifier.cartId
+      : `${identifier.variantId}:${identifier.quantity}`;
+  const [failedFor, setFailedFor] = useState<string | null>(null);
+  if (!sheetKit || Platform.OS !== "ios" || failedFor === key) return null;
+  const { AcceleratedCheckoutButtons, AcceleratedCheckoutWallet, RenderState } = sheetKit;
+  return (
+    <View className="mt-2">
+      <AcceleratedCheckoutButtons
+        {...identifier}
+        cornerRadius={8}
+        wallets={[
+          AcceleratedCheckoutWallet.shopPay,
+          ...(applePayMerchantId ? [AcceleratedCheckoutWallet.applePay] : []),
+        ]}
+        onComplete={() => onComplete?.()}
+        onRenderStateChange={(event) => {
+          if (event.state === RenderState.Error) setFailedFor(key);
+        }}
+      />
+    </View>
+  );
 };
 
 /**

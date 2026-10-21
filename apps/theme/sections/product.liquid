@@ -83,7 +83,7 @@
       <div class="product__description">{{ product.description }}</div>
     {% endif %}
 
-    {% render 'product-form', product: product %}
+    {% render 'product-form', product: product, show_express: section.settings.show_express_checkout %}
   </div>
 </article>
 
@@ -183,7 +183,15 @@
 {% schema %}
 {
   "name": "t:general.product",
-  "settings": [],
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_express_checkout",
+      "label": "t:sections.product.settings.show_express_checkout.label",
+      "info": "t:sections.product.settings.show_express_checkout.info",
+      "default": true
+    }
+  ],
   "disabled_on": {
     "groups": ["header", "footer"]
   }

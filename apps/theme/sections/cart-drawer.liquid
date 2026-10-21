@@ -224,11 +224,21 @@
           surfaces there is no checkoutUrl to redirect to; the platform owns
           this handoff entirely.
         {% endcomment %}
+        {%- render 'cart-renewal-terms', cart: cart -%}
+
         <form action="{{ routes.cart_url }}" method="post">
           <button type="submit" name="checkout" class="cart-drawer__checkout">
             {{ 'cart.checkout' | t }}
           </button>
         </form>
+
+        {%- comment -%}
+          Express checkout for the whole cart: every wallet the store has
+          switched on. The renewal terms above cover it too.
+        {%- endcomment -%}
+        {%- if additional_checkout_buttons -%}
+          <div class="cart-drawer__express">{{ content_for_additional_checkout_buttons }}</div>
+        {%- endif -%}
       </footer>
     {% endif %}
   </div>

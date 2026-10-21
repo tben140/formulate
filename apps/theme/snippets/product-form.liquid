@@ -35,7 +35,11 @@
 {% endfor %}
 
 <product-form class="product-form">
-  <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data">
+  {%- comment -%}
+    Shopify's form tag rather than a plain <form>: the express checkout
+    button below (payment_button) needs it. It posts to /cart/add as before.
+  {%- endcomment -%}
+  {%- form 'product', product -%}
     <input ref="variantId" type="hidden" name="id" value="{{ current_variant.id }}">
     {%- comment -%}
       product-form.js sets this to the chosen plan's supply (2 for a 60-day
@@ -252,6 +256,20 @@
       {% endif %}
     </button>
 
+    {%- if show_express != false -%}
+      {%- comment -%}
+        Express checkout (Shop Pay, Apple Pay and the store's other wallets),
+        for one-time purchases only: a one-tap wallet can skip checkout, where
+        Shopify would show the subscription terms
+        (packages/shopify/src/express-checkout.ts). product-form.js hides it
+        while a subscription is selected; the button needs JavaScript to
+        render at all.
+      {%- endcomment -%}
+      <div ref="express" class="product-form__express">
+        {{ form | payment_button }}
+      </div>
+    {%- endif -%}
+
     {% if product_has_plans %}
       {% comment %}
         The renewal terms, before purchase and next to the button: California's
@@ -331,7 +349,7 @@
         {{ sticky_label }}
       </button>
     </div>
-  </form>
+  {%- endform -%}
 </product-form>
 
 {% comment %} Variant data for product-form.js. A script tag of JSON rather

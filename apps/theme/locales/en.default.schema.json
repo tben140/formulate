@@ -80,5 +80,15 @@
   "info": {
     "klaviyo_public_key": "Klaviyo → Settings → API keys → Public API key.",
     "klaviyo_list_id": "Klaviyo → Lists & Segments → open the list → the ID in the browser URL."
+  },
+  "sections": {
+    "product": {
+      "settings": {
+        "show_express_checkout": {
+          "label": "Show express checkout buttons",
+          "info": "Shop Pay, Apple Pay and the store's other wallets, for one-time purchases. Hidden while a subscription is selected."
+        }
+      }
+    }
   }
 }
