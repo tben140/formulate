@@ -89,7 +89,7 @@ without a DOM: only its card-entry helpers need a browser), so the plan was
 the real constraint. The portal reads and changes subscriptions through the
 Cloudflare Worker with Recharge's Admin key instead. The Worker takes a
 subscription id only as a question: it fetches that subscription and acts
-only if its Recharge customer is the caller Shopify verified, and answers
+only if its Recharge customer is the caller Shopify verified, and returns
 "not found" otherwise, so ids can't be probed.
 
 **Subscription claims as pure functions, with the law beside them**
@@ -108,7 +108,7 @@ _Would change:_ a sale on one-time prices (SHO-180), which would make the
 comparison run the other way.
 
 **The plan sets the quantity** (#143). Every product is a 30-day supply, so a
-"every 90 days" plan has to ship three, at three times the price. The supply
+plan that renews every 90 days has to ship three, at three times the price. The supply
 comes from Recharge's own plan option ("90-day"), not a table of our own, so
 a new plan needs no code. Rejected: 60- and 90-day pack variants on every
 product, which would have split stock three ways.
@@ -119,7 +119,7 @@ where the subscription terms are otherwise shown. Their product-page buttons
 can't carry a selling plan anyway, so they appear only while one-time is
 selected, and every cart holding a subscription states the renewal terms above
 all its ways to pay. Web's product-page Shop Pay goes through a route of our
-own that builds the cart through the Storefront API, because Shopify's cart
+own that builds the cart through the Storefront API because Shopify's cart
 permalinks are served by the online store, which a password-protected store
 doesn't serve. _Would change:_ wallet buttons that carry selling plans.
 
@@ -193,7 +193,7 @@ usually after an assumption had already shipped.
 
 - **Checkout promised free delivery that renewals charged for.** A first
   order over £40 showed "free shipping every 30 days", but each renewal was
-  re-priced on its own, under £40, at £3.95. The rule was right and the
+  re-priced on its own, under £40, at £3.95. The rule was right, and the
   promise was wrong: Shopify's recurring line is computed from the first
   basket. Free delivery now comes from a delivery profile attached to the
   subscription plans; a live renewal went from £17.51 to £13.56 when it
@@ -213,7 +213,7 @@ usually after an assumption had already shipped.
   version of "undo a skip" checked the wrong one and would have refused
   every request. Caught by reading real records before building on them.
 
-- **Three plans, one price.** Every 30-, 60- and 90-day plan showed £13.56,
+- **Three plans, one price.** Every 30-, 60- and 90-day plan showed £13.56
   because each shipped a single 30-day unit: a 90-day subscriber would have
   run out two months before the next delivery. The prices were "correct" for
   what was configured, and every test passed; it took looking at the page as
