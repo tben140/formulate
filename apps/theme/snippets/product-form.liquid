@@ -23,6 +23,13 @@
 {% endcomment %}
 
 {% assign current_variant = product.selected_or_first_available_variant %}
+{%- comment -%}
+  The selection's free gift (custom.free_gift: the variant's own, else the
+  product's), in stock only. The Liquid twin of freeGiftFor in
+  packages/shopify/src/free-gift.ts.
+{%- endcomment -%}
+{%- assign current_gift = current_variant.metafields.custom.free_gift.value | default: product.metafields.custom.free_gift.value -%}
+{%- unless current_gift.available -%}{%- assign current_gift = nil -%}{%- endunless -%}
 
 {% comment %} Group ids owned by an installed app. `app_id` is nil for the
   seed groups Shopify creates, which is exactly the discriminator the headless
@@ -41,6 +48,14 @@
   {%- endcomment -%}
   {%- form 'product', product -%}
     <input ref="variantId" type="hidden" name="id" value="{{ current_variant.id }}">
+    {%- comment -%}
+      The free gift for Shopify's express checkout button: these fields nest it
+      under the product ("multiple product checkout"). The normal add puts it
+      in the cart from product-form.js instead. product-form.js keeps both in
+      step with the variant; disabled when there's no gift.
+    {%- endcomment -%}
+    <input ref="giftId" type="hidden" name="shopify-additional-items[1][id]" value="{{ current_gift.id }}" {% unless current_gift %}disabled{% endunless %}>
+    <input ref="giftParent" type="hidden" name="shopify-additional-items[1][parent_id]" value="{{ current_variant.id }}" {% unless current_gift %}disabled{% endunless %}>
     {%- comment -%}
       product-form.js sets this to the chosen plan's supply (2 for a 60-day
       plan, 3 for 90). Without JavaScript it stays 1: the plan radios can't
@@ -221,6 +236,32 @@
       </fieldset>
     {% endif %}
 
+    {%- comment -%}
+      The free gift, styled as a purchase option but not one to choose: it
+      comes with whichever option is picked (packages/shopify/src/free-gift.ts).
+      Its condition is stated on it, where it's offered. product-form.js keeps
+      it in step with the variant.
+    {%- endcomment -%}
+    {%- assign gift_image = current_gift.image | default: current_gift.product.featured_image -%}
+    <div ref="gift" class="product-form__gift" {% unless current_gift %}hidden{% endunless %}>
+      {%- if gift_image -%}
+        {{
+          gift_image
+          | image_url: width: 80, height: 80, crop: 'center'
+          | image_tag: ref: 'giftImage', class: 'product-form__gift-image', width: 40, height: 40, alt: '', loading: 'lazy'
+        }}
+      {%- else -%}
+        {%- comment -%} Filled in by product-form.js for a variant whose gift has one. {%- endcomment -%}
+        <img ref="giftImage" class="product-form__gift-image" alt="" width="40" height="40" hidden>
+      {%- endif -%}
+      <span class="product-form__gift-text">
+        <span class="product-form__gift-label">{{ 'product.free_gift_label' | t }}</span>
+        <span ref="giftTitle">{{ current_gift.product.title }}</span>
+        <span class="product-form__gift-condition">{{ 'product.free_gift_condition' | t }}</span>
+      </span>
+      <span class="product-form__gift-price">{{ 'product.free_gift_price' | t }}</span>
+    </div>
+
     <p ref="price" class="product-form__price">{{ current_variant.price | money }}</p>
     {%- assign per_day = current_variant.price | divided_by: 30.0 | round -%}
     <p class="product-form__per-day">
@@ -364,6 +405,17 @@
         "options": {{ variant.options | json }},
         "price": {{ variant.price | money | json }},
         "cents": {{ variant.price | json }},
+        {%- assign variant_gift = variant.metafields.custom.free_gift.value | default: product.metafields.custom.free_gift.value -%}
+        {%- if variant_gift.available -%}
+          {%- assign variant_gift_image = variant_gift.image | default: variant_gift.product.featured_image -%}
+          "gift": {
+            "id": {{ variant_gift.id | json }},
+            "title": {{ variant_gift.product.title | json }},
+            "image": {% if variant_gift_image %}{{ variant_gift_image | image_url: width: 80, height: 80, crop: 'center' | json }}{% else %}null{% endif %}
+          },
+        {%- else -%}
+          "gift": null,
+        {%- endif -%}
         "plans": [
           {%- assign first_plan = true -%}
           {%- for allocation in variant.selling_plan_allocations -%}

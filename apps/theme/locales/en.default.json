@@ -47,7 +47,8 @@
     "supply": "{{ days }}-day supply ({{ units }} × 30-day packs)",
     "renewal_terms": "Subscriptions in this order renew automatically until you cancel: {{ items }}. You can skip, pause or cancel any time from your account.",
     "per_delivery": "a delivery",
-    "introductory_price": "{{ first }} for an introductory period, then {{ later }} a delivery (checkout shows exactly when it changes)"
+    "introductory_price": "{{ first }} for an introductory period, then {{ later }} a delivery (checkout shows exactly when it changes)",
+    "free_gift": "Free gift"
   },
   "collections": {
     "title": "Collections",
@@ -115,7 +116,10 @@
     "delivery_promise": "Free UK delivery on subscriptions, and on orders over £40",
     "renewal_terms": "Subscriptions renew automatically: the subscription price shown is charged for each delivery, until you cancel. You can skip, pause or cancel any time from your account.",
     "renewal_terms_introductory": "Subscriptions renew automatically until you cancel. Some plans start at an introductory price and then change: checkout shows each price and when it applies. You can skip, pause or cancel any time from your account.",
-    "supply": "{{ days }}-day supply ({{ units }} × 30-day packs) every delivery"
+    "supply": "{{ days }}-day supply ({{ units }} × 30-day packs) every delivery",
+    "free_gift_label": "Free gift",
+    "free_gift_condition": "With this product, while stocks last",
+    "free_gift_price": "Free"
   },
   "search": {
     "title": "Search",

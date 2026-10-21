@@ -63,6 +63,7 @@ export {
   SearchProductsQuery,
   NavMenuQuery,
   ProductByHandleQuery,
+  VariantFreeGiftsQuery,
   ProductRecommendationsQuery,
   ShopNameQuery,
   SitemapCollectionsQuery,
@@ -140,3 +141,13 @@ export type {
 } from "./subscribe-and-save";
 export { cartRenewalTerms, expressCheckoutOnProduct } from "./express-checkout";
 export type { RenewalLine } from "./express-checkout";
+export {
+  FREE_GIFT_CONDITION,
+  FREE_GIFT_LABEL,
+  FREE_GIFT_PRICE,
+  freeGiftFor,
+  freeGiftMessage,
+  giftLineToAdd,
+  isNestedLine,
+} from "./free-gift";
+export type { GiftVariantLike, NestedLineLike } from "./free-gift";

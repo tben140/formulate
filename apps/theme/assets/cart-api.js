@@ -74,6 +74,41 @@ export const addItem = (variantId, quantity, sellingPlanId) =>
   });
 
 /**
+ * Adds a product line's free gift, nested under it, unless the line already
+ * has it: one per line (packages/shopify/src/free-gift.ts). Finds the line the
+ * product just went into, which may be an existing one Shopify added to.
+ *
+ * @param {string} variantId The product just added.
+ * @param {string} sellingPlanId Its plan, or "" for one-time.
+ * @param {string} giftId The gift variant.
+ * @returns {Promise<CartResponse | null>} The updated cart, or null when
+ *   there was nothing to add.
+ */
+export const addGift = async (variantId, sellingPlanId, giftId) => {
+  const response = await fetch("/cart.js", { headers: { Accept: "application/json" } });
+  if (!response.ok) return null;
+  /** @type {{ items: { key: string, variant_id: number, parent_relationship?: { parent_key: string } | null, selling_plan_allocation?: { selling_plan: { id: number } } | null }[] }} */
+  const cart = await response.json();
+  const parent = cart.items.find(
+    (item) =>
+      !item.parent_relationship &&
+      String(item.variant_id) === String(variantId) &&
+      String(item.selling_plan_allocation?.selling_plan.id ?? "") ===
+        String(sellingPlanId),
+  );
+  if (!parent) return null;
+  const present = cart.items.some(
+    (item) =>
+      item.parent_relationship?.parent_key === parent.key &&
+      String(item.variant_id) === String(giftId),
+  );
+  if (present) return null;
+  return post("/cart/add.js", {
+    items: [{ id: giftId, quantity: 1, parent_line_key: parent.key }],
+  });
+};
+
+/**
  * Changes a line's quantity. Zero removes it, so there is no separate remove
  * call to keep in step.
  *
