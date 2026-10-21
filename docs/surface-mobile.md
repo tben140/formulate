@@ -15,12 +15,16 @@
 
 ## Screens
 
-| Screen          | File                        |
-| --------------- | --------------------------- |
-| Collection list | `app/index.tsx`             |
-| Product detail  | `app/products/[handle].tsx` |
+| Screen         | File                           |
+| -------------- | ------------------------------ |
+| Home           | `app/index.tsx`                |
+| Collection     | `app/collections/[handle].tsx` |
+| Product detail | `app/products/[handle].tsx`    |
+| Search         | `app/search.tsx`               |
 
-Both render the shared `components/site-footer.tsx` at the end of scrollable
+The cart is a sheet over whichever screen is open, not a screen of its own.
+
+Each renders the shared `components/site-footer.tsx` at the end of scrollable
 content — `ListFooterComponent` on the list, end of the `ScrollView` on detail —
 rather than docked to the viewport. That matches what web and Liquid actually do,
 and docking would permanently spend vertical space that is scarcer on a phone.
@@ -113,8 +117,11 @@ discovered.
 
 ## Not built yet
 
-Cart, checkout (beyond the spike), customer accounts. Klaviyo's mobile SDK and
-push notifications are explicitly out of scope for the current push.
+The cart and Checkout Sheet Kit checkout are built. Still in review: the tab
+bar (#57), customer sign-in and order history (#78), the read-only Recharge
+portal (#80) and Klaviyo's commerce events (#107). The Klaviyo SDK is used for
+identity; push notifications are out of scope, because they need an Apple
+Developer account (SHO-86).
 
 ## Related
 

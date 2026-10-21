@@ -156,7 +156,14 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       checked
                         ? "border-brand-600 bg-brand-50 font-medium"
                         : "border-border hover:border-foreground-muted"
-                    } ${match && !match.availableForSale ? "text-foreground-muted line-through" : ""}`}
+                    } ${
+                      // Muted grey on the selected card's brand-50 is 4.34:1,
+                      // under AA's 4.5:1, so a selected sold-out value keeps
+                      // full-strength text and relies on the line-through.
+                      match && !match.availableForSale
+                        ? `line-through ${checked ? "" : "text-foreground-muted"}`
+                        : ""
+                    }`}
                   >
                     <input
                       type="radio"
@@ -215,7 +222,15 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                   {choice.label}
                 </span>
                 {choice.price ? (
-                  <span className="font-mono text-foreground-muted">
+                  <span
+                    // Full-strength on the selected card: muted grey on
+                    // brand-50 is 4.34:1, under AA's 4.5:1.
+                    className={`font-mono ${
+                      effectivePlanId === choice.id
+                        ? "text-foreground"
+                        : "text-foreground-muted"
+                    }`}
+                  >
                     {/*
                       The leading space is for the accessible name, not the
                       layout — flex handles the visual gap. Without it the
