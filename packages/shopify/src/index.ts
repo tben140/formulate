@@ -123,10 +123,18 @@ export {
   SUBSCRIPTION_BENEFITS,
   SUPPLY_DAYS,
   deliveryPromise,
+  deliveryQuote,
   isIntroductoryPlan,
+  planIntervalDays,
+  supplyLabel,
+  supplyUnits,
   pricePerDay,
   renewalTerms,
   savingMessage,
   subscriptionSaving,
 } from "./subscribe-and-save";
-export type { SubscriptionSaving } from "./subscribe-and-save";
+export type {
+  DeliveryQuote,
+  PlanOptionLike,
+  SubscriptionSaving,
+} from "./subscribe-and-save";

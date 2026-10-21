@@ -1,4 +1,4 @@
-import { formatMoney } from "@formulate/shopify";
+import { formatMoney, supplyLabel, supplyUnits } from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
@@ -186,44 +186,71 @@ export const CartSheet = ({
                     ) : null}
 
                     <View className="mt-2 flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-3">
-                        <Pressable
-                          onPress={() =>
-                            updateLine.mutate({
-                              lineId: line.id,
-                              quantity: line.quantity - 1,
-                            })
-                          }
-                          accessibilityRole="button"
-                          accessibilityLabel={`Decrease quantity of ${variant.product.title}`}
-                          hitSlop={8}
-                          className="h-8 w-8 items-center justify-center rounded-md border border-border"
-                        >
-                          <Text className="text-foreground">−</Text>
-                        </Pressable>
+                      {supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) >
+                      1 ? (
+                        // A 60- or 90-day plan's quantity is its supply, set by
+                        // the plan (deliveryQuote), so it can only be removed.
+                        <View className="flex-1 flex-row items-center gap-3 pr-3">
+                          <Text className="shrink text-xs text-foreground-muted">
+                            {supplyLabel(
+                              supplyUnits(
+                                line.sellingPlanAllocation?.sellingPlan.options,
+                              ),
+                            )}
+                          </Text>
+                          <Pressable
+                            onPress={() =>
+                              updateLine.mutate({ lineId: line.id, quantity: 0 })
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remove ${variant.product.title} from cart`}
+                            hitSlop={8}
+                          >
+                            <Text className="text-xs text-foreground-muted underline">
+                              Remove
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <View className="flex-row items-center gap-3">
+                          <Pressable
+                            onPress={() =>
+                              updateLine.mutate({
+                                lineId: line.id,
+                                quantity: line.quantity - 1,
+                              })
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel={`Decrease quantity of ${variant.product.title}`}
+                            hitSlop={8}
+                            className="h-8 w-8 items-center justify-center rounded-md border border-border"
+                          >
+                            <Text className="text-foreground">−</Text>
+                          </Pressable>
 
-                        <Text
-                          className="min-w-6 text-center text-sm text-foreground"
-                          accessibilityLabel={`Quantity ${line.quantity}`}
-                        >
-                          {line.quantity}
-                        </Text>
+                          <Text
+                            className="min-w-6 text-center text-sm text-foreground"
+                            accessibilityLabel={`Quantity ${line.quantity}`}
+                          >
+                            {line.quantity}
+                          </Text>
 
-                        <Pressable
-                          onPress={() =>
-                            updateLine.mutate({
-                              lineId: line.id,
-                              quantity: line.quantity + 1,
-                            })
-                          }
-                          accessibilityRole="button"
-                          accessibilityLabel={`Increase quantity of ${variant.product.title}`}
-                          hitSlop={8}
-                          className="h-8 w-8 items-center justify-center rounded-md border border-border"
-                        >
-                          <Text className="text-foreground">+</Text>
-                        </Pressable>
-                      </View>
+                          <Pressable
+                            onPress={() =>
+                              updateLine.mutate({
+                                lineId: line.id,
+                                quantity: line.quantity + 1,
+                              })
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel={`Increase quantity of ${variant.product.title}`}
+                            hitSlop={8}
+                            className="h-8 w-8 items-center justify-center rounded-md border border-border"
+                          >
+                            <Text className="text-foreground">+</Text>
+                          </Pressable>
+                        </View>
+                      )}
 
                       <Text className="text-sm text-foreground font-mono">
                         {formatMoney(line.cost.totalAmount)}

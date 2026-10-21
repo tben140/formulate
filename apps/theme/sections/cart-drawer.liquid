@@ -137,7 +137,21 @@
                   submits normally and Shopify redirects back to the cart page;
                   cart-drawer.js intercepts it when JavaScript is available.
                 {% endcomment %}
-                <form
+{%- assign line_units = 1 -%}
+                {%- if item.selling_plan_allocation -%}
+                  {%- capture line_units -%}{% render 'plan-supply-units', selling_plan: item.selling_plan_allocation.selling_plan %}{%- endcapture -%}
+                  {%- assign line_units = line_units | plus: 0 -%}
+                {%- endif -%}
+                {%- if line_units > 1 -%}
+                  {%- comment -%}
+                    A 60- or 90-day plan's quantity is its supply, set by the
+                    plan (deliveryQuote in packages/shopify), so it can only be
+                    removed.
+                  {%- endcomment -%}
+                  {%- assign line_days = line_units | times: 30 -%}
+                  <p class="cart-line__supply">{{ 'cart.supply' | t: days: line_days, units: line_units }}</p>
+                {%- else -%}
+                                <form
                   ref="quantityForm"
                   class="cart-line__quantity"
                   action="{{ routes.cart_change_url }}"
@@ -160,6 +174,7 @@
                     {{ 'cart.update' | t }}
                   </button>
                 </form>
+                {%- endif -%}
 
                 <p class="cart-line__price">{{ item.final_line_price | money }}</p>
               </div>

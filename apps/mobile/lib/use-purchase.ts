@@ -1,6 +1,7 @@
 import {
   ONE_TIME,
   defaultSelectedOptions,
+  deliveryQuote,
   displayPrice as priceForSelection,
   effectivePlanId as resolvePlanId,
   findVariantByOptions,
@@ -61,7 +62,18 @@ export const usePurchase = (product: Product) => {
   // plan in effect falls back to one-time on a variant without it, without
   // destroying the choice, and the price is the plan's price now.
   const effectivePlanId = resolvePlanId(allocations, planId);
-  const displayPrice = priceForSelection(variant, allocations, planId);
+  // One delivery of an option: a 60- or 90-day plan ships two or three
+  // 30-day supplies, so the shopper never runs out, and the plan sets the
+  // quantity (deliveryQuote in packages/shopify). Null without a variant.
+  const quoteFor = (id: string) =>
+    variant
+      ? deliveryQuote(
+          variant.price,
+          allocations.find((a) => a.sellingPlan.id === id),
+        )
+      : null;
+  const quote = quoteFor(effectivePlanId);
+  const displayPrice = quote?.price ?? priceForSelection(variant, allocations, planId);
   const choices = purchaseOptions(variant, allocations);
   const status = selectionStatus(variant);
   const soldOut = status === "soldOut";
@@ -81,7 +93,7 @@ export const usePurchase = (product: Product) => {
     addToCart.mutate(
       {
         merchandiseId: variant.id,
-        quantity: 1,
+        quantity: quote?.units ?? 1,
         ...(effectivePlanId ? { sellingPlanId: effectivePlanId } : {}),
       },
       { onSuccess: onAdded },
@@ -97,6 +109,8 @@ export const usePurchase = (product: Product) => {
     allocations,
     effectivePlanId,
     displayPrice,
+    quote,
+    quoteFor,
     soldOut,
     disabled,
     choices,

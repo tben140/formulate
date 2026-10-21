@@ -1,0 +1,33 @@
+{%- comment -%}
+  How many 30-day supplies each delivery of a selling plan holds: 1 for every
+  30 days, 2 for 60, 3 for 90, so the shopper never runs out. Read from
+  Recharge's "Order Frequency and Unit" option ("60-day"), at least 1, and 1
+  when the plan doesn't say. The Liquid twin of supplyUnits in
+  packages/shopify/src/subscribe-and-save.ts.
+
+  Outputs a number; capture it, then `| plus: 0`.
+
+  Accepts:
+  - selling_plan: {Object} the plan (allocation.selling_plan)
+{%- endcomment -%}
+{%- liquid
+  assign units = 1
+  for option in selling_plan.options
+    if option.name contains 'requency'
+      assign parts = option.value | downcase | split: '-'
+      assign count = parts[0] | plus: 0
+      assign unit = parts[1] | strip
+      assign days = count
+      if unit contains 'week'
+        assign days = count | times: 7
+      elsif unit contains 'month'
+        assign days = count | times: 30
+      endif
+      assign units = days | divided_by: 30.0 | round
+      if units < 1
+        assign units = 1
+      endif
+    endif
+  endfor
+  echo units
+-%}

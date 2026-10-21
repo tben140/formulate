@@ -1,7 +1,13 @@
 "use client";
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
-import { formatMoney, type Cart, type CartSuggestion } from "@formulate/shopify";
+import {
+  formatMoney,
+  supplyLabel,
+  supplyUnits,
+  type Cart,
+  type CartSuggestion,
+} from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
@@ -146,26 +152,43 @@ export const CartDrawer = ({
                       ) : null}
 
                       <div className="mt-2 flex items-center justify-between gap-2">
-                        <form action={updateCartLine} className="flex items-center gap-1">
-                          <input type="hidden" name="lineId" value={line.id} />
-                          <label htmlFor={`qty-${line.id}`} className="sr-only">
-                            Quantity for {variant.product.title}
-                          </label>
-                          <input
-                            id={`qty-${line.id}`}
-                            name="quantity"
-                            type="number"
-                            min={0}
-                            defaultValue={line.quantity}
-                            className="w-16 rounded-md border border-border px-2 py-1 text-sm"
-                          />
-                          <button
-                            type="submit"
-                            className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
+                        {supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) >
+                        1 ? (
+                          // A 60- or 90-day plan's quantity is its supply, set by
+                          // the plan (deliveryQuote), so it can't be changed
+                          // here, only removed.
+                          <p className="text-xs text-foreground-muted">
+                            {supplyLabel(
+                              supplyUnits(
+                                line.sellingPlanAllocation?.sellingPlan.options,
+                              ),
+                            )}
+                          </p>
+                        ) : (
+                          <form
+                            action={updateCartLine}
+                            className="flex items-center gap-1"
                           >
-                            Update
-                          </button>
-                        </form>
+                            <input type="hidden" name="lineId" value={line.id} />
+                            <label htmlFor={`qty-${line.id}`} className="sr-only">
+                              Quantity for {variant.product.title}
+                            </label>
+                            <input
+                              id={`qty-${line.id}`}
+                              name="quantity"
+                              type="number"
+                              min={0}
+                              defaultValue={line.quantity}
+                              className="w-16 rounded-md border border-border px-2 py-1 text-sm"
+                            />
+                            <button
+                              type="submit"
+                              className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
+                            >
+                              Update
+                            </button>
+                          </form>
+                        )}
 
                         <p className="font-mono text-sm">
                           {formatMoney(line.cost.totalAmount)}
