@@ -100,6 +100,36 @@ End to end, all open PRs combined (2026-10-05, posted on #56):
 | Theme (axe)                         | 16 passed                                                               |
 | `turbo lint typecheck test build`   | 21/21                                                                   |
 
+### Since then (2026-10-21, open PRs)
+
+Counted with `vitest run` / `jest` at the commit named; coverage not re-measured.
+
+| Package                 | Tests | At                    |
+| ----------------------- | ----- | --------------------- |
+| `packages/shopify`      | 106   | `e2876ab` (#139)      |
+| `apps/api` (the Worker) | 84    | `b52d0c7` (#136)      |
+| `packages/recharge`     | 19    | `b52d0c7` (#136)      |
+| `apps/mobile` (Jest)    | 25    | `5616b9e` (#137), new |
+
+The app's Jest suite (new in #137) was checked against its own bugs: putting
+back two issues the reviewer had found on #136, and removing the cart sheet's
+"only after a purchase" guard, each turned the matching tests red.
+
+## Review
+
+From 19 October every PR, drafts included, was reviewed by CodeRabbit as well
+as by Ben. From #56 to #140 it left **76 inline findings across 24 PRs**,
+counted from GitHub's review comments (replies excluded). Each was fixed or
+answered before merging. Examples that mattered:
+
+- a Sentry field that would have carried Shopify's authorisation code (#97);
+- a back-in-stock form that put the shopper's email in the URL without
+  JavaScript (#72);
+- a rate limit that every web customer shared, because web calls the Worker
+  from one server (#136);
+- prepaid subscriptions that a frequency change would have turned into
+  charge-every-delivery (#136).
+
 ## CI that catches things
 
 - **A gate catching a real regression.** A fix for one feature (#38) made
