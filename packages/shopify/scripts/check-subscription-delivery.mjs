@@ -97,12 +97,25 @@ if (appIds.size === 0) {
 
 // Groups reached through products: the app-owned groups aren't listed by the
 // shop-level sellingPlanGroups query, but they are on each product.
+// 25 products × 30 groups keeps each page under Shopify's 1,000-point query
+// cost limit; a product with more groups than that is paged on its own.
 const products = await all(
-  `query ($after: String) { products(first: 50, after: $after) {
-     nodes { title sellingPlanGroups(first: 20) { nodes { id name appId } } }
+  `query ($after: String) { products(first: 25, after: $after) {
+     nodes { id title sellingPlanGroups(first: 30) {
+       nodes { id name appId } pageInfo { hasNextPage endCursor } } }
      pageInfo { hasNextPage endCursor } } }`,
   (data) => data.products,
 );
+for (const product of products) {
+  if (!product.sellingPlanGroups.pageInfo.hasNextPage) continue;
+  const rest = await all(
+    `query ($after: String) { product(id: "${product.id}") {
+       sellingPlanGroups(first: 100, after: $after) {
+         nodes { id name appId } pageInfo { hasNextPage endCursor } } } }`,
+    (data) => data.product.sellingPlanGroups,
+  );
+  product.sellingPlanGroups.nodes = rest;
+}
 
 const missing = products.flatMap((product) =>
   product.sellingPlanGroups.nodes
