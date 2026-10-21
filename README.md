@@ -1,17 +1,20 @@
-# Formulate
+# Double Helix
 
-**One Shopify store, three storefronts.** A Next.js web app, an Expo React
-Native app and a Liquid theme sell the same supplement subscriptions, built in
-one Turborepo over a shared Storefront API layer and one set of design tokens.
-It's a portfolio project on a real development store, with checkout in test
-mode.
+**One Shopify Plus store, three storefronts, real subscriptions.** A Next.js
+web app, an Expo React Native app and a Liquid theme sell the same supplement
+subscriptions, from one Turborepo with a shared Storefront API layer, one set
+of design tokens, and a Shopify app for checkout logic. It's a portfolio
+project on a real development store, with checkout in test mode.
+
+<!-- TODO (Ben): the live links once the domain (SHO-114) and TestFlight's public link exist. -->
 
 - **Web:** [web-six-murex-18.vercel.app](https://web-six-murex-18.vercel.app)
   (production deploys from `main`)
-- **App:** no public build yet; EAS builds are SHO-24. It runs in Expo Go for
-  development.
+- **App (iOS):** TestFlight; ask for an invite. <!-- TODO (Ben): public link -->
 - **Theme:** the store is password-protected, as development stores are. The
   password is available on request.
+- **Two-minute videos:** the shopping journey on all three surfaces, and the
+  subscription portal. <!-- TODO (Ben): links, SHO-81 -->
 
 | Web                                                                      | App                                                                                   | Theme                                                                      |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -23,66 +26,93 @@ mode.
 flowchart LR
   subgraph Shopify
     SF[Storefront API]
-    SD[Search & Discovery]
+    CA[Customer Account API]
     CO[Checkout]
+    FN[Functions + checkout extensions<br/>apps/shopify-app]
   end
   subgraph packages
-    SH[packages/shopify<br/>queries · types · filters · routes]
+    SH[packages/shopify<br/>queries · types · cart · quiz · routes]
+    RC[packages/recharge<br/>portal display · changes]
     TK[packages/tokens<br/>colours · type · spacing]
-    AN[packages/analytics<br/>Klaviyo events · consent]
+    AN[packages/analytics<br/>events · consent]
   end
   WEB[apps/web<br/>Next.js · Server Components]
   APP[apps/mobile<br/>Expo · TanStack Query]
   THEME[apps/theme<br/>Liquid · web components]
   API[apps/api<br/>Cloudflare Worker]
+  RE[Recharge]
   KL[Klaviyo]
 
   SH --> WEB & APP
+  RC --> WEB & APP
   TK --> WEB & APP & THEME
   AN --> WEB & APP
-  WEB & APP --> SF
+  WEB & APP --> SF & CA
   THEME --> SF
-  SF --- SD
   WEB & APP & THEME --> CO
-  APP -- consent --> API --> KL
-  WEB & THEME -- consent and events --> KL
+  FN --- CO
+  WEB & APP -- portal, deletion, consent --> API
+  API --> RE & KL
+  WEB & THEME -- consent-gated events --> KL
 ```
 
-The two React apps share data code, through `packages/shopify`. All three
-share design, through `packages/tokens`. The theme deliberately reads its data
-from Liquid rather than the shared client
-([ADR 0005](docs/adr/0005-parity-means-design-not-data.md)).
-
-## The stack, and why
-
-| Choice                                     | Why                                                                                                                                                                              |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Turborepo + pnpm, theme included**       | One change can land on all three surfaces in one PR, and the theme is versioned with the code it mirrors ([ADR 0001](docs/adr/0001-monorepo-over-separate-theme-repository.md)). |
-| **Next.js 16, App Router**                 | Every Storefront query runs in a Server Component, so the web app's token never reaches a browser.                                                                               |
-| **Expo SDK 57 + Expo Router**              | File routes match web's URLs, which a shared route contract and a parity test enforce.                                                                                           |
-| **Liquid theme, no build step**            | Shopify's own storefront, as a reference and for the store's native features. Plain ES modules, typed with JSDoc.                                                                |
-| **Tailwind v4 + NativeWind v5**            | Web and the app consume the same generated token CSS. NativeWind v5 is a preview, a known risk ([ADR 0003](docs/adr/0003-nativewind-v5-and-tailwind-v4.md)).                     |
-| **GraphQL codegen from a bundled schema**  | Typed queries, generated offline with no store credentials.                                                                                                                      |
-| **A Cloudflare Worker for mobile consent** | Klaviyo's client endpoints are blocked from native apps, and a private key can't ship in an app ([ADR 0007](docs/adr/0007-mobile-consent-goes-through-a-worker.md)).             |
-| **Search & Discovery**                     | Filters and "Pairs well with" are configured by the merchant, not in code, and are the same on all three surfaces.                                                               |
+The two React apps share data code through `packages/shopify` and
+`packages/recharge`. All three share design through `packages/tokens`. The
+theme reads its data from Liquid rather than the shared client
+([ADR 0005](docs/adr/0005-parity-means-design-not-data.md)). Anything that
+needs a secret (Recharge's Admin key, Klaviyo's private key) lives only in the
+Worker.
 
 ## Worth a closer look
 
+- **Subscriptions end to end.** Subscribe-and-save on all three surfaces, and
+  a portal on web and in the app where customers skip, pause, reschedule,
+  change quantity and cancel (with save offers first, and cancelling never more
+  than one page). Every change goes through the Worker, which checks the
+  subscription belongs to the signed-in customer before touching it.
+- **Checkout logic as Shopify Functions.** A cart limit (at most 6 of one
+  product), a "build your stack" discount that leaves subscriptions alone, and
+  checkout and thank-you panels that explain what happens next
+  (`apps/shopify-app`).
+- **A real billing bug, found and fixed.** Checkout promised free recurring
+  delivery that renewals then charged for: the free-delivery threshold was
+  judged on the first basket, and renewals are smaller. Fixed with a delivery
+  profile for subscription plans, verified on a live renewal, and guarded by a
+  script that catches new products' plans (SHO-99).
 - **Design tokens on three runtimes.** One TypeScript source generates the CSS
-  for Tailwind on web, NativeWind in the app and plain CSS in the theme, and
-  every surface uses DM Sans and DM Mono from it.
-- **Measured, not assumed, performance.** Lighthouse CI runs on every web
-  deployment and on the theme. A lab "2.5 s render delay" turned out to be an
-  artefact of simulated throttling: real throttling put LCP render delay near
-  0.1 s, and the fix was image loading ([surface-web.md](docs/surface-web.md)).
-- **Accessibility in CI on every surface.** axe (WCAG 2.2 AA) runs against web
-  deployments and against a temporary copy of the theme pushed for each PR.
-  Keyboard paths are tested end to end.
-- **Consent done properly.** Web gates Klaviyo on consent; the app records
-  consent through the Worker; a restock alert is not a marketing sign-up and
-  says so ([integration-klaviyo.md](docs/integration-klaviyo.md)).
-- **Headless subscriptions** with Recharge are in progress
-  ([integration-recharge.md](docs/integration-recharge.md)).
+  for Tailwind on web, NativeWind in the app and plain CSS in the theme.
+- **Measured performance.** Lighthouse CI gates every web deployment and the
+  theme, with budgets ratcheted to real numbers. Catalogue pages are cached
+  and cleared by Shopify Events when a product changes.
+- **Accessibility in CI on every surface.** axe (WCAG 2.2 AA) on web and a
+  copy of the theme for each PR, keyboard paths tested end to end, and screen
+  reader labels checked in the app's tests.
+- **Privacy and compliance by design.** Nothing is tracked before consent,
+  consent travels into checkout, and health claims follow a written guide to
+  the GB register: the routine quiz asks about goals, never symptoms
+  ([claims guide](docs/claims-wording.md)).
+
+## How this was built
+
+<!-- TODO (Ben): this section is a draft for you to rewrite in your own words. -->
+
+I built this with an AI coding agent (Claude Code) doing most of the typing,
+and I want to be upfront about it, because how the work was directed is part
+of what this project shows.
+
+- **My part:** the product and architecture decisions (recorded as
+  [ADRs](docs/adr/README.md)), the privacy, legal and claims calls, reviewing
+  every pull request before it merged, testing on real devices, and the store
+  and third-party setup.
+- **Guard rails on the agent:** branch protection with required CI; a second,
+  automated reviewer (CodeRabbit) on every PR, whose findings were fixed
+  before merging; new dependencies only once they're 7 days old (enforced by
+  pnpm); secrets never in the repo or the chat; and written conventions in
+  [`AGENTS.md`](AGENTS.md).
+- **What went wrong, and what I learned:** <!-- TODO (Ben) -->
+
+The full story, decisions and numbers are in the case study
+<!-- TODO (Ben): link #71 once merged -->.
 
 ## Structure
 
@@ -91,10 +121,12 @@ apps/
   web/          Next.js 16 · App Router · Tailwind v4 · deploys to Vercel
   mobile/       Expo SDK 57 · Expo Router · NativeWind v5 · builds via EAS
   theme/        Liquid · web components · no build step · Shopify Online Store
-  api/          Cloudflare Worker · records mobile marketing consent in Klaviyo
+  api/          Cloudflare Worker · subscription portal, account deletion, consent
+  shopify-app/  Shopify app · Functions (cart limit, stack discount) · checkout extensions
 packages/
   shopify/      Storefront API client, query documents, generated types, routes
   tokens/       Design tokens (TS source) → generated CSS for Tailwind and Liquid
+  recharge/     Subscription display and portal changes, shared by web and app
   analytics/    Klaviyo event payloads and consent requests, shared by web and app
   eslint-config/
   typescript-config/
