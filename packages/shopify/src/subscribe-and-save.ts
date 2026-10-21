@@ -86,13 +86,30 @@ export const pricePerDay = (price: MoneyLike | null | undefined): string | null 
 };
 
 /**
+ * Whether a plan's price changes after an introductory period (it has a
+ * second price adjustment at a different price). Such a plan gets no saving
+ * claim and no strikethrough: "save £x a delivery" wouldn't hold for every
+ * delivery. This store has none today (SHO-179 would revisit).
+ */
+export const isIntroductoryPlan = (
+  adjustments: readonly { readonly price: MoneyLike }[],
+): boolean => {
+  const [first, later] = adjustments;
+  return Boolean(
+    first &&
+    later &&
+    (later.price.amount !== first.price.amount ||
+      later.price.currencyCode !== first.price.currencyCode),
+  );
+};
+
+/**
  * The renewal terms, beside the button whenever a subscription is chosen.
  * `plan` is the selling plan's name, e.g. "Delivery every 30 days".
  *
- * `later` is the plan's second price adjustment, for plans whose price
- * changes after the first delivery (an introductory discount): then both
- * prices are stated, so the first price is never presented as the price of
- * every delivery.
+ * `later` is the price after an introductory period (isIntroductoryPlan):
+ * both prices are stated, and when the change happens is left to the
+ * checkout summary, which shows it, rather than guessed here.
  */
 export const renewalTerms = (
   price: MoneyLike,
@@ -102,7 +119,7 @@ export const renewalTerms = (
   const changes =
     later && (later.amount !== price.amount || later.currencyCode !== price.currencyCode);
   const charge = changes
-    ? `${formatMoney(price)} for the first delivery, then ${formatMoney(later)} for each delivery after that, charged automatically`
+    ? `${formatMoney(price)} for an introductory period, then ${formatMoney(later)} for each delivery after that (checkout shows exactly when it changes), charged automatically`
     : `${formatMoney(price)} is charged for each delivery, automatically,`;
   return `${plan}: ${charge} until you cancel. You can skip, pause or cancel any time from your account.`;
 };

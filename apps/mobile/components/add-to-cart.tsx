@@ -1,5 +1,6 @@
 import {
   deliveryPromise,
+  isIntroductoryPlan,
   findVariantByOptions,
   formatMoney,
   pricePerDay,
@@ -49,8 +50,14 @@ export const AddToCart = ({
   } = purchase;
 
   // What a subscription option saves against buying once; null for one-time.
-  const saving = (choice: (typeof choices)[number]) =>
-    choice.id && choice.price ? subscriptionSaving(variant?.price, choice.price) : null;
+  const saving = (choice: (typeof choices)[number]) => {
+    if (!choice.id || !choice.price) return null;
+    // No saving claim for a plan whose price rises later (isIntroductoryPlan).
+    const adjustments =
+      allocations.find((a) => a.sellingPlan.id === choice.id)?.priceAdjustments ?? [];
+    if (isIntroductoryPlan(adjustments)) return null;
+    return subscriptionSaving(variant?.price, choice.price);
+  };
   const planName =
     allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
     null;

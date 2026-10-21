@@ -123,6 +123,7 @@ export {
   SUBSCRIPTION_BENEFITS,
   SUPPLY_DAYS,
   deliveryPromise,
+  isIntroductoryPlan,
   pricePerDay,
   renewalTerms,
   savingMessage,

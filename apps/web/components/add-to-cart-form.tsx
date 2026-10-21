@@ -17,6 +17,7 @@ import {
   SUBSCRIPTION_BENEFITS,
   subscriptionSaving,
   deliveryPromise,
+  isIntroductoryPlan,
   selectionStatus,
   withOption,
   type ProductByHandleResult,
@@ -110,8 +111,14 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
   const saving = (choice: {
     id: string;
     price?: { amount: string; currencyCode: string };
-  }) =>
-    choice.id && choice.price ? subscriptionSaving(variant?.price, choice.price) : null;
+  }) => {
+    if (!choice.id || !choice.price) return null;
+    // No saving claim for a plan whose price rises later (isIntroductoryPlan).
+    const adjustments =
+      allocations.find((a) => a.sellingPlan.id === choice.id)?.priceAdjustments ?? [];
+    if (isIntroductoryPlan(adjustments)) return null;
+    return subscriptionSaving(variant?.price, choice.price);
+  };
   const planName =
     allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
     null;

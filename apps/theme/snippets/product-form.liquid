@@ -168,6 +168,8 @@
                   >
                   {{ allocation.selling_plan.name }}
                   {%- assign plan_saving = current_variant.price | minus: allocation.per_delivery_price -%}
+                  {%- comment -%} No saving claim for a plan whose price rises after an introductory period (isIntroductoryPlan). {%- endcomment -%}
+                  {%- if allocation.price_adjustments.size > 1 -%}{%- assign plan_saving = 0 -%}{%- endif -%}
                   {%- if plan_saving > 0 -%}
                     {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: current_variant.price | round -%}
                     {%- assign plan_saving_money = plan_saving | money -%}
@@ -238,7 +240,19 @@
         JavaScript it always shows: it can't follow the radios then, and a
         disclosure shown slightly too often is better than one missed.
       {% endcomment %}
-      <p ref="renewal" class="product-form__renewal">{{ 'product.renewal_terms' | t }}</p>
+      {%- assign has_introductory_plan = false -%}
+      {%- for plan_variant in product.variants -%}
+        {%- for allocation in plan_variant.selling_plan_allocations -%}
+          {%- if allocation.price_adjustments.size > 1 -%}{%- assign has_introductory_plan = true -%}{%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+      <p ref="renewal" class="product-form__renewal">
+        {%- if has_introductory_plan -%}
+          {{- 'product.renewal_terms_introductory' | t -}}
+        {%- else -%}
+          {{- 'product.renewal_terms' | t -}}
+        {%- endif -%}
+      </p>
     {% endif %}
 
     {% comment %} Errors and confirmations are announced, because the drawer
@@ -325,6 +339,7 @@
                 "price": {{ allocation.price | money | json }},
                 "cents": {{ allocation.per_delivery_price | json }},
                 {%- assign plan_saving = variant.price | minus: allocation.per_delivery_price -%}
+                {%- if allocation.price_adjustments.size > 1 -%}{%- assign plan_saving = 0 -%}{%- endif -%}
                 {%- if plan_saving > 0 -%}
                   {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: variant.price | round -%}
                   {%- assign plan_saving_money = plan_saving | money -%}

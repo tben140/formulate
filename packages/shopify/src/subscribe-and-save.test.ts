@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   deliveryPromise,
+  isIntroductoryPlan,
   pricePerDay,
   renewalTerms,
   savingMessage,
@@ -41,12 +42,22 @@ describe("subscribe and save", () => {
 
   it("states both prices when the plan's price changes after the first delivery", () => {
     expect(renewalTerms(gbp("10.00"), "Delivery every 30 days", gbp("13.56"))).toBe(
-      "Delivery every 30 days: £10.00 for the first delivery, then £13.56 for each delivery after that, charged automatically until you cancel. You can skip, pause or cancel any time from your account.",
+      "Delivery every 30 days: £10.00 for an introductory period, then £13.56 for each delivery after that (checkout shows exactly when it changes), charged automatically until you cancel. You can skip, pause or cancel any time from your account.",
     );
     // The same price again is no change.
     expect(renewalTerms(gbp("13.56"), "Plan", gbp("13.56"))).toContain(
       "£13.56 is charged for each delivery",
     );
+  });
+
+  it("spots a plan whose price changes after an introductory period", () => {
+    expect(isIntroductoryPlan([{ price: gbp("10.00") }, { price: gbp("13.56") }])).toBe(
+      true,
+    );
+    expect(isIntroductoryPlan([{ price: gbp("13.56") }, { price: gbp("13.56") }])).toBe(
+      false,
+    );
+    expect(isIntroductoryPlan([{ price: gbp("13.56") }])).toBe(false);
   });
 
   it("names the free-delivery threshold from the shared constant", () => {
