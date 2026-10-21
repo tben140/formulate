@@ -1,6 +1,9 @@
 import {
   deliveryPromise,
   expressCheckoutOnProduct,
+  FREE_GIFT_CONDITION,
+  FREE_GIFT_LABEL,
+  FREE_GIFT_PRICE,
   freeGiftMessage,
   findVariantByOptions,
   formatMoney,
@@ -15,6 +18,7 @@ import { Pressable, View, type LayoutChangeEvent } from "react-native";
 
 import { ExpressCheckout } from "../lib/checkout";
 import type { Product, Purchase } from "../lib/use-purchase";
+import { ShopImage } from "./shop-image";
 import { Text } from "./text";
 
 /**
@@ -199,6 +203,37 @@ export const AddToCart = ({
         </View>
       ) : null}
 
+      {gift ? (
+        // The free gift, styled as a purchase option but not one to choose:
+        // it comes with whichever option is picked (free-gift.ts). Read as
+        // one sentence by VoiceOver and TalkBack.
+        <View
+          accessible
+          accessibilityLabel={freeGiftMessage(gift)}
+          className="flex-row items-center justify-between gap-3 rounded-md border border-border px-3 py-3"
+        >
+          <View className="min-w-0 flex-1 flex-row items-center gap-3">
+            {gift.image ? (
+              <ShopImage
+                url={gift.image.url}
+                width={40}
+                height={40}
+                transition={0}
+                style={{ width: 40, height: 40, borderRadius: 8 }}
+              />
+            ) : null}
+            <View className="min-w-0 flex-1">
+              <Text className="text-xs font-medium text-brand-600">
+                {FREE_GIFT_LABEL}
+              </Text>
+              <Text className="text-sm text-foreground">{gift.product.title}</Text>
+              <Text className="text-xs text-foreground-muted">{FREE_GIFT_CONDITION}</Text>
+            </View>
+          </View>
+          <Text className="font-mono text-sm text-brand-600">{FREE_GIFT_PRICE}</Text>
+        </View>
+      ) : null}
+
       {displayPrice ? (
         <View>
           {/* pr-3: lined up with the option prices, inside their px-3. */}
@@ -208,12 +243,6 @@ export const AddToCart = ({
           <Text className="mt-1 text-sm text-foreground-muted">
             {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
           </Text>
-          {gift ? (
-            // The offer and its condition, where it's offered (free-gift.ts).
-            <Text className="mt-1 text-sm font-medium text-brand-600">
-              {freeGiftMessage(gift)}
-            </Text>
-          ) : null}
         </View>
       ) : null}
 

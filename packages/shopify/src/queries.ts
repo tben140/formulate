@@ -64,6 +64,10 @@ export const ProductByHandleQuery = graphql(`
             product {
               title
             }
+            image {
+              url
+              altText
+            }
           }
         }
       }
@@ -172,6 +176,10 @@ export const ProductByHandleQuery = graphql(`
                 availableForSale
                 product {
                   title
+                }
+                image {
+                  url
+                  altText
                 }
               }
             }
@@ -773,6 +781,10 @@ export const VariantFreeGiftsQuery = graphql(`
               product {
                 title
               }
+              image {
+                url
+                altText
+              }
             }
           }
         }
@@ -784,6 +796,10 @@ export const VariantFreeGiftsQuery = graphql(`
                 availableForSale
                 product {
                   title
+                }
+                image {
+                  url
+                  altText
                 }
               }
             }

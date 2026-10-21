@@ -23,6 +23,8 @@ export interface GiftVariantLike {
   readonly id: string;
   readonly availableForSale: boolean;
   readonly product: { readonly title: string };
+  /** The variant's image, for the gift's card on the product page. */
+  readonly image?: { readonly url: string; readonly altText?: string | null } | null;
 }
 
 interface GiftField {
@@ -47,9 +49,17 @@ export const freeGiftFor = (
   return gift?.availableForSale ? gift : null;
 };
 
-/** Near the price: "Free Double Helix Shaker with this product, while stocks last". */
+/**
+ * The offer in one sentence, for screen readers and anywhere the gift's card
+ * can't show: "Free Double Helix Shaker with this product, while stocks last".
+ */
 export const freeGiftMessage = (gift: GiftVariantLike): string =>
   `Free ${gift.product.title} with this product, while stocks last`;
+
+/** The gift card's words, the same on every surface. */
+export const FREE_GIFT_LABEL = "Free gift";
+export const FREE_GIFT_CONDITION = "With this product, while stocks last";
+export const FREE_GIFT_PRICE = "Free";
 
 /** What these helpers read from a cart line (CartFields). */
 export interface NestedLineLike {

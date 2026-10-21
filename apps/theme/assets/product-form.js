@@ -9,8 +9,8 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {string[]} options Option values, in the product's option order.
  * @property {string} price Already formatted by Liquid's `money` filter.
  * @property {number} cents The same price in minor units, for the price per day.
- * @property {{ id: number, text: string } | null} [gift] Its free gift, in
- *   stock, and the offer's words; null for none (free-gift.ts).
+ * @property {{ id: number, title: string, image: string | null } | null} [gift]
+ *   Its free gift, in stock; null for none (free-gift.ts).
  * @property {PlanData[]} [plans] App-owned selling plans only. See the filter
  *   in snippets/product-form.liquid.
  */
@@ -39,6 +39,8 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLElement} [renewal]
  * @property {HTMLElement} [express]
  * @property {HTMLElement} [gift]
+ * @property {HTMLElement} [giftTitle]
+ * @property {HTMLImageElement} [giftImage]
  * @property {HTMLInputElement} [giftId]
  * @property {HTMLInputElement} [giftParent]
  * @property {HTMLButtonElement} [submit]
@@ -238,10 +240,12 @@ class ProductForm extends Component {
 
     // The free gift: the offer, and the express button's fields for it.
     const gift = match?.gift ?? null;
-    const { gift: giftText, giftId, giftParent } = this.refs;
-    if (giftText) {
-      giftText.hidden = !gift;
-      giftText.textContent = gift?.text ?? "";
+    const { gift: giftCard, giftTitle, giftImage, giftId, giftParent } = this.refs;
+    if (giftCard) giftCard.hidden = !gift;
+    if (giftTitle) giftTitle.textContent = gift?.title ?? "";
+    if (giftImage) {
+      giftImage.hidden = !gift?.image;
+      if (gift?.image) giftImage.src = gift.image;
     }
     for (const [input, value] of /** @type {const} */ ([
       [giftId, gift?.id],

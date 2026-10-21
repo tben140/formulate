@@ -18,8 +18,10 @@ import {
   deliveryPromise,
   deliveryQuote,
   expressCheckoutOnProduct,
+  FREE_GIFT_CONDITION,
+  FREE_GIFT_LABEL,
+  FREE_GIFT_PRICE,
   freeGiftFor,
-  freeGiftMessage,
   supplyLabel,
   selectionStatus,
   withOption,
@@ -299,6 +301,34 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         </fieldset>
       ) : null}
 
+      {gift ? (
+        // The free gift, styled as a purchase option but not one to choose:
+        // it comes with whichever option is picked (free-gift.ts). Its
+        // condition is stated on it, where it's offered.
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
+          <span className="flex min-w-0 items-center gap-3">
+            {gift.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={gift.image.url}
+                alt=""
+                width={40}
+                height={40}
+                className="h-10 w-10 shrink-0 rounded-md border border-border object-cover"
+              />
+            ) : null}
+            <span className="flex min-w-0 flex-col">
+              <span className="text-xs font-medium text-brand-600">
+                {FREE_GIFT_LABEL}
+              </span>
+              <span>{gift.product.title}</span>
+              <span className="text-xs text-foreground-muted">{FREE_GIFT_CONDITION}</span>
+            </span>
+          </span>
+          <span className="shrink-0 font-mono text-brand-600">{FREE_GIFT_PRICE}</span>
+        </div>
+      ) : null}
+
       {displayPrice ? (
         // DM Mono ships in 400 and 500 only; semibold would be synthesised.
         <div className="mb-4">
@@ -309,13 +339,6 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
           <p className="mt-1 text-sm text-foreground-muted">
             {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
           </p>
-          {gift ? (
-            // The offer and its condition, where it's offered: "free" has to
-            // be true and qualified (packages/shopify/src/free-gift.ts).
-            <p className="mt-1 text-sm font-medium text-brand-600">
-              {freeGiftMessage(gift)}
-            </p>
-          ) : null}
         </div>
       ) : null}
 
