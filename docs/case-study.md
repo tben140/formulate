@@ -82,14 +82,18 @@ A web view in the app would have made the surfaces identical, but loses Apple
 Pay and, decisively, the completion callback. No shared `startCheckout()`
 either: there is nothing honest to put behind one.
 
-> **TODO (Ben):** two decisions the brief names that aren't built yet, so say
-> where they stand rather than claim them:
->
-> - **Subscriptions through Recharge** and selling plans in the cart early
->   (blocked on Recharge access, SHO-108). [integration-recharge.md](integration-recharge.md)
->   has the plan.
-> - **Performance measurement on iOS in CI** (SHO-26). Lighthouse runs on web
->   and the theme; the iOS tier needs EAS and Maestro.
+**Subscriptions through the Worker, not the browser.** Recharge's
+customer-facing Storefront API, and the JS SDK built on it, need a plan this
+store doesn't have. The SDK itself would have worked in React Native (tested
+without a DOM: only its card-entry helpers need a browser), so the plan was
+the real constraint. The portal reads and changes subscriptions through the
+Cloudflare Worker with Recharge's Admin key instead. The Worker takes a
+subscription id only as a question: it fetches that subscription and acts
+only if its Recharge customer is the caller Shopify verified, and answers
+"not found" otherwise, so ids can't be probed.
+
+**Performance on iOS in CI** (SHO-26) was dropped for v1. Lighthouse gates web
+and the theme; the app's tests cover behaviour, not speed.
 
 ## 4. How the work was done
 
@@ -146,19 +150,42 @@ usually after an assumption had already shipped.
   tested nothing of ours. The accessibility job pushes the PR's theme
   unpublished and scans that instead.
 
+- **Checkout promised free delivery that renewals charged for.** A first
+  order over £40 showed "free shipping every 30 days", but each renewal was
+  re-priced on its own, under £40, at £3.95. The rule was right and the
+  promise was wrong: Shopify's recurring line is computed from the first
+  basket. Free delivery now comes from a delivery profile attached to the
+  subscription plans; a live renewal went from £17.51 to £13.56 when it
+  recalculated. Recharge makes three plan groups per new product, outside the
+  profile, so a script now checks for them.
+- **One rate limit for every web customer.** The Worker limited each IP to 5
+  requests a minute. Web calls it from its server, so every web customer
+  shared one IP, and a single skip-then-undo used four requests. Signed-in
+  routes now have a limit per verified customer, with a looser IP backstop.
+  Found by the automated reviewer, not by a test.
+- **An authorisation code on its way to Sentry.** For server errors, Sentry
+  copied the full request path into a second field the scrubbing didn't
+  cover, and a failed sign-in's path carries Shopify's authorisation code.
+  Also found in review, and fixed before it shipped.
+- **The same data, named differently.** Recharge's subscriptions name their
+  customer `customer_id`; its charges name it `customer.id`. The first
+  version of "undo a skip" checked the wrong one and would have refused
+  every request. Caught by reading real records before building on them.
+
 > **TODO (Ben):** the worktree bug and anything from the lab notebook. Add
 > them here in the same form: what was assumed, what was measured, what
 > changed.
 
 ## 6. Results
 
-|                              |                                                                             |
-| ---------------------------- | --------------------------------------------------------------------------- |
-| LCP, real throttling (phone) | collection 2.20 s, product 1.92 s, search 1.98 s, home 1.61 s               |
-| Accessibility                | axe (WCAG 2.2 AA) in CI on web and the theme; in the app's end-to-end suite |
-| Tests                        | Unit tests on the shared packages; end-to-end suites on all three surfaces  |
+|                              |                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| LCP, real throttling (phone) | collection 2.20 s, product 1.92 s, search 1.98 s, home 1.61 s                                                             |
+| Accessibility                | axe (WCAG 2.2 AA) in CI on web and the theme; in the app's end-to-end suite; screen-reader labels in the app's unit tests |
+| Tests                        | Unit tests on the shared packages, the Worker and the app; end-to-end suites on all three surfaces                        |
+| Review                       | Every PR reviewed twice: by Ben, and by an automated reviewer whose findings were fixed before merging                    |
 
-> **TODO (Ben):** link the evidence pack (SHO-80) once it exists.
+> **TODO (Ben):** link the evidence pack (#74, SHO-80) once merged.
 
 ## 7. What I'd do differently
 
