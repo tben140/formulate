@@ -29,22 +29,9 @@ export const CollectionProductsQuery = graphql(`
         filters {
           ...FilterFields
         }
+        # The same card everywhere: stars, saving and quick add included.
         nodes {
-          id
-          handle
-          title
-          featuredImage {
-            url
-            altText
-            width
-            height
-          }
-          priceRange {
-            minVariantPrice {
-              amount
-              currencyCode
-            }
-          }
+          ...ProductCardFields
         }
       }
     }
@@ -288,6 +275,28 @@ export const ProductCardFields = graphql(`
     }
     ratingCount: metafield(namespace: "reviews", key: "rating_count") {
       value
+    }
+    # For the card's subscription saving and quick add (card-offer.ts): two
+    # variants say whether there's more than one.
+    variants(first: 2) {
+      nodes {
+        id
+        availableForSale
+        price {
+          amount
+          currencyCode
+        }
+        sellingPlanAllocations(first: 1) {
+          nodes {
+            priceAdjustments {
+              price {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
     }
   }
 `);

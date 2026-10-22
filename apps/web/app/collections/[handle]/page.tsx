@@ -103,12 +103,12 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
         </p>
       ) : null}
 
-      <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
         {collection.products.nodes.map((product, index) => (
           <li key={product.id}>
             <ProductCard
               product={product}
-              sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
+              sizes="(min-width: 1024px) 320px, 45vw"
               // The first row is on screen at load, and its first image is the
               // Largest Contentful Paint on a phone. Hydrogen's Image defaults
               // to lazy, which delayed it (SHO-143). Three is the widest row;
