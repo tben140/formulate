@@ -67,7 +67,7 @@ const RootLayout = () => {
               headerRight: () => <HeaderActions />,
             }}
           >
-            <Stack.Screen name="index" options={{ title: "Formulate" }} />
+            <Stack.Screen name="index" options={{ title: "Double Helix" }} />
             <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
             <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
             {/* Cart only: a Search button on the search screen goes nowhere. */}
