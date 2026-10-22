@@ -30,5 +30,5 @@ export const QUIZ_PROMPT = {
   title: "Not sure where to start?",
   body: "Answer a few quick questions and we'll suggest a daily routine to match.",
   cta: "Take the quiz",
-  path: "/quiz",
+  path: "/routine",
 } as const;

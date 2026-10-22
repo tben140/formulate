@@ -40,6 +40,6 @@ test("home states the offer and leads to the quiz", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Take the quiz" })).toHaveCount(2);
   await expect(page.getByRole("link", { name: "Take the quiz" }).first()).toHaveAttribute(
     "href",
-    "/quiz",
+    "/routine",
   );
 });
