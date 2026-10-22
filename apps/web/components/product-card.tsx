@@ -1,6 +1,13 @@
-import { formatMoney, type MoneyLike } from "@formulate/shopify";
+import {
+  formatMoney,
+  type MoneyLike,
+  ratingLabel,
+  reviewSummary,
+} from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import Link from "next/link";
+
+import { Stars } from "./stars";
 
 type CardImage = {
   readonly url: string;
@@ -14,6 +21,9 @@ export type ProductCardData = {
   readonly title: string;
   readonly featuredImage?: CardImage | null;
   readonly priceRange: { readonly minVariantPrice: MoneyLike };
+  /** Standard review metafields, when the query asked for them. */
+  readonly rating?: { readonly value: string } | null;
+  readonly ratingCount?: { readonly value: string } | null;
 };
 
 /**
@@ -37,6 +47,7 @@ export const ProductCard = ({
   readonly fetchPriority?: "high" | "auto";
 }) => {
   const Heading = headingLevel;
+  const summary = reviewSummary(product);
   return (
     <Link
       href={`/products/${product.handle}`}
@@ -64,6 +75,12 @@ export const ProductCard = ({
       <Heading className="text-base font-medium group-hover:text-brand-700">
         {product.title}
       </Heading>
+      {summary ? (
+        <p className="mt-1 flex items-center gap-1.5 text-xs text-foreground-muted">
+          <Stars value={summary.average} label={ratingLabel(summary)} size={12} />
+          <span aria-hidden="true">({summary.count})</span>
+        </p>
+      ) : null}
       <p className="mt-1 font-mono text-sm text-foreground-muted">
         {formatMoney(product.priceRange.minVariantPrice)}
       </p>

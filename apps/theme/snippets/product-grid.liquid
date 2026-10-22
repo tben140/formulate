@@ -59,6 +59,7 @@
         </div>
 
         <h2 class="product-card__title">{{ product.title | escape }}</h2>
+        {% render 'stars', product: product, show_count: true, size: 'small' %}
         <p class="product-card__price">{{ product.price | money }}</p>
       </a>
     </li>

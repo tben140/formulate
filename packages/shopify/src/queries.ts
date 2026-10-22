@@ -74,6 +74,13 @@ export const ProductByHandleQuery = graphql(`
       id
       handle
       title
+      # Standard review metafields (see ProductCardFields and reviews.ts).
+      rating: metafield(namespace: "reviews", key: "rating") {
+        value
+      }
+      ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+        value
+      }
       description
       # Rendered through descriptionBlocks (src/description.ts): the plain
       # description above runs headings into paragraphs, and stays for the
@@ -273,6 +280,14 @@ export const ProductCardFields = graphql(`
         amount
         currencyCode
       }
+    }
+    # Shopify's standard review metafields, kept in sync by the reviews app
+    # (Judge.me). Null until a product has reviews. See reviews.ts.
+    rating: metafield(namespace: "reviews", key: "rating") {
+      value
+    }
+    ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+      value
     }
   }
 `);

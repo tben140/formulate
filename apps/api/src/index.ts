@@ -2,6 +2,9 @@ import type { RateLimiter } from "./rate-limiter";
 
 export { RateLimiter } from "./rate-limiter";
 
+import { SUBMIT_MAX_BODY_BYTES, submitReview } from "./review-submit";
+import { cachedReviews, type ReviewsEnv } from "./reviews";
+
 import {
   KLAVIYO_REVISION,
   SERVER_SUBSCRIBE_URL,
@@ -28,7 +31,7 @@ import {
  * ever needing it.
  */
 
-interface Env {
+interface Env extends ReviewsEnv {
   /** Set with `wrangler secret put`. Never in `vars`, never in the repo. */
   readonly KLAVIYO_PRIVATE_KEY: string;
   readonly KLAVIYO_LIST_ID: string;
@@ -60,9 +63,15 @@ const MAX_BODY_BYTES = 1024;
  */
 type Outcome =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: "invalid-email" | "rate-limited" | "rejected" };
+  | {
+      readonly ok: false;
+      readonly reason: "invalid-email" | "rate-limited" | "rejected";
+    };
 
-const json = (body: Outcome, status: number): Response =>
+const json = (body: Outcome, status: number): Response => respond(body, status);
+
+/** Any JSON body, with the same headers (and the same reasons for them). */
+const respond = (body: unknown, status: number): Response =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -110,9 +119,25 @@ export default {
       return json({ ok: false, reason: "rate-limited" }, 429);
     }
 
+    const path = new URL(request.url).pathname;
     const raw = await request.text();
-    if (raw.length > MAX_BODY_BYTES) {
+    // A written review is longer than anything else this Worker takes.
+    const maxBytes = path === "/reviews/new" ? SUBMIT_MAX_BODY_BYTES : MAX_BODY_BYTES;
+    if (raw.length > maxBytes) {
       return json({ ok: false, reason: "rejected" }, 413);
+    }
+
+    // Writing a review (web's form), sent on to Judge.me. See src/review-submit.ts.
+    if (path === "/reviews/new") {
+      const { status, body } = await submitReview(env, raw);
+      return respond(body, status);
+    }
+
+    // Product reviews (Judge.me): public, read-only, cut down to what a page
+    // may show. See src/reviews.ts. Every other path is the newsletter.
+    if (path === "/reviews") {
+      const { status, body } = await cachedReviews(env, raw);
+      return respond(body, status);
     }
 
     let email: unknown;
