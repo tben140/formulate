@@ -47,20 +47,28 @@ const SubscribeUpgrade = () => {
     return null;
   }
 
+  const failed = "That didn't work. Your order hasn't changed.";
+
   const change = async (sellingPlanId: string | null) => {
     setBusy(true);
     setError(null);
-    const result = await shopify.applyCartLinesChange({
-      type: "updateCartLine",
-      id: line.id,
-      sellingPlanId,
-    });
-    setBusy(false);
-    if (result.type === "error") {
-      setError("That didn't work. Your order hasn't changed.");
-      return;
+    try {
+      const result = await shopify.applyCartLinesChange({
+        type: "updateCartLine",
+        id: line.id,
+        sellingPlanId,
+      });
+      if (result.type === "error") {
+        setError(failed);
+        return;
+      }
+      setSwitched(sellingPlanId !== null);
+    } catch {
+      // A rejected change is a failed one: say so, and leave the button usable.
+      setError(failed);
+    } finally {
+      setBusy(false);
     }
-    setSwitched(sellingPlanId !== null);
   };
 
   if (subscribed) {
@@ -72,6 +80,7 @@ const SubscribeUpgrade = () => {
         <s-button variant="secondary" loading={busy} onClick={() => void change(null)}>
           Switch back to one-time
         </s-button>
+        {error ? <s-text tone="critical">{error}</s-text> : null}
       </s-stack>
     ) : null;
   }
