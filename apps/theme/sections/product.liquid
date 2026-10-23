@@ -118,8 +118,8 @@
       <div class="product-details">
         {% for chunk in chunks %}
           {%- liquid
-            assign head = chunk | slice: 0, 2
-            if head == '<h'
+            assign head = chunk | slice: 0, 3
+            if head == '<h2' or head == '<h3' or head == '<h4'
               assign heading_html = chunk | split: '</h' | first
               assign title = heading_html | strip_html | strip
               assign body = chunk | remove_first: heading_html | remove_first: '</h2>' | remove_first: '</h3>' | remove_first: '</h4>'

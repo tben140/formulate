@@ -115,7 +115,7 @@
     "guarantee": "30-day money-back guarantee",
     "details": "Details",
     "card_subscribe": "Subscribe & save {{ percent }}%",
-    "quick_add_label": "Add {{ title }} to cart",
+    "quick_add_label": "Add to cart, {{ title }}",
     "one_time_price": "One-time price",
     "subscription_price": "Subscription price",
     "per_day": "a day",

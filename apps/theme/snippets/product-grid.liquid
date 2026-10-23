@@ -46,13 +46,27 @@
     -%}
     {%- comment -%}
       The subscription saving and quick add, as cardOffer in packages/shopify:
-      the first variant's first plan, never an introductory one; quick add
-      only for a product with one variant, as a one-time purchase.
+      the first in-stock variant's first plan that an app owns (as on the
+      product page), never an introductory one; quick add only for a product
+      with one variant, as a one-time purchase.
     {%- endcomment -%}
     {%- liquid
       assign card_variant = product.selected_or_first_available_variant
       assign card_percent = 0
-      assign card_allocation = card_variant.selling_plan_allocations.first
+      assign card_owned_ids = ''
+      for group in product.selling_plan_groups
+        if group.app_id
+          assign card_owned_ids = card_owned_ids | append: group.id | append: ','
+        endif
+      endfor
+      assign card_allocation = nil
+      for allocation in card_variant.selling_plan_allocations
+        assign card_group_key = allocation.selling_plan_group_id | append: ','
+        if card_owned_ids contains card_group_key
+          assign card_allocation = allocation
+          break
+        endif
+      endfor
       if card_allocation and card_allocation.price_adjustments.size < 2 and card_variant.price > 0
         assign card_saving = card_variant.price | minus: card_allocation.price
         if card_saving > 0

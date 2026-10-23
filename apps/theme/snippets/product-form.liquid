@@ -441,7 +441,7 @@
               {%- assign first_plan = false -%}
               {
                 "id": {{ allocation.selling_plan.id | json }},
-                {%- capture plan_display_name -%}{% render 'plan-name', selling_plan: allocation.selling_plan %}{%- endcapture %}
+                {%- capture plan_display_name -%}{% render 'plan-name', selling_plan: allocation.selling_plan, raw: true %}{%- endcapture %}
                 "name": {{ plan_display_name | json }},
                 {%- capture plan_units -%}{% render 'plan-supply-units', selling_plan: allocation.selling_plan %}{%- endcapture -%}
                 {%- assign plan_units = plan_units | plus: 0 -%}
