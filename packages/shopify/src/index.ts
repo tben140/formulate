@@ -116,3 +116,4 @@ export type {
   RoutineProduct,
 } from "./routine-quiz";
 export { toRoutineGoals } from "./routine-quiz-data";
+export { AUTHORISED_CLAIMS, authorisedClaimFor } from "./routine-quiz-claims";
