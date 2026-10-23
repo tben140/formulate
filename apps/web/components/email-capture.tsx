@@ -1,6 +1,7 @@
 "use client";
 
 import type { SubscribeResult } from "@formulate/analytics";
+import { SIGN_UP_CONSENT, SIGN_UP_HEADING, SIGN_UP_SUCCESS } from "@formulate/shopify";
 import { useId, useState, useTransition } from "react";
 
 import { identifyBuyer } from "@/app/actions/cart";
@@ -89,7 +90,7 @@ export const EmailCapture = () => {
          * list, with no way to tell them apart from the client. This wording
          * is true either way; the other is a claim we cannot support.
          */
-        setStatus({ kind: "done", message: "You're on the list. Check your inbox." });
+        setStatus({ kind: "done", message: SIGN_UP_SUCCESS });
         setFailed(false);
         setEmail("");
         return;
@@ -111,7 +112,7 @@ export const EmailCapture = () => {
     */
     <form onSubmit={onSubmit} noValidate className="w-full max-w-sm">
       <label htmlFor={inputId} className="block text-sm font-semibold text-foreground">
-        Get restock and subscription news
+        {SIGN_UP_HEADING}
       </label>
 
       <div className="mt-2 flex gap-2">
@@ -160,7 +161,7 @@ export const EmailCapture = () => {
         — the cookie banner is the lesser one.
       */}
       <p id={consentId} className="mt-2 text-xs text-foreground-muted">
-        Marketing emails about restocks and subscription offers. Unsubscribe any time.
+        {SIGN_UP_CONSENT}
       </p>
 
       {/*
