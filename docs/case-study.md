@@ -257,7 +257,16 @@ as part of finishing a change.
 **A flow believed to be a draft was live.** The abandoned-checkout email was
 running alongside Shopify's own, without a consent filter. Its replacement was
 built as a separate draft so the switch is one step, and every new flow
-checks consent on each email.
+checks consent on each email. On 23 October each replacement went live before
+the flow it replaced was stopped, so there was no gap, and Shopify's own email
+was turned off.
+
+**A sign-up test that couldn't prove itself.** A scripted browser signing up
+on the live store first hit Klaviyo's bot protection, then got a "202
+Accepted" for a sign-up that never appeared, not even as a confirmation email
+(the list is double opt-in). The checkout half of the same test did reach
+Klaviyo. The sign-up needs a real phone to prove it; an automated test of the
+subscribe request alone would have passed while proving nothing.
 
 > **TODO (Ben):** the worktree bug and anything from the lab notebook. Add
 > them here in the same form: what was assumed, what was measured, what
