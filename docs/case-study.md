@@ -133,6 +133,35 @@ gift, if any, is a field on the product, not code. Rejected: a Cart Transform
 expanding the product into a bundle, which changes what the order and stock
 records say was sold.
 
+**One conversion pass, worded once for three surfaces** (#148). The product
+page now opens with a one-line summary and the buy box; the rest of the
+description folds into sections below. Plans read "Subscribe, every 60 days"
+with a "Save 15%" badge, the subscription benefits are said once, and a
+30-day money-back guarantee sits under the button, linked to the refund
+policy it promises. Collections show two products a row on a phone, each with
+its subscription saving and, where there's nothing to choose, an Add button.
+Every phrase lives once in `packages/shopify` (with a Liquid twin for the
+theme), so the three surfaces can't drift. The theme's home page is built
+from sections the merchant arranges; web and the app wait for a page builder
+(SHO-185). Rejected: a quiz button on every page, including product pages,
+where it would pull a shopper away from the product they'd chosen.
+
+**Our own "Subscribe & save" switch at checkout** (#149). Recharge's Checkout
+Upsell block does this, but needs its Pro plan on Shopify Plus. A checkout UI
+extension under each one-time line sets the line's selling plan in one tap,
+states the renewal terms beside the button before it's pressed, and offers
+Undo; a second block repeats the guarantee. Tested on the demo store: the
+switch drops the line to the subscription price and Undo restores it.
+_Would change:_ moving to Recharge Pro.
+
+**Email: consent first, then offers** (#150). Marketing flows send only to
+profiles with email marketing consent, so the UK's PECR is met without
+relying on the soft opt-in; US mail needs a postal address in the footer.
+The sign-up offers 10% off a first one-time order through unique codes:
+Klaviyo's API can't mint Shopify codes, so the codes are created on a Shopify
+discount and loaded into a Klaviyo coupon. Rejected: one shared code, which
+leaks onto voucher sites.
+
 **Performance on iOS in CI** (SHO-26) was dropped for v1. Lighthouse gates web
 and the theme; the app's tests cover behaviour, not speed.
 
@@ -218,6 +247,17 @@ usually after an assumption had already shipped.
   run out two months before the next delivery. The prices were "correct" for
   what was configured, and every test passed; it took looking at the page as
   a shopper to see it. The plan now sets the quantity (#143).
+
+**A preview that wasn't showing the work.** The phone preview serves a
+separate merged copy of every open PR, not the branch being worked on, so a
+day of conversion changes was invisible on the phone until that copy was
+updated and rebuilt. Now the copy is updated and rebuilt
+as part of finishing a change.
+
+**A flow believed to be a draft was live.** The abandoned-checkout email was
+running alongside Shopify's own, without a consent filter. Its replacement was
+built as a separate draft so the switch is one step, and every new flow
+checks consent on each email.
 
 > **TODO (Ben):** the worktree bug and anything from the lab notebook. Add
 > them here in the same form: what was assumed, what was measured, what
