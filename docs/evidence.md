@@ -114,10 +114,23 @@ Counted with `vitest run` / `jest` at the commit named; coverage not re-measured
 | `apps/api` (the Worker)   | 40                             | `ed0ad0f` (#147, on #94's line) |
 | `free-gift` Function      | 6 fixtures, run as WebAssembly | `9abf721` (#145), new           |
 | `stack-discount` Function | 9 fixtures, run as WebAssembly | `9abf721` (#145)                |
+| `packages/shopify`        | 168                            | `3122967` (#148)                |
+| Checkout extensions       | 14                             | `a92961b` (#149), new           |
 
 The app's Jest suite (new in #137) was checked against its own bugs: putting
 back two issues the reviewer had found on #136, and removing the cart sheet's
 "only after a purchase" guard, each turned the matching tests red.
+
+### On the demo store (2026-10-23)
+
+Checked in a browser against the live theme and checkout, not a mock:
+
+- Quick add from a collection card adds the product (cart has 1 item).
+- The guarantee link under the product page's button opens the refund
+  policy, which states the same 30-day guarantee.
+- At checkout the guarantee block shows, and "Subscribe & save 15%" under a
+  one-time line switches it to the subscription (£15.95 → £13.56) and Undo
+  switches it back.
 
 ## Review
 
