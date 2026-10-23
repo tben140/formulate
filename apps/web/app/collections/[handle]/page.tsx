@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { JsonLd } from "@/components/json-ld";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CollectionFilters } from "@/components/collection-filters";
+import { RoutinePrompt } from "@/components/routine-prompt";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { getCollection } from "@/lib/catalogue";
@@ -119,6 +120,8 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
           </li>
         ))}
       </ul>
+
+      <RoutinePrompt />
     </>
   );
 };

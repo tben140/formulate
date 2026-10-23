@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Text, TextInput, View } from "react-native";
 
 import { CollectionFilters } from "../components/collection-filters";
+import { RoutinePrompt } from "../components/routine-prompt";
 import { useSearch } from "../lib/queries";
 
 /** How long typing must pause before a search runs. */
@@ -78,13 +79,16 @@ const SearchScreen = () => {
         </View>
       }
       ListEmptyComponent={
-        <Text className="py-12 text-center text-foreground-muted">
-          {!searching
-            ? "Search by product name, format or ingredient."
-            : data && !isFetching
-              ? `No products match “${term}”.`
-              : ""}
-        </Text>
+        <View>
+          <Text className="py-12 text-center text-foreground-muted">
+            {!searching
+              ? "Search by product name, format or ingredient."
+              : data && !isFetching
+                ? `No products match “${term}”.`
+                : ""}
+          </Text>
+          {searching && data && !isFetching ? <RoutinePrompt /> : null}
+        </View>
       }
       renderItem={({ item }) => (
         <Link href={`/products/${item.handle}`} asChild>
