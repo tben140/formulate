@@ -276,6 +276,18 @@ export const ProductCardFields = graphql(`
     ratingCount: metafield(namespace: "reviews", key: "rating_count") {
       value
     }
+    # Which plans an app owns, so the card's saving is one the product page
+    # actually offers (purchasableAllocations in product-selection.ts).
+    sellingPlanGroups(first: 5) {
+      nodes {
+        appName
+        sellingPlans(first: 10) {
+          nodes {
+            id
+          }
+        }
+      }
+    }
     # For the card's subscription saving and quick add (card-offer.ts): two
     # variants say whether there's more than one.
     variants(first: 2) {
@@ -286,8 +298,11 @@ export const ProductCardFields = graphql(`
           amount
           currencyCode
         }
-        sellingPlanAllocations(first: 1) {
+        sellingPlanAllocations(first: 5) {
           nodes {
+            sellingPlan {
+              id
+            }
             priceAdjustments {
               price {
                 amount

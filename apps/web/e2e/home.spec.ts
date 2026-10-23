@@ -31,15 +31,9 @@ test("home introduces the shop, lists categories and features the first collecti
   await expect(featured.getByRole("list").getByRole("link").first()).toBeVisible();
 });
 
-test("home states the offer and leads to the quiz", async ({ page }) => {
+test("home states the offer", async ({ page }) => {
   await page.goto("/");
   const benefits = page.getByRole("list", { name: "Why Double Helix" });
   await expect(benefits.getByRole("listitem")).toHaveCount(4);
   await expect(benefits).toContainText("30-day money-back guarantee");
-  // Once in the hero, once in its own section.
-  await expect(page.getByRole("link", { name: "Take the quiz" })).toHaveCount(2);
-  await expect(page.getByRole("link", { name: "Take the quiz" }).first()).toHaveAttribute(
-    "href",
-    "/routine",
-  );
 });

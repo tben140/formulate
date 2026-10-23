@@ -25,7 +25,11 @@ export const homeBenefits = (savingPercent: number | null): readonly string[] =>
   GUARANTEE_TITLE,
 ];
 
-/** The quiz's invitation, on the home page and wherever else it's offered. */
+/**
+ * The quiz's invitation. Not shown until the quiz (#124/#125) lands, which
+ * shows it only once the quiz's goals exist in Shopify: a link to a quiz that
+ * isn't there would 404.
+ */
 export const QUIZ_PROMPT = {
   title: "Not sure where to start?",
   body: "Answer a few quick questions and we'll suggest a daily routine to match.",

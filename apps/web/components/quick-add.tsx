@@ -49,7 +49,8 @@ export const QuickAdd = ({
       <button
         type="submit"
         aria-disabled={pending || undefined}
-        aria-label={`Add ${productTitle} to cart`}
+        // Visible text first, then the product (WCAG 2.5.3), as the sticky bar does.
+        aria-label={`Add to cart, ${productTitle}`}
         className="min-h-11 w-full rounded-md border border-brand-600 px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 aria-disabled:cursor-wait"
       >
         {pending ? "Adding…" : "Add to cart"}

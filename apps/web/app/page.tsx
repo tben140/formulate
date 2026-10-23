@@ -2,7 +2,6 @@ import {
   CollectionCardsQuery,
   CollectionProductsQuery,
   HOME_HEADLINE,
-  QUIZ_PROMPT,
   cardOffer,
   homeBenefits,
   homeSubheading,
@@ -86,12 +85,6 @@ const HomePage = async () => {
                 Shop {featuredLink.title}
               </Link>
             ) : null}
-            <Link
-              href={QUIZ_PROMPT.path}
-              className="inline-block rounded-md border border-brand-600 px-6 py-3 font-semibold text-brand-700 hover:bg-brand-50"
-            >
-              {QUIZ_PROMPT.cta}
-            </Link>
           </div>
         </div>
         {heroImage ? (
@@ -195,24 +188,6 @@ const HomePage = async () => {
           </ul>
         </section>
       ) : null}
-
-      <section
-        aria-labelledby="home-quiz"
-        className="mt-14 flex flex-col items-start gap-4 rounded-xl border border-border px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-10"
-      >
-        <div>
-          <h2 id="home-quiz" className="text-2xl font-semibold tracking-tight">
-            {QUIZ_PROMPT.title}
-          </h2>
-          <p className="mt-2 max-w-xl text-foreground-muted">{QUIZ_PROMPT.body}</p>
-        </div>
-        <Link
-          href={QUIZ_PROMPT.path}
-          className="inline-block shrink-0 rounded-md bg-brand-600 px-6 py-3 font-semibold text-surface hover:bg-brand-700"
-        >
-          {QUIZ_PROMPT.cta}
-        </Link>
-      </section>
     </>
   );
 };

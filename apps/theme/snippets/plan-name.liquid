@@ -6,10 +6,11 @@
   discount"); the interval is read from its "Order Frequency and Unit" option,
   as plan-supply-units reads it. A plan without a readable one keeps its name.
 
-  Outputs text, escaped.
+  Outputs text, escaped for HTML unless `raw` is set.
 
   Accepts:
   - selling_plan: {Object} the plan (allocation.selling_plan)
+  - raw: {Boolean} unescaped, for JSON that script writes as textContent
 {%- endcomment -%}
 {%- liquid
   assign days = 0
@@ -28,6 +29,8 @@
   endfor
   if days > 0
     echo 'product.plan_name' | t: days: days
+  elsif raw
+    echo selling_plan.name
   else
     echo selling_plan.name | escape
   endif

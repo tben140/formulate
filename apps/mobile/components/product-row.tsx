@@ -49,7 +49,7 @@ const QuickAdd = ({
         );
       }}
       accessibilityRole="button"
-      accessibilityLabel={`Add ${title} to cart`}
+      accessibilityLabel={`Add to cart, ${title}`}
       accessibilityState={{ busy: addToCart.isPending }}
       className="min-h-11 justify-center rounded-md border border-brand-600 px-3"
     >

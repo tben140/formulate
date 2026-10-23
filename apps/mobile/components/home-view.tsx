@@ -1,11 +1,10 @@
 import {
   HOME_HEADLINE,
-  QUIZ_PROMPT,
   cardOffer,
   homeBenefits,
   homeSubheading,
 } from "@formulate/shopify";
-import { Link, type Href } from "expo-router";
+import { Link } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
@@ -83,14 +82,6 @@ export const HomeView = () => {
               </Pressable>
             </Link>
           ) : null}
-          <Link href={QUIZ_PROMPT.path as Href} asChild>
-            <Pressable
-              accessibilityRole="link"
-              className="rounded-md border border-brand-600 px-5 py-3"
-            >
-              <Text className="font-semibold text-brand-700">{QUIZ_PROMPT.cta}</Text>
-            </Pressable>
-          </Link>
         </View>
         {heroImage ? (
           <ShopImage
@@ -116,6 +107,8 @@ export const HomeView = () => {
         {homeBenefits(savingPercent).map((benefit) => (
           <View
             key={benefit}
+            // A list needs list items (axe's aria-required-children on web).
+            role="listitem"
             className="w-[48%] flex-row gap-2 rounded-lg border border-border p-3"
           >
             <Text
@@ -195,24 +188,6 @@ export const HomeView = () => {
           </ScrollView>
         </View>
       ) : null}
-
-      <View className="gap-3 rounded-xl border border-border p-6">
-        <Text
-          accessibilityRole="header"
-          className="text-xl font-semibold text-foreground"
-        >
-          {QUIZ_PROMPT.title}
-        </Text>
-        <Text className="text-base text-foreground-muted">{QUIZ_PROMPT.body}</Text>
-        <Link href={QUIZ_PROMPT.path as Href} asChild>
-          <Pressable
-            accessibilityRole="link"
-            className="self-start rounded-md bg-brand-600 px-5 py-3"
-          >
-            <Text className="font-semibold text-surface">{QUIZ_PROMPT.cta}</Text>
-          </Pressable>
-        </Link>
-      </View>
 
       <SiteFooter />
     </ScrollView>
