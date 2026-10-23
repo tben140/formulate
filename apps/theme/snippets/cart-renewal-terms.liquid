@@ -23,7 +23,7 @@
       {%- if item.selling_plan_allocation -%}
         {%- unless first_item %}; {% endunless -%}
         {%- assign first_item = false -%}
-        {{- item.product.title | escape }} ({{ item.selling_plan_allocation.selling_plan.name | escape }}),
+        {{- item.product.title | escape }} ({% render 'plan-name', selling_plan: item.selling_plan_allocation.selling_plan %}),
         {%- assign adjustments = item.selling_plan_allocation.price_adjustments -%}
         {%- if adjustments.size > 1 and adjustments[1].price != adjustments[0].price -%}
           {%- comment -%} An introductory plan: its later price too (cartRenewalTerms). {%- endcomment -%}

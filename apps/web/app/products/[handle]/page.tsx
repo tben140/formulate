@@ -14,7 +14,7 @@ import { WriteReview } from "@/components/write-review";
 import { Stars } from "@/components/stars";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
-import { ProductDescription } from "@/components/product-description";
+import { ProductDetails, ProductSummary } from "@/components/product-description";
 import { getProduct } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
 import { baseOpenGraph } from "@/lib/site";
@@ -146,7 +146,12 @@ const ProductPage = async ({ params }: PageProps) => {
             </a>
           ) : null}
 
-          <ProductDescription html={product.descriptionHtml} />
+          {/*
+          Only the opening paragraph comes before the buy box; the rest of the
+          description follows it, in closed sections. On a phone the button was
+          a long scroll down, below storage and allergen notes.
+        */}
+          <ProductSummary html={product.descriptionHtml} />
 
           {/*
           The price now lives inside the form, because it changes with the
@@ -155,6 +160,8 @@ const ProductPage = async ({ params }: PageProps) => {
           whatever the shopper had chosen.
         */}
           <AddToCartForm product={product} />
+
+          <ProductDetails html={product.descriptionHtml} />
 
           {/* No fallback: nothing at all is better than a loading box here. */}
           <Suspense fallback={null}>

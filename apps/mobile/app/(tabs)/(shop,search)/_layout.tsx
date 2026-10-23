@@ -39,7 +39,7 @@ const SharedStack = ({ segment }: { readonly segment: string }) => (
       contentStyle: { backgroundColor: "#ffffff" },
     }}
   >
-    <Stack.Screen name="index" options={{ title: "Formulate" }} />
+    <Stack.Screen name="index" options={{ title: "Double Helix" }} />
     <Stack.Screen name="search" options={{ title: "Search" }} />
     <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
     <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />

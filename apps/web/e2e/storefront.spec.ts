@@ -7,8 +7,9 @@ test("a collection renders its products", async ({ page }) => {
   await expect(
     page.getByRole("heading", { level: 1, name: "Best Sellers" }),
   ).toBeVisible();
-  // Each product is a link to its page, with a price.
-  const cards = page.locator('main a[href^="/products/"]');
+  // Each product card links to its page and shows a price. The link is the
+  // title, stretched over the card, so the price is in the card, not the link.
+  const cards = page.locator('main li:has(a[href^="/products/"])');
   await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThan(0);
   await expect(cards.first()).toContainText("£");
