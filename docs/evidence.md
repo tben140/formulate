@@ -131,6 +131,21 @@ Checked in a browser against the live theme and checkout, not a mock:
 - At checkout the guarantee block shows, and "Subscribe & save 15%" under a
   one-time line switches it to the subscription (£15.95 → £13.56) and Undo
   switches it back.
+- Klaviyo: the five v2 flows are live, all consent-filtered; the three they
+  replace are drafts again. Shopify's own abandoned-checkout email is off.
+- Welcome codes: 500 unique `DH10-` codes. A comparison of both systems' full
+  lists found the same 500 in the Shopify discount and the Klaviyo coupon,
+  none used.
+- An abandoned test checkout reached Klaviyo as "Checkout Started" on a
+  profile without consent, which the abandoned-checkout flow correctly skips.
+
+### Merging the two stacks (2026-10-23)
+
+The quiz stack (#125) and the conversion stack (#148) conflict in 12 files,
+including the app's navigation (tabs on one side, a new screen on the old
+stack on the other). A rehearsal merge on `tben140/premerge-125-148`
+typechecks across shared, web and app, passes 198 shared tests and theme lint,
+and needed one contract change: `/routine` added to the shared routes.
 
 ## Review
 
