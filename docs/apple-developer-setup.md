@@ -66,8 +66,11 @@ registered devices, without the store.
   then serves `/.well-known/apple-app-site-association` (#66).
 - EAS environment variable `EXPO_PUBLIC_WEB_URL` = the web store's production
   URL. app.config.ts then declares `applinks:<host>`, the iOS twin of
-  Android's app links.
-- Test: open a product link from Notes on the iPhone; it should open the app.
+  Android's app links. The domain is fixed into the app when it's built, so
+  make a new build (and install it from TestFlight) after setting this; a
+  build from before won't open links.
+- Test, on that new build: open a product link from Notes on the iPhone; it
+  should open the app.
 
 ## 6. Then, in order of value
 
@@ -96,7 +99,9 @@ certificate that Shopify can decrypt with.
    path/to/apps/mobile/scripts/apple-pay-certificate.sh request
    ```
    It asks for the app's Admin API token without showing it, and saves
-   `apple_payment_processing.csr`.
+   `apple_payment_processing.csr`. If it gives up waiting, run the script
+   with `csr` a few minutes later; running `request` again would start a
+   second certificate.
 4. **Apple Developer** → Certificates → + → **Apple Pay Payment Processing
    Certificate** (not Merchant Identity, which is for websites) → upload the
    `.csr` → download `apple_pay.cer`.

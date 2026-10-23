@@ -14,6 +14,8 @@
 #
 # Usage, from any folder (files are written to the current one):
 #   apple-pay-certificate.sh request          create, wait, save apple_payment_processing.csr
+#   apple-pay-certificate.sh csr              save the .csr for the existing certificate,
+#                                             if request gave up waiting for it
 #   apple-pay-certificate.sh upload FILE.cer  send Apple's signed certificate to Shopify
 #   apple-pay-certificate.sh status           show where it's up to
 set -euo pipefail
@@ -41,6 +43,16 @@ saved_id() {
   cat "$ID_FILE"
 }
 
+save_csr() { # id
+  api GET "/$1/csr.json" | tr -d '\n' | jq -r .csr.key \
+    | openssl base64 -a -d -out apple_payment_processing.csr
+  echo
+  echo "Saved apple_payment_processing.csr. Next, in Apple Developer:"
+  echo "  Certificates → + → Apple Pay Payment Processing Certificate"
+  echo "  (not Merchant Identity) for $MERCHANT_ID, upload the .csr,"
+  echo "  download apple_pay.cer, then run: $0 upload apple_pay.cer"
+}
+
 case "${1:-}" in
   request)
     id=$(api POST ".json" '{"apple_pay_certificate":{}}' | jq -r '.apple_pay_certificate.id')
@@ -51,14 +63,15 @@ case "${1:-}" in
       [ "$status" = "csr" ] && break
       sleep 2
     done
-    [ "$status" = "csr" ] || { echo "Still '$status' after a minute; run '$0 status' later." >&2; exit 1; }
-    api GET "/$id/csr.json" | tr -d '\n' | jq -r .csr.key \
-      | openssl base64 -a -d -out apple_payment_processing.csr
-    echo
-    echo "Saved apple_payment_processing.csr. Next, in Apple Developer:"
-    echo "  Certificates → + → Apple Pay Payment Processing Certificate"
-    echo "  (not Merchant Identity) for $MERCHANT_ID, upload the .csr,"
-    echo "  download apple_pay.cer, then run: $0 upload apple_pay.cer"
+    # Not 'request' again: that would make a second certificate and lose this id.
+    [ "$status" = "csr" ] || { echo "Still '$status' after a minute; run '$0 csr' in a few minutes." >&2; exit 1; }
+    save_csr "$id"
+    ;;
+  csr)
+    id=$(saved_id)
+    status=$(api GET "/$id.json" | jq -r '.apple_pay_certificate.status')
+    [ "$status" = "csr" ] || { echo "Certificate $id is '$status', not ready for its signing request yet." >&2; exit 1; }
+    save_csr "$id"
     ;;
   upload)
     cer="${2:?Usage: $0 upload apple_pay.cer}"
@@ -73,5 +86,5 @@ case "${1:-}" in
     api GET "/$(saved_id).json" | jq '.apple_pay_certificate | {id, status, merchant_id}'
     ;;
   *)
-    sed -n '2,20p' "$0"; exit 2 ;;
+    sed -n '2,22p' "$0"; exit 2 ;;
 esac
