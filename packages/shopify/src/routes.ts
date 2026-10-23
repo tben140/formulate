@@ -28,6 +28,8 @@ export const SHARED_ROUTES = [
   "/collections/[handle]",
   "/products/[handle]",
   "/search",
+  // The routine quiz (SHO-161).
+  "/routine",
 ] as const;
 
 /**
@@ -39,6 +41,8 @@ export const SURFACE_ONLY_ROUTES = {
     // Legal pages: linked from the footer on web and the theme. The app links
     // out to the web page rather than drawing Shopify's policy HTML.
     "/policies/[handle]": "legal pages, linked from the web footer",
+    // The app shows a saved routine on its quiz screen (lib/routine-storage).
+    "/routine/yours": "the saved routine, kept in a cookie on web",
   },
   mobile: {
     // Not a page: the Cart tab opens the cart sheet (app/(tabs)/_layout.tsx).
