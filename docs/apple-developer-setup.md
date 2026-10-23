@@ -78,6 +78,35 @@ registered devices, without the store.
 3. **Sentry's native crash reports** (#98's build plugin).
 4. **Apple Health writes** (ADR 0009), after the ADR is accepted.
 
+## 7. Apple Pay in the app (accelerated checkouts)
+
+Apple Pay buttons on the product and cart screens need a payment processing
+certificate that Shopify can decrypt with.
+
+1. **Merchant ID:** Apple Developer → Identifiers → + → Merchant IDs →
+   `merchant.com.tben140.doublehelix`.
+2. **Permissions:** ask Shopify for `write_mobile_payments` and
+   `read_mobile_payments` (the certificate) and `write_cart_wallet_payments`
+   (the buttons), using the form linked from
+   [Create Apple Pay certificates](https://shopify.dev/docs/storefronts/mobile/create-apple-payment-processing-certificates).
+   Say plainly that it's a development store for a portfolio project, in test
+   mode. Approval isn't guaranteed for a store with no business behind it.
+3. **Once approved,** in an empty folder outside the repo:
+   ```sh
+   path/to/apps/mobile/scripts/apple-pay-certificate.sh request
+   ```
+   It asks for the app's Admin API token without showing it, and saves
+   `apple_payment_processing.csr`.
+4. **Apple Developer** → Certificates → + → **Apple Pay Payment Processing
+   Certificate** (not Merchant Identity, which is for websites) → upload the
+   `.csr` → download `apple_pay.cer`.
+5. ```sh
+   path/to/apps/mobile/scripts/apple-pay-certificate.sh upload apple_pay.cer
+   ```
+6. Set `EXPO_PUBLIC_APPLE_PAY_MERCHANT_ID` in EAS to the merchant ID.
+
+Certificates last 25 months; repeat this before it expires.
+
 ## Secrets
 
 None of the above goes in the repository. The Apple sign-in happens in EAS's
