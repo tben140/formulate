@@ -173,6 +173,12 @@ export {
   GUARANTEE_TITLE,
   REFUND_POLICY_PATH,
 } from "./guarantee";
+export {
+  FIRST_ORDER_PERCENT,
+  SIGN_UP_CONSENT,
+  SIGN_UP_HEADING,
+  SIGN_UP_SUCCESS,
+} from "./sign-up-offer";
 export { cardOffer } from "./card-offer";
 export type { CardOffer, CardOfferLike } from "./card-offer";
 export { HOME_HEADLINE, QUIZ_PROMPT, homeBenefits, homeSubheading } from "./home";

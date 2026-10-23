@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import type { SubscribeResult } from "@formulate/analytics";
+import { SIGN_UP_CONSENT, SIGN_UP_HEADING, SIGN_UP_SUCCESS } from "@formulate/shopify";
 
 import { subscribe } from "../lib/klaviyo";
 import { useIdentifyBuyer } from "../lib/use-cart";
@@ -106,7 +107,7 @@ export const EmailCapture = () => {
        * existed this form said only "Saved", since claiming a subscription
        * nothing had recorded was the one thing it must never do.
        */
-      const message = "You're on the list. Check your inbox.";
+      const message = SIGN_UP_SUCCESS;
       setStatus({ kind: "done", message });
       setFailed(false);
       setEmail("");
@@ -130,7 +131,7 @@ export const EmailCapture = () => {
         why the label text is repeated rather than referenced.
       */}
       <Text className="text-sm font-semibold text-foreground">
-        Get restock and subscription news
+        {SIGN_UP_HEADING}
       </Text>
 
       <View className="mt-2 flex-row gap-2">
@@ -165,7 +166,7 @@ export const EmailCapture = () => {
           autoComplete="email"
           returnKeyType="go"
           placeholder="you@company.com"
-          accessibilityLabel="Email address for restock and subscription news"
+          accessibilityLabel={`Email address. ${SIGN_UP_HEADING}`}
           accessibilityHint="Signs you up for marketing emails. Unsubscribe any time."
           className={`min-w-0 flex-1 rounded-md border px-3 py-2 text-sm text-foreground ${
             failed ? "border-danger" : "border-border"
@@ -191,7 +192,7 @@ export const EmailCapture = () => {
         — the cookie question is the lesser one, and does not arise here.
       */}
       <Text className="mt-2 text-xs text-foreground-muted">
-        Marketing emails about restocks and subscription offers. Unsubscribe any time.
+        {SIGN_UP_CONSENT}
       </Text>
 
       {/*
