@@ -107,6 +107,8 @@ export const HomeView = () => {
         {homeBenefits(savingPercent).map((benefit) => (
           <View
             key={benefit}
+            // A list needs list items (axe's aria-required-children on web).
+            role="listitem"
             className="w-[48%] flex-row gap-2 rounded-lg border border-border p-3"
           >
             <Text
