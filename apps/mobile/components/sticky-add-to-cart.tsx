@@ -1,9 +1,9 @@
-import { formatMoney } from "@formulate/shopify";
+import { formatMoney, RENEWAL_SHORT } from "@formulate/shopify";
 import { useEffect, useState } from "react";
-import { AccessibilityInfo, Animated, Easing, Pressable, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AccessibilityInfo, Animated, Easing, Pressable, View } from "react-native";
 
 import type { Product, Purchase } from "../lib/use-purchase";
+import { Text } from "./text";
 
 /**
  * The product screen's add-to-cart bar, pinned to the bottom while the
@@ -60,9 +60,9 @@ export const StickyAddToCart = ({
   readonly visible: boolean;
   readonly onAdded: () => void;
 }) => {
-  const { bottom } = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
-  const { variant, displayPrice, disabled, label, add, addToCart } = purchase;
+  const { variant, displayPrice, disabled, label, add, addToCart, effectivePlanId } =
+    purchase;
 
   // 0 = off screen below, 1 = in place. Starts where `visible` says, so the
   // first render never animates. Held in state rather than a ref, so render
@@ -105,7 +105,8 @@ export const StickyAddToCart = ({
   const variantTitle =
     variant && variant.title !== "Default Title" ? variant.title : null;
 
-  const travel = STICKY_BAR_HEIGHT + bottom;
+  // The tab bar below takes the home-indicator inset, so the bar needs none.
+  const travel = STICKY_BAR_HEIGHT;
 
   return (
     /*
@@ -134,7 +135,7 @@ export const StickyAddToCart = ({
     >
       <View
         className="gap-2 border-t border-border bg-surface px-4 pt-3"
-        style={{ paddingBottom: Math.max(bottom, 12) }}
+        style={{ paddingBottom: 12 }}
       >
         {/*
           A failed add from the bar shows here too. The form's own message is
@@ -152,7 +153,7 @@ export const StickyAddToCart = ({
               {variantTitle ?? product.title}
             </Text>
             {displayPrice ? (
-              <Text className="text-sm text-foreground-muted">
+              <Text className="text-sm text-foreground-muted font-mono">
                 {formatMoney(displayPrice)}
               </Text>
             ) : null}
@@ -176,6 +177,11 @@ export const StickyAddToCart = ({
             <Text className="text-sm font-semibold text-surface">{label}</Text>
           </Pressable>
         </View>
+        {effectivePlanId ? (
+          // This button buys too, so the renewal terms come with it, in brief
+          // (the full terms are beside the main button).
+          <Text className="text-xs text-foreground-muted">{RENEWAL_SHORT}</Text>
+        ) : null}
       </View>
     </Animated.View>
   );

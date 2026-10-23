@@ -1,4 +1,12 @@
-import { CollectionCardsQuery, CollectionProductsQuery } from "@formulate/shopify";
+import {
+  CollectionCardsQuery,
+  CollectionProductsQuery,
+  HOME_HEADLINE,
+  QUIZ_PROMPT,
+  cardOffer,
+  homeBenefits,
+  homeSubheading,
+} from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -15,8 +23,13 @@ export const metadata: Metadata = { title: "Formulate" };
 const FEATURED_COUNT = 4;
 
 /**
- * The home page (SHO-61): a short introduction, the collections to shop by,
- * and the featured collection's first few products.
+ * The home page (SHO-61): what we sell and why subscribe, then the featured
+ * collection's best few products, the collections to shop by, and the quiz.
+ *
+ * Its words are shared with the app (packages/shopify/src/home.ts); the
+ * saving it promises is read from a featured product's plan, not written here.
+ * A page builder for web and the app is planned (see docs); until then this
+ * page is code, and the theme's is sections the merchant arranges.
  *
  * Everything below the introduction comes from the Shopify menu "Shop" (the
  * header's): its collections become the category cards, in menu order, and
@@ -48,46 +61,108 @@ const HomePage = async () => {
     : null;
   const featured = featuredResult?.ok ? featuredResult.data.collection : null;
 
+  const products = featured?.products.nodes ?? [];
+  const savingPercent =
+    products.map((product) => cardOffer(product).savingPercent).find(Boolean) ?? null;
+  const heroImage = products.find((product) => product.featuredImage)?.featuredImage;
+
   return (
     <>
       <section
         aria-labelledby="home-intro"
-        className="rounded-xl bg-surface-muted px-6 py-12 sm:px-10"
+        className="grid items-center gap-8 overflow-hidden rounded-xl bg-surface-muted px-6 py-10 sm:px-10 md:grid-cols-2"
       >
-        <h1 id="home-intro" className="max-w-xl text-4xl font-semibold tracking-tight">
-          Everyday supplements, delivered on your schedule
-        </h1>
-        <p className="mt-4 max-w-xl text-lg text-foreground">
-          Buy once or subscribe. Subscriptions can be skipped, paused or cancelled at any
-          time.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center gap-4">
-          {featuredLink ? (
-            <Link
-              href={featuredLink.path}
-              className="inline-block rounded-md bg-brand-600 px-6 py-3 font-semibold text-surface hover:bg-brand-700"
-            >
-              Shop {featuredLink.title}
-            </Link>
-          ) : null}
-          {/* The routine quiz (SHO-161), once its goals exist in Shopify. */}
-          {routineGoals.length > 0 ? (
-            <Link
-              href="/routine"
-              className="inline-block rounded-md border border-foreground px-6 py-3 font-semibold text-foreground hover:bg-surface"
-            >
-              Find your routine
-            </Link>
-          ) : null}
+        <div>
+          <h1 id="home-intro" className="max-w-xl text-4xl font-semibold tracking-tight">
+            {HOME_HEADLINE}
+          </h1>
+          <p className="mt-4 max-w-xl text-lg text-foreground">
+            {homeSubheading(savingPercent)}
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            {featuredLink ? (
+              <Link
+                href={featuredLink.path}
+                className="inline-block rounded-md bg-brand-600 px-6 py-3 font-semibold text-surface hover:bg-brand-700"
+              >
+                Shop {featuredLink.title}
+              </Link>
+            ) : null}
+            {/* The routine quiz (SHO-161), once its goals exist in Shopify. */}
+            {routineGoals.length > 0 ? (
+              <Link
+                href={QUIZ_PROMPT.path}
+                className="inline-block rounded-md border border-brand-600 px-6 py-3 font-semibold text-brand-700 hover:bg-brand-50"
+              >
+                {QUIZ_PROMPT.cta}
+              </Link>
+            ) : null}
+          </div>
         </div>
+        {heroImage ? (
+          <div className="mx-auto aspect-square w-full max-w-60 overflow-hidden rounded-lg md:max-w-sm">
+            {/* The page's Largest Contentful Paint on a desktop: eager. */}
+            <Image
+              data={heroImage}
+              sizes="(min-width: 768px) 384px, 90vw"
+              className="h-full w-full object-cover"
+              loading="eager"
+              fetchPriority="high"
+            />
+          </div>
+        ) : null}
       </section>
 
+      <ul
+        aria-label="Why Double Helix"
+        className="mt-6 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4"
+      >
+        {homeBenefits(savingPercent).map((benefit) => (
+          <li
+            key={benefit}
+            className="flex items-start gap-2 rounded-lg border border-border px-3 py-3"
+          >
+            <span aria-hidden="true" className="font-semibold text-brand-600">
+              ✓
+            </span>
+            {benefit}
+          </li>
+        ))}
+      </ul>
+
+      {featuredLink && featured && products.length > 0 ? (
+        <section aria-labelledby="home-featured" className="mt-14">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 id="home-featured" className="text-2xl font-semibold tracking-tight">
+              {featured.title}
+            </h2>
+            <Link
+              href={featuredLink.path}
+              className="text-sm text-brand-600 underline underline-offset-4"
+            >
+              View all<span className="sr-only"> {featured.title}</span>
+            </Link>
+          </div>
+          <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            {products.map((product) => (
+              <li key={product.id}>
+                <ProductCard
+                  product={product}
+                  headingLevel="h3"
+                  sizes="(min-width: 1024px) 240px, 45vw"
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {categories.length > 0 ? (
-        <section aria-labelledby="home-categories" className="mt-16">
+        <section aria-labelledby="home-categories" className="mt-14">
           <h2 id="home-categories" className="text-2xl font-semibold tracking-tight">
             Shop by category
           </h2>
-          <ul className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
+          <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
             {categories.map(({ link, collection }) => {
               // Collections here have no image of their own, so the card
               // borrows its first product's.
@@ -122,33 +197,6 @@ const HomePage = async () => {
                 </li>
               );
             })}
-          </ul>
-        </section>
-      ) : null}
-
-      {featuredLink && featured && featured.products.nodes.length > 0 ? (
-        <section aria-labelledby="home-featured" className="mt-16">
-          <div className="flex items-baseline justify-between gap-4">
-            <h2 id="home-featured" className="text-2xl font-semibold tracking-tight">
-              {featured.title}
-            </h2>
-            <Link
-              href={featuredLink.path}
-              className="text-sm text-brand-600 underline underline-offset-4"
-            >
-              View all<span className="sr-only"> {featured.title}</span>
-            </Link>
-          </div>
-          <ul className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {featured.products.nodes.map((product) => (
-              <li key={product.id}>
-                <ProductCard
-                  product={product}
-                  headingLevel="h3"
-                  sizes="(min-width: 1024px) 240px, 45vw"
-                />
-              </li>
-            ))}
           </ul>
         </section>
       ) : null}

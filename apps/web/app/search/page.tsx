@@ -105,13 +105,13 @@ const SearchPage = async ({ searchParams }: PageProps) => {
               <RoutinePrompt />
             </>
           ) : (
-            <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
               {result.data.search.nodes.map((product) =>
                 product.__typename === "Product" ? (
                   <li key={product.id}>
                     <ProductCard
                       product={product}
-                      sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
+                      sizes="(min-width: 1024px) 320px, 45vw"
                     />
                   </li>
                 ) : null,

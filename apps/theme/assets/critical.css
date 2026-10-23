@@ -159,16 +159,27 @@ body {
    `{% stylesheet %}` block because a snippet cannot own one, and duplicating
    these rules across two sections would let them drift.
    --------------------------------------------------------------------------- */
+/* Two columns on a phone, so a shopper sees more than one product a screen. */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-  gap: var(--spacing-6);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
   padding: 0;
   list-style: none;
 }
 
+@media (min-width: 40rem) {
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: var(--spacing-6);
+  }
+}
+
+/* A box with one link, the title's, stretched over it (.product-card__link). */
 .product-card {
-  display: block;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   padding: var(--spacing-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -178,8 +189,58 @@ body {
 }
 
 .product-card:hover,
-.product-card:focus-visible {
+.product-card:focus-within {
   border-color: var(--color-brand-400);
+}
+
+.product-card__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.product-card__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+}
+
+.product-card__subscribe {
+  margin-block-start: var(--spacing-1);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-brand-700);
+}
+
+/* Above the stretched link, and at the bottom of every card in a row. */
+.product-card__quick-add {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-block-start: auto;
+  padding-block-start: var(--spacing-3);
+}
+
+.product-card__add {
+  inline-size: 100%;
+  min-block-size: 2.75rem;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-brand-600);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-brand-700);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.product-card__add:hover {
+  background: var(--color-brand-50);
+}
+
+.product-card__add[aria-disabled="true"] {
+  cursor: wait;
 }
 
 .product-card__media {
@@ -205,8 +266,14 @@ body {
 }
 
 .product-card__title {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 500;
+}
+
+@media (min-width: 40rem) {
+  .product-card__title {
+    font-size: var(--text-base);
+  }
 }
 
 .product-card__price {
@@ -799,7 +866,17 @@ a:hover {
   background-color: var(--color-brand-50);
 }
 
+/*
+ * Every price in one right-hand column: the one-time price, each plan's
+ * struck-through and subscription price stacked, and the price below. Fixed
+ * width, so a long plan name wraps instead of squeezing the prices.
+ */
 .product-form__plan-price {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: flex-end;
+  text-align: end;
   color: var(--color-foreground-muted);
 }
 
@@ -815,6 +892,9 @@ a:hover {
 
 .product-form__price {
   margin-block-end: var(--spacing-4);
+  /* Lined up with the prices in the options above, which end at the card's padding. */
+  padding-inline-end: var(--spacing-3);
+  text-align: end;
   font-size: var(--text-2xl);
   /* 500, not 600: DM Mono ships in 400 and 500, and apps/web matches. */
   font-weight: 500;
@@ -1165,4 +1245,194 @@ a:hover {
 .cart-line__price,
 .cart-drawer__subtotal-value {
   font-family: var(--font-mono);
+}
+
+/* Subscribe-and-save details on the purchase options (subscribe-and-save.ts). */
+.product-form__plan-saving {
+  display: block;
+  margin-top: var(--spacing-1);
+  font-size: var(--text-xs);
+}
+.product-form__plan-was {
+  /* Stacked above the subscription price, so no gap beside it. */
+  margin: 0;
+}
+.product-form__per-day,
+.product-form__renewal {
+  margin-top: var(--spacing-1);
+  font-size: var(--text-sm);
+  color: var(--color-foreground-muted);
+}
+.product-form__renewal {
+  margin-top: var(--spacing-2);
+  font-size: var(--text-xs);
+}
+
+/* A 60- or 90-day plan's line: its supply instead of a quantity box. */
+.cart-line__supply {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
+
+/* Star ratings (snippets/stars.liquid), matching web's and the app's: a grey
+   row with an amber row on top, cropped to the rating. */
+.stars {
+  position: relative;
+  display: inline-block;
+  font-size: var(--text-base);
+  line-height: 1;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.stars--small {
+  font-size: var(--text-xs);
+}
+
+.stars__track {
+  color: var(--color-border);
+}
+
+.stars__fill {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  overflow: hidden;
+  color: #f59e0b;
+}
+
+.stars__count {
+  margin-inline-start: var(--spacing-1);
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
+
+/*
+ * Express checkout (Shop Pay, Apple Pay): Shopify's buttons, styled only
+ * through its custom properties (they sit in a closed shadow root), to match
+ * the theme's buttons. One-time purchases only on the product page.
+ */
+.product-form__express,
+.cart-drawer__express {
+  margin-top: var(--spacing-2);
+  --shopify-accelerated-checkout-button-border-radius: var(--radius-md);
+  --shopify-accelerated-checkout-button-block-size: 48px;
+}
+.cart-renewal-terms {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
+
+/* A free gift, under its product (packages/shopify/src/free-gift.ts). */
+/* Styled as a purchase option (.product-form__plan), but not one to choose. */
+.product-form__gift {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+.product-form__gift[hidden] {
+  display: none;
+}
+.product-form__gift-image {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+/* The theme's img reset sets display, which would override [hidden]. */
+.product-form__gift-image[hidden] {
+  display: none;
+}
+.product-form__gift-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.product-form__gift-label {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-brand-600);
+}
+.product-form__gift-condition {
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
+.product-form__gift-price {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  color: var(--color-brand-600);
+}
+.cart-line--gift {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding-block: var(--spacing-2);
+  padding-inline-start: calc(64px + var(--spacing-3) + var(--spacing-4));
+}
+
+.product__rating {
+  display: inline-flex;
+  align-items: center;
+  margin-block-start: var(--spacing-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Purchase options: the plan's name with its saving as a badge, and the
+   benefits of subscribing said once, under the options. */
+.product-form__plan-name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+
+.product-form__plan-badge {
+  padding: 0.125rem var(--spacing-2);
+  border-radius: 999px;
+  background: var(--color-brand-600);
+  color: var(--color-surface);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.product-form__plan-benefits {
+  margin: var(--spacing-2) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
+
+/* The money-back guarantee, under the buttons (packages/shopify/src/guarantee.ts). */
+.product-form__guarantee {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  margin: var(--spacing-3) 0 0;
+  font-size: var(--text-sm);
+}
+
+.product-form__guarantee svg {
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--color-brand-600);
+  stroke-width: 2;
+}
+
+.product-form__guarantee a {
+  color: var(--color-foreground);
+  text-underline-offset: 2px;
 }

@@ -1,7 +1,29 @@
-import { findVariantByOptions, formatMoney, withOption } from "@formulate/shopify";
-import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
+import {
+  deliveryPromise,
+  expressCheckoutOnProduct,
+  FREE_GIFT_CONDITION,
+  FREE_GIFT_LABEL,
+  FREE_GIFT_PRICE,
+  freeGiftMessage,
+  findVariantByOptions,
+  formatMoney,
+  GUARANTEE_DETAIL,
+  GUARANTEE_TITLE,
+  planDisplayName,
+  pricePerDay,
+  renewalTerms,
+  savingBadge,
+  savingMessage,
+  SUBSCRIPTION_BENEFITS,
+  supplyLabel,
+  withOption,
+} from "@formulate/shopify";
+import { Pressable, View, type LayoutChangeEvent } from "react-native";
 
+import { ExpressCheckout } from "../lib/checkout";
 import type { Product, Purchase } from "../lib/use-purchase";
+import { ShopImage } from "./shop-image";
+import { Text } from "./text";
 
 /**
  * Variant pickers, subscribe-and-save, and add to cart.
@@ -27,14 +49,29 @@ export const AddToCart = ({
     selected,
     setSelected,
     setPlanId,
+    variant,
     allocations,
     effectivePlanId,
     displayPrice,
+    quote,
+    quoteFor,
+    gift,
     disabled,
     choices,
     label,
     add,
   } = purchase;
+
+  // What a subscription option saves on one delivery; null for one-time.
+  const saving = (choice: (typeof choices)[number]) =>
+    quoteFor(choice.id)?.saving ?? null;
+  // A 60- or 90-day plan's price is for its whole 60- or 90-day supply.
+  const price = (choice: (typeof choices)[number]) =>
+    quoteFor(choice.id)?.price ?? choice.price;
+  const supply = (choice: (typeof choices)[number]) =>
+    supplyLabel(quoteFor(choice.id)?.units ?? 1);
+  const chosenPlan = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
+  const planName = chosenPlan ? planDisplayName(chosenPlan.sellingPlan) : null;
 
   return (
     // No outer margin here: the product screen measures this view's top to
@@ -61,7 +98,10 @@ export const AddToCart = ({
                     key={value.name}
                     onPress={() => setSelected(candidate)}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: checked }}
+                    // aria-checked, not accessibilityState.selected: a radio
+                    // is checked, and react-native-web only writes
+                    // aria-checked from the aria- prop, including false.
+                    aria-checked={checked}
                     // Sold-out combinations stay selectable — a shopper who
                     // wants one needs to select it and be told it is gone.
                     accessibilityLabel={
@@ -103,10 +143,18 @@ export const AddToCart = ({
                 key={choice.id || "one-time"}
                 onPress={() => setPlanId(choice.id)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: effectivePlanId === choice.id }}
+                aria-checked={effectivePlanId === choice.id}
                 accessibilityLabel={
-                  choice.price
-                    ? `${choice.label}, ${formatMoney(choice.price)}`
+                  price(choice)
+                    ? [
+                        saving(choice)
+                          ? `${choice.label}, ${formatMoney(price(choice)!)} instead of ${formatMoney(quoteFor(choice.id)!.oneTime)}`
+                          : `${choice.label}, ${formatMoney(price(choice)!)}`,
+                        supply(choice) ? `${supply(choice)} every delivery` : null,
+                        saving(choice) ? savingMessage(saving(choice)!) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(". ")
                     : choice.label
                 }
                 className={`flex-row items-center justify-between rounded-md border px-3 py-3 ${
@@ -115,28 +163,96 @@ export const AddToCart = ({
                     : "border-border"
                 }`}
               >
-                <Text className="text-sm text-foreground">{choice.label}</Text>
-                {choice.price ? (
-                  <Text
-                    className={`text-sm ${
-                      effectivePlanId === choice.id
-                        ? "text-foreground"
-                        : "text-foreground-muted"
-                    }`}
-                  >
-                    {formatMoney(choice.price)}
-                  </Text>
+                <View className="flex-1 pr-3">
+                  <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
+                    <Text className="text-sm text-foreground">{choice.label}</Text>
+                    {saving(choice) ? (
+                      // The saving as a badge; the struck-through price gives
+                      // the amount. In the label above for screen readers.
+                      <Text className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-surface">
+                        {savingBadge(saving(choice)!)}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {supply(choice) ? (
+                    <Text className="mt-0.5 text-xs text-foreground">
+                      {supply(choice)} every delivery
+                    </Text>
+                  ) : null}
+                </View>
+                {price(choice) ? (
+                  // One right-hand column for every price, as on web and the
+                  // theme: struck-through above, subscription price below.
+                  <View className="items-end">
+                    {saving(choice) ? (
+                      // The one-time price, on sale now: a real comparison
+                      // (packages/shopify/src/subscribe-and-save.ts).
+                      <Text className="font-mono text-sm text-foreground line-through">
+                        {formatMoney(quoteFor(choice.id)!.oneTime)}
+                      </Text>
+                    ) : null}
+                    <Text
+                      className={`font-mono text-sm ${
+                        effectivePlanId === choice.id
+                          ? "text-foreground"
+                          : "text-foreground-muted"
+                      }`}
+                    >
+                      {formatMoney(price(choice)!)}
+                    </Text>
+                  </View>
                 ) : null}
               </Pressable>
             ))}
           </View>
+          {/* What every subscription gives, said once rather than on each option. */}
+          <Text className="mt-2 text-xs text-foreground-muted">
+            Subscriptions: {SUBSCRIPTION_BENEFITS}
+          </Text>
+        </View>
+      ) : null}
+
+      {gift ? (
+        // The free gift, styled as a purchase option but not one to choose:
+        // it comes with whichever option is picked (free-gift.ts). Read as
+        // one sentence by VoiceOver and TalkBack.
+        <View
+          accessible
+          accessibilityLabel={freeGiftMessage(gift)}
+          className="flex-row items-center justify-between gap-3 rounded-md border border-border px-3 py-3"
+        >
+          <View className="min-w-0 flex-1 flex-row items-center gap-3">
+            {gift.image ? (
+              <ShopImage
+                url={gift.image.url}
+                width={40}
+                height={40}
+                transition={0}
+                style={{ width: 40, height: 40, borderRadius: 8 }}
+              />
+            ) : null}
+            <View className="min-w-0 flex-1">
+              <Text className="text-xs font-medium text-brand-600">
+                {FREE_GIFT_LABEL}
+              </Text>
+              <Text className="text-sm text-foreground">{gift.product.title}</Text>
+              <Text className="text-xs text-foreground-muted">{FREE_GIFT_CONDITION}</Text>
+            </View>
+          </View>
+          <Text className="font-mono text-sm text-brand-600">{FREE_GIFT_PRICE}</Text>
         </View>
       ) : null}
 
       {displayPrice ? (
-        <Text className="text-2xl font-semibold text-foreground">
-          {formatMoney(displayPrice)}
-        </Text>
+        <View>
+          {/* pr-3: lined up with the option prices, inside their px-3. */}
+          <Text className="pr-3 text-right text-2xl font-semibold text-foreground font-mono">
+            {formatMoney(displayPrice)}
+          </Text>
+          <Text className="mt-1 text-sm text-foreground-muted">
+            {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
+          </Text>
+        </View>
       ) : null}
 
       <Pressable
@@ -149,6 +265,34 @@ export const AddToCart = ({
       >
         <Text className="text-center text-sm font-semibold text-surface">{label}</Text>
       </Pressable>
+
+      {variant?.availableForSale && expressCheckoutOnProduct(effectivePlanId) && !gift ? (
+        // Not with a free gift either: Checkout Kit's product button buys one
+        // variant and can't nest the gift, so it would be lost. The cart's
+        // button includes it.
+        // One-time purchases only: a wallet can skip checkout, where the
+        // subscription terms are shown (packages/shopify/src/express-checkout.ts).
+        <ExpressCheckout variantId={variant.id} quantity={quote?.units ?? 1} />
+      ) : null}
+
+      {effectivePlanId && displayPrice && planName ? (
+        // The renewal terms, before purchase and next to the button
+        // (California's Automatic Renewal Law; the UK's DMCC rules from 2027).
+        <Text className="text-xs text-foreground-muted">
+          {renewalTerms(displayPrice, planName, quote?.later, quote?.units)}
+        </Text>
+      ) : null}
+
+      {/*
+        The guarantee, where the decision is made (packages/shopify/src/guarantee.ts).
+        Its detail is written out: the app has no policy pages to link to.
+      */}
+      <View accessible className="items-center gap-0.5">
+        <Text className="text-sm font-semibold text-foreground">{GUARANTEE_TITLE}</Text>
+        <Text className="text-center text-xs text-foreground-muted">
+          {GUARANTEE_DETAIL}
+        </Text>
+      </View>
 
       {/*
         The sheet sliding up is a visual event VoiceOver does not narrate, and

@@ -15,6 +15,19 @@
           <td>
             {% render 'image', image: item.image, url: item.url %}
           </td>
+          {%- if item.parent_relationship -%}
+            {%- comment -%}
+              A free gift, under its product: no controls (free-gift.ts). Its
+              quantity is still posted, hidden, because updates[] is matched to
+              the cart's lines by position.
+            {%- endcomment -%}
+            <td>
+              <p>{{ 'cart.free_gift' | t }}: {{ item.product.title }}</p>
+            </td>
+            <td>
+              <input type="hidden" name="updates[]" value="{{ item.quantity }}">
+            </td>
+          {%- else -%}
           <td>
             <p>{{ item.product.title }}</p>
             {{ 'cart.remove' | t | link_to: item.url_to_remove }}
@@ -23,12 +36,19 @@
             <input type="text" name="updates[]" value="{{ item.quantity }}">
             <input type="submit" value="{{ 'cart.update' | t }}">
           </td>
+          {%- endif -%}
         </tr>
       {% endfor %}
     </table>
 
+    {%- render 'cart-renewal-terms', cart: cart -%}
     <input type="submit" name="checkout" value="{{ 'cart.checkout' | t }}">
   </form>
+
+  {%- comment -%} Express checkout; the renewal terms above cover it. {%- endcomment -%}
+  {%- if additional_checkout_buttons -%}
+    <div class="cart-drawer__express">{{ content_for_additional_checkout_buttons }}</div>
+  {%- endif -%}
 </div>
 
 {% schema %}

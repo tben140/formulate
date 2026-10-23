@@ -1,5 +1,5 @@
 import { Component } from "@theme/component";
-import { addItem } from "@theme/cart-api";
+import { addGift, addItem } from "@theme/cart-api";
 import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
 
 /**
@@ -8,6 +8,9 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {boolean} available
  * @property {string[]} options Option values, in the product's option order.
  * @property {string} price Already formatted by Liquid's `money` filter.
+ * @property {number} cents The same price in minor units, for the price per day.
+ * @property {{ id: number, title: string, image: string | null } | null} [gift]
+ *   Its free gift, in stock; null for none (free-gift.ts).
  * @property {PlanData[]} [plans] App-owned selling plans only. See the filter
  *   in snippets/product-form.liquid.
  */
@@ -16,13 +19,30 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @typedef {Object} PlanData
  * @property {number} id
  * @property {string} name
- * @property {string} price Already formatted by Liquid's `money` filter.
+ * @property {string} price One delivery, for all its units, formatted by Liquid.
+ * @property {number} cents The same in minor units.
+ * @property {number} units 30-day supplies per delivery (2 for a 60-day plan):
+ *   the quantity added.
+ * @property {string} was The same units bought once, formatted.
+ * @property {string | null} supply "90-day supply (3 × 30-day packs) …", or
+ *   null for one supply.
+ * @property {string | null} saving "Save 15%", the badge, built in
+ *   Liquid from the locale, or null when subscribing saves nothing.
  */
 
 /**
  * @typedef {Object} ProductFormRefs
  * @property {HTMLInputElement} [variantId]
+ * @property {HTMLInputElement} [quantity]
  * @property {HTMLElement} [price]
+ * @property {HTMLElement} [perDay]
+ * @property {HTMLElement} [renewal]
+ * @property {HTMLElement} [express]
+ * @property {HTMLElement} [gift]
+ * @property {HTMLElement} [giftTitle]
+ * @property {HTMLImageElement} [giftImage]
+ * @property {HTMLInputElement} [giftId]
+ * @property {HTMLInputElement} [giftParent]
  * @property {HTMLButtonElement} [submit]
  * @property {HTMLElement} [status]
  * @property {HTMLInputElement | HTMLInputElement[]} [optionInput]
@@ -33,6 +53,22 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLButtonElement} [stickySubmit]
  * @property {HTMLElement} [stickyError]
  */
+
+/**
+ * The price per day of a 30-day supply, as Liquid renders it in
+ * snippets/product-form.liquid and packages/shopify's pricePerDay: "45p a
+ * day", or "£1.20 a day". The theme sells in pounds only.
+ *
+ * @param {number} cents
+ * @param {string} suffix "a day", from the locale (product.per_day).
+ * @param {number} [days] What the price buys: 90 for a 90-day plan's delivery.
+ */
+const perDayText = (cents, suffix, days = 30) => {
+  const perDay = Math.round(cents / days);
+  return perDay < 100
+    ? `${perDay}p ${suffix} ·`
+    : `${new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(perDay / 100)} ${suffix} ·`;
+};
 
 /**
  * Add to cart, progressively enhanced.
@@ -95,7 +131,9 @@ class ProductForm extends Component {
     // different variant. Trusting it skipped the rebuild, and an add could
     // send one variant's selling plan with another variant's id.
     const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
-    this.#plansBuiltFor = rendered ? Number(this.refs.planList?.dataset.builtFor) || null : null;
+    this.#plansBuiltFor = rendered
+      ? Number(this.refs.planList?.dataset.builtFor) || null
+      : null;
     this.#sync();
     this.#observeMainButton();
   }
@@ -200,9 +238,44 @@ class ProductForm extends Component {
 
     if (variantId) variantId.value = match ? String(match.id) : "";
 
+    // The free gift: the offer, and the express button's fields for it.
+    const gift = match?.gift ?? null;
+    const { gift: giftCard, giftTitle, giftImage, giftId, giftParent } = this.refs;
+    if (giftCard) giftCard.hidden = !gift;
+    if (giftTitle) giftTitle.textContent = gift?.title ?? "";
+    if (giftImage) {
+      giftImage.hidden = !gift?.image;
+      if (gift?.image) giftImage.src = gift.image;
+    }
+    for (const [input, value] of /** @type {const} */ ([
+      [giftId, gift?.id],
+      [giftParent, match?.id],
+    ])) {
+      if (!input) continue;
+      input.disabled = !gift;
+      input.value = gift && value ? String(value) : "";
+    }
+    // The plan sets the quantity: its supply (deliveryQuote in packages/shopify).
+    if (this.refs.quantity) this.refs.quantity.value = String(effectivePlan?.units ?? 1);
+
     // The headline price follows the purchase option, as on web and mobile
     // (SHO-124). The per-option prices in the list were always right.
     if (price && match) price.textContent = effectivePlan?.price ?? match.price;
+    const { perDay, renewal } = this.refs;
+    if (perDay) {
+      perDay.hidden = !match;
+      if (match) {
+        perDay.textContent = perDayText(
+          effectivePlan?.cents ?? match.cents,
+          perDay.dataset.perDaySuffix ?? "a day",
+          (effectivePlan?.units ?? 1) * 30,
+        );
+      }
+    }
+    // The renewal terms only while a subscription is selected; express
+    // checkout only while it isn't (packages/shopify/src/express-checkout.ts).
+    if (renewal) renewal.hidden = !effectivePlan;
+    if (this.refs.express) this.refs.express.hidden = Boolean(effectivePlan);
 
     const label = !match
       ? (submit?.dataset.unavailableLabel ?? "Unavailable")
@@ -244,8 +317,19 @@ class ProductForm extends Component {
      * @param {string} value
      * @param {string} name
      * @param {string} priceText
+     * @param {string | null} [saving] Set for a subscription that saves money:
+     *   the one-time price is struck through beside it, a real comparison.
+     * @param {string | null} [supply] What a multi-supply delivery holds.
+     * @param {string} [wasText] The one-time price of the same units.
      */
-    const option = (value, name, priceText) => {
+    const option = (
+      value,
+      name,
+      priceText,
+      saving = null,
+      supply = null,
+      wasText = "",
+    ) => {
       const label = document.createElement("label");
       label.className = "product-form__plan";
 
@@ -255,11 +339,39 @@ class ProductForm extends Component {
       input.name = "selling_plan";
       input.value = value;
       input.checked = value === (effectivePlan ? String(effectivePlan.id) : "");
-      text.append(input, " ", name);
+      // The name, with the saving as a badge beside it ("Save 15%").
+      const title = document.createElement("span");
+      title.className = "product-form__plan-name";
+      title.append(name);
+      if (saving) {
+        const badge = document.createElement("span");
+        badge.className = "product-form__plan-badge";
+        badge.textContent = saving;
+        title.append(badge);
+      }
+      text.append(input, " ", title);
+      if (supply) {
+        const note = document.createElement("span");
+        note.className = "product-form__plan-saving";
+        note.textContent = supply;
+        text.append(note);
+      }
 
       const cost = document.createElement("span");
       cost.className = "product-form__plan-price";
-      cost.textContent = priceText;
+      if (saving && match) {
+        const was = document.createElement("s");
+        was.className = "product-form__plan-was";
+        const wasLabel = document.createElement("span");
+        wasLabel.className = "visually-hidden";
+        wasLabel.textContent = `${planList.dataset.oneTimePriceLabel ?? "One-time price"} `;
+        was.append(wasLabel, wasText || match.price);
+        const nowLabel = document.createElement("span");
+        nowLabel.className = "visually-hidden";
+        nowLabel.textContent = ` ${planList.dataset.subscriptionPriceLabel ?? "Subscription price"}`;
+        cost.append(was, nowLabel, " ");
+      }
+      cost.append(priceText);
 
       label.append(text, cost);
       return label;
@@ -271,7 +383,16 @@ class ProductForm extends Component {
         planList.dataset.oneTimeLabel ?? "One-time purchase",
         match?.price ?? "",
       ),
-      ...plans.map((plan) => option(String(plan.id), plan.name, plan.price)),
+      ...plans.map((plan) =>
+        option(
+          String(plan.id),
+          plan.name,
+          plan.price,
+          plan.saving,
+          plan.supply,
+          plan.was,
+        ),
+      ),
     );
     fieldset.hidden = plans.length === 0;
   }
@@ -372,14 +493,26 @@ class ProductForm extends Component {
       // The drawer is re-rendered from the response rather than refetched, so
       // the markup a shopper sees is the same Liquid the page would have
       // rendered on a full load.
-      replaceCartDrawer(result.sections);
+      // Its free gift, nested under it. A gift that can't be added doesn't fail
+      // the add: the product is in the cart (free-gift.ts).
+      const gift = this.#variants.find((v) => String(v.id) === variantId)?.gift;
+      const withGift = gift
+        ? await addGift(
+            variantId,
+            String(data.get("selling_plan") ?? ""),
+            String(gift.id),
+          ).catch(() => null)
+        : null;
+
+      replaceCartDrawer((withGift ?? result).sections);
       openCartDrawer();
 
       if (status) status.textContent = status.dataset.addedLabel ?? "Added to your cart.";
     } catch (error) {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
-      const message = error instanceof Error ? error.message : "Could not update your cart.";
+      const message =
+        error instanceof Error ? error.message : "Could not update your cart.";
       if (status) status.textContent = message;
       // The status line sits by the main button, off screen whenever the bar
       // is up, so the bar shows the message too. Not a live region: the

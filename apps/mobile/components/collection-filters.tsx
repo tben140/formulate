@@ -7,8 +7,10 @@ import {
   type FilterLike,
 } from "@formulate/shopify";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text } from "./text";
+import { fontFor } from "../lib/fonts";
 
 /**
  * Search & Discovery filters for a collection (SHO-153), matching the web and
@@ -190,7 +192,11 @@ const FilterSheet = ({
                         setDraft(withValueToggled(params, filter, value).toString())
                       }
                       accessibilityRole="checkbox"
-                      accessibilityState={{ checked, disabled: empty }}
+                      // aria- props: react-native-web drops a false
+                      // accessibilityState.checked, so unticked boxes had no
+                      // state at all on web. The same on native.
+                      aria-checked={checked}
+                      aria-disabled={empty}
                       accessibilityLabel={`${value.label}, ${value.count} ${value.count === 1 ? "product" : "products"}`}
                       className="flex-row items-center gap-3 py-2"
                     >
@@ -287,6 +293,8 @@ const PriceGroup = ({
           <View key={label} className="flex-1 gap-1">
             <Text className="text-sm text-foreground">{label}</Text>
             <TextInput
+              // TextInput doesn't inherit a font either (SHO-144).
+              style={{ fontFamily: fontFor() }}
               defaultValue={value ?? ""}
               onEndEditing={(event) => onChangeText(event.nativeEvent.text)}
               keyboardType="decimal-pad"

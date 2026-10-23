@@ -23,6 +23,13 @@
 {% endcomment %}
 
 {% assign current_variant = product.selected_or_first_available_variant %}
+{%- comment -%}
+  The selection's free gift (custom.free_gift: the variant's own, else the
+  product's), in stock only. The Liquid twin of freeGiftFor in
+  packages/shopify/src/free-gift.ts.
+{%- endcomment -%}
+{%- assign current_gift = current_variant.metafields.custom.free_gift.value | default: product.metafields.custom.free_gift.value -%}
+{%- unless current_gift.available -%}{%- assign current_gift = nil -%}{%- endunless -%}
 
 {% comment %} Group ids owned by an installed app. `app_id` is nil for the
   seed groups Shopify creates, which is exactly the discriminator the headless
@@ -35,9 +42,26 @@
 {% endfor %}
 
 <product-form class="product-form">
-  <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data">
+  {%- comment -%}
+    Shopify's form tag rather than a plain <form>: the express checkout
+    button below (payment_button) needs it. It posts to /cart/add as before.
+  {%- endcomment -%}
+  {%- form 'product', product -%}
     <input ref="variantId" type="hidden" name="id" value="{{ current_variant.id }}">
-    <input type="hidden" name="quantity" value="1">
+    {%- comment -%}
+      The free gift for Shopify's express checkout button: these fields nest it
+      under the product ("multiple product checkout"). The normal add puts it
+      in the cart from product-form.js instead. product-form.js keeps both in
+      step with the variant; disabled when there's no gift.
+    {%- endcomment -%}
+    <input ref="giftId" type="hidden" name="shopify-additional-items[1][id]" value="{{ current_gift.id }}" {% unless current_gift %}disabled{% endunless %}>
+    <input ref="giftParent" type="hidden" name="shopify-additional-items[1][parent_id]" value="{{ current_variant.id }}" {% unless current_gift %}disabled{% endunless %}>
+    {%- comment -%}
+      product-form.js sets this to the chosen plan's supply (2 for a 60-day
+      plan, 3 for 90). Without JavaScript it stays 1: the plan radios can't
+      change it then.
+    {%- endcomment -%}
+    <input ref="quantity" type="hidden" name="quantity" value="1">
 
     {% comment %} Option pills, matching apps/web. {% endcomment %}
     {% if product.has_only_default_variant == false %}
@@ -145,6 +169,8 @@
           class="product-form__plans"
           data-built-for="{{ current_variant.id }}"
           data-one-time-label="{{ 'product.one_time' | t | escape }}"
+          data-one-time-price-label="{{ 'product.one_time_price' | t | escape }}"
+          data-subscription-price-label="{{ 'product.subscription_price' | t | escape }}"
         >
           <label class="product-form__plan">
             <span>
@@ -164,17 +190,95 @@
                     name="selling_plan"
                     value="{{ allocation.selling_plan.id }}"
                   >
-                  {{ allocation.selling_plan.name }}
+                  {%- comment -%}
+                    A 60- or 90-day plan ships two or three 30-day supplies, at
+                    that many times the price (deliveryQuote in
+                    packages/shopify). The plan sets the quantity.
+                  {%- endcomment -%}
+                  {%- capture plan_units -%}{% render 'plan-supply-units', selling_plan: allocation.selling_plan %}{%- endcapture -%}
+                  {%- assign plan_units = plan_units | plus: 0 -%}
+                  {%- assign plan_total = allocation.per_delivery_price | times: plan_units -%}
+                  {%- assign one_time_total = current_variant.price | times: plan_units -%}
+                  {%- assign plan_saving = one_time_total | minus: plan_total -%}
+                  {%- comment -%} No saving claim for a plan whose price rises after an introductory period (isIntroductoryPlan). {%- endcomment -%}
+                  {%- if allocation.price_adjustments.size > 1 -%}{%- assign plan_saving = 0 -%}{%- endif -%}
+                  <span class="product-form__plan-name">
+                    {%- render 'plan-name', selling_plan: allocation.selling_plan -%}
+                    {%- if plan_saving > 0 -%}
+                      {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: one_time_total | round %}
+                      {%- comment -%} The saving as a badge; the struck-through price gives the amount. {%- endcomment %}
+                      <span class="product-form__plan-badge">
+                        {{- 'product.subscription_saving' | t: percent: plan_percent -}}
+                      </span>
+                    {%- endif -%}
+                  </span>
+                  {%- if plan_units > 1 -%}
+                    {%- assign plan_days = plan_units | times: 30 -%}
+                    <span class="product-form__plan-saving">
+                      {{- 'product.supply' | t: days: plan_days, units: plan_units -}}
+                    </span>
+                  {%- endif -%}
                 </span>
-                <span class="product-form__plan-price">{{ allocation.price | money }}</span>
+                <span class="product-form__plan-price">
+                  {%- if plan_saving > 0 -%}
+                    {%- comment -%}
+                      The one-time price for the same product, on sale now: a
+                      real comparison, not a "was" price
+                      (packages/shopify/src/subscribe-and-save.ts).
+                    {%- endcomment -%}
+                    <s class="product-form__plan-was"><span class="visually-hidden">{{ 'product.one_time_price' | t }} </span>{{ one_time_total | money }}</s>
+                    <span class="visually-hidden"> {{ 'product.subscription_price' | t }}</span>
+                  {% endif -%}
+                  {{ plan_total | money }}
+                </span>
               </label>
             {% endif %}
           {% endfor %}
         </div>
+        {%- comment -%} What every subscription gives, said once rather than on each option. {%- endcomment -%}
+        <p class="product-form__plan-benefits">{{ 'product.subscription_benefits' | t }}</p>
       </fieldset>
     {% endif %}
 
+    {%- comment -%}
+      The free gift, styled as a purchase option but not one to choose: it
+      comes with whichever option is picked (packages/shopify/src/free-gift.ts).
+      Its condition is stated on it, where it's offered. product-form.js keeps
+      it in step with the variant.
+    {%- endcomment -%}
+    {%- assign gift_image = current_gift.image | default: current_gift.product.featured_image -%}
+    <div ref="gift" class="product-form__gift" {% unless current_gift %}hidden{% endunless %}>
+      {%- if gift_image -%}
+        {{
+          gift_image
+          | image_url: width: 80, height: 80, crop: 'center'
+          | image_tag: ref: 'giftImage', class: 'product-form__gift-image', width: 40, height: 40, alt: '', loading: 'lazy'
+        }}
+      {%- else -%}
+        {%- comment -%} Filled in by product-form.js for a variant whose gift has one. {%- endcomment -%}
+        <img ref="giftImage" class="product-form__gift-image" alt="" width="40" height="40" hidden>
+      {%- endif -%}
+      <span class="product-form__gift-text">
+        <span class="product-form__gift-label">{{ 'product.free_gift_label' | t }}</span>
+        <span ref="giftTitle">{{ current_gift.product.title }}</span>
+        <span class="product-form__gift-condition">{{ 'product.free_gift_condition' | t }}</span>
+      </span>
+      <span class="product-form__gift-price">{{ 'product.free_gift_price' | t }}</span>
+    </div>
+
     <p ref="price" class="product-form__price">{{ current_variant.price | money }}</p>
+    {%- assign per_day = current_variant.price | divided_by: 30.0 | round -%}
+    <p class="product-form__per-day">
+      {%- comment -%}
+        Hidden until product-form.js runs: without JavaScript a variant or
+        plan change can't update it, and a stale price per day is worse than
+        none. The delivery line is always true, so it always shows.
+      {%- endcomment -%}
+      <span ref="perDay" data-per-day-suffix="{{ 'product.per_day' | t | escape }}" hidden>
+        {%- if per_day < 100 -%}{{ per_day }}p{%- else -%}{{ per_day | money }}{%- endif %} {{ 'product.per_day' | t }} ·
+      </span>
+      {{ 'product.delivery_promise' | t }}
+    </p>
 
     {% comment %}
       The button's three states are passed as data attributes rather than
@@ -196,6 +300,55 @@
         {{ 'product.sold_out' | t }}
       {% endif %}
     </button>
+
+    {%- if show_express != false -%}
+      {%- comment -%}
+        Express checkout (Shop Pay, Apple Pay and the store's other wallets),
+        for one-time purchases only: a one-tap wallet can skip checkout, where
+        Shopify would show the subscription terms
+        (packages/shopify/src/express-checkout.ts). product-form.js hides it
+        while a subscription is selected; the button needs JavaScript to
+        render at all.
+      {%- endcomment -%}
+      <div ref="express" class="product-form__express">
+        {{ form | payment_button }}
+      </div>
+    {%- endif -%}
+
+    {% if product_has_plans %}
+      {% comment %}
+        The renewal terms, before purchase and next to the button: California's
+        Automatic Renewal Law now, the UK's DMCC subscription rules from 2027.
+        product-form.js shows it only while a subscription is selected. Without
+        JavaScript it always shows: it can't follow the radios then, and a
+        disclosure shown slightly too often is better than one missed.
+      {% endcomment %}
+      {%- assign has_introductory_plan = false -%}
+      {%- for plan_variant in product.variants -%}
+        {%- for allocation in plan_variant.selling_plan_allocations -%}
+          {%- if allocation.price_adjustments.size > 1 -%}{%- assign has_introductory_plan = true -%}{%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+      <p ref="renewal" class="product-form__renewal">
+        {%- if has_introductory_plan -%}
+          {{- 'product.renewal_terms_introductory' | t -}}
+        {%- else -%}
+          {{- 'product.renewal_terms' | t -}}
+        {%- endif -%}
+      </p>
+    {% endif %}
+
+    {%- comment -%}
+      The guarantee, where the decision is made, linking to the refund policy
+      it promises (packages/shopify/src/guarantee.ts).
+    {%- endcomment -%}
+    <p class="product-form__guarantee">
+      <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16" focusable="false">
+        <path d="M10 2 3.5 4.5v5c0 4 2.8 7 6.5 8.5 3.7-1.5 6.5-4.5 6.5-8.5v-5L10 2Z" />
+        <path d="m7 10 2 2 4-4" />
+      </svg>
+      <a href="{{ shop.refund_policy.url | default: '/policies/refund-policy' }}">{{ 'product.guarantee' | t }}</a>
+    </p>
 
     {% comment %} Errors and confirmations are announced, because the drawer
       opening is a visual event a screen reader does not narrate. {% endcomment %}
@@ -253,7 +406,7 @@
         {{ sticky_label }}
       </button>
     </div>
-  </form>
+  {%- endform -%}
 </product-form>
 
 {% comment %} Variant data for product-form.js. A script tag of JSON rather
@@ -267,6 +420,18 @@
         "available": {{ variant.available | json }},
         "options": {{ variant.options | json }},
         "price": {{ variant.price | money | json }},
+        "cents": {{ variant.price | json }},
+        {%- assign variant_gift = variant.metafields.custom.free_gift.value | default: product.metafields.custom.free_gift.value -%}
+        {%- if variant_gift.available -%}
+          {%- assign variant_gift_image = variant_gift.image | default: variant_gift.product.featured_image -%}
+          "gift": {
+            "id": {{ variant_gift.id | json }},
+            "title": {{ variant_gift.product.title | json }},
+            "image": {% if variant_gift_image %}{{ variant_gift_image | image_url: width: 80, height: 80, crop: 'center' | json }}{% else %}null{% endif %}
+          },
+        {%- else -%}
+          "gift": null,
+        {%- endif -%}
         "plans": [
           {%- assign first_plan = true -%}
           {%- for allocation in variant.selling_plan_allocations -%}
@@ -276,8 +441,32 @@
               {%- assign first_plan = false -%}
               {
                 "id": {{ allocation.selling_plan.id | json }},
-                "name": {{ allocation.selling_plan.name | json }},
-                "price": {{ allocation.price | money | json }}
+                {%- capture plan_display_name -%}{% render 'plan-name', selling_plan: allocation.selling_plan, raw: true %}{%- endcapture %}
+                "name": {{ plan_display_name | json }},
+                {%- capture plan_units -%}{% render 'plan-supply-units', selling_plan: allocation.selling_plan %}{%- endcapture -%}
+                {%- assign plan_units = plan_units | plus: 0 -%}
+                {%- assign plan_total = allocation.per_delivery_price | times: plan_units -%}
+                {%- assign one_time_total = variant.price | times: plan_units -%}
+                {%- assign plan_days = plan_units | times: 30 -%}
+                "units": {{ plan_units | json }},
+                "price": {{ plan_total | money | json }},
+                "cents": {{ plan_total | json }},
+                "was": {{ one_time_total | money | json }},
+                {%- if plan_units > 1 -%}
+                  {%- assign plan_supply_text = 'product.supply' | t: days: plan_days, units: plan_units -%}
+                  "supply": {{ plan_supply_text | json }},
+                {%- else -%}
+                  "supply": null,
+                {%- endif -%}
+                {%- assign plan_saving = one_time_total | minus: plan_total -%}
+                {%- if allocation.price_adjustments.size > 1 -%}{%- assign plan_saving = 0 -%}{%- endif -%}
+                {%- if plan_saving > 0 -%}
+                  {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: one_time_total | round -%}
+                  {%- assign plan_saving_text = 'product.subscription_saving' | t: percent: plan_percent -%}
+                  "saving": {{ plan_saving_text | json }}
+                {%- else -%}
+                  "saving": null
+                {%- endif %}
               }
             {%- endif -%}
           {%- endfor -%}

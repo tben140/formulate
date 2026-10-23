@@ -1,5 +1,5 @@
 import { viewedProduct } from "@formulate/analytics";
-import { breadcrumbCollection } from "@formulate/shopify";
+import { breadcrumbCollection, ratingLabel, reviewSummary } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -9,8 +9,12 @@ import { AddToCartForm } from "@/components/add-to-cart-form";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
+import { ProductReviews } from "@/components/product-reviews";
+import { WriteReview } from "@/components/write-review";
+import { Stars } from "@/components/stars";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
+import { ProductDetails, ProductSummary } from "@/components/product-description";
 import { getProduct } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
 import { baseOpenGraph } from "@/lib/site";
@@ -73,6 +77,9 @@ const ProductPage = async ({ params }: PageProps) => {
   const product = result.data.product;
   if (!product) notFound();
 
+  // Average and count from Shopify's standard review metafields (Judge.me).
+  const summary = reviewSummary(product);
+
   // The same trail for people and for search engines.
   const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, navLinks);
 
@@ -127,10 +134,24 @@ const ProductPage = async ({ params }: PageProps) => {
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
-
-          {product.description ? (
-            <p className="mt-4 text-foreground-muted">{product.description}</p>
+          {summary ? (
+            <a
+              href="#reviews"
+              className="mt-2 inline-flex items-center gap-2 text-sm hover:underline"
+            >
+              <Stars value={summary.average} label={ratingLabel(summary)} />
+              <span aria-hidden="true">
+                {summary.count} {summary.count === 1 ? "review" : "reviews"}
+              </span>
+            </a>
           ) : null}
+
+          {/*
+          Only the opening paragraph comes before the buy box; the rest of the
+          description follows it, in closed sections. On a phone the button was
+          a long scroll down, below storage and allergen notes.
+        */}
+          <ProductSummary html={product.descriptionHtml} />
 
           {/*
           The price now lives inside the form, because it changes with the
@@ -140,12 +161,25 @@ const ProductPage = async ({ params }: PageProps) => {
         */}
           <AddToCartForm product={product} />
 
+          <ProductDetails html={product.descriptionHtml} />
+
           {/* No fallback: nothing at all is better than a loading box here. */}
           <Suspense fallback={null}>
             <PairsWellWith productId={product.id} />
           </Suspense>
         </div>
       </article>
+
+      {/* Reviews stream in after the product, like "Pairs well with". */}
+      <Suspense fallback={null}>
+        <ProductReviews handle={product.handle} summary={summary} />
+      </Suspense>
+
+      {/* Outside the reviews' Suspense: a product with no reviews yet still
+          needs a way to get its first. Only when the Worker is configured. */}
+      {process.env.FORMULATE_API_URL ? (
+        <WriteReview productId={product.id} productTitle={product.title} />
+      ) : null}
     </>
   );
 };

@@ -23,14 +23,14 @@ import {
   View,
 } from "react-native";
 
-import { useCartUi } from "../components/cart-provider";
-import { useRoutineGoals } from "../lib/queries";
+import { useCartUi } from "../../../components/cart-provider";
+import { useRoutineGoals } from "../../../lib/queries";
 import {
   clearSavedAnswers,
   readSavedAnswers,
   writeSavedAnswers,
-} from "../lib/routine-storage";
-import { useAddToCart } from "../lib/use-cart";
+} from "../../../lib/routine-storage";
+import { useAddToCart } from "../../../lib/use-cart";
 
 /**
  * The routine quiz (SHO-161), matching web's /routine: the same questions,

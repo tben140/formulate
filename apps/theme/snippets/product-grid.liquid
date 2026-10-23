@@ -7,6 +7,7 @@
   both sections would be a maintenance trap.
 
   @param {object} products - A product list (e.g. collection.products).
+  @param {number} [limit] - Show at most this many. Defaults to all of them.
   @param {number} [section_index] - The calling section's section.index. A snippet can't read `section` itself; nil when the position is unknown.
 {% enddoc %}
 
@@ -30,7 +31,10 @@
 {% endcomment %}
 
 <ul class="product-grid" role="list">
-  {% for product in products %}
+  {% liquid
+    assign grid_limit = limit | default: products.size
+  %}
+  {% for product in products limit: grid_limit %}
     {%- liquid
       assign image_loading = 'eager'
       assign image_priority = 'auto'
@@ -40,27 +44,80 @@
         assign image_priority = 'high'
       endif
     -%}
-    <li>
-      <a class="product-card" href="{{ product.url }}">
-        <div class="product-card__media">
-          {% if product.featured_image %}
-            {% render 'image',
-              class: 'product-card__image',
-              image: product.featured_image,
-              width: 600,
-              height: 600,
-              crop: 'center',
-              loading: image_loading,
-              fetchpriority: image_priority
-            %}
-          {% else %}
-            <span class="product-card__placeholder">No image</span>
-          {% endif %}
-        </div>
+    {%- comment -%}
+      The subscription saving and quick add, as cardOffer in packages/shopify:
+      the first in-stock variant's first plan that an app owns (as on the
+      product page), never an introductory one; quick add only for a product
+      with one variant, as a one-time purchase.
+    {%- endcomment -%}
+    {%- liquid
+      assign card_variant = product.selected_or_first_available_variant
+      assign card_percent = 0
+      assign card_owned_ids = ''
+      for group in product.selling_plan_groups
+        if group.app_id
+          assign card_owned_ids = card_owned_ids | append: group.id | append: ','
+        endif
+      endfor
+      assign card_allocation = nil
+      for allocation in card_variant.selling_plan_allocations
+        assign card_group_key = allocation.selling_plan_group_id | append: ','
+        if card_owned_ids contains card_group_key
+          assign card_allocation = allocation
+          break
+        endif
+      endfor
+      if card_allocation and card_allocation.price_adjustments.size < 2 and card_variant.price > 0
+        assign card_saving = card_variant.price | minus: card_allocation.price
+        if card_saving > 0
+          assign card_percent = card_saving | times: 100.0 | divided_by: card_variant.price | round
+        endif
+      endif
+    -%}
+    <li class="product-card">
+      <div class="product-card__media">
+        {% if product.featured_image %}
+          {% render 'image',
+            class: 'product-card__image',
+            image: product.featured_image,
+            width: 600,
+            height: 600,
+            crop: 'center',
+            loading: image_loading,
+            fetchpriority: image_priority
+          %}
+        {% else %}
+          <span class="product-card__placeholder">No image</span>
+        {% endif %}
+      </div>
 
-        <h2 class="product-card__title">{{ product.title | escape }}</h2>
-        <p class="product-card__price">{{ product.price | money }}</p>
-      </a>
+      {%- comment -%} The title's link is stretched over the card, so all of it is the link and a button can sit beside it. {%- endcomment -%}
+      <h2 class="product-card__title">
+        <a class="product-card__link" href="{{ product.url }}">{{ product.title | escape }}</a>
+      </h2>
+      {% render 'stars', product: product, show_count: true, size: 'small' %}
+      <p class="product-card__price">{{ product.price | money }}</p>
+      {%- if card_percent > 0 -%}
+        <p class="product-card__subscribe">{{ 'product.card_subscribe' | t: percent: card_percent }}</p>
+      {%- endif -%}
+
+      {%- if product.variants.size == 1 and card_variant.available -%}
+        <quick-add class="product-card__quick-add">
+          <form action="{{ routes.cart_add_url }}" method="post">
+            <input type="hidden" name="id" value="{{ card_variant.id }}">
+            <input type="hidden" name="quantity" value="1">
+            <button
+              ref="button"
+              type="submit"
+              class="product-card__add"
+              aria-label="{{ 'product.quick_add_label' | t: title: product.title }}"
+            >
+              {{ 'product.add_to_cart' | t }}
+            </button>
+            <p ref="status" class="visually-hidden" role="status" aria-live="polite" data-added-label="{{ 'product.added' | t }}"></p>
+          </form>
+        </quick-add>
+      {%- endif -%}
     </li>
   {% endfor %}
 </ul>

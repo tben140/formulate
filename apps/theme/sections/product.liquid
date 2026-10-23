@@ -78,12 +78,71 @@
 
   <div class="product__info">
     <h1 class="product__title">{{ product.title }}</h1>
+    {% comment %}
+      Stars link to Judge.me's review widget, added as an app block in the
+      theme editor (Product page → Add block → Judge.me Reviews), whose
+      element id is judgeme_product_reviews.
+    {% endcomment %}
+    {%- if product.metafields.reviews.rating_count.value > 0 -%}
+      <a class="product__rating" href="#judgeme_product_reviews">
+        {%- render 'stars', product: product, show_count: true -%}
+      </a>
+    {%- endif -%}
 
-    {% if product.description != blank %}
-      <div class="product__description">{{ product.description }}</div>
+    {% comment %}
+      Only the description's opening paragraph comes before the buy box; the
+      rest follows it in closed sections, one per heading. On a phone the
+      button was a long scroll down, below storage and allergen notes. The
+      Liquid twin of descriptionSections in packages/shopify.
+    {% endcomment %}
+    {%- liquid
+      assign description = product.description | strip
+      assign summary = ''
+      assign rest = description
+      assign opening = description | slice: 0, 2
+      if opening == '<p'
+        assign summary = description | split: '</p>' | first | append: '</p>'
+        assign rest = description | remove_first: summary
+      endif
+    -%}
+    {% if summary != blank %}
+      <div class="product__description">{{ summary }}</div>
     {% endif %}
 
-    {% render 'product-form', product: product %}
+    {% render 'product-form', product: product, show_express: section.settings.show_express_checkout %}
+
+    {%- liquid
+      assign chunks = rest | replace: '<h2', '<!--section--><h2' | replace: '<h3', '<!--section--><h3' | replace: '<h4', '<!--section--><h4' | split: '<!--section-->'
+    -%}
+    {% if rest != blank %}
+      <div class="product-details">
+        {% for chunk in chunks %}
+          {%- liquid
+            assign head = chunk | slice: 0, 3
+            if head == '<h2' or head == '<h3' or head == '<h4'
+              assign heading_html = chunk | split: '</h' | first
+              assign title = heading_html | strip_html | strip
+              assign body = chunk | remove_first: heading_html | remove_first: '</h2>' | remove_first: '</h3>' | remove_first: '</h4>'
+            else
+              assign title = 'product.details' | t
+              assign body = chunk
+            endif
+          -%}
+          {% if body != blank and body.size > 0 %}
+            {%- assign body_text = body | strip_html | strip -%}
+            {% if body_text != blank %}
+              <details class="product-details__item">
+                <summary class="product-details__summary">
+                  <h2 class="product-details__title">{{ title }}</h2>
+                  <span class="product-details__icon" aria-hidden="true">+</span>
+                </summary>
+                <div class="product-details__body">{{ body }}</div>
+              </details>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
   </div>
 </article>
 
@@ -178,12 +237,66 @@
     color: var(--color-foreground-muted);
   }
 
+  .product-details {
+    margin-block-start: var(--spacing-8);
+    border-block: 1px solid var(--color-border);
+  }
+
+  .product-details__item + .product-details__item {
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .product-details__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+    min-block-size: 2.75rem;
+    padding-block: var(--spacing-1);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .product-details__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .product-details__title {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: 600;
+  }
+
+  .product-details__icon {
+    font-size: var(--text-xl);
+    line-height: 1;
+    color: var(--color-foreground-muted);
+    transition: transform 150ms ease;
+  }
+
+  .product-details__item[open] .product-details__icon {
+    transform: rotate(45deg);
+  }
+
+  .product-details__body {
+    padding-block-end: var(--spacing-4);
+    color: var(--color-foreground-muted);
+  }
+
 {% endstylesheet %}
 
 {% schema %}
 {
   "name": "t:general.product",
-  "settings": [],
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_express_checkout",
+      "label": "t:sections.product.settings.show_express_checkout.label",
+      "info": "t:sections.product.settings.show_express_checkout.info",
+      "default": true
+    }
+  ],
   "disabled_on": {
     "groups": ["header", "footer"]
   }

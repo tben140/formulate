@@ -1,19 +1,20 @@
-import { formatMoney } from "@formulate/shopify";
-import { Image } from "expo-image";
-import { useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+  cartRenewalTerms,
+  formatMoney,
+  isNestedLine,
+  planDisplayName,
+  supplyLabel,
+  supplyUnits,
+} from "@formulate/shopify";
+import { useEffect, useRef } from "react";
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
-import { useCheckout } from "../lib/checkout";
+import { ExpressCheckout, useCheckout } from "../lib/checkout";
 import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
 
 import { FreeShippingBar } from "./free-shipping-bar";
+import { Text } from "./text";
+import { ShopImage } from "./shop-image";
 
 /**
  * The cart, as a bottom sheet.
@@ -145,7 +146,7 @@ export const CartSheet = ({
 
         {isPending ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator />
+            <ActivityIndicator accessibilityLabel="Loading your cart" />
           </View>
         ) : lines.length === 0 ? (
           <Text className="p-8 text-sm text-foreground-muted">Your cart is empty.</Text>
@@ -154,17 +155,43 @@ export const CartSheet = ({
             {lines.map((line) => {
               const variant = line.merchandise;
 
+              if (isNestedLine(line)) {
+                // A free gift, under the product it came with (free-gift.ts).
+                // No controls: Shopify removes it with its product.
+                return (
+                  <View
+                    key={line.id}
+                    accessible
+                    accessibilityLabel={`Free gift: ${variant.product.title}, ${formatMoney(line.cost.totalAmount)}`}
+                    className="flex-row items-center gap-3 border-b border-border py-2 pl-[5.75rem] pr-4"
+                  >
+                    <View className="flex-1">
+                      <Text className="text-xs font-medium text-brand-600">
+                        Free gift
+                      </Text>
+                      <Text numberOfLines={1} className="text-sm text-foreground">
+                        {variant.product.title}
+                      </Text>
+                    </View>
+                    <Text className="text-sm text-foreground font-mono">
+                      {formatMoney(line.cost.totalAmount)}
+                    </Text>
+                  </View>
+                );
+              }
+
               return (
                 <View
                   key={line.id}
                   className="flex-row gap-3 border-b border-border px-4 py-4"
                 >
                   {variant.image ? (
-                    <Image
-                      source={variant.image.url}
-                      contentFit="cover"
+                    <ShopImage
+                      url={variant.image.url}
+                      width={64}
+                      height={64}
+                      transition={0}
                       style={{ width: 64, height: 64, borderRadius: 8 }}
-                      accessibilityIgnoresInvertColors
                     />
                   ) : null}
 
@@ -186,51 +213,81 @@ export const CartSheet = ({
                     */}
                     {line.sellingPlanAllocation ? (
                       <Text className="mt-0.5 text-xs font-medium text-brand-600">
-                        {line.sellingPlanAllocation.sellingPlan.name}
+                        {planDisplayName(line.sellingPlanAllocation.sellingPlan)}
                       </Text>
                     ) : null}
 
                     <View className="mt-2 flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-3">
-                        <Pressable
-                          onPress={() =>
-                            updateLine.mutate({
-                              lineId: line.id,
-                              quantity: line.quantity - 1,
-                            })
-                          }
-                          accessibilityRole="button"
-                          accessibilityLabel={`Decrease quantity of ${variant.product.title}`}
-                          hitSlop={8}
-                          className="h-8 w-8 items-center justify-center rounded-md border border-border"
-                        >
-                          <Text className="text-foreground">−</Text>
-                        </Pressable>
+                      {supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) > 1 &&
+                      line.quantity ===
+                        supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) ? (
+                        // A 60- or 90-day plan's quantity is its supply, set by
+                        // the plan (deliveryQuote), so it can only be removed.
+                        // Any other quantity (the same plan added twice) keeps
+                        // the stepper, so it can be corrected.
+                        <View className="flex-1 flex-row items-center gap-3 pr-3">
+                          <Text className="shrink text-xs text-foreground-muted">
+                            {supplyLabel(
+                              supplyUnits(
+                                line.sellingPlanAllocation?.sellingPlan.options,
+                              ),
+                            )}
+                          </Text>
+                          <Pressable
+                            onPress={() =>
+                              updateLine.mutate({ lineId: line.id, quantity: 0 })
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remove ${variant.product.title} from cart`}
+                            hitSlop={8}
+                          >
+                            <Text className="text-xs text-foreground-muted underline">
+                              Remove
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <View className="flex-row items-center gap-3">
+                          <Pressable
+                            onPress={() =>
+                              updateLine.mutate({
+                                lineId: line.id,
+                                quantity: line.quantity - 1,
+                              })
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel={`Decrease quantity of ${variant.product.title}`}
+                            hitSlop={8}
+                            className="h-8 w-8 items-center justify-center rounded-md border border-border"
+                          >
+                            <Text className="text-foreground">−</Text>
+                          </Pressable>
 
-                        <Text
-                          className="min-w-6 text-center text-sm text-foreground"
-                          accessibilityLabel={`Quantity ${line.quantity}`}
-                        >
-                          {line.quantity}
-                        </Text>
+                          <Text
+                            className="min-w-6 text-center text-sm text-foreground"
+                            accessibilityLabel={`Quantity ${line.quantity}`}
+                          >
+                            {line.quantity}
+                          </Text>
 
-                        <Pressable
-                          onPress={() =>
-                            updateLine.mutate({
-                              lineId: line.id,
-                              quantity: line.quantity + 1,
-                            })
-                          }
-                          accessibilityRole="button"
-                          accessibilityLabel={`Increase quantity of ${variant.product.title}`}
-                          hitSlop={8}
-                          className="h-8 w-8 items-center justify-center rounded-md border border-border"
-                        >
-                          <Text className="text-foreground">+</Text>
-                        </Pressable>
-                      </View>
+                          <Pressable
+                            onPress={() =>
+                              updateLine.mutate({
+                                lineId: line.id,
+                                quantity: line.quantity + 1,
+                              })
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel={`Increase quantity of ${variant.product.title}`}
+                            hitSlop={8}
+                            className="h-8 w-8 items-center justify-center rounded-md border border-border"
+                          >
+                            <Text className="text-foreground">+</Text>
+                          </Pressable>
+                        </View>
+                      )}
 
-                      <Text className="text-sm text-foreground">
+                      <Text className="text-sm text-foreground font-mono">
                         {formatMoney(line.cost.totalAmount)}
                       </Text>
                     </View>
@@ -245,7 +302,7 @@ export const CartSheet = ({
           <View className="border-t border-border px-4 pb-8 pt-4">
             <View className="mb-3 flex-row items-center justify-between">
               <Text className="text-sm text-foreground-muted">Subtotal</Text>
-              <Text className="text-sm font-medium text-foreground">
+              <Text className="text-sm font-medium text-foreground font-mono">
                 {formatMoney(cart.cost.subtotalAmount)}
               </Text>
             </View>
@@ -253,6 +310,14 @@ export const CartSheet = ({
             <Text className="mb-3 text-xs text-foreground-muted">
               Taxes and shipping calculated at checkout.
             </Text>
+
+            {cartRenewalTerms(lines) ? (
+              // Above every way to pay: express checkout can skip Shopify's
+              // checkout page, where the terms would otherwise be shown.
+              <Text className="mb-3 text-xs text-foreground-muted">
+                {cartRenewalTerms(lines)}
+              </Text>
+            ) : null}
 
             <Pressable
               onPress={() => checkout.present(cart.checkoutUrl)}
@@ -263,6 +328,10 @@ export const CartSheet = ({
                 Checkout
               </Text>
             </Pressable>
+
+            {/* A wallet purchase completes here, so the cart is cleared as
+                after checkout; the sheet stays, now showing it empty. */}
+            <ExpressCheckout cartId={cart.id} onComplete={() => clearCart.mutate()} />
           </View>
         ) : null}
       </View>

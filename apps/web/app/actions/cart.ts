@@ -3,6 +3,8 @@
 import {
   describeError,
   describeForShopper,
+  giftLineToAdd,
+  isNestedLine,
   type Cart,
   type CartLineInput,
 } from "@formulate/shopify";
@@ -126,22 +128,39 @@ export const addToCart = async (
   }
 
   await writeCartId(result.data.id);
-  revalidate();
 
   // The line Shopify actually created for this merchandise + selling plan
   // combination — not necessarily the last one, since adding to an existing
-  // line increments it in place rather than appending.
+  // line increments it in place rather than appending. A nested gift line is
+  // never it.
   const addedLine = result.data.lines.nodes.find(
     (line) =>
+      !isNestedLine(line) &&
       line.merchandise.id === merchandiseId &&
       (line.sellingPlanAllocation?.sellingPlan.id ?? "") === sellingPlanId,
   );
+
+  // Its free gift, nested under it, unless that line already has it (one per
+  // line). A gift that can't be added doesn't fail the add: the product is in
+  // the cart, which is what the shopper asked for (free-gift.ts).
+  let cart = result.data;
+  const giftId = String(formData.get("giftId") ?? "");
+  const giftLine = /^gid:\/\/shopify\/ProductVariant\/\d+$/.test(giftId)
+    ? giftLineToAdd(cart.lines.nodes, addedLine?.id, { id: giftId })
+    : null;
+  if (giftLine) {
+    const withGift = await cartClient.addLines(cart.id, [giftLine]);
+    if (withGift.ok && withGift.data) cart = withGift.data;
+    else if (!withGift.ok)
+      console.error(`[cart] gift not added: ${describeError(withGift.error)}`);
+  }
+  revalidate();
 
   return {
     status: "success",
     ...(notice ? { message: notice } : {}),
     token: Date.now(),
-    cart: result.data,
+    cart,
     addedLineId: addedLine?.id,
   };
 };

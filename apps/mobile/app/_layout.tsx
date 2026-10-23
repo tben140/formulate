@@ -1,13 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
-import { useState } from "react";
-import { View } from "react-native";
+import { useFonts } from "expo-font";
+import { SplashScreen, Stack } from "expo-router";
+import { useEffect, useState } from "react";
 
-import { CartButton } from "../components/cart-button";
-import { HeaderActions } from "../components/header-actions";
 import { CartProvider } from "../components/cart-provider";
-import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
+import { FONT_FILES } from "../lib/fonts";
 import { initKlaviyo } from "../lib/klaviyo";
 
 import "../global.css";
@@ -21,6 +19,10 @@ import "../global.css";
  * this integration keeps producing. Module scope runs before any render.
  */
 initKlaviyo();
+
+// Hold the splash screen until the fonts are in (below), so text never draws
+// in the system font and then jumps to DM Sans.
+void SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
   // Created in state so the client survives Fast Refresh but is never shared
@@ -37,6 +39,15 @@ const RootLayout = () => {
       }),
   );
 
+  // DM Sans and DM Mono, from the app bundle (SHO-144, lib/fonts.ts). A
+  // failure falls through to the system font rather than a blank app.
+  const [fontsLoaded, fontError] = useFonts(FONT_FILES);
+  const fontsSettled = fontsLoaded || fontError !== null;
+  useEffect(() => {
+    if (fontsSettled) void SplashScreen.hideAsync();
+  }, [fontsSettled]);
+  if (!fontsSettled) return null;
+
   return (
     <QueryClientProvider client={queryClient}>
       {/*
@@ -51,34 +62,12 @@ const RootLayout = () => {
       */}
       <CheckoutProvider>
         <CartProvider>
-          <Stack
-            // Wraps every screen below its native header, including screens
-            // added later — so the demo notice cannot be forgotten on one.
-            screenLayout={({ children }) => (
-              <View className="flex-1">
-                <DemoNotice />
-                {children}
-              </View>
-            )}
-            screenOptions={{
-              headerStyle: { backgroundColor: "#ffffff" },
-              headerTintColor: "#0f172a",
-              contentStyle: { backgroundColor: "#ffffff" },
-              headerRight: () => <HeaderActions />,
-            }}
-          >
-            <Stack.Screen name="index" options={{ title: "Formulate" }} />
-            <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
-            <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
-            <Stack.Screen
-              name="routine"
-              options={{ title: "Your routine", headerRight: () => <CartButton /> }}
-            />
-            {/* Cart only: a Search button on the search screen goes nowhere. */}
-            <Stack.Screen
-              name="search"
-              options={{ title: "Search", headerRight: () => <CartButton /> }}
-            />
+          {/*
+            The tab bar is the whole app (SHO-151). Each tab has its own stack
+            and header; see app/(tabs)/(shop,search)/_layout.tsx.
+          */}
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
           </Stack>
         </CartProvider>
       </CheckoutProvider>

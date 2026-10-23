@@ -1,16 +1,31 @@
-import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  ActivityIndicator,
+  Keyboard,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
-import { AddToCart } from "../../components/add-to-cart";
-import { useCartUi } from "../../components/cart-provider";
-import { PairsWellWith } from "../../components/pairs-well-with";
-import { SiteFooter } from "../../components/site-footer";
-import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
-import { useProduct } from "../../lib/queries";
-import { usePurchase, type Product } from "../../lib/use-purchase";
+import { AddToCart } from "../../../../components/add-to-cart";
+import { useCartUi } from "../../../../components/cart-provider";
+import { PairsWellWith } from "../../../../components/pairs-well-with";
+import {
+  ProductDetails,
+  ProductSummary,
+} from "../../../../components/product-description";
+import { ShareButton } from "../../../../components/share-button";
+import { SiteFooter } from "../../../../components/site-footer";
+import {
+  STICKY_BAR_HEIGHT,
+  StickyAddToCart,
+} from "../../../../components/sticky-add-to-cart";
+import { useProduct } from "../../../../lib/queries";
+import { usePurchase, type Product } from "../../../../lib/use-purchase";
+import { productWebUrl } from "../../../../lib/web-links";
+import { Text } from "../../../../components/text";
+import { ShopImage } from "../../../../components/shop-image";
 
 /** Whether the software keyboard is showing. The "did" events fire on both platforms. */
 const useKeyboardOpen = () => {
@@ -35,7 +50,7 @@ const ProductScreen = () => {
   if (isPending) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Loading product" />
       </View>
     );
   }
@@ -73,7 +88,6 @@ const ProductScreen = () => {
  */
 const ProductBody = ({ product }: { product: Product }) => {
   const { openCart } = useCartUi();
-  const { bottom } = useSafeAreaInsets();
   const purchase = usePurchase(product);
 
   /*
@@ -101,6 +115,9 @@ const ProductBody = ({ product }: { product: Product }) => {
   const keyboardOpen = useKeyboardOpen();
   const showBar = button !== null && view.height > 0 && !buttonOnScreen && !keyboardOpen;
 
+  // The image's drawn size: the screen width less the 16 pt padding each side.
+  const imageSize = useWindowDimensions().width - 32;
+
   return (
     <View className="flex-1">
       <ScrollView
@@ -117,7 +134,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         contentContainerStyle={{
           padding: 16,
           gap: 16,
-          paddingBottom: STICKY_BAR_HEIGHT + bottom + 16,
+          // No home-indicator inset: the tab bar below the screen takes it.
+          paddingBottom: STICKY_BAR_HEIGHT + 16,
         }}
         /*
           The footer's email field is the last thing in this view, so the
@@ -126,6 +144,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         */
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode="on-drag"
+        // Sign up takes one tap with the keyboard up; see collection-view.tsx.
+        keyboardShouldPersistTaps="handled"
         scrollEventThrottle={32}
         /*
           ⚠️ Read the event before calling setView. React Native recycles the
@@ -142,23 +162,35 @@ const ProductBody = ({ product }: { product: Product }) => {
           setView((v) => ({ ...v, offset }));
         }}
       >
-        <Stack.Screen options={{ title: product.title }} />
+        <Stack.Screen
+          options={{
+            title: product.title,
+            headerRight: () => (
+              <ShareButton url={productWebUrl(product.handle)} title={product.title} />
+            ),
+          }}
+        />
 
-        <Image
-          source={product.featuredImage?.url}
-          contentFit="cover"
-          transition={150}
+        {/* Full width inside the screen's 16 pt padding, and square. */}
+        <ShopImage
+          url={product.featuredImage?.url}
+          // Content here, not decoration: the merchant's alt text, or the
+          // product's name when there's none.
+          alt={product.featuredImage?.altText || product.title}
+          width={imageSize}
+          height={imageSize}
           style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}
-          accessibilityIgnoresInvertColors
         />
 
         <View>
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
         </View>
 
-        {product.description ? (
-          <Text className="text-base text-foreground-muted">{product.description}</Text>
-        ) : null}
+        {/*
+          Only the opening paragraph before the buy box; the rest after it, in
+          closed sections (descriptionSections), as on web and the theme.
+        */}
+        <ProductSummary html={product.descriptionHtml} />
 
         {/*
           The price lives inside AddToCart, because it changes with the selection
@@ -181,6 +213,8 @@ const ProductBody = ({ product }: { product: Product }) => {
             }}
           />
         </View>
+
+        <ProductDetails html={product.descriptionHtml} />
 
         <PairsWellWith productId={product.id} />
 

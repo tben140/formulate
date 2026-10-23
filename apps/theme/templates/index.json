@@ -11,25 +11,37 @@
   "sections": {
     "intro": {
       "type": "home-intro",
-      "settings": {}
+      "settings": {
+        "secondary_label": "Take the quiz",
+        "secondary_url": ""
+      }
     },
     "routine": {
       "type": "routine-cta",
       "settings": {}
     },
-    "categories": {
-      "type": "collection-list",
+    "benefits": {
+      "type": "benefits",
+      "blocks": {
+        "saving": { "type": "benefit", "settings": { "text": "Save 15% when you subscribe" } },
+        "delivery": {
+          "type": "benefit",
+          "settings": { "text": "Free UK delivery on subscriptions, and over £40" }
+        },
+        "flexible": { "type": "benefit", "settings": { "text": "Skip, pause or cancel any time" } },
+        "guarantee": { "type": "benefit", "settings": { "text": "30-day money-back guarantee" } }
+      },
+      "block_order": ["saving", "delivery", "flexible", "guarantee"],
       "settings": {}
     },
     "main": {
       "type": "featured-collection",
       "settings": {}
+    },
+    "categories": {
+      "type": "collection-list",
+      "settings": {}
     }
   },
-  "order": [
-    "intro",
-    "routine",
-    "categories",
-    "main"
-  ]
+  "order": ["intro", "benefits", "routine", "main", "categories"]
 }

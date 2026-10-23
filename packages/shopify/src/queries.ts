@@ -29,22 +29,9 @@ export const CollectionProductsQuery = graphql(`
         filters {
           ...FilterFields
         }
+        # The same card everywhere: stars, saving and quick add included.
         nodes {
-          id
-          handle
-          title
-          featuredImage {
-            url
-            altText
-            width
-            height
-          }
-          priceRange {
-            minVariantPrice {
-              amount
-              currencyCode
-            }
-          }
+          ...ProductCardFields
         }
       }
     }
@@ -54,10 +41,38 @@ export const CollectionProductsQuery = graphql(`
 export const ProductByHandleQuery = graphql(`
   query ProductByHandle($handle: String!) {
     product(handle: $handle) {
+      # Its free gift (custom.free_gift), added nested under it in the cart
+      # (free-gift.ts). A variant's own overrides it.
+      freeGift: metafield(namespace: "custom", key: "free_gift") {
+        reference {
+          ... on ProductVariant {
+            id
+            availableForSale
+            product {
+              title
+            }
+            image {
+              url
+              altText
+            }
+          }
+        }
+      }
       id
       handle
       title
+      # Standard review metafields (see ProductCardFields and reviews.ts).
+      rating: metafield(namespace: "reviews", key: "rating") {
+        value
+      }
+      ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+        value
+      }
       description
+      # Rendered through descriptionBlocks (src/description.ts): the plain
+      # description above runs headings into paragraphs, and stays for the
+      # meta description.
+      descriptionHtml
       # The merchant's search-engine overrides from the admin. Either can be
       # null, in which case apps/web falls back to the title and description.
       seo {
@@ -148,6 +163,21 @@ export const ProductByHandleQuery = graphql(`
           id
           title
           availableForSale
+          freeGift: metafield(namespace: "custom", key: "free_gift") {
+            reference {
+              ... on ProductVariant {
+                id
+                availableForSale
+                product {
+                  title
+                }
+                image {
+                  url
+                  altText
+                }
+              }
+            }
+          }
           # For the Product structured data on apps/web. Can be null.
           sku
           selectedOptions {
@@ -176,6 +206,12 @@ export const ProductByHandleQuery = graphql(`
               sellingPlan {
                 id
                 name
+                # Recharge's "Order Frequency and Unit" ("60-day"): how much
+                # each delivery holds (deliveryQuote in subscribe-and-save.ts).
+                options {
+                  name
+                  value
+                }
               }
               priceAdjustments {
                 price {
@@ -230,6 +266,51 @@ export const ProductCardFields = graphql(`
       minVariantPrice {
         amount
         currencyCode
+      }
+    }
+    # Shopify's standard review metafields, kept in sync by the reviews app
+    # (Judge.me). Null until a product has reviews. See reviews.ts.
+    rating: metafield(namespace: "reviews", key: "rating") {
+      value
+    }
+    ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+      value
+    }
+    # Which plans an app owns, so the card's saving is one the product page
+    # actually offers (purchasableAllocations in product-selection.ts).
+    sellingPlanGroups(first: 5) {
+      nodes {
+        appName
+        sellingPlans(first: 10) {
+          nodes {
+            id
+          }
+        }
+      }
+    }
+    # For the card's subscription saving and quick add (card-offer.ts): two
+    # variants say whether there's more than one.
+    variants(first: 2) {
+      nodes {
+        id
+        availableForSale
+        price {
+          amount
+          currencyCode
+        }
+        sellingPlanAllocations(first: 5) {
+          nodes {
+            sellingPlan {
+              id
+            }
+            priceAdjustments {
+              price {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -434,6 +515,15 @@ export const CartFields = graphql(`
       nodes {
         id
         quantity
+        # A nested line is a free gift under the product it came with
+        # (free-gift.ts): no quantity control, no stack credit.
+        ... on CartLine {
+          parentRelationship {
+            parent {
+              id
+            }
+          }
+        }
         cost {
           totalAmount {
             amount
@@ -472,6 +562,20 @@ export const CartFields = graphql(`
           sellingPlan {
             id
             name
+            # For the supply a line holds (deliveryQuote): a 90-day plan's
+            # quantity is set by the plan, not the shopper.
+            options {
+              name
+              value
+            }
+          }
+          # Per unit. A second adjustment is an introductory plan's later
+          # price, for the cart's renewal terms (cartRenewalTerms).
+          priceAdjustments {
+            price {
+              amount
+              currencyCode
+            }
           }
         }
       }
@@ -490,8 +594,11 @@ export const CartFields = graphql(`
  * Returns null for a cart that has been completed at checkout, so a null here
  * is normal rather than exceptional.
  */
+// Every cart document carries the shopper's tracking choice as
+// `@inContext(visitorConsent:)`. See `visitorConsentFor` in ./cart for why.
 export const CartQuery = graphql(`
-  query Cart($id: ID!) {
+  query Cart($id: ID!, $visitorConsent: VisitorConsent!)
+  @inContext(visitorConsent: $visitorConsent) {
     cart(id: $id) {
       ...CartFields
     }
@@ -502,7 +609,8 @@ export const CartQuery = graphql(`
  * `buyerIdentity` is not optional in practice — see DEFAULT_COUNTRY_CODE.
  */
 export const CartCreateMutation = graphql(`
-  mutation CartCreate($input: CartInput!) {
+  mutation CartCreate($input: CartInput!, $visitorConsent: VisitorConsent!)
+  @inContext(visitorConsent: $visitorConsent) {
     cartCreate(input: $input) {
       cart {
         ...CartFields
@@ -524,7 +632,11 @@ export const CartCreateMutation = graphql(`
 `);
 
 export const CartLinesAddMutation = graphql(`
-  mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+  mutation CartLinesAdd(
+    $cartId: ID!
+    $lines: [CartLineInput!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
     cartLinesAdd(cartId: $cartId, lines: $lines) {
       cart {
         ...CartFields
@@ -546,7 +658,11 @@ export const CartLinesAddMutation = graphql(`
 `);
 
 export const CartLinesUpdateMutation = graphql(`
-  mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+  mutation CartLinesUpdate(
+    $cartId: ID!
+    $lines: [CartLineUpdateInput!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
     cartLinesUpdate(cartId: $cartId, lines: $lines) {
       cart {
         ...CartFields
@@ -561,7 +677,11 @@ export const CartLinesUpdateMutation = graphql(`
 `);
 
 export const CartLinesRemoveMutation = graphql(`
-  mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+  mutation CartLinesRemove(
+    $cartId: ID!
+    $lineIds: [ID!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
     cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
       cart {
         ...CartFields
@@ -583,7 +703,8 @@ export const CartBuyerIdentityUpdateMutation = graphql(`
   mutation CartBuyerIdentityUpdate(
     $cartId: ID!
     $buyerIdentity: CartBuyerIdentityInput!
-  ) {
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
     cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
       cart {
         ...CartFields
@@ -755,6 +876,53 @@ export const RoutineGoalsQuery = graphql(`
                       }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+/**
+ * The free gift for each variant (its own, else its product's), for web's
+ * cart permalink route, which builds a Shop Pay checkout without the product
+ * page (free-gift.ts).
+ */
+export const VariantFreeGiftsQuery = graphql(`
+  query VariantFreeGifts($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on ProductVariant {
+        id
+        freeGift: metafield(namespace: "custom", key: "free_gift") {
+          reference {
+            ... on ProductVariant {
+              id
+              availableForSale
+              product {
+                title
+              }
+              image {
+                url
+                altText
+              }
+            }
+          }
+        }
+        product {
+          freeGift: metafield(namespace: "custom", key: "free_gift") {
+            reference {
+              ... on ProductVariant {
+                id
+                availableForSale
+                product {
+                  title
+                }
+                image {
+                  url
+                  altText
                 }
               }
             }

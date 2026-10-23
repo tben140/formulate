@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, View } from "react-native";
 
 import { useCollection } from "../lib/queries";
 import { CollectionFilters } from "./collection-filters";
@@ -8,6 +8,7 @@ import { CollectionNav } from "./collection-nav";
 import { ProductRow } from "./product-row";
 import { RoutinePrompt } from "./routine-prompt";
 import { SiteFooter } from "./site-footer";
+import { Text } from "./text";
 
 /**
  * A collection's products, with the collection links from the Shopify menu
@@ -31,7 +32,7 @@ export const CollectionView = ({
   if (isPending) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Loading products" />
       </View>
     );
   }
@@ -73,6 +74,13 @@ export const CollectionView = ({
       */
       automaticallyAdjustKeyboardInsets
       keyboardDismissMode="on-drag"
+      /*
+        A tap on Sign up while the keyboard is up must press it. The default
+        ("never") spends the first tap dismissing the keyboard, so the button
+        needed two taps (SHO-120, confirmed on a phone 2026-10-04). "handled"
+        lets taps on controls through; a tap on empty space still dismisses.
+      */
+      keyboardShouldPersistTaps="handled"
       ListHeaderComponent={
         <View className="mb-2">
           {titleInHeader ? <Stack.Screen options={{ title: collection.title }} /> : null}

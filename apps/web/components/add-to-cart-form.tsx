@@ -2,14 +2,37 @@
 
 import { EVENTS, addedToCart } from "@formulate/analytics";
 import {
+  ONE_TIME,
   defaultSelectedOptions,
+  displayPrice as priceForSelection,
+  effectivePlanId as resolvePlanId,
   findVariantByOptions,
   formatMoney,
+  pricePerDay,
   purchasableAllocations,
+  purchaseOptions,
+  RENEWAL_SHORT,
+  renewalTerms,
+  planDisplayName,
+  savingBadge,
+  SUBSCRIPTION_BENEFITS,
+  deliveryPromise,
+  deliveryQuote,
+  expressCheckoutOnProduct,
+  FREE_GIFT_CONDITION,
+  FREE_GIFT_LABEL,
+  FREE_GIFT_PRICE,
+  freeGiftFor,
+  GUARANTEE_TITLE,
+  REFUND_POLICY_PATH,
+  supplyLabel,
+  selectionStatus,
   withOption,
   type ProductByHandleResult,
   type SelectedOption,
 } from "@formulate/shopify";
+import { ShopPayButton } from "@shopify/hydrogen/react";
+import Link from "next/link";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
@@ -18,9 +41,6 @@ import { track } from "@/lib/klaviyo";
 import { useCartUi } from "./cart-provider";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
-
-/** Sentinel for "buy it once". Not a selling plan id, so the action skips it. */
-const ONE_TIME = "";
 
 /**
  * Lives here rather than beside the action, because a `"use server"` module may
@@ -73,9 +93,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
    * this way `planId` survives, so switching to a variant without the plan and
    * back again restores what they picked.
    */
-  const effectivePlanId = allocations.some((a) => a.sellingPlan.id === planId)
-    ? planId
-    : ONE_TIME;
+  const effectivePlanId = resolvePlanId(allocations, planId);
 
   /*
    * Opens on the token rather than on status, so adding the same product twice
@@ -96,22 +114,37 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     }
   }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
 
-  const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
-  const displayPrice =
-    chosenAllocation?.priceAdjustments[0]?.price ?? variant?.price ?? null;
-
-  const soldOut = Boolean(variant && !variant.availableForSale);
+  // One delivery of an option: a 60- or 90-day plan ships two or three
+  // 30-day supplies, so the shopper never runs out, and the plan sets the
+  // quantity (deliveryQuote in packages/shopify). Null without a variant.
+  const quoteFor = (id: string) =>
+    variant
+      ? deliveryQuote(
+          variant.price,
+          allocations.find((a) => a.sellingPlan.id === id),
+        )
+      : null;
+  const quote = quoteFor(effectivePlanId);
+  // This selection's free gift, in stock: added nested under it (free-gift.ts).
+  const gift = freeGiftFor(product, variant);
+  // The selection rules are shared with the app (packages/shopify,
+  // SHO-127); only the words and the rendering are this surface's.
+  const displayPrice = quote?.price ?? priceForSelection(variant, allocations, planId);
+  const chosenPlan = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
+  const planName = chosenPlan ? planDisplayName(chosenPlan.sellingPlan) : null;
+  const status = selectionStatus(variant);
+  const soldOut = status === "soldOut";
 
   const buttonLabel = pending
     ? "Adding…"
     : soldOut
       ? "Sold out"
-      : !variant
+      : status === "unavailable"
         ? "Unavailable in this combination"
         : "Add to cart";
 
   // Nothing to add: no variant for this combination, or it's sold out.
-  const unavailable = !variant || soldOut;
+  const unavailable = status !== "available";
 
   const primaryButton = useRef<HTMLButtonElement>(null);
   const stickyVisible = useOffScreen(primaryButton);
@@ -130,6 +163,8 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
+      <input type="hidden" name="quantity" value={quote?.units ?? 1} />
+      <input type="hidden" name="giftId" value={gift?.id ?? ""} />
 
       {product.options.map((option) =>
         // A single option called "Title" with one value is Shopify's stand-in
@@ -195,14 +230,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         <fieldset className="mb-5">
           <legend className="mb-2 text-sm font-semibold">Purchase options</legend>
           <div className="space-y-2">
-            {[
-              { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
-              ...allocations.map((allocation) => ({
-                id: allocation.sellingPlan.id,
-                label: allocation.sellingPlan.name,
-                price: allocation.priceAdjustments[0]?.price,
-              })),
-            ].map((choice) => (
+            {purchaseOptions(variant, allocations).map((choice) => (
               <label
                 key={choice.id || "one-time"}
                 className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${
@@ -211,21 +239,41 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                     : "border-border hover:border-foreground-muted"
                 }`}
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-start gap-2">
                   <input
                     type="radio"
                     name="purchase-option"
                     value={choice.id}
                     checked={effectivePlanId === choice.id}
                     onChange={() => setPlanId(choice.id)}
+                    className="mt-1"
                   />
-                  {choice.label}
+                  <span className="flex flex-col">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      {choice.label}
+                      {quoteFor(choice.id)?.saving ? (
+                        // The saving, as a badge: the struck-through price
+                        // beside it gives the amount.
+                        <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-surface">
+                          {savingBadge(quoteFor(choice.id)!.saving!)}
+                        </span>
+                      ) : null}
+                    </span>
+                    {supplyLabel(quoteFor(choice.id)?.units ?? 1) ? (
+                      <span className="text-xs text-foreground">
+                        {supplyLabel(quoteFor(choice.id)!.units)} every delivery
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
                 {choice.price ? (
                   <span
                     // Full-strength on the selected card: muted grey on
                     // brand-50 is 4.34:1, under AA's 4.5:1.
-                    className={`font-mono ${
+                    // One right-hand column for every price: the struck-through
+                    // one-time price stacks above the subscription price, and
+                    // the price below ends on the same edge (as the theme).
+                    className={`flex shrink-0 flex-col items-end text-right font-mono ${
                       effectivePlanId === choice.id
                         ? "text-foreground"
                         : "text-foreground-muted"
@@ -237,18 +285,70 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       label computes as "One-time purchase£24.95", which is
                       what a screen reader would announce.
                     */}
-                    {` ${formatMoney(choice.price)}`}
+                    {quoteFor(choice.id)?.saving ? (
+                      // The one-time price for the same product, on sale now:
+                      // a real comparison, not a "was" price (see
+                      // packages/shopify/src/subscribe-and-save.ts).
+                      <>
+                        <s>
+                          <span className="sr-only"> One-time price </span>
+                          {formatMoney(quoteFor(choice.id)!.oneTime)}
+                        </s>
+                        <span className="sr-only"> Subscription price </span>
+                      </>
+                    ) : null}
+                    {` ${formatMoney(quoteFor(choice.id)?.price ?? choice.price)}`}
                   </span>
                 ) : null}
               </label>
             ))}
           </div>
+          {/* What every subscription gives, said once rather than on each option. */}
+          <p className="mt-2 text-xs text-foreground-muted">
+            Subscriptions: {SUBSCRIPTION_BENEFITS}
+          </p>
         </fieldset>
+      ) : null}
+
+      {gift ? (
+        // The free gift, styled as a purchase option but not one to choose:
+        // it comes with whichever option is picked (free-gift.ts). Its
+        // condition is stated on it, where it's offered.
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
+          <span className="flex min-w-0 items-center gap-3">
+            {gift.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={gift.image.url}
+                alt=""
+                width={40}
+                height={40}
+                className="h-10 w-10 shrink-0 rounded-md border border-border object-cover"
+              />
+            ) : null}
+            <span className="flex min-w-0 flex-col">
+              <span className="text-xs font-medium text-brand-600">
+                {FREE_GIFT_LABEL}
+              </span>
+              <span>{gift.product.title}</span>
+              <span className="text-xs text-foreground-muted">{FREE_GIFT_CONDITION}</span>
+            </span>
+          </span>
+          <span className="shrink-0 font-mono text-brand-600">{FREE_GIFT_PRICE}</span>
+        </div>
       ) : null}
 
       {displayPrice ? (
         // DM Mono ships in 400 and 500 only; semibold would be synthesised.
-        <p className="mb-4 font-mono text-2xl font-medium">{formatMoney(displayPrice)}</p>
+        <div className="mb-4">
+          {/* pr-3: lined up with the option prices, inside their px-3. */}
+          <p className="pr-3 text-right font-mono text-2xl font-medium">
+            {formatMoney(displayPrice)}
+          </p>
+          <p className="mt-1 text-sm text-foreground-muted">
+            {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
+          </p>
+        </div>
       ) : null}
 
       {/*
@@ -270,6 +370,53 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         {buttonLabel}
       </button>
 
+      {variant && !unavailable && expressCheckoutOnProduct(effectivePlanId) ? (
+        // Express checkout, one-time purchases only: Shop Pay can skip
+        // checkout, where the subscription terms are shown, and its cart
+        // permalink can't carry a plan (packages/shopify/src/express-checkout.ts).
+        // The permalink is this site's own /cart/{id}:{qty} (app/cart/[lines]).
+        <div className="mt-2">
+          <ShopPayButton
+            variants={[{ id: variant.id, quantity: quote?.units ?? 1 }]}
+            // Not while an add is in flight: a second, separate checkout
+            // mid-update would confuse which purchase happened.
+            disabled={pending}
+            width="100%"
+            borderRadius="8px"
+          />
+        </div>
+      ) : null}
+
+      {effectivePlanId && displayPrice && planName ? (
+        // The renewal terms, before purchase and next to the button
+        // (California's Automatic Renewal Law; the UK's DMCC subscription
+        // rules from 2027).
+        <p className="mt-2 text-xs text-foreground-muted">
+          {renewalTerms(displayPrice, planName, quote?.later, quote?.units)}
+        </p>
+      ) : null}
+
+      {/*
+        The guarantee, where the decision is made. Links to the refund policy,
+        which is what it promises (packages/shopify/src/guarantee.ts).
+      */}
+      <p className="mt-3 flex items-center justify-center gap-2 text-sm text-foreground">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 20 20"
+          className="h-4 w-4 shrink-0 fill-none stroke-current stroke-2 text-brand-600"
+        >
+          <path d="M10 2 3.5 4.5v5c0 4 2.8 7 6.5 8.5 3.7-1.5 6.5-4.5 6.5-8.5v-5L10 2Z" />
+          <path d="m7 10 2 2 4-4" />
+        </svg>
+        <Link
+          href={REFUND_POLICY_PATH}
+          className="underline underline-offset-2 hover:no-underline"
+        >
+          {GUARANTEE_TITLE}
+        </Link>
+      </p>
+
       {/*
         The drawer opening is a visual event a screen reader does not narrate,
         and errors here are the only ones a shopper can act on — so both are
@@ -285,7 +432,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         visible={stickyVisible}
         title={product.title}
         variantTitle={variant && variant.title !== "Default Title" ? variant.title : null}
-        planName={chosenAllocation?.sellingPlan.name ?? null}
+        planName={planName}
         price={displayPrice ? formatMoney(displayPrice) : null}
         buttonLabel={buttonLabel}
         unavailable={unavailable}
@@ -465,6 +612,11 @@ const StickyAddToCart = ({
           {buttonLabel}
         </button>
       </div>
+      {planName ? (
+        // This button buys too, so the renewal terms come with it, in brief
+        // (the full terms are beside the main button).
+        <p className="mt-1 text-xs text-foreground-muted">{RENEWAL_SHORT}</p>
+      ) : null}
     </div>
   );
 };

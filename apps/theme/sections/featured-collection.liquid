@@ -30,13 +30,26 @@
 <div class="container featured">
   {% if featured != blank and featured.products.size > 0 %}
     <header class="featured__header">
-      <h2 class="featured__title">{{ featured.title }}</h2>
-      {% if featured.description != blank %}
+      <div class="featured__heading-row">
+        <h2 class="featured__title">{{ section.settings.heading | default: featured.title }}</h2>
+        {% if section.settings.show_view_all %}
+          <a class="featured__view-all" href="{{ featured.url }}">
+            {{- 'general.view_all' | t -}}
+            <span class="visually-hidden"> {{ featured.title }}</span>
+          </a>
+        {% endif %}
+      </div>
+      {% if section.settings.show_description and featured.description != blank %}
         <p class="featured__description">{{ featured.description }}</p>
       {% endif %}
     </header>
 
-    {% render 'product-grid', products: featured.products, section_index: section.index %}
+    {%- comment -%} The first few, as on web (FEATURED_COUNT): the full list is a tap away. {%- endcomment -%}
+    {% render 'product-grid',
+      products: featured.products,
+      limit: section.settings.limit,
+      section_index: section.index
+    %}
   {% else %}
     <p class="featured__empty">
       No collection selected. Choose one in the theme editor.
@@ -49,9 +62,22 @@
     padding-block: var(--spacing-8);
   }
 
-  /* Below the home introduction and category cards, so an h2 like theirs. */
+  /* Below the home hero and benefits, so an h2 like the category cards'. */
   .featured__header {
-    margin-block: var(--spacing-16) var(--spacing-6);
+    margin-block: var(--spacing-12) var(--spacing-6);
+  }
+
+  .featured__heading-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+  }
+
+  .featured__view-all {
+    font-size: var(--text-sm);
+    color: var(--color-brand-600);
+    text-underline-offset: 4px;
   }
 
   .featured__title {
@@ -82,6 +108,33 @@
       "type": "collection",
       "id": "collection",
       "label": "Collection"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Leave blank to use the collection's title."
+    },
+    {
+      "type": "range",
+      "id": "limit",
+      "label": "Products to show",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_all",
+      "label": "Show \"View all\" link",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "Show the collection's description",
+      "default": false
     }
   ],
   "presets": [

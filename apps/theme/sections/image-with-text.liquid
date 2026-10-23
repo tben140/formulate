@@ -1,0 +1,109 @@
+{% comment %}
+  An image beside a heading, text and an optional button, for a story or a
+  product spotlight. Image on either side; stacked on a phone.
+{% endcomment %}
+
+<div class="container">
+  <section class="image-text{% if section.settings.image_right %} image-text--right{% endif %}" aria-labelledby="image-text-{{ section.id }}">
+    <div class="image-text__media">
+      {% if section.settings.image != blank %}
+        {{
+          section.settings.image
+          | image_url: width: 1200
+          | image_tag: class: 'image-text__image', sizes: '(min-width: 48rem) 50vw, 100vw', loading: 'lazy'
+        }}
+      {% else %}
+        {{ 'lifestyle-1' | placeholder_svg_tag: 'image-text__placeholder' }}
+      {% endif %}
+    </div>
+    <div class="image-text__content">
+      <h2 id="image-text-{{ section.id }}" class="image-text__heading">{{ section.settings.heading | escape }}</h2>
+      {% if section.settings.text != blank %}
+        <div class="image-text__text">{{ section.settings.text }}</div>
+      {% endif %}
+      {% if section.settings.button_url != blank and section.settings.button_label != blank %}
+        <a class="image-text__button" href="{{ section.settings.button_url }}">{{ section.settings.button_label | escape }}</a>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+{% stylesheet %}
+  .image-text {
+    display: grid;
+    gap: var(--spacing-6);
+    align-items: center;
+    margin-block-start: var(--spacing-12);
+  }
+
+  @media (min-width: 48rem) {
+    .image-text {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-10);
+    }
+
+    .image-text--right .image-text__media {
+      order: 2;
+    }
+  }
+
+  .image-text__media {
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-muted);
+  }
+
+  .image-text__image,
+  .image-text__placeholder {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+  }
+
+  .image-text__heading {
+    margin: 0;
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .image-text__text {
+    margin-block-start: var(--spacing-3);
+    color: var(--color-foreground);
+  }
+
+  .image-text__button {
+    display: inline-block;
+    margin-block-start: var(--spacing-6);
+    padding: var(--spacing-3) var(--spacing-6);
+    border-radius: var(--radius-md);
+    background: var(--color-brand-600);
+    color: var(--color-surface);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .image-text__button:hover {
+    background: var(--color-brand-700);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Image with text",
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "Image" },
+    { "type": "checkbox", "id": "image_right", "label": "Image on the right", "default": false },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "A 30-day rhythm" },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Text",
+      "default": "<p>Every Double Helix format is a 30-day supply, so a subscription arrives just as you need it.</p>"
+    },
+    { "type": "text", "id": "button_label", "label": "Button label" },
+    { "type": "url", "id": "button_url", "label": "Button link" }
+  ],
+  "presets": [{ "name": "Image with text" }]
+}
+{% endschema %}

@@ -1,7 +1,17 @@
 "use client";
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
-import { formatMoney, type Cart, type CartSuggestion } from "@formulate/shopify";
+import { ShopPayButton } from "@shopify/hydrogen/react";
+import {
+  cartRenewalTerms,
+  formatMoney,
+  isNestedLine,
+  supplyLabel,
+  planDisplayName,
+  supplyUnits,
+  type Cart,
+  type CartSuggestion,
+} from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
@@ -46,6 +56,21 @@ export const CartDrawer = ({
   }, [open]);
 
   const lines = cart?.lines.nodes ?? [];
+
+  /*
+   * Shop Pay checkouts are recorded the same way as Checkout. The button takes
+   * no handlers of its own; a click (or Enter, which clicks a link) reaches its
+   * wrapper from the shadow root, so the listener sits there.
+   */
+  const shopPay = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = shopPay.current;
+    if (!element || !cart) return;
+    const record = () =>
+      track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain));
+    element.addEventListener("click", record);
+    return () => element.removeEventListener("click", record);
+  }, [cart, storeDomain]);
 
   return (
     /*
@@ -110,6 +135,26 @@ export const CartDrawer = ({
                 // __typename narrowing needed here.
                 const variant = line.merchandise;
 
+                if (isNestedLine(line)) {
+                  // A free gift, under the product it came with
+                  // (packages/shopify/src/free-gift.ts). No controls: Shopify
+                  // removes it with its product, and it's one per line.
+                  return (
+                    <li
+                      key={line.id}
+                      className="flex items-center gap-3 py-2 pl-[5.75rem] pr-4"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-brand-600">Free gift</p>
+                        <p className="truncate text-sm">{variant.product.title}</p>
+                      </div>
+                      <p className="font-mono text-sm">
+                        {formatMoney(line.cost.totalAmount)}
+                      </p>
+                    </li>
+                  );
+                }
+
                 return (
                   <li key={line.id} className="flex gap-3 px-4 py-4">
                     {variant.image ? (
@@ -141,31 +186,51 @@ export const CartDrawer = ({
                     */}
                       {line.sellingPlanAllocation ? (
                         <p className="mt-0.5 text-xs font-medium text-brand-600">
-                          {line.sellingPlanAllocation.sellingPlan.name}
+                          {planDisplayName(line.sellingPlanAllocation.sellingPlan)}
                         </p>
                       ) : null}
 
                       <div className="mt-2 flex items-center justify-between gap-2">
-                        <form action={updateCartLine} className="flex items-center gap-1">
-                          <input type="hidden" name="lineId" value={line.id} />
-                          <label htmlFor={`qty-${line.id}`} className="sr-only">
-                            Quantity for {variant.product.title}
-                          </label>
-                          <input
-                            id={`qty-${line.id}`}
-                            name="quantity"
-                            type="number"
-                            min={0}
-                            defaultValue={line.quantity}
-                            className="w-16 rounded-md border border-border px-2 py-1 text-sm"
-                          />
-                          <button
-                            type="submit"
-                            className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
+                        {supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) >
+                          1 &&
+                        line.quantity ===
+                          supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) ? (
+                          // A 60- or 90-day plan's quantity is its supply, set by
+                          // the plan (deliveryQuote), so it can only be removed.
+                          // Any other quantity (the same plan added twice) keeps
+                          // the quantity box, so it can be corrected.
+                          <p className="text-xs text-foreground-muted">
+                            {supplyLabel(
+                              supplyUnits(
+                                line.sellingPlanAllocation?.sellingPlan.options,
+                              ),
+                            )}
+                          </p>
+                        ) : (
+                          <form
+                            action={updateCartLine}
+                            className="flex items-center gap-1"
                           >
-                            Update
-                          </button>
-                        </form>
+                            <input type="hidden" name="lineId" value={line.id} />
+                            <label htmlFor={`qty-${line.id}`} className="sr-only">
+                              Quantity for {variant.product.title}
+                            </label>
+                            <input
+                              id={`qty-${line.id}`}
+                              name="quantity"
+                              type="number"
+                              min={0}
+                              defaultValue={line.quantity}
+                              className="w-16 rounded-md border border-border px-2 py-1 text-sm"
+                            />
+                            <button
+                              type="submit"
+                              className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
+                            >
+                              Update
+                            </button>
+                          </form>
+                        )}
 
                         <p className="font-mono text-sm">
                           {formatMoney(line.cost.totalAmount)}
@@ -207,6 +272,14 @@ export const CartDrawer = ({
               Taxes and shipping calculated at checkout.
             </p>
 
+            {cartRenewalTerms(lines) ? (
+              // Above every way to pay: Shop Pay below can skip Shopify's
+              // checkout page, where the terms would otherwise be shown.
+              <p className="mb-3 text-xs text-foreground-muted">
+                {cartRenewalTerms(lines)}
+              </p>
+            ) : null}
+
             {/*
               A link, not a button with an onClick. Checkout is a cross-origin
               navigation to Shopify — there is nothing to intercept, and a real
@@ -226,6 +299,16 @@ export const CartDrawer = ({
             >
               Checkout
             </a>
+
+            {/* Express checkout for the whole cart, subscriptions included:
+                the cart's own checkout link, opened in Shop Pay. */}
+            <div ref={shopPay} className="mt-2">
+              <ShopPayButton
+                checkoutUrl={cart.checkoutUrl}
+                width="100%"
+                borderRadius="8px"
+              />
+            </div>
           </footer>
         ) : null}
       </div>
