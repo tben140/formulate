@@ -2,7 +2,12 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
+import {
+  useCollection,
+  useCollectionCards,
+  useNavLinks,
+  useRoutineGoals,
+} from "../lib/queries";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
 
@@ -20,6 +25,8 @@ const FEATURED_COUNT = 4;
  */
 export const HomeView = () => {
   const { data: navLinks } = useNavLinks();
+  // The routine quiz (SHO-161), once its goals exist in Shopify.
+  const { data: routineGoals } = useRoutineGoals();
   const { data: cards } = useCollectionCards();
 
   const menuCollections = navLinks?.filter((link) => link.kind === "collection") ?? [];
@@ -62,6 +69,16 @@ export const HomeView = () => {
               <Text className="font-semibold text-surface">
                 Shop {featuredLink.title}
               </Text>
+            </Pressable>
+          </Link>
+        ) : null}
+        {routineGoals && routineGoals.length > 0 ? (
+          <Link href="/routine" asChild>
+            <Pressable
+              accessibilityRole="link"
+              className="mt-3 self-start rounded-md border border-foreground px-5 py-3"
+            >
+              <Text className="font-semibold text-foreground">Find your routine</Text>
             </Pressable>
           </Link>
         ) : null}

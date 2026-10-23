@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { CollectionFilters } from "@/components/collection-filters";
+import { RoutinePrompt } from "@/components/routine-prompt";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { toSearchParams } from "@/lib/search-params";
@@ -97,9 +98,12 @@ const SearchPage = async ({ searchParams }: PageProps) => {
           ) : null}
 
           {result.data.search.nodes.length === 0 ? (
-            <p className="py-12 text-center text-foreground-muted">
-              No products match “{term}”. Try a different word, or browse the collections.
-            </p>
+            <>
+              <p className="py-12 text-center text-foreground-muted">
+                No products match “{term}”. Try a different word, or browse the collections.
+              </p>
+              <RoutinePrompt />
+            </>
           ) : (
             <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {result.data.search.nodes.map((product) =>

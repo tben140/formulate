@@ -1,0 +1,112 @@
+{% comment %}
+  The routine quiz's entry point (SHO-161). The quiz itself runs on the web
+  store (apps/web /routine): one scorer, in packages/shopify, rather than a
+  third copy in Liquid. Hidden until the merchant sets the link and the
+  `routine_goal` metaobjects exist, the same rule as web's and the app's
+  "Find your routine".
+
+  Copy is about goals, never symptoms (ADR 0009).
+{% endcomment %}
+
+{% comment %}
+  On collections and an empty search too (the places a shopper is choosing,
+  or stuck), so the link is set once, in Theme settings, with a per-section
+  override. On search it shows only when nothing matched.
+{% endcomment %}
+{% liquid
+  assign goal_count = shop.metaobjects.routine_goal.values.size
+  assign quiz_url = section.settings.quiz_url | default: settings.routine_quiz_url
+  assign show = true
+  if template.name == 'search' and search.results_count > 0
+    assign show = false
+  endif
+%}
+
+{% if show and quiz_url != blank and goal_count > 0 %}
+  <div class="container">
+    <section class="routine-cta" aria-labelledby="routine-cta-{{ section.id }}">
+      <h2 id="routine-cta-{{ section.id }}" class="routine-cta__heading">
+        {{ section.settings.heading }}
+      </h2>
+      {% if section.settings.text != blank %}
+        <p class="routine-cta__text">{{ section.settings.text }}</p>
+      {% endif %}
+      <a class="routine-cta__button" href="{{ quiz_url }}">
+        {{ section.settings.button_label }}
+      </a>
+    </section>
+  </div>
+{% endif %}
+
+{% stylesheet %}
+  .routine-cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+    margin-block-start: var(--spacing-8);
+    padding: var(--spacing-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+  }
+
+  .routine-cta__heading {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 600;
+  }
+
+  .routine-cta__text {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--color-foreground);
+  }
+
+  .routine-cta__button {
+    display: inline-block;
+    padding: var(--spacing-3) var(--spacing-6);
+    border: 1px solid var(--color-foreground);
+    border-radius: var(--radius-md);
+    color: var(--color-foreground);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .routine-cta__button:hover {
+    background: var(--color-surface-muted);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Routine quiz",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Find your routine"
+    },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "Text",
+      "default": "Four quick questions about what you'd like your routine to cover. We don't ask about your health."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Take the quiz"
+    },
+    {
+      "type": "url",
+      "id": "quiz_url",
+      "label": "Quiz link",
+      "info": "Leave blank to use the link in Theme settings → Routine quiz. Hidden while neither is set."
+    }
+  ],
+  "presets": [{ "name": "Routine quiz" }]
+}
+{% endschema %}

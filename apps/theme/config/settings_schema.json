@@ -97,5 +97,16 @@
         "default": 4
       }
     ]
+  },
+  {
+    "name": "Routine quiz",
+    "settings": [
+      {
+        "type": "url",
+        "id": "routine_quiz_url",
+        "label": "Quiz link",
+        "info": "The web store's /routine page. Every Routine quiz section uses it unless the section sets its own. Leave blank to hide them all."
+      }
+    ]
   }
 ]
