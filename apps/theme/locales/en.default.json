@@ -83,7 +83,7 @@
     "use_at_checkout": "Use this gift card at checkout"
   },
   "newsletter": {
-    "heading": "Get 10% off your first order",
+    "heading": "Get 10% off your first one-time order",
     "submit": "Sign up",
     "pending": "Signing up…",
     "placeholder": "you@company.com",

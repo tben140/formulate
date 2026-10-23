@@ -23,7 +23,7 @@ for (const [screen, path] of [
   test(`the footer's sign-up responds on ${screen}`, async ({ page }) => {
     await openApp(page, path);
     const field = page.getByRole("textbox", {
-      name: "Email address. Get 10% off your first order",
+      name: "Email address. Get 10% off your first one-time order",
     });
     const signUp = page.getByRole("button", { name: "Sign up" });
 

@@ -9,7 +9,7 @@
  */
 export const FIRST_ORDER_PERCENT = 10;
 
-export const SIGN_UP_HEADING = `Get ${FIRST_ORDER_PERCENT}% off your first order`;
+export const SIGN_UP_HEADING = `Get ${FIRST_ORDER_PERCENT}% off your first one-time order`;
 
 export const SIGN_UP_CONSENT = `Marketing emails: a ${FIRST_ORDER_PERCENT}% code for your first one-time order, then restock news and subscription offers. Unsubscribe any time.`;
 
