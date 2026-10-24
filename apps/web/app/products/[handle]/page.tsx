@@ -115,7 +115,7 @@ const ProductPage = async ({ params }: PageProps) => {
             <Image
               data={product.featuredImage}
               sizes="(min-width: 768px) 45vw, 90vw"
-              className="h-auto w-full object-cover"
+              className="h-auto w-full"
               // The page's Largest Contentful Paint. Hydrogen's Image defaults
               // to lazy, which made the browser wait for layout before even
               // requesting it (SHO-143).
