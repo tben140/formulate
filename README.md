@@ -100,6 +100,9 @@ Worker.
   consent travels into checkout, and health claims follow a written guide to
   the GB register: the routine quiz asks about goals, never symptoms
   ([claims guide](docs/claims-wording.md)).
+- **Supply-chain security.** Dependencies wait 7 days before install, CI fails
+  on any critical advisory, and every GitHub Action is pinned to a commit SHA
+  ([security](docs/security.md)).
 
 ## How this was built
 
