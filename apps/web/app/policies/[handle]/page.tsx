@@ -4,13 +4,60 @@ import { notFound } from "next/navigation";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { baseOpenGraph } from "@/lib/site";
 import { storefront } from "@/lib/storefront";
+import { metaDescription } from "@/lib/structured-data";
 
 interface PageProps {
   readonly params: Promise<{ handle: string }>;
 }
 
-export const metadata: Metadata = { title: "Policy" };
+type PolicyKey =
+  | "privacyPolicy"
+  | "refundPolicy"
+  | "termsOfService"
+  | "shippingPolicy"
+  | "subscriptionPolicy";
+
+/** The shop's policy at this handle, for the page and its metadata alike. */
+const findPolicy = <P extends { readonly handle: string }>(
+  shop: Readonly<Record<PolicyKey, P | null | undefined>>,
+  handle: string,
+): P | undefined =>
+  [
+    shop.privacyPolicy,
+    shop.refundPolicy,
+    shop.termsOfService,
+    shop.shippingPolicy,
+    shop.subscriptionPolicy,
+  ].find((candidate): candidate is P => candidate?.handle === handle);
+
+/**
+ * The policy's own title ("Privacy policy — Double Helix"), a description from
+ * its opening text, and a canonical. The page's request for the policies is
+ * the same one, so this costs no second call to Shopify.
+ */
+export const generateMetadata = async ({ params }: PageProps): Promise<Metadata> => {
+  const { handle } = await params;
+  if (!isPolicyHandle(handle)) return {};
+  const result = await storefront.request(ShopPoliciesQuery, {});
+  const policy = result.ok ? findPolicy(result.data.shop, handle) : undefined;
+  if (!policy) return { title: "Policy" };
+
+  // The body is HTML; the description wants its words only.
+  const description = metaDescription(policy.body.replace(/<[^>]+>/g, " "));
+  return {
+    title: policy.title,
+    ...(description ? { description } : {}),
+    alternates: { canonical: `/policies/${handle}` },
+    openGraph: {
+      ...baseOpenGraph,
+      url: `/policies/${handle}`,
+      title: policy.title,
+      ...(description ? { description } : {}),
+    },
+  };
+};
 
 /**
  * A store policy (privacy, subscription and so on), as written in Shopify
@@ -25,14 +72,7 @@ const PolicyPage = async ({ params }: PageProps) => {
   const result = await storefront.request(ShopPoliciesQuery, {});
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
-  const { shop } = result.data;
-  const policy = [
-    shop.privacyPolicy,
-    shop.refundPolicy,
-    shop.termsOfService,
-    shop.shippingPolicy,
-    shop.subscriptionPolicy,
-  ].find((candidate) => candidate?.handle === handle);
+  const policy = findPolicy(result.data.shop, handle);
   if (!policy) notFound();
 
   return (
