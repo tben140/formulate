@@ -144,10 +144,12 @@ images raced each other and the JavaScript on a phone, where one is on screen.
 Now only the first result is eager, on collections and search (search had none,
 the bug SHO-143 fixed on collections). It is the first card *with a photo*
 (`priorityIndex` in `packages/shopify`), and `ProductCard`'s `priority` prop
-sets both attributes. The rule doesn't depend on the column count: the
-top-left card is the LCP in one, two or three columns, so it holds when phones
-get a two-column grid. An e2e test checks there is exactly one eager,
-high-priority image.
+sets both attributes. The rule doesn't depend on the column count: the first
+card with a photo is the first photo painted in one, two or three columns, so it
+holds when phones get a two-column grid. That is the top-left card whenever the
+first product has a photo, as every product in the demo store does; if earlier
+products had none, it would sit further along the grid. An e2e test checks
+there is exactly one eager, high-priority image.
 
 Mobile, median of 3–5 runs, production build on the droplet:
 
