@@ -5,10 +5,10 @@ name: Lighthouse (theme)
 # collection pages through the storefront password, then deletes the theme.
 
 on:
+  # Every PR, not only theme PRs: this is a required check on main (SHO-68),
+  # and a required check that never starts blocks a PR forever. PRs that don't
+  # touch the theme finish in seconds; see the "Decide" step.
   pull_request:
-    paths:
-      - "apps/theme/**"
-      - ".github/workflows/lighthouse-theme.yml"
   # Weekly run against main, so the theme is still measured when nobody is
   # changing it (app embeds, store content and Shopify itself all move).
   schedule:
@@ -46,12 +46,32 @@ jobs:
       SHOP_PASSWORD: ${{ secrets.SHOP_PASSWORD }}
 
     steps:
-      - name: Skip when store credentials are not configured
-        if: env.SHOP_THEME_ACCESS_PASSWORD == '' || env.SHOP_STORE == '' || env.SHOP_PASSWORD == ''
-        run: echo "::notice::Theme Lighthouse skipped - SHOP_STORE, SHOP_THEME_ACCESS_PASSWORD and SHOP_PASSWORD secrets are not all set."
-
       - uses: actions/checkout@v5
-        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+        with:
+          # The PR's base commit too, to see whether the theme changed.
+          fetch-depth: 0
+
+      # Whether there's anything to audit. Pull requests that don't touch the
+      # theme (or this workflow) pass at once; scheduled and manual runs always
+      # audit. Without credentials (forks, before secrets exist) it skips too.
+      - name: Decide whether to audit
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -z "$SHOP_THEME_ACCESS_PASSWORD" ] || [ -z "$SHOP_STORE" ] || [ -z "$SHOP_PASSWORD" ]; then
+            echo "::notice::Theme Lighthouse skipped - SHOP_STORE, SHOP_THEME_ACCESS_PASSWORD and SHOP_PASSWORD secrets are not all set."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BASE...$HEAD" | grep -qE '^(apps/theme/|\.github/workflows/lighthouse-theme\.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No theme changes in this PR - nothing to audit."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
 
       # The action is meant to delete its temporary theme on exit, but its
       # cleanup never runs: it tests `${theme+x}` while the script stores the
@@ -59,7 +79,7 @@ jobs:
       # development themes that exist before, and deletes the new one after.
       - name: Record development themes before the audit
         id: themes-before
-        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+        if: steps.gate.outputs.run == 'true'
         env:
           SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
           SHOPIFY_CLI_NO_ANALYTICS: "1"
@@ -71,7 +91,7 @@ jobs:
       # credentials that can write themes, so a moved tag should not be able to
       # change what runs with them.
       - uses: shopify/lighthouse-ci-action@988f0eeb44ad5f298bd47150e5b9b01c27ead975 # v1
-        if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
+        if: steps.gate.outputs.run == 'true'
         with:
           store: ${{ secrets.SHOP_STORE }}
           # Passed to the CLI as SHOPIFY_CLI_THEME_TOKEN. Don't also pass
@@ -83,8 +103,11 @@ jobs:
           # The same product and a listing page the web workflow audits.
           product_handle: magnesium-glycinate
           collection_handle: best-sellers
-          # Same generous floor as web; ratchets at phase exit (SHO-68).
-          lhci_min_score_performance: 0.5
+          # Ratcheted (SHO-68, 2026-10-07). Recent medians are 0.74-0.89; a 2 s
+          # main-thread block scored 0.55 and passed the old 0.5 floor (SHO-29).
+          # The action only takes minimum scores, so this is the theme's whole
+          # performance budget.
+          lhci_min_score_performance: 0.7
           lhci_min_score_accessibility: 0.95
 
       # Only a theme that is new since the step above AND named the way the
