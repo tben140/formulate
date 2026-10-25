@@ -268,6 +268,18 @@ Accepted" for a sign-up that never appeared, not even as a confirmation email
 Klaviyo. The sign-up needs a real phone to prove it; an automated test of the
 subscribe request alone would have passed while proving nothing.
 
+**A critical flaw that nothing announced.** On 25 October a security pass
+found production on Next.js 16.2.11 and the batch on 16.3.8, both in range for
+two critical unauthenticated remote-code-execution flaws patched eleven days
+earlier. The defences that existed were the ones that stop a _bad_ release
+(nothing under 7 days old is installed) and none that flag a _missing_ one:
+Dependabot alerts were off, and the Renovate config had never run because the
+app wasn't installed and the file wasn't on `main`. The fix shipped as a
+production hotfix the same day (#153), with the rest of the audit on the batch
+(#152: 74 findings down to 4, Actions pinned to commit SHAs, CI failing on any
+critical advisory). The lesson: an age rule is half a policy; the other half is
+being told when an old version becomes dangerous.
+
 > **TODO (Ben):** the worktree bug and anything from the lab notebook. Add
 > them here in the same form: what was assumed, what was measured, what
 > changed.
@@ -280,6 +292,7 @@ subscribe request alone would have passed while proving nothing.
 | Accessibility                | axe (WCAG 2.2 AA) in CI on web and the theme; in the app's end-to-end suite; screen-reader labels in the app's unit tests |
 | Tests                        | Unit tests on the shared packages, the Worker and the app; end-to-end suites on all three surfaces                        |
 | Review                       | Every PR reviewed twice: by Ben, and by an automated reviewer whose findings were fixed before merging                    |
+| Security                     | `pnpm audit` 74 → 4 findings, none critical; CI fails on a critical advisory; Actions pinned to commit SHAs (#152)        |
 
 > **TODO (Ben):** link the evidence pack (#74, SHO-80) once merged.
 
