@@ -41,11 +41,23 @@ this (`minimumReleaseAge` in `pnpm-workspace.yaml`) and Renovate uses the same
 number. The wait keeps out hijacked releases, which are usually caught and
 pulled within hours to days.
 
-- **Security fast track: 2 days.** A version that fixes a published advisory
-  may be installed once it's 2 days old, if it's a patch or minor release from
-  the same publisher and CI passes. Add it to `minimumReleaseAgeExclude` with a
-  comment naming the advisory, and remove the line once the version is 7 days
-  old. Renovate applies the 2 days to security PRs by itself.
+- **Security fast track: as soon as it's verified.** A version that fixes a
+  published advisory may be installed straight away, with no wait, when all of
+  these hold:
+  1. A **GitHub-reviewed advisory** names this exact version as patched.
+  2. It's a **patch or minor** release, from the **same publisher** as the
+     version it replaces.
+  3. pnpm's **trust policy** passes (no drop in provenance; see
+     `trustPolicy` in `pnpm-workspace.yaml`).
+  4. **CI passes.**
+
+  Add it to `minimumReleaseAgeExclude` with a comment naming the advisory, and
+  remove the line once the version is 7 days old. `pnpm audit --fix` writes
+  the line for you; check the four conditions before keeping it. If any one
+  fails, the version waits the normal 7 days. Until a fix can be installed,
+  **mitigate**: turn off the affected feature, or block the attack at the
+  edge (a Vercel firewall rule). docs/security.md has the full process.
+
 - **Prefer a range that can't reach a release that's too new.** A caret can
   resolve to a release from yesterday: `~16.3.8` instead of `^16.3.8` kept Next
   off a two-day-old 16.4.2.

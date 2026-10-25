@@ -12,8 +12,8 @@
   ],
   "minimumReleaseAge": "7 days",
   "vulnerabilityAlerts": {
-    "description": "Security fixes take the 2-day fast track in AGENTS.md (Dependencies) instead of the 7-day default.",
-    "minimumReleaseAge": "2 days"
+    "description": "Security fixes take the fast track in AGENTS.md (Dependencies): the PR opens at once instead of after 7 days. pnpm still refuses the version until someone checks the four conditions there and adds it to minimumReleaseAgeExclude, so this PR fails CI until then.",
+    "minimumReleaseAge": null
   },
   "prConcurrentLimit": 5,
   "labels": [

@@ -1,0 +1,71 @@
+name: Security audit
+
+# CI only audits when something is pushed, so a new advisory against a
+# dependency that nobody is changing goes unseen: the Next.js flaw in
+# October 2026 sat unnoticed for eleven days. This runs the same audit every
+# morning on main and opens an issue (which emails the repository owner) when
+# it finds something, or comments on the open one. See docs/security.md.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+
+      # The same two checks as CI. pnpm audit reads only the lockfile, so
+      # nothing is installed.
+      - name: Audit, and report findings as an issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          report="$RUNNER_TEMP/audit.md"
+          set +e
+          pnpm audit --audit-level high > "$RUNNER_TEMP/all.txt" 2>&1
+          all=$?
+          pnpm audit --prod --audit-level moderate > "$RUNNER_TEMP/prod.txt" 2>&1
+          prod=$?
+          set -e
+          if [ "$all" -eq 0 ] && [ "$prod" -eq 0 ]; then
+            echo "No findings beyond the accepted list."
+            exit 0
+          fi
+          {
+            echo "The daily audit found a vulnerable dependency on \`main\`."
+            echo "Fix it with an upgrade or a pnpm override, or accept it in"
+            echo "\`pnpm-workspace.yaml\` (see docs/security.md)."
+            echo
+            echo "<details><summary>pnpm audit (high and critical, whole tree)</summary>"
+            echo; echo '```'; tail -n 200 "$RUNNER_TEMP/all.txt"; echo '```'; echo; echo "</details>"
+            echo
+            echo "<details><summary>pnpm audit --prod (moderate and above)</summary>"
+            echo; echo '```'; tail -n 200 "$RUNNER_TEMP/prod.txt"; echo '```'; echo; echo "</details>"
+          } > "$report"
+          gh label create security-audit --color B60205 \
+            --description "Opened by the daily dependency audit" 2>/dev/null || true
+          open=$(gh issue list --label security-audit --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body-file "$report"
+          else
+            gh issue create --title "Security audit: a dependency has a known vulnerability" \
+              --label security-audit --body-file "$report"
+          fi
+          exit 1
