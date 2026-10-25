@@ -3,6 +3,7 @@
   "description": "Dependency updates for the formulate monorepo (SHO-146). Pins that exist for a documented reason are excluded below, each citing its ADR, so Renovate never proposes breaking them.",
   "extends": [
     "config:recommended",
+    "helpers:pinGitHubActionDigests",
     ":dependencyDashboard",
     ":semanticCommitTypeAll(chore)"
   ],
@@ -15,6 +16,7 @@
     "description": "Security fixes take the 2-day fast track in AGENTS.md (Dependencies) instead of the 7-day default.",
     "minimumReleaseAge": "2 days"
   },
+  "osvVulnerabilityAlerts": true,
   "prConcurrentLimit": 5,
   "labels": [
     "dependencies"
@@ -120,7 +122,7 @@
       "groupName": "Shopify CLI"
     },
     {
-      "description": "GitHub Actions in one PR. Actions pinned by commit SHA (shopify/lighthouse-ci-action) keep their digest pin.",
+      "description": "GitHub Actions in one PR. Each Action is pinned to a commit SHA (helpers:pinGitHubActionDigests); the update moves the SHA and its version comment together.",
       "matchManagers": [
         "github-actions"
       ],
