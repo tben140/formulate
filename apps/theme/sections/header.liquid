@@ -71,7 +71,7 @@
         <circle cx="8.5" cy="8.5" r="5.5" />
         <path d="m13 13 4 4" stroke-linecap="round" />
       </svg>
-      {{- 'general.search_link' | t -}}
+      <span class="site-header__search-label">{{- 'general.search_link' | t -}}</span>
     </a>
 
     <cart-count class="site-header__cart">
@@ -141,12 +141,45 @@
 
   .site-header__cart {
     order: 2;
+  }
+
+  /*
+   * Search sits just before the cart, at the same order on each width, and
+   * takes the auto margin so the two stay together on the right. With the
+   * margin on the cart instead, the pair needed more than a phone's width and
+   * the cart wrapped under the wordmark (390 px wide, 2026-10-25).
+   */
+  .site-header__search {
+    order: 2;
     margin-inline-start: auto;
   }
 
-  /* Search sits just before the cart, at the same order on each width. */
-  .site-header__search {
-    order: 2;
+  /*
+   * Below the one-row layout the pair sits closer, like apps/web's gap-2. A
+   * row gap rather than a margin on the cart: <cart-count> takes no margin of
+   * its own. Search's auto margin still keeps the wordmark apart.
+   */
+  @media (max-width: 47.99rem) {
+    .site-header__nav {
+      column-gap: var(--spacing-2);
+    }
+  }
+
+  /*
+   * On the narrowest phones (under 384 px, e.g. 360 px Android) Search becomes
+   * its icon alone, so the wordmark, Search and Cart still fit on one row. The
+   * word stays for screen readers.
+   */
+  @media (max-width: 23.99rem) {
+    .site-header__search-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 
   @media (min-width: 48rem) {
