@@ -147,6 +147,45 @@ stack on the other). A rehearsal merge on `tben140/premerge-125-148`
 typechecks across shared, web and app, passes 198 shared tests and theme lint,
 and needed one contract change: `/routine` added to the shared routes.
 
+### Security pass (2026-10-25)
+
+After a month of npm worms and stolen-token attacks, and critical Next.js and
+Node.js fixes. Details in [security.md](security.md); PRs #152 and #153.
+
+| Check                                 | Result                                                                                                                                          |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js, batch and production         | **Exposed**: 16.3.8 and 16.2.11 were in range for two critical unauthenticated RCEs (GHSA-673q-mjm6-r5xr, GHSA-2464-fhr4-w9xw). Fixed by 16.4.2 |
+| `pnpm audit`                          | 74 findings (3 critical, 45 high) → 4 (2 high, 2 moderate), all inside Expo's CLI with no fix released                                          |
+| This month's compromised npm packages | None in the lockfile (keyv/cacheable family, node-ipc, `@subql/*`, tensorlake)                                                                  |
+| Indicators of compromise              | None in git history, `node_modules` or on the droplet                                                                                           |
+| GitHub Actions                        | Pinned to tags → pinned to commit SHAs; checkout no longer leaves the token on disk                                                             |
+| Gaps                                  | Dependabot alerts off, Renovate never run, any Action allowed: owner settings, tracked in SHO-191                                               |
+
+The audit gate (`pnpm audit --audit-level critical`) runs in CI from #152.
+
+### Bug sweep (2026-10-25)
+
+Each surface at 390 px and 1280 px: status, console errors, failed requests
+and sideways scrolling, then the screenshots read by eye.
+
+| Surface                       | Pages | Result                                                                                                                                                                |
+| ----------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web (batch, production build) | 10    | No errors or overflow. Visible bugs are all fixed by open PRs: "Formulate" in titles, header and footer (#96), descriptions run together (#68), raw plan names (#141) |
+| Theme (live store)            | 11    | No errors or overflow. **New:** the cart button wrapped under the wordmark on phones; fixed in #156, checked at 320–1280 px                                           |
+| App (web build of the batch)  | 8     | No errors. Same "Formulate" and description items as web                                                                                                              |
+
+Also from the same day: an SEO audit of the web build (#154: policy titles,
+home canonical, a default share image, Organization and WebSite data), and the
+Functions stack brought up to date with the batch.
+
+| Suite                       | Tests                | At                                  |
+| --------------------------- | -------------------- | ----------------------------------- |
+| `apps/mobile` (Jest)        | 36                   | `tben140/app-tests-more` (#155)     |
+| `cart-limits` Function      | 6                    | `tben140/checkout-guarantee` (#149) |
+| `stack-discount` Function   | 7                    | `tben140/checkout-guarantee` (#149) |
+| Checkout extensions         | 14                   | `tben140/checkout-guarantee` (#149) |
+| Web e2e, with #94's reviews | 36 passed, 6 skipped | `tben140/reviews-judgeme` (#94)     |
+
 ## Review
 
 From 19 October every PR, drafts included, was reviewed by CodeRabbit as well
