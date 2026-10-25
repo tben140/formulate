@@ -1,4 +1,5 @@
 import {
+  priorityIndex,
   productFiltersFromParams,
   SearchProductsQuery,
   withoutEmptyFilters,
@@ -47,6 +48,7 @@ const SearchPage = async ({ searchParams }: PageProps) => {
         filters: productFiltersFromParams(query),
       })
     : null;
+  const firstWithImage = result?.ok ? priorityIndex(result.data.search.nodes) : -1;
 
   return (
     <>
@@ -108,11 +110,9 @@ const SearchPage = async ({ searchParams }: PageProps) => {
                     <ProductCard
                       product={product}
                       sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-                      // The first result's image is the LCP; lazy, it waited
-                      // ~1.3 s to start on a phone (SHO-148, as SHO-143 found
-                      // on collections). Only the first: see the collection page.
-                      loading={index === 0 ? "eager" : "lazy"}
-                      fetchPriority={index === 0 ? "high" : "auto"}
+                      // The LCP image: the first result with a photo. Lazy,
+                      // it waited ~1.3 s to start on a phone (SHO-148).
+                      priority={index === firstWithImage}
                     />
                   </li>
                 ) : null,

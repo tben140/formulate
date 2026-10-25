@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { withoutEmptyFilters } from "@formulate/shopify";
+import { priorityIndex, withoutEmptyFilters } from "@formulate/shopify";
 import { notFound, redirect } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
@@ -68,6 +68,7 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
 
   const collection = result.data.collection;
   if (!collection) notFound();
+  const firstWithImage = priorityIndex(collection.products.nodes);
 
   return (
     <>
@@ -106,15 +107,8 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
             <ProductCard
               product={product}
               sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-              // Only the first image is eager. It's the Largest Contentful
-              // Paint, and Hydrogen's Image defaults to lazy, which delayed it
-              // (SHO-143). The rest stay lazy (SHO-148): React preloads every
-              // eager image in <head>, so an eager first row meant three
-              // images racing the LCP image and the JavaScript on a phone,
-              // where only the first is on screen. On wider screens the row's
-              // cards are the same size, and the LCP stays the first painted.
-              loading={index === 0 ? "eager" : "lazy"}
-              fetchPriority={index === 0 ? "high" : "auto"}
+              // The LCP image: the first card with a photo (see ProductCard).
+              priority={index === firstWithImage}
             />
           </li>
         ))}

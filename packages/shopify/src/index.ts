@@ -20,6 +20,7 @@ export {
   freeShippingProgress,
 } from "./free-shipping";
 export type { FreeShippingProgress } from "./free-shipping";
+export { priorityIndex } from "./priority-image";
 export { RECOMMENDATION_LIMIT, selectCartSuggestions } from "./recommendations";
 export type { CartSuggestion } from "./recommendations";
 export type { MoneyLike } from "./format-money";

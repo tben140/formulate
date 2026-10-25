@@ -139,7 +139,12 @@ The fix that moved the real number was the first row: an eager image is also
 preloaded in `<head>` (React 19 does this), so the collection's three eager
 images raced each other and the JavaScript on a phone, where one is on screen.
 Now only the first result is eager, on collections and search (search had none,
-the bug SHO-143 fixed on collections).
+the bug SHO-143 fixed on collections). It is the first card *with a photo*
+(`priorityIndex` in `packages/shopify`), and `ProductCard`'s `priority` prop
+sets both attributes. The rule doesn't depend on the column count: the
+top-left card is the LCP in one, two or three columns, so it holds when phones
+get a two-column grid. An e2e test checks there is exactly one eager,
+high-priority image.
 
 Mobile, median of 3–5 runs, production build on the droplet:
 
