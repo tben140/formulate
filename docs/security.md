@@ -6,16 +6,18 @@ audit. The dependency age rule itself is in [AGENTS.md](../AGENTS.md)
 
 ## The defences
 
-| Risk                                     | Defence                                                                            | Where                                               |
-| ---------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------- |
-| A hijacked npm release                   | Nothing younger than 7 days is installed (2 days for a security fix)               | `minimumReleaseAge` in `pnpm-workspace.yaml`        |
-| Install-time malware                     | pnpm runs dependency install scripts only for allowlisted packages                 | `allowBuilds` in `pnpm-workspace.yaml`              |
-| A known vulnerability                    | CI fails on any **critical** advisory                                              | `pnpm audit --audit-level critical` in `ci.yml`     |
-| A vulnerable transitive dependency       | A pnpm override lifts only the vulnerable range, with the advisory named beside it | `overrides` in `pnpm-workspace.yaml`                |
-| A moved or hijacked Action tag           | Every Action is pinned to a commit SHA, the version in a comment                   | `.github/workflows/*.yml`                           |
-| A later step reading the GitHub token    | `actions/checkout` runs with `persist-credentials: false`                          | every workflow                                      |
-| A workflow with more power than it needs | The default token is read-only; no workflow uses `pull_request_target`             | repository settings, each workflow's `permissions:` |
-| A committed secret                       | Secret scanning and push protection are on                                         | repository settings                                 |
+| Risk                                     | Defence                                                                                                          | Where                                               |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| A hijacked npm release                   | Nothing younger than 7 days is installed (2 days for a security fix)                                             | `minimumReleaseAge` in `pnpm-workspace.yaml`        |
+| Install-time malware                     | pnpm runs dependency install scripts only for allowlisted packages                                               | `allowBuilds` in `pnpm-workspace.yaml`              |
+| A known vulnerability                    | CI fails on any **critical** advisory                                                                            | `pnpm audit --audit-level critical` in `ci.yml`     |
+| A vulnerable transitive dependency       | A pnpm override lifts only the vulnerable range, with the advisory named beside it                               | `overrides` in `pnpm-workspace.yaml`                |
+| A moved or hijacked Action tag           | Every Action is pinned to a commit SHA, the version in a comment                                                 | `.github/workflows/*.yml`                           |
+| A later step reading the GitHub token    | `actions/checkout` runs with `persist-credentials: false`                                                        | every workflow                                      |
+| A workflow with more power than it needs | The default token is read-only and each workflow asks only for `contents: read`; none uses `pull_request_target` | repository settings, each workflow's `permissions:` |
+| A committed secret                       | Secret scanning and push protection are on                                                                       | repository settings                                 |
+
+The repository settings in this table were checked through the GitHub API on 25 October 2026.
 
 ## October 2026 audit (25 Oct)
 
@@ -62,7 +64,7 @@ Node.js.
 | uuid 7.0.3                 | Moderate | Expo's `xcode` package (prebuild)    | The fix needs uuid 11. The bug needs a caller-supplied buffer, which `xcode` doesn't pass.                           |
 | decode-uri-component 0.2.2 | Moderate | expo-router's query-string           | No 0.2 or 0.4 fix exists. A slow decode of a malformed URL in the shopper's own app.                                 |
 
-Each goes once Expo updates the parent package. `pnpm audit` lists them.
+Each finding goes away once Expo updates the parent package with the fix. `pnpm audit` lists them.
 
 ## Still to switch on (repository owner)
 
