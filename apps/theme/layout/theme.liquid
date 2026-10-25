@@ -13,17 +13,13 @@
     {% render 'css-variables' %}
 
     {% comment %}
-      Font preloading:
-      1. Preconnect to font CDN for faster connection
-      2. Preload only the critical font variant (base weight)
-      3. Additional variants load on-demand via @font-face
+      DM Sans and DM Mono (SHO-110): the same files apps/web serves, synced
+      from packages/tokens by `pnpm --filter @formulate/theme build`. The body
+      weight is preloaded because it paints most of the page; the other
+      weights load on demand through @font-face.
     {% endcomment %}
-    {% unless settings.type_primary_font.system? %}
-      <link rel="preconnect" href="https://fonts.shopifycdn.com" crossorigin>
-
-      {% comment %} Preload the base font variant for initial page render {% endcomment %}
-      {{ settings.type_primary_font | font_url | preload_tag: as: 'font', crossorigin: 'anonymous' }}
-    {% endunless %}
+    {{ 'fonts.css' | asset_url | stylesheet_tag }}
+    {{ 'dm-sans-latin-400-normal.woff2' | asset_url | preload_tag: as: 'font', type: 'font/woff2', crossorigin: 'anonymous' }}
 
     {% # Load and preload the critical CSS %}
     {{ 'critical.css' | asset_url | stylesheet_tag: preload: true }}
@@ -38,9 +34,21 @@
   </head>
 
   <body>
+    {% comment %}
+      First thing on the page, so one Tab reaches it and Enter skips the header
+      and its collection links (WCAG 2.4.1, SHO-152). Hidden until focused.
+    {% endcomment %}
+    <a class="skip-link" href="#MainContent">{{ 'general.skip_to_content' | t }}</a>
+
     {% sections 'header-group' %}
 
-    {{ content_for_layout }}
+    {% comment %}
+      The page's main landmark, which the theme didn't have. tabindex="-1" so
+      the skip link moves focus here, not only the scroll position.
+    {% endcomment %}
+    <main id="MainContent" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
 
     {% sections 'footer-group' %}
 

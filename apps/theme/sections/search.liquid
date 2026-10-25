@@ -1,66 +1,111 @@
 {% comment %}
-  This section is used in the search template to render search results for
-  products, articles, and pages.
+  Product search, matching apps/web's app/search/page.tsx (SHO-153): a labelled
+  search form, products only, the same grid as collections, and the same
+  Search & Discovery filter panel (snippets/collection-filters.liquid).
+
+  `type=product` keeps pages and articles out, as the headless surfaces do.
+  The URL is the one web uses (`/search?q=...&filter...`); web ignores `type`.
 
   https://shopify.dev/docs/storefronts/themes/architecture/templates/search
 {% endcomment %}
 
-<div class="container page-section">
-  <h1>{{ 'search.title' | t }}</h1>
+{%- liquid
+  assign products = search.results | where: 'object_type', 'product'
+-%}
 
-  <form action="{{ routes.search_url }}" method="get" role="search">
+<div class="container search-page">
+  <h1 class="search-page__title">{{ 'search.title' | t }}</h1>
+
+  <form class="search-page__form" action="{{ routes.search_url }}" method="get" role="search">
+    <input type="hidden" name="type" value="product">
+    <label class="visually-hidden" for="search-term-{{ section.id }}">{{ 'search.label' | t }}</label>
     <input
+      id="search-term-{{ section.id }}"
+      class="search-page__input"
       type="search"
-      size="50"
       name="q"
       value="{{ search.terms | escape }}"
-      placeholder="{{ 'search.placeholder' | t }}"
+      placeholder="{{ 'search.label' | t }}"
+      autocomplete="off"
+      enterkeyhint="search"
     >
-    <button type="submit">{{ 'search.submit' | t }}</button>
+    <button class="search-page__submit" type="submit">{{ 'search.submit' | t }}</button>
   </form>
 
-  {% if search.performed %}
-    {% if search.results_count == 0 %}
-      <p>{{ 'search.no_results_html' | t: terms: search.terms }}</p>
-    {% else %}
-      <p>{{ 'search.results_for_html' | t: terms: search.terms, count: search.results_count }}</p>
+  {%- if search.performed -%}
+    <section class="search-page__results" aria-labelledby="search-results-{{ section.id }}">
+      <h2 id="search-results-{{ section.id }}" class="visually-hidden">{{ 'search.results' | t }}</h2>
 
-      <div class="search-results">
-        {% paginate search.results by 20 %}
-          {% # Search result items may be an article, a page, or a product. %}
-          {% for result in search.results %}
-            <div class="search-result">
-              {% assign featured_image = result.featured_image | default: result.image %}
-              {% if featured_image %}
-                {% render 'image', class: 'search-result__image', image: featured_image, url: result.url, width: 400 %}
-              {% endif %}
-              <div class="search-result__content">
-                <p>
-                  {{ result.title | link_to: result.url }}
-                  {% if result.price %}
-                    {{ result.price | money_with_currency }}
-                  {% endif %}
-                </p>
-              </div>
-            </div>
-          {% endfor %}
+      {%- liquid
+        assign base = routes.search_url | append: '?type=product&q=' | append: search.terms
+      -%}
+      {% render 'collection-filters',
+        filters: search.filters,
+        action: routes.search_url,
+        clear_url: base,
+        count: search.results_count,
+        terms: search.terms
+      %}
 
+      {%- if products.size == 0 -%}
+        <p class="search-page__empty">{{ 'search.no_products' | t: terms: search.terms }}</p>
+      {%- else -%}
+        {% paginate search.results by 24 %}
+          {% render 'product-grid', products: products %}
           {{ paginate | default_pagination }}
         {% endpaginate %}
-      </div>
-    {% endif %}
-  {% endif %}
+      {%- endif -%}
+    </section>
+  {%- endif -%}
 </div>
 
 {% stylesheet %}
-  .search-results {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  .search-page {
+    padding-block: var(--spacing-8);
   }
-  .search-results .prev,
-  .search-results .page,
-  .search-results .next {
-    grid-column: 1 / -1;
+
+  .search-page__title {
+    margin: 0;
+    font-size: var(--text-3xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .search-page__form {
+    display: flex;
+    gap: var(--spacing-2);
+    max-inline-size: 36rem;
+    margin-block: var(--spacing-6) var(--spacing-8);
+  }
+
+  .search-page__input {
+    flex: 1;
+    min-inline-size: 0;
+    padding: var(--spacing-2) var(--spacing-3);
+    border: 1px solid var(--color-ink-400);
+    border-radius: var(--radius-md);
+    font: inherit;
+  }
+
+  .search-page__submit {
+    padding: var(--spacing-2) var(--spacing-4);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--color-brand-600);
+    color: var(--color-surface);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .search-page__submit:hover {
+    background: var(--color-brand-700);
+  }
+
+  .search-page__empty {
+    padding-block: var(--spacing-12);
+    text-align: center;
+    color: var(--color-foreground-muted);
   }
 {% endstylesheet %}
 

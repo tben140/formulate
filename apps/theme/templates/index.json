@@ -9,12 +9,22 @@
  */
 {
   "sections": {
+    "intro": {
+      "type": "home-intro",
+      "settings": {}
+    },
+    "categories": {
+      "type": "collection-list",
+      "settings": {}
+    },
     "main": {
       "type": "featured-collection",
       "settings": {}
     }
   },
   "order": [
+    "intro",
+    "categories",
     "main"
   ]
 }

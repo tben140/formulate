@@ -65,12 +65,15 @@ Create a Storefront access token (Shopify admin → add the **Headless** sales
 channel → create a storefront → publish products to it), then:
 
 ```bash
-cp .env.example apps/web/.env.local
+cp apps/web/.env.example apps/web/.env.local
+cp apps/mobile/.env.example apps/mobile/.env.local
 ```
 
-Fill in `SHOPIFY_STORE_DOMAIN` and `SHOPIFY_STOREFRONT_TOKEN`, and mirror them
-into `apps/mobile/.env.local` with the `EXPO_PUBLIC_` prefix. Both files are
-gitignored; this repository is public.
+Fill in `SHOPIFY_STORE_DOMAIN` and `SHOPIFY_STOREFRONT_TOKEN` in the first, and
+the same values under their `EXPO_PUBLIC_` names in the second. Each example
+file says what every variable is for. Both copies are gitignored; this
+repository is public. The theme and the API worker have their own examples
+(`apps/theme/.env.local.example`, `apps/api/.dev.vars.example`).
 
 Confirm the credential works before starting either app:
 

@@ -14,17 +14,19 @@
 
 ## Routes
 
-| Route                   | What it does                                     |
-| ----------------------- | ------------------------------------------------ |
-| `/`                     | Redirects to `/collections/automated-collection` |
-| `/collections/[handle]` | Product grid                                     |
-| `/products/[handle]`    | Product detail with variants                     |
+| Route                   | What it does                                               |
+| ----------------------- | ---------------------------------------------------------- |
+| `/`                     | Home page: introduction, category cards, featured products |
+| `/collections/[handle]` | Product grid, with filters and paging                      |
+| `/products/[handle]`    | Product detail with variants and subscribe-and-save        |
+| `/search`               | Search results                                             |
+| `/policies/[handle]`    | The store's policies, from Shopify                         |
 
-The homepage is a redirect rather than a page. This is the one place where the
-web app and the Liquid theme deliberately diverge in structure: a theme's
-homepage is a real, merchant-editable page, so `apps/theme` renders the
-collection through a `featured-collection` section instead of redirecting. Both
-land the visitor on the same products.
+The home page is driven by the Shopify menu "Shop" (the header's): its
+collections become the category cards, in menu order, and its first collection
+is the featured one, so reordering the menu changes the page with no deploy. The
+theme's home page is edited in the theme editor instead. Both land the visitor
+on the same products.
 
 ## Data access
 
@@ -86,12 +88,51 @@ Scope worth stating: Vercel Analytics is page views and Core Web Vitals measured
 at the edge, cookieless. It is **not** product analytics, and it cannot see the
 Expo app at all.
 
+### Performance monitoring
+
+Two sources, measuring different things:
+
+- **Lab: Lighthouse CI** (`.github/workflows/lighthouse-web.yml`, config in
+  `apps/web/lighthouserc.cjs`). Runs against every Vercel deployment once
+  Vercel reports it ready, and weekly against production. Three pages (home, a
+  collection, a product), the same three the theme's run audits. Mobile
+  profile, three runs per page, the median of each metric judged. The table and
+  full reports land on the workflow run.
+- **Field: Vercel Speed Insights.** Real visitors' LCP, CLS and INP. Lab data
+  has no INP, so Lighthouse gates on Total Blocking Time instead.
+
+Previews are behind Vercel Deployment Protection, so the workflow needs the
+`VERCEL_AUTOMATION_BYPASS_SECRET` repository secret (Vercel → Project →
+Settings → Deployment Protection → Protection Bypass for Automation). The
+secret goes on the query string, never in Lighthouse's `extraHeaders`, which
+would send it to every third-party host the page loads from. It is redacted
+from the reports before they are uploaded.
+
+#### Perf snapshot
+
+Budgets are generous on purpose: for now the gate only has to exist and catch
+a regression. They ratchet at phase exit (SHO-68).
+
+| Metric | Budget (error) | Baseline, 28 Sep 2026 |
+| --- | --- | --- |
+| Performance score | ≥ 50 | 57–73 |
+| Accessibility score | ≥ 95 | 100 |
+| LCP | ≤ 6.0 s | 2.9–5.2 s |
+| CLS | ≤ 0.1 | 0.000 |
+| TBT | ≤ 1200 ms | 360–1025 ms |
+
+The baseline comes from a production build of the combined September PR batch,
+measured on the development droplet. That machine is a shared CPU, so TBT
+varies about twofold between runs, and the budget allows for it. LCP is the
+metric to watch: on both pages the LCP element is a product image with
+`loading="lazy"`, which delays the most important image on the page.
+
 ## Not built yet
 
-Cart, checkout, customer accounts, and the read-only Recharge portal. Cart is
-first, and everything else waits on it — see the
-[domain model's cart section](domain-model.md#cart) for the persistence design
-and the `?key=` trap.
+The cart (a drawer, held in an httpOnly cookie) and the handoff to Shopify's
+checkout are built; see the [domain model's cart section](domain-model.md#cart)
+for the persistence design and the `?key=` trap. Still in review: customer
+sign-in and order history (#76) and the read-only Recharge portal (#80).
 
 ## Related
 

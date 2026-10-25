@@ -1,0 +1,68 @@
+{% comment %}
+  The demo-store notice, above the header on every page.
+
+  Matches apps/web's components/demo-notice.tsx and apps/mobile's. The words
+  are settings so they stay editable in the theme editor, and they default to
+  a copy of DEMO_STORE_NOTICE in packages/shopify/src/config.ts — Liquid cannot
+  import it, so change both together. See docs/demo-store.md.
+
+  Not dismissible, deliberately: it states what happens to an order placed
+  here, and it should still be showing on the page someone checks out from.
+{% endcomment %}
+
+{% comment %} full-width: sections sit in the middle column of a gutter grid by
+  default (critical.css); this bar spans the viewport, as on web. {% endcomment %}
+<div class="demo-notice full-width">
+  <p class="demo-notice__text">
+    <strong>{{ section.settings.label | escape }}</strong> —
+    {{ section.settings.message | escape }}
+  </p>
+</div>
+
+{% stylesheet %}
+  /* Matched to apps/web: bg-ink-900 text-surface px-4 py-2 text-xs, text-sm
+     from 40rem (Tailwind's sm). */
+  .demo-notice {
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: var(--text-xs);
+    text-align: center;
+    color: var(--color-surface);
+    background: var(--color-ink-900);
+  }
+
+  .demo-notice__text {
+    max-width: 64rem;
+    margin: 0 auto;
+  }
+
+  .demo-notice__text strong {
+    font-weight: 600;
+  }
+
+  @media (min-width: 40rem) {
+    .demo-notice {
+      font-size: var(--text-sm);
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Demo notice",
+  "enabled_on": { "groups": ["header"] },
+  "settings": [
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Label",
+      "default": "Demo store"
+    },
+    {
+      "type": "text",
+      "id": "message",
+      "label": "Message",
+      "default": "this is a portfolio project. Checkout runs in test mode: you won't be charged and nothing will be shipped."
+    }
+  ]
+}
+{% endschema %}
