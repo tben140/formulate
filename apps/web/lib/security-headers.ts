@@ -48,9 +48,34 @@ const policy: Record<string, readonly string[]> = {
   "frame-ancestors": ["'none'"],
 };
 
-export const contentSecurityPolicy = Object.entries(policy)
-  .map(([directive, sources]) => `${directive} ${sources.join(" ")}`)
-  .join("; ");
+/**
+ * Vercel's comment toolbar, on preview deployments only: Vercel injects its
+ * script into preview pages even with `x-vercel-skip-toolbar`, so the e2e run
+ * against a preview saw it. Hosts from Vercel's own CSP guidance. Production
+ * never gets these.
+ */
+const vercelPreviewToolbar: Record<string, readonly string[]> = {
+  "script-src": ["https://vercel.live"],
+  "style-src": ["https://vercel.live"],
+  "img-src": ["https://vercel.live", "https://vercel.com"],
+  "font-src": ["https://vercel.live", "https://assets.vercel.com"],
+  "connect-src": ["https://vercel.live", "wss://ws-us3.pusher.com"],
+  "frame-src": ["https://vercel.live"],
+};
+
+/** The policy for this build: `VERCEL_ENV` is "preview" on preview builds. */
+export const buildPolicy = (preview: boolean): string =>
+  Object.entries(policy)
+    .map(([directive, sources]) => {
+      const extra = preview ? (vercelPreviewToolbar[directive] ?? []) : [];
+      // A source list with 'none' can't take anything else.
+      const all =
+        extra.length > 0 ? [...sources.filter((s) => s !== "'none'"), ...extra] : sources;
+      return `${directive} ${all.join(" ")}`;
+    })
+    .join("; ");
+
+export const contentSecurityPolicy = buildPolicy(process.env.VERCEL_ENV === "preview");
 
 export const securityHeaders: readonly { key: string; value: string }[] = [
   { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicy },
