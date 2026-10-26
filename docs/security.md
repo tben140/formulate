@@ -105,7 +105,7 @@ major line, published by the package's long-standing maintainer without
 provenance, after the newer line had started publishing with it. Checked by
 hand on 25 October 2026. Any other version of those packages is still checked.
 
-## Switched on
+## Settled
 
 **Done 26 October 2026: Dependabot alerts on, Renovate installed** (on
 this repository only). Dependabot security and version updates stay off:
@@ -113,12 +113,15 @@ Renovate opens the PRs. Renovate reads `renovate.json` from `main`, so it
 starts once the batch has merged; close its "Configure Renovate"
 onboarding PR rather than merging it.
 
+**Not available: more secret scanning.** "Non-provider patterns" (generic
+secrets such as private keys) and "validity checks" (whether a leaked token
+still works) need GitHub Secret Protection, which a repository on a personal
+account doesn't get: the settings aren't shown, and the API accepts the
+change but leaves both off (checked 26 October 2026). Secret scanning and
+push protection, which cover known token formats, are on.
+
 ## Still to switch on (repository owner)
 
-- **More secret scanning.** Settings → Advanced Security: turn on
-  "non-provider patterns" (generic secrets such as private keys and
-  connection strings) and "validity checks" (whether a leaked token still
-  works). Both are off.
 - **Actions policy.** Settings → Actions → General: allow only GitHub's own
   Actions, verified creators and the ones listed (pnpm/action-setup,
   shopify/lighthouse-ci-action), and tick "Require actions to be pinned to a
