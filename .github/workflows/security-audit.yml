@@ -52,12 +52,17 @@ jobs:
             exit 0
           fi
           # A non-zero exit is either findings ("N vulnerabilities found") or
-          # an audit that didn't run. Only the first is reported as a finding.
-          if ! grep -q "vulnerabilities found" "$RUNNER_TEMP/all.txt" "$RUNNER_TEMP/prod.txt"; then
-            cat "$RUNNER_TEMP/all.txt" "$RUNNER_TEMP/prod.txt"
-            echo "::error::pnpm audit couldn't run (see the log above); no findings reported."
-            exit 1
-          fi
+          # an audit that didn't run. Each failed audit must show a count, so
+          # a registry error is never reported as a finding.
+          for name in all prod; do
+            [ "$name" = all ] && code=$all || code=$prod
+            [ "$code" -eq 0 ] && continue
+            if ! grep -Eq "^[0-9]+ vulnerabilit(y|ies) found" "$RUNNER_TEMP/$name.txt"; then
+              cat "$RUNNER_TEMP/$name.txt"
+              echo "::error::pnpm audit ($name) couldn't run (see the log above); no findings reported."
+              exit 1
+            fi
+          done
           {
             echo "@$GITHUB_REPOSITORY_OWNER the daily audit found a vulnerable dependency on \`main\`."
             echo "Fix it with an upgrade or a pnpm override, or accept it in"
