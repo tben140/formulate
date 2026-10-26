@@ -1,6 +1,6 @@
 import { Link } from "expo-router";
-import { useRef } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Fragment, useRef } from "react";
+import { Pressable, ScrollView, Text } from "react-native";
 
 import { useNavLinks } from "../lib/queries";
 
@@ -76,7 +76,9 @@ export const CollectionNav = ({
           </Pressable>
         );
 
-        if (inPlace) return <View key={link.id}>{chip}</View>;
+        // A Fragment, not a View: a wrapper would make the onLayout x above
+        // relative to itself (0) instead of to the scrolling row.
+        if (inPlace) return <Fragment key={link.id}>{chip}</Fragment>;
 
         return (
           <Link key={link.id} href={link.path} asChild disabled={selected}>
