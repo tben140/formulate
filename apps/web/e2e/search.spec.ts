@@ -18,6 +18,12 @@ test("suggestions appear as you type, and the keyboard picks one", async ({ page
   const list = page.getByRole("listbox", { name: "Suggested products" });
   await expect(list).toBeVisible();
   await expect(list.getByRole("option").first()).toContainText("Magnesium Glycinate");
+  // Straight from Shopify's CDN, like every other image: not through
+  // Next's image optimiser, which the site doesn't use (docs/security.md).
+  await expect(list.getByRole("option").first().locator("img")).toHaveAttribute(
+    "src",
+    /^https:\/\/cdn\.shopify\.com\//,
+  );
   await expect(
     page.getByRole("status").filter({ hasText: /suggestions?\./ }),
   ).toBeAttached();

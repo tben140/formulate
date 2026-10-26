@@ -7,7 +7,7 @@ import {
   suggestionTerm,
   type ProductSuggestion,
 } from "@formulate/shopify";
-import Image from "next/image";
+import { Image } from "@shopify/hydrogen-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 
