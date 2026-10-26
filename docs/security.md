@@ -127,21 +127,107 @@ hand on 25 October 2026. Any other version of those packages is still checked.
 - **Tokens.** Review personal access tokens on GitHub, npm and Expo and remove
   any that aren't needed. GhostAction spread through long-lived classic tokens.
 - **Tailscale** to 1.104.2 or later on every device (forged certificates from
-  the distrusted eMudhra intermediates). The droplet runs 1.102.4.
+  the distrusted eMudhra intermediates). Done on the laptop, phone and
+  droplet (26 October 2026).
 
 **Off on purpose:** "Require review from Code Owners". The owner is the only
 maintainer, and GitHub doesn't let authors approve their own PRs, so it would
 block every merge. Turn it on when there's a second maintainer.
 
-## Not covered yet: the running sites
+## The running sites
 
-This page covers the supply chain and CI. Defences for the sites themselves
-come in a later PR:
+**Web (Vercel)**
 
-- security headers and a Content Security Policy on the web app;
-- rate limiting on the API Worker;
-- an incident playbook: Vercel instant rollback, which secrets to rotate, and
-  who to tell.
+| Risk                                      | Defence                                                                                                                      | Where                                   |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| A script loaded from somewhere unexpected | A Content Security Policy lists every host the site loads from. **Report-only for now** (below)                              | `apps/web/lib/security-headers.ts`      |
+| Another site framing ours (clickjacking)  | `X-Frame-Options: DENY`                                                                                                      | the same file                           |
+| A downgrade to plain HTTP                 | `Strict-Transport-Security` for two years, without `preload` until the real domain is bought                                 | the same file                           |
+| A response read as the wrong type         | `X-Content-Type-Options: nosniff`                                                                                            | the same file                           |
+| Full URLs leaking to other sites          | `Referrer-Policy: strict-origin-when-cross-origin`                                                                           | the same file                           |
+| Device features nobody asked for          | `Permissions-Policy` turns off camera, microphone, location and USB                                                          | the same file                           |
+| The image optimiser fetching on request   | It only fetches Shopify's file paths (`cdn.shopify.com/s/files/…`), not anything on the host. The site draws images directly | `images` in `apps/web/next.config.ts`   |
+| A header or policy quietly dropped        | e2e tests check the headers, and fail on any policy violation on the main pages, with and without tracking accepted          | `apps/web/e2e/security-headers.spec.ts` |
+
+**The Content Security Policy, and when it starts blocking.** It's sent as
+`Content-Security-Policy-Report-Only`, so browsers report what it would block
+without blocking anything. The batch still has PRs that add third parties
+(PostHog, Sentry, ad tags); each adds its hosts to the policy, and the e2e test
+says when one is missing. Once those have merged and the test has stayed
+clean, switch the header to `Content-Security-Policy`. `script-src` allows
+`'unsafe-inline'` because Next's App Router inlines its hydration data;
+per-request nonces would make every page dynamic and undo the cached
+catalogue. So the policy limits where scripts come from, not inline
+injection, which React's escaping covers.
+
+**API (Cloudflare Worker)**
+
+| Risk                                       | Defence                                                                                                                                        | Where                                        |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Someone borrowing the Worker's Klaviyo key | Only an email is read from the request; the Worker builds the Klaviyo payload itself, with its own list. No CORS, so other sites can't call it | `apps/api/src/index.ts`                      |
+| Flooding the sign-up endpoint              | 5 requests a minute per IP (Cloudflare's own `CF-Connecting-IP`, which a caller can't fake), checked before the body is read                   | `apps/api/src/rate-limiter.ts`, `-policy.ts` |
+| A large or malformed body                  | Only `POST` with JSON, at most 1 KB                                                                                                            | `apps/api/src/index.ts`                      |
+| Upstream errors describing the account     | Callers only ever see `invalid-email`, `rate-limited` or `rejected`; Klaviyo's message is logged, without the address                          | `apps/api/src/index.ts`                      |
+
+The per-IP limit lives in a Durable Object, so every request still reaches
+the Worker and is billed. A flood from many addresses would get through it.
+**To switch on (owner):** a Cloudflare rate-limiting rule in front of the
+Worker (Security → WAF → Rate limiting rules; the free plan includes one),
+for example 20 requests per 10 seconds per IP on the Worker's hostname, with
+the action "Block". It stops a flood before the Worker runs.
+
+## If something goes wrong
+
+Do the first step straight away; the rest can follow.
+
+**The site is serving something it shouldn't** (a bad deploy, defaced pages,
+an unknown script):
+
+1. **Roll back.** Vercel → the project → Deployments → the last good one →
+   Instant Rollback. The Worker: `pnpm --filter @formulate/api exec wrangler
+rollback`. The theme: Online Store → Themes → publish the previous copy.
+2. **Find the cause** before redeploying: the commits since the good
+   deployment, the lockfile diff, and the Vercel and Worker logs.
+
+**A secret has leaked** (in a commit, a log, a screenshot, a chat):
+
+1. **Revoke it first**, then replace it. Deleting the commit doesn't help: a
+   public repository is copied within minutes.
+
+   | Secret                               | Revoke and replace in                                           | Then update                                     |
+   | ------------------------------------ | --------------------------------------------------------------- | ----------------------------------------------- |
+   | Shopify Storefront tokens (web, app) | Shopify admin → Headless channel → storefront → tokens          | Vercel env vars; EAS env vars, then a new build |
+   | Shopify Admin API token              | Shopify admin → Apps → develop apps → the app → API credentials | wherever the owner uses it                      |
+   | Theme Access password, shop password | Shopify admin → Theme Access app; Online Store → Preferences    | GitHub Actions secrets                          |
+   | Klaviyo private key                  | Klaviyo → Settings → API keys                                   | `wrangler secret put KLAVIYO_PRIVATE_KEY`       |
+   | Judge.me private token               | Judge.me → Settings → Integrations                              | `wrangler secret put JUDGEME_PRIVATE_TOKEN`     |
+   | Recharge API token                   | Recharge → Apps & integrations → API tokens                     | the owner's local config                        |
+   | Vercel deployment-protection bypass  | Vercel → project → Settings → Deployment Protection             | GitHub Actions secret                           |
+   | GitHub, npm, Expo, Cloudflare tokens | each account's token settings                                   | wherever it was used                            |
+
+2. **Check what it was used for:** the service's own logs (Shopify's audit
+   log, Klaviyo's API key activity, Cloudflare's audit log).
+
+**A dependency turns out to be malicious** (an npm worm, a hijacked release):
+
+1. If it ran in CI or on a laptop, treat every secret that machine could read
+   as leaked (above), starting with GitHub and npm tokens.
+2. Remove it: pin the last good version with a pnpm override, and follow
+   "When a security fix comes out".
+3. Look for what these worms leave behind: new workflows on any branch,
+   commits under unknown names, new GitHub tokens or SSH keys on the account.
+
+**Who to tell**
+
+- **Customers' personal data exposed** (names, emails, addresses, orders):
+  in the UK, the ICO within 72 hours of finding out, unless it's unlikely to
+  put anyone at risk (UK GDPR, Article 33); and the people affected, if the
+  risk to them is high (Article 34). Write down what happened and what was
+  done either way.
+- **A Shopify or Klaviyo account compromised:** their support, as well as
+  rotating the keys.
+- While this is a demo store with no real customers, the record is the main
+  thing: what happened, when, and what was rotated.
 
 ## October 2026 audit (25 Oct)
 
