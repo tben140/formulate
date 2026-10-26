@@ -103,6 +103,40 @@ describe("rate limiting", () => {
   });
 });
 
+describe("rate limits per kind of request", () => {
+  it("keeps review lookups and sign-ups in separate buckets", async () => {
+    // The web app asks for reviews from its server, so its shoppers share an
+    // address; their lookups mustn't use up anyone's sign-up allowance.
+    const names: string[] = [];
+    const e = {
+      ...testEnv(),
+      SHOPIFY_STORE_DOMAIN: "shop.example",
+      JUDGEME_PRIVATE_TOKEN: "jm_private_not_real",
+      RATE_LIMITER: {
+        idFromName: (name: string) => name,
+        get: (name: string) => ({
+          limit: () => {
+            names.push(name);
+            return Promise.resolve({ success: true });
+          },
+        }),
+      },
+    };
+    stubKlaviyo({ ok: true, status: 202 });
+    const ip = { "CF-Connecting-IP": "203.0.113.7" };
+    await run(
+      new Request("https://api.example/reviews", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...ip },
+        body: JSON.stringify({ handle: "x" }),
+      }),
+      e,
+    );
+    await run(post({ email: "ben@example-domain.co.uk" }, ip), e);
+    expect(names).toEqual(["reviews:203.0.113.7", "203.0.113.7"]);
+  });
+});
+
 describe("⚠️ injection resistance", () => {
   it("ignores every field except email", async () => {
     /*

@@ -1,7 +1,7 @@
 "use client";
 
 import type { PublicReview } from "@formulate/shopify";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { ReviewItem } from "./review-item";
 
@@ -10,9 +10,13 @@ export const MoreReviews = ({ handle }: { readonly handle: string }) => {
   const [reviews, setReviews] = useState<readonly PublicReview[]>([]);
   const [next, setNext] = useState<number | null>(2);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  // A ref, not the state: a second click can land before React re-renders,
+  // and would fetch and append the same page twice.
+  const busy = useRef(false);
 
   const load = async () => {
-    if (next === null) return;
+    if (next === null || busy.current) return;
+    busy.current = true;
     setState("loading");
     try {
       const response = await fetch(
@@ -26,6 +30,8 @@ export const MoreReviews = ({ handle }: { readonly handle: string }) => {
       setState("idle");
     } catch {
       setState("error");
+    } finally {
+      busy.current = false;
     }
   };
 

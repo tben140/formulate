@@ -28,8 +28,8 @@ export const Stars = ({
         >
           <defs>
             <linearGradient id={`${id}-${index}`}>
-              <stop offset={fill} stopColor="currentColor" className="text-amber-500" />
-              <stop offset={fill} stopColor="#e2e8f0" />
+              <stop offset={fill} stopColor="currentColor" className="text-rating" />
+              <stop offset={fill} stopColor="currentColor" className="text-rating-empty" />
             </linearGradient>
           </defs>
           <path

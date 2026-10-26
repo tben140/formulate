@@ -1168,7 +1168,7 @@ a:hover {
 }
 
 /* Star ratings (snippets/stars.liquid), matching web's and the app's: a grey
-   row with an amber row on top, cropped to the rating. */
+   row with a row in the rating colour on top, cropped to the rating. */
 .stars {
   position: relative;
   display: inline-block;
@@ -1184,7 +1184,7 @@ a:hover {
 }
 
 .stars__track {
-  color: var(--color-border);
+  color: var(--color-rating-empty);
 }
 
 .stars__fill {
@@ -1192,7 +1192,7 @@ a:hover {
   inset-block-start: 0;
   inset-inline-start: 0;
   overflow: hidden;
-  color: #f59e0b;
+  color: var(--color-rating);
 }
 
 .stars__count {

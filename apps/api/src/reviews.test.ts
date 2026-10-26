@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { listReviews, toPublicReview, type ReviewsEnv } from "./reviews";
+import { cachedReviews, listReviews, toPublicReview, type ReviewsEnv } from "./reviews";
 
 const env: ReviewsEnv = {
   SHOPIFY_STORE_DOMAIN: "shop.example",
@@ -201,5 +201,63 @@ describe("requests", () => {
     expect(calls).toEqual([]);
     const failed = await listReviews(env, body({ handle: "x" }));
     expect(failed).toEqual({ status: 502, body: { ok: false, reason: "unavailable" } });
+  });
+});
+
+describe("when Judge.me fails", () => {
+  it("answers a generic 502 when the request itself fails, without throwing", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("network down"))));
+    expect(await listReviews(env, body({ handle: "x" }))).toEqual({
+      status: 502,
+      body: { ok: false, reason: "unavailable" },
+    });
+  });
+
+  it("gives up on a slow Judge.me with a timeout signal", async () => {
+    const fetch = vi.fn((_input: URL | string, init?: RequestInit) => {
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+      return Promise.reject(new DOMException("timed out", "TimeoutError"));
+    });
+    vi.stubGlobal("fetch", fetch);
+    expect((await listReviews(env, body({ handle: "x" }))).status).toBe(502);
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+});
+
+describe("cachedReviews and the rate limit", () => {
+  /** A Cache stub holding whatever was put, keyed by URL. */
+  const stubCache = () => {
+    const entries = new Map<string, Response>();
+    vi.stubGlobal("caches", {
+      default: {
+        match: (key: Request) => Promise.resolve(entries.get(key.url)?.clone()),
+        put: (key: Request, value: Response) => {
+          entries.set(key.url, value);
+          return Promise.resolve();
+        },
+      },
+    });
+  };
+
+  it("asks the limiter only on a miss, and answers 429 without calling Judge.me", async () => {
+    stubCache();
+    const calls = stub();
+    const allow = vi.fn(() => Promise.resolve(false));
+    expect(await cachedReviews(env, body({ handle: "x" }), allow)).toEqual({
+      status: 429,
+      body: { ok: false, reason: "rate-limited" },
+    });
+    expect(allow).toHaveBeenCalledOnce();
+    expect(calls).toEqual([]);
+  });
+
+  it("serves a cached answer without charging the limit", async () => {
+    stubCache();
+    stub();
+    await cachedReviews(env, body({ handle: "x" }));
+    const allow = vi.fn(() => Promise.resolve(false));
+    const again = await cachedReviews(env, body({ handle: "x" }), allow);
+    expect(again.status).toBe(200);
+    expect(allow).not.toHaveBeenCalled();
   });
 });

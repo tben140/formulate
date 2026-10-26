@@ -70,6 +70,9 @@ export const colours = {
    * surface and 4.58:1 on surface-muted.
    */
   success: "#15803d",
+  /** Review stars: the filled part, and the empty part behind it. */
+  rating: "#f59e0b",
+  "rating-empty": ink[200],
 } as const;
 
 /** Base-4 scale. Keys become Tailwind's `--spacing-*` namespace. */

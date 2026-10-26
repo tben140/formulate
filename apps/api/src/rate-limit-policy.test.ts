@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { LIMIT, WINDOW_MS, decide } from "./rate-limit-policy";
+import { LIMIT, REVIEWS_LIMIT, WINDOW_MS, decide } from "./rate-limit-policy";
 
 /**
  * ⚠️ These are the tests the previous limiter never had.
@@ -62,5 +62,10 @@ describe("decide", () => {
      */
     expect(decide(at(1, LIMIT - 1), WINDOW_MS - 1).allowed).toBe(true);
     expect(decide(at(WINDOW_MS, 0), WINDOW_MS).allowed).toBe(true);
+  });
+
+  it("applies the limit it's given, for review lookups", () => {
+    expect(decide(at(0, LIMIT), 1, REVIEWS_LIMIT).allowed).toBe(true);
+    expect(decide(at(0, REVIEWS_LIMIT), 1, REVIEWS_LIMIT)).toEqual({ allowed: false });
   });
 });

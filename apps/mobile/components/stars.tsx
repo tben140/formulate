@@ -1,12 +1,14 @@
+import { colours } from "@formulate/tokens";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
 /**
  * Five stars, partly filled for a fractional average, matching web's
  * components/stars.tsx without a native SVG dependency: a grey row of "★" with
- * an amber row on top, cropped to the rating's width.
+ * a row in the `rating` token on top, cropped to the rating's width. Colours
+ * are tokens (ADR 0005), passed as styles because they're set per row.
  *
- * ⚠️ The amber row sits in a box fixed at the full row's measured width, which
+ * ⚠️ The filled row sits in a box fixed at the full row's measured width, which
  * the crop can't squeeze. Cropping the text's own container made it wrap ("★★"
  * on a second line), and numberOfLines made it truncate with an ellipsis.
  *
@@ -36,7 +38,7 @@ export const Stars = ({
       <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <Text
           numberOfLines={1}
-          style={[style, { color: "#e2e8f0" }]}
+          style={[style, { color: colours["rating-empty"] }]}
           onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
         >
           ★★★★★
@@ -48,7 +50,7 @@ export const Stars = ({
           >
             {/* A fixed-width box that can't shrink, so the text never wraps or truncates. */}
             <View style={{ width, minWidth: width, flexShrink: 0 }}>
-              <Text style={[style, { color: "#f59e0b" }]}>★★★★★</Text>
+              <Text style={[style, { color: colours.rating }]}>★★★★★</Text>
             </View>
           </View>
         ) : null}
