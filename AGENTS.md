@@ -52,11 +52,20 @@ pulled within hours to days.
   4. **CI passes.**
 
   Add it to `minimumReleaseAgeExclude` with a comment naming the advisory, and
-  remove the line once the version is 7 days old. `pnpm audit --fix` writes
-  the line for you; check the four conditions before keeping it. If any one
-  fails, the version waits the normal 7 days. Until a fix can be installed,
-  **mitigate**: turn off the affected feature, or block the attack at the
-  edge (a Vercel firewall rule). docs/security.md has the full process.
+  remove the line once the version is 7 days old. `pnpm audit --fix`, and
+  Renovate's security PRs, may write the line for you; a person still checks
+  the four conditions before merging (nothing here merges automatically).
+
+  When a check fails, what happens next depends on which one:
+  - **1 or 2** (no reviewed advisory names it, or it's a major release or from
+    a new publisher): it isn't fast-tracked, and waits the normal 7 days.
+  - **3 or 4** (the trust policy rejects it, or CI fails): **stop and
+    investigate**. Waiting doesn't change either result, and a trust failure
+    on a "security fix" can be the attack itself.
+
+  Until a fix can be installed, **mitigate**: turn off the affected feature,
+  or block the attack at the edge (a Vercel firewall rule). docs/security.md
+  has the full process.
 
 - **Prefer a range that can't reach a release that's too new.** A caret can
   resolve to a release from yesterday: `~16.3.8` instead of `^16.3.8` kept Next

@@ -3,8 +3,11 @@ name: Security audit
 # CI only audits when something is pushed, so a new advisory against a
 # dependency that nobody is changing goes unseen: the Next.js flaw in
 # October 2026 sat unnoticed for eleven days. This runs the same audit every
-# morning on main and opens an issue (which emails the repository owner) when
-# it finds something, or comments on the open one. See docs/security.md.
+# morning on main and, when it finds something, opens an issue assigned to
+# the repository owner (or comments on the open one, mentioning them), so
+# GitHub notifies them either way. If the audit itself can't run (a registry
+# error), the run fails without an issue; GitHub emails a failed scheduled
+# run to whoever last changed the schedule. See docs/security.md.
 on:
   schedule:
     - cron: "17 6 * * *"
@@ -48,8 +51,15 @@ jobs:
             echo "No findings beyond the accepted list."
             exit 0
           fi
+          # A non-zero exit is either findings ("N vulnerabilities found") or
+          # an audit that didn't run. Only the first is reported as a finding.
+          if ! grep -q "vulnerabilities found" "$RUNNER_TEMP/all.txt" "$RUNNER_TEMP/prod.txt"; then
+            cat "$RUNNER_TEMP/all.txt" "$RUNNER_TEMP/prod.txt"
+            echo "::error::pnpm audit couldn't run (see the log above); no findings reported."
+            exit 1
+          fi
           {
-            echo "The daily audit found a vulnerable dependency on \`main\`."
+            echo "@$GITHUB_REPOSITORY_OWNER the daily audit found a vulnerable dependency on \`main\`."
             echo "Fix it with an upgrade or a pnpm override, or accept it in"
             echo "\`pnpm-workspace.yaml\` (see docs/security.md)."
             echo
@@ -66,6 +76,6 @@ jobs:
             gh issue comment "$open" --body-file "$report"
           else
             gh issue create --title "Security audit: a dependency has a known vulnerability" \
-              --label security-audit --body-file "$report"
+              --label security-audit --assignee "$GITHUB_REPOSITORY_OWNER" --body-file "$report"
           fi
           exit 1

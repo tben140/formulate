@@ -56,10 +56,17 @@ check, so the audit and zizmor steps gate every merge to it.
    - pnpm's trust policy passes;
    - CI passes.
 
-   `pnpm audit --fix` adds the version to `minimumReleaseAgeExclude`; keep the
-   line only if all four hold, with a comment naming the advisory, and take it
-   out once the version is 7 days old. If any check fails, the version waits
-   the normal 7 days.
+   `pnpm audit --fix` adds the version to `minimumReleaseAgeExclude`, and a
+   Renovate security PR may arrive with the line already written. Either way,
+   keep it only if all four hold, with a comment naming the advisory, and take
+   it out once the version is 7 days old. The reviewer of the PR is the gate:
+   CI can't check the first two conditions, and nothing in this repository
+   merges automatically.
+
+   If the first or second check fails, the version isn't fast-tracked and
+   waits the normal 7 days. If the trust policy or CI fails, stop and
+   investigate: waiting won't change either, and a trust failure on a
+   "security fix" can be the attack itself.
 
 4. **Production first.** Production deploys from `main`, so a fix for
    something live goes to `main` as its own PR (as #153 did), not only onto
