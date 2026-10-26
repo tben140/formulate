@@ -65,29 +65,38 @@ and Sentry's mobile vitals. The work to do so is tracked in Linear.
 
 ## Accessibility
 
-| Surface | Check                                                      | Result                                                                                  |
-| ------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Web     | axe, WCAG 2.2 AA, on every Vercel deployment (`E2E (web)`) | Pass                                                                                    |
-| Theme   | axe, WCAG 2.2 AA, on a temporary theme per PR (#59)        | 16/16, [run 37212316127](https://github.com/tben140/formulate/actions/runs/37212316127) |
-| App     | axe through its web build (#69)                            | Clean on every main screen and sheet                                                    |
+| Surface | Check                                                      | Result                                                                                                                         |
+| ------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Web     | axe, WCAG 2.2 AA, on every Vercel deployment (`E2E (web)`) | Pass, [run 40222378119](https://github.com/tben140/formulate/actions/runs/40222378119) on the batch at `80dbb57` (25 Oct 2026) |
+| Theme   | axe, WCAG 2.2 AA, on a temporary theme per PR (#59)        | 16/16, [run 37212316127](https://github.com/tben140/formulate/actions/runs/37212316127)                                        |
+| App     | axe through its web build (#69)                            | Clean on every main screen and sheet: a local run at `d3724d7` (20 Oct 2026), recorded in #69. Not in CI yet                   |
 
 Device-only checks (VoiceOver order, gestures, Dynamic Type) are still manual.
 
 ## Tests
 
-Unit coverage at `e022a1b`, from `pnpm --filter <package> test:coverage`.
-Generated code, codegen config and barrel `index.ts` files are excluded.
+Unit coverage at `de630ca` (26 Oct 2026), from
+`pnpm --filter <package> test:coverage`. Vitest measures only the files a test
+loads, so a file no test imports is missing from the figures, not counted as
+0%. What each package leaves out:
+
+- `packages/shopify`: generated code (`src/generated/**`), the codegen config
+  and the barrel `src/index.ts`.
+- `packages/analytics`: the barrel `src/index.ts`.
+- `apps/api`: nothing. Its `src/index.ts` is the Worker itself, and it's
+  measured.
 
 | Package                 | Tests | Lines | Branches | Functions |
 | ----------------------- | ----- | ----- | -------- | --------- |
-| `packages/shopify`      | 92    | 70.2% | 88.2%    | 85.7%     |
-| `packages/analytics`    | 50    | 97.4% | 88.5%    | 94.1%     |
-| `apps/api` (the Worker) | 20    | 94.0% | 100%     | 75.0%     |
+| `packages/shopify`      | 101   | 96.3% | 86.6%    | 96.3%     |
+| `packages/analytics`    | 50    | 96.6% | 85.7%    | 95.5%     |
+| `apps/api` (the Worker) | 20    | 83.8% | 84.6%    | 60.0%     |
 
 **Gaps:**
 
-- **`packages/shopify/src/client.ts` has no unit tests** (0%). It's exercised by
-  the smoke test and every end-to-end suite, but not in isolation.
+- **`packages/shopify/src/client.ts` isn't in the figures.** No unit test
+  imports it, so Vitest doesn't measure it. It's exercised by the smoke test
+  and every end-to-end suite, but not in isolation.
 - **There's no enforced coverage threshold.** The "elevated shared-package bar"
   SHO-43 describes doesn't exist yet; these are measurements, not a gate.
 
