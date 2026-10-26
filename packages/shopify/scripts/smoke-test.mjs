@@ -45,7 +45,7 @@ const response = await fetch(`https://${domain}/api/${apiVersion}/graphql.json`,
   },
   body: JSON.stringify({
     query,
-    variables: { handle: "automated-collection" },
+    variables: { handle: "best-sellers" },
   }),
 });
 
