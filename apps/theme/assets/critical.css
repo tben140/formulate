@@ -1167,8 +1167,10 @@ a:hover {
   font-family: var(--font-mono);
 }
 
-/* Star ratings (snippets/stars.liquid), matching web's and the app's: a grey
-   row with a row in the rating colour on top, cropped to the rating. */
+/* Star ratings (snippets/stars.liquid), matching web's and the app's: a row
+   of outlined stars with a row of filled stars on top, cropped to the rating,
+   both in the rating colour (an outline, not a pale fill, for 3:1). The
+   outline is the same glyph stroked, not "☆", whose width differs by font. */
 .stars {
   position: relative;
   display: inline-block;
@@ -1184,7 +1186,8 @@ a:hover {
 }
 
 .stars__track {
-  color: var(--color-rating-empty);
+  color: transparent;
+  -webkit-text-stroke: 1px var(--color-rating);
 }
 
 .stars__fill {

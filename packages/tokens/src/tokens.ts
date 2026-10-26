@@ -70,9 +70,13 @@ export const colours = {
    * surface and 4.58:1 on surface-muted.
    */
   success: "#15803d",
-  /** Review stars: the filled part, and the empty part behind it. */
-  rating: "#f59e0b",
-  "rating-empty": ink[200],
+  /**
+   * Review stars. Amber-700, not amber-500 (#f59e0b, 2.15:1): the stars carry
+   * the rating, so WCAG 1.4.11 asks 3:1 for them. This is 5.02:1 on surface
+   * and 4.60:1 on surface-muted. Empty stars are an outline in the same
+   * colour, not a pale fill, so the filled/empty edge is also 5:1.
+   */
+  rating: "#b45309",
 } as const;
 
 /** Base-4 scale. Keys become Tailwind's `--spacing-*` namespace. */
