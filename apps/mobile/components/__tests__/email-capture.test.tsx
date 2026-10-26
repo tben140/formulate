@@ -34,11 +34,11 @@ test("signing up sends the address to Klaviyo and the cart, then says so", async
   mockSubscribe.mockResolvedValue({ ok: true });
   await render(<EmailCapture />);
 
-  await fireEvent.changeText(field(), "sam@example.com");
+  await fireEvent.changeText(field(), "sam@company.com");
   await fireEvent.press(screen.getByRole("button", { name: "Sign up" }));
 
-  expect(mockSubscribe).toHaveBeenCalledWith("sam@example.com");
-  expect(mockIdentify.mutate).toHaveBeenCalledWith("sam@example.com");
+  expect(mockSubscribe).toHaveBeenCalledWith("sam@company.com");
+  expect(mockIdentify.mutate).toHaveBeenCalledWith("sam@company.com");
   expect(screen.getByText("You're on the list. Check your inbox.")).toBeTruthy();
   expect(field().props.value).toBe("");
   expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
@@ -81,7 +81,7 @@ test("a second tap while signing up doesn't send twice", async () => {
   );
   await render(<EmailCapture />);
 
-  await fireEvent.changeText(field(), "sam@example.com");
+  await fireEvent.changeText(field(), "sam@company.com");
   // Not awaited: the press only settles once the sign-up does, and it's held
   // open here to tap again while it's in flight.
   const first = fireEvent.press(screen.getByRole("button", { name: "Sign up" }));
