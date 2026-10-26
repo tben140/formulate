@@ -9,7 +9,7 @@ one set of design tokens.
 ```
 apps/
   web/          Next.js 16 · App Router · Tailwind v4 · deploys to Vercel
-  mobile/       Expo SDK 57 · Expo Router · NativeWind v5 · builds via EAS
+  mobile/       Expo SDK 58 · Expo Router · NativeWind v5 · builds via EAS
   theme/        Liquid · web components · no build step · Shopify Online Store
 packages/
   shopify/      Storefront API client, query documents, generated types
@@ -111,11 +111,11 @@ These are load-bearing. Read the comments before changing them.
   ESLint read TypeScript at all. 6.0.3 is the sweet spot: inside that range and
   exactly what Expo SDK 57 expects. Note TS 6 deprecates `baseUrl`, so the app
   tsconfigs use `paths` alone.
-- **React is pinned to `19.2.3` workspace-wide** via a pnpm override, because
-  that is the version Expo SDK 57 expects. Under the hoisted node linker a
+- **React is pinned to `19.3.0` workspace-wide** via a pnpm override, because
+  that is the version Expo SDK 58 expects. Under the hoisted node linker a
   second React copy would break hooks in the Expo app.
 - **React version is declared explicitly** in `packages/eslint-config/react-native.js`.
   `eslint-plugin-react` 7.37.x crashes on ESLint 10 during version _detection_.
-- **NativeWind v5 is pre-release** (`5.0.0-preview.4`), chosen so both apps share
+- **NativeWind v5 is pre-release** (`5.0.0-rc.0`, a release candidate), chosen so both apps share
   one Tailwind v4 token file. The fallback is NativeWind v4 + Tailwind v3 in
   `apps/mobile` only.

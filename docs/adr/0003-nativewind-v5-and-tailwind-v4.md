@@ -49,8 +49,8 @@ match?" gets much harder.
 ## Consequences
 
 **A pre-release dependency in the build.** Preview versions can break between
-releases. The pin is exact (`5.0.0-preview.4`, no range) so an install cannot
-silently move.
+releases. The pin is exact (`5.0.0-preview.4` at first, `5.0.0-rc.0` since
+October 2026; no range) so an install cannot silently move.
 
 **This decision forces [ADR 0004](0004-pin-lightningcss-to-1-30-1.md).**
 NativeWind v5 compiles CSS with `lightningcss` and deserialises the result inside
@@ -58,7 +58,8 @@ NativeWind v5 compiles CSS with `lightningcss` and deserialises the result insid
 pin is a direct consequence of this choice and cannot be evaluated separately.
 
 **Metro configuration stays minimal.** `metro.config.js` wraps the Expo default
-with `withNativewind` and does nothing else — notably no `watchFolders` or
+with `withNativewind` and one resolver rule (see the update below), nothing
+else — notably no `watchFolders` or
 `resolver.nodeModulesPaths`, which Expo SDK 52+ configures itself and which now
 cause resolution bugs when set manually.
 
@@ -76,3 +77,26 @@ version the stable release states.
 ## Related
 
 - [ADR 0004](0004-pin-lightningcss-to-1-30-1.md) · [Mobile app](../surface-mobile.md)
+
+## Update, October 2026: Expo SDK 58 and `5.0.0-rc.0`
+
+The decision stands; the versions moved. Expo Go only runs the newest SDK, so
+the app moved to Expo SDK 58 (React Native 0.88), and `5.0.0-preview.4` could
+not come with it:
+
+- **`react-native-css` 3.0.7 crashes SDK 58 at startup.** NativeWind's runtime
+  resolves every `react-native` import, `node_modules` included, to its own
+  stand-in so `className` works on core components. The 3.0.7 stand-in lists
+  React Native's exports by hand and has no `NativeComponentRegistry`, which
+  `expo-modules-core` 58 calls before the first screen ("Cannot read property
+  'get' of undefined" in `requireNativeComponent`). `3.1.0-rc.0` adds it, and
+  NativeWind `5.0.0-rc.0` requires exactly that version.
+- **The rc stand-in still has no `AssetRegistry`,** which `expo-asset` reads to
+  load fonts. `metro.config.js` therefore gives `expo-asset` the real
+  `react-native`. It renders nothing styled, so nothing is lost; remove the rule
+  once `react-native-css` passes `AssetRegistry` through.
+- **ADR 0004's `lightningcss` 1.30.1 pin still holds:** the app bundles with it
+  under `3.1.0-rc.0`. Newer `lightningcss` versions were not re-tested.
+
+Both failures surfaced only at runtime in Expo Go, never at install, typecheck
+or bundle time: the same shape of failure as ADR 0004, from the same cause.
