@@ -27,6 +27,10 @@ jobs:
     name: Lighthouse (theme)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The secrets below live in the "ci" environment, not the repository, so
+    # only jobs that name it can read them, and only from the branches it
+    # allows (docs/security.md, "CI secrets").
+    environment: ci
 
     env:
       # A Theme Access password (the `shptka_` token from Shopify's Theme

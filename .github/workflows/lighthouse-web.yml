@@ -36,6 +36,10 @@ jobs:
     if: github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The secrets below live in the "ci" environment, not the repository, so
+    # only jobs that name it can read them, and only from the branches it
+    # allows (docs/security.md, "CI secrets").
+    environment: ci
 
     env:
       LHCI_BASE_URL: ${{ github.event.deployment_status.environment_url || inputs.url || 'https://web-six-murex-18.vercel.app' }}

@@ -120,10 +120,32 @@ hand on 25 October 2026. Any other version of those packages is still checked.
   Actions, verified creators and the ones listed (pnpm/action-setup,
   shopify/lighthouse-ci-action), and tick "Require actions to be pinned to a
   full-length commit SHA".
-- **Environments for CI secrets.** The e2e and Lighthouse workflows read
-  repository-wide secrets (zizmor's `secrets-outside-env`). Moving them into a
-  GitHub environment limited to `main` and PR branches means a workflow on any
-  other branch can't read them.
+- **Environments for CI secrets.** The three jobs that read secrets (e2e,
+  Lighthouse web, Lighthouse theme) name a `ci` environment, so the secrets
+  can move out of the repository, where any workflow on any branch could read
+  them. Until they move, the jobs still read the repository secrets.
+  1. Settings → Environments → `ci` (the first run creates it; otherwise
+     "New environment").
+  2. Add the four secrets to `ci` as **environment secrets**:
+     `VERCEL_AUTOMATION_BYPASS_SECRET` (Vercel → Deployment Protection),
+     `SHOP_STORE` (the `.myshopify.com` domain), `SHOP_PASSWORD` (Online Store
+     → Preferences) and `SHOP_THEME_ACCESS_PASSWORD`. GitHub never shows a
+     saved secret again, and Theme Access shows a password only once, so
+     that one may mean a new password from the Theme Access app.
+  3. Run E2E and Lighthouse (theme) from the Actions tab and check both pass.
+  4. Delete the four **repository** secrets (Settings → Secrets and
+     variables → Actions).
+  5. Under "Deployment branches and tags", choose "Selected branches and
+     tags" and add `main`, `integration/*`, `tben140/*` and `renovate/*`. A
+     workflow pushed to any other branch name, as GhostAction did, then gets
+     no secrets. Check the next preview's E2E run still passes: Vercel's
+     deployment events carry a commit rather than a branch, and if GitHub
+     refuses them ("not allowed to deploy to ci"), remove the branch rule
+     and keep the rest.
+
+  Each run will show as a "deployment to ci" on the PR; that's GitHub's
+  record of the environment being used, not a release.
+
 - **Tokens.** Review personal access tokens on GitHub, npm and Expo and remove
   any that aren't needed. GhostAction spread through long-lived classic tokens.
 - **Tailscale** to 1.104.2 or later on every device (forged certificates from
