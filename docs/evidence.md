@@ -172,6 +172,19 @@ Node.js fixes. Details in [security.md](security.md); PRs #152 and #153.
 
 The audit gate (`pnpm audit --audit-level critical`) runs in CI from #152.
 
+### Security follow-up and Expo SDK 58 (2026-10-26)
+
+| Check                               | Result                                                                                                                                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Audit gates (#159)                  | `pnpm audit` high and critical anywhere, moderate in shipped code: pass, with the 4 known findings accepted by advisory ID and a review date. [Run 40347387622](https://github.com/tben140/formulate/actions/runs/40347387622) at `0c08175` |
+| Workflow lint (zizmor 1.31.1, #159) | No findings on any workflow, same run                                                                                                                                                                                                       |
+| pnpm trust policy (#159)            | Passes for the whole lockfile with 4 exact-version exceptions, each checked by hand (publisher and date)                                                                                                                                    |
+| Dependabot alerts on `main`         | 84 (3 critical, 47 high) once switched on. All 3 critical are fixed on the batch (`shell-quote` overridden to 1.12.0; `tinypool` gone with Vitest 4)                                                                                        |
+| Web e2e, batch (production build)   | 41 passed, 7 skipped (desktop-only keyboard tests on the phone project)                                                                                                                                                                     |
+| Web e2e, production (`main`)        | 17 failed, 24 passed: colour contrast on purchase options and the cart confirmation, plus layout and keyboard checks, all fixed on the batch                                                                                                |
+| Expo SDK 58, droplet (#163)         | `turbo lint typecheck test build` 21/21; web e2e on React 19.3: 43 passed, 7 skipped; the app's web build and iOS bundle build                                                                                                              |
+| Expo SDK 58, iPhone (Expo Go)       | Crashed at startup, then failed to load icon fonts: two NativeWind runtime gaps found only on the device (ADR 0003). After both fixes it opened with no errors (Ben, by hand)                                                               |
+
 ### Bug sweep (2026-10-25)
 
 Each surface at 390 px and 1280 px: status, console errors, failed requests
