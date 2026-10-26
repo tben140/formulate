@@ -14,7 +14,7 @@ import { SiteFooter } from "./site-footer";
  * this, so they cannot drift.
  *
  * `titleInHeader` puts the collection's title in the navigation bar, for the
- * collection route. The home screen keeps "Formulate" there.
+ * collection route. The home screen keeps "Double Helix" there.
  */
 export const CollectionView = ({
   handle,
