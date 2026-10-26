@@ -1,6 +1,7 @@
 import { isPolicyHandle, ShopPoliciesQuery } from "@formulate/shopify";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { StorefrontErrorState } from "@/components/storefront-error";
@@ -19,6 +20,13 @@ type PolicyKey =
   | "shippingPolicy"
   | "subscriptionPolicy";
 
+/**
+ * The shop's policies, fetched once per render for the page and its metadata
+ * alike. The Storefront API is POST, which Next doesn't deduplicate by
+ * itself, so without `cache` a visit would ask Shopify twice.
+ */
+const getPolicies = cache(() => storefront.request(ShopPoliciesQuery, {}));
+
 /** The shop's policy at this handle, for the page and its metadata alike. */
 const findPolicy = <P extends { readonly handle: string }>(
   shop: Readonly<Record<PolicyKey, P | null | undefined>>,
@@ -34,13 +42,13 @@ const findPolicy = <P extends { readonly handle: string }>(
 
 /**
  * The policy's own title ("Privacy policy — Double Helix"), a description from
- * its opening text, and a canonical. The page's request for the policies is
- * the same one, so this costs no second call to Shopify.
+ * its opening text, and a canonical. It shares the page's request for the
+ * policies (`getPolicies`), so it costs no second call to Shopify.
  */
 export const generateMetadata = async ({ params }: PageProps): Promise<Metadata> => {
   const { handle } = await params;
   if (!isPolicyHandle(handle)) return {};
-  const result = await storefront.request(ShopPoliciesQuery, {});
+  const result = await getPolicies();
   const policy = result.ok ? findPolicy(result.data.shop, handle) : undefined;
   if (!policy) return { title: "Policy" };
 
@@ -69,7 +77,7 @@ const PolicyPage = async ({ params }: PageProps) => {
   const { handle } = await params;
   if (!isPolicyHandle(handle)) notFound();
 
-  const result = await storefront.request(ShopPoliciesQuery, {});
+  const result = await getPolicies();
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
   const policy = findPolicy(result.data.shop, handle);
