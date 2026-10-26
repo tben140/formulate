@@ -184,6 +184,7 @@ The audit gate (`pnpm audit --audit-level critical`) runs in CI from #152.
 | Web e2e, production (`main`)        | 17 failed, 24 passed: colour contrast on purchase options and the cart confirmation, plus layout and keyboard checks, all fixed on the batch                                                                                                |
 | Expo SDK 58, droplet (#163)         | `turbo lint typecheck test build` 21/21; web e2e on React 19.3: 43 passed, 7 skipped; the app's web build and iOS bundle build                                                                                                              |
 | Expo SDK 58, iPhone (Expo Go)       | Crashed at startup, then failed to load icon fonts: two NativeWind runtime gaps found only on the device (ADR 0003). After both fixes it opened with no errors (Ben, by hand)                                                               |
+| Expo SDK 58, native build           | EAS iOS production build 3 (`a58126a3`) finished on 26 Oct and was submitted to TestFlight: #128 + #163. Klaviyo, Checkout Kit and Sentry to be checked on it by hand                                                                       |
 
 ### Bug sweep (2026-10-25)
 
