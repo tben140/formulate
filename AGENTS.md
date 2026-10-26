@@ -72,6 +72,13 @@ pulled within hours to days.
   off a two-day-old 16.4.2.
 - **Major versions** also need their changelog read and the full checks run.
   The age rule doesn't cover breaking changes.
+- **Renovate opens the update PRs; Dependabot only raises alerts.** There is
+  no `dependabot.yml`, and Dependabot security updates stay off. Dependabot
+  version updates would duplicate every Renovate update, and its security
+  updates would duplicate Renovate's security PRs; neither copy follows the
+  age rule, the groups or the pins. Renovate reads the Dependabot alerts (and
+  OSV) to open its security PRs. It keeps each Action pinned to a commit SHA,
+  updating the SHA and the version comment together.
 
 ## Environments and secrets
 
