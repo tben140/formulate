@@ -11,17 +11,12 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@formulate/analytics", "@formulate/shopify", "@formulate/tokens"],
 
   /**
-   * Only Shopify's file paths, not the whole CDN host. The app draws images
-   * with Hydrogen's <Image> (straight from Shopify's CDN), so `/_next/image`
-   * mostly serves nothing; narrowing it shrinks what the optimiser will fetch
-   * for anyone who calls it (GHSA-2464-fhr4-w9xw, docs/security.md). Predictive
-   * search (#87) uses next/image, which is why this isn't removed outright.
+   * No `images` setting, on purpose. The site draws every image with
+   * Hydrogen's <Image>, straight from Shopify's CDN, so Next's image optimiser
+   * has nothing to fetch. Without `remotePatterns`, `/_next/image` refuses any
+   * remote URL, which closes the endpoint behind GHSA-2464-fhr4-w9xw
+   * (docs/security.md). Use Hydrogen's <Image>, not next/image.
    */
-  images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "cdn.shopify.com", pathname: "/s/files/**" },
-    ],
-  },
 
   async headers() {
     return [{ source: "/:path*", headers: [...securityHeaders] }];
