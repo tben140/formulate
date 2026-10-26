@@ -105,13 +105,16 @@ major line, published by the package's long-standing maintainer without
 provenance, after the newer line had started publishing with it. Checked by
 hand on 25 October 2026. Any other version of those packages is still checked.
 
+## Switched on
+
+**Done 26 October 2026: Dependabot alerts on, Renovate installed** (on
+this repository only). Dependabot security and version updates stay off:
+Renovate opens the PRs. Renovate reads `renovate.json` from `main`, so it
+starts once the batch has merged; close its "Configure Renovate"
+onboarding PR rather than merging it.
+
 ## Still to switch on (repository owner)
 
-- **Done 26 October 2026: Dependabot alerts on, Renovate installed** (on
-  this repository only). Dependabot security and version updates stay off:
-  Renovate opens the PRs. Renovate reads `renovate.json` from `main`, so it
-  starts once the batch has merged; close its "Configure Renovate"
-  onboarding PR rather than merging it.
 - **More secret scanning.** Settings → Advanced Security: turn on
   "non-provider patterns" (generic secrets such as private keys and
   connection strings) and "validity checks" (whether a leaked token still
