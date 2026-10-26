@@ -2,7 +2,10 @@
 
 > **Draft.** Written from the repository, its decision records and measured
 > findings. Sections marked **TODO (Ben)** need first-hand context that isn't
-> written down anywhere yet. Everything else is sourced; the links say where.
+> written down anywhere yet. Everything else comes from the repository: an
+> ADR, a PR, a test or a CI run. Where one place holds the evidence, it's
+> linked; the test counts and measurements are collected, with their runs, in
+> the [evidence pack](evidence.md).
 
 One Shopify store, three storefronts: a Next.js web app, an Expo React Native
 app and a Liquid theme, in one repository. This is about the decisions behind
@@ -155,8 +158,11 @@ switch drops the line to the subscription price and Undo restores it.
 _Would change:_ moving to Recharge Pro.
 
 **Email: consent first, then offers** (#150). Marketing flows send only to
-profiles with email marketing consent, so the UK's PECR is met without
-relying on the soft opt-in; US mail needs a postal address in the footer.
+profiles with email marketing consent, so consent, not the soft opt-in, is
+the basis for sending under the UK's PECR. That flag is only part of PECR
+(the sender's identity and a working opt-out in every email are the rest),
+and none of this has had a legal review. US mail needs a postal address in
+the footer.
 The sign-up offers 10% off a first one-time order through unique codes:
 Klaviyo's API can't mint Shopify codes, so the codes are created on a Shopify
 discount and loaded into a Klaviyo coupon. Rejected: one shared code, which
@@ -269,9 +275,18 @@ Klaviyo. The sign-up needs a real phone to prove it; an automated test of the
 subscribe request alone would have passed while proving nothing.
 
 **A critical flaw that nothing announced.** On 25 October a security pass
-found production on Next.js 16.2.11 and the batch on 16.3.8, both in range for
-two critical unauthenticated remote-code-execution flaws patched eleven days
-earlier. The defences that existed were the ones that stop a _bad_ release
+found production on Next.js 16.2.11 and the batch on 16.3.8, both in the
+version range of two critical unauthenticated remote-code-execution flaws
+patched eleven days earlier. Being in range isn't the same as being exposed.
+The [`use cache` flaw](https://github.com/advisories/GHSA-673q-mjm6-r5xr)
+needs a `use cache` function returning typed arrays, and the web app has none
+(Cache Components is off). The
+[image optimisation flaw](https://github.com/advisories/GHSA-2464-fhr4-w9xw)
+needs SVGs through Next's image optimiser on glibc Linux. The web app never
+uses Next's image component (Shopify's CDN sizes the photos), but the
+optimiser's endpoint answers whenever `images` is configured, which it is.
+Which library Vercel's image service runs underneath couldn't be checked, so
+the flaw was treated as live. The defences that existed were the ones that stop a _bad_ release
 (nothing under 7 days old is installed) and none that flag a _missing_ one:
 Dependabot alerts were off, and the Renovate config had never run because the
 app wasn't installed and the file wasn't on `main`. The fix shipped as a
