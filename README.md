@@ -123,8 +123,8 @@ of what this project shows.
   [`AGENTS.md`](AGENTS.md).
 - **What went wrong, and what I learned:** <!-- TODO (Ben) -->
 
-The full story, decisions and numbers are in the case study
-<!-- TODO (Ben): link #71 once merged -->.
+The full story, decisions and numbers are in the
+[case study](docs/case-study.md).
 
 ## Structure
 
