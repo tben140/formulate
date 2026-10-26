@@ -52,3 +52,26 @@ overrides:
   # hooks in the Expo app.
   react: 19.2.3
   react-dom: 19.2.3
+  # Security patches for transitive dependencies (October 2026 audit). Each
+  # lifts only the vulnerable range to the first patched release that clears
+  # minimumReleaseAge. Only @graphql-tools/utils crosses a major (11 to 12:
+  # 11.x has no fix); CI's codegen step covers it. Remove a line once the
+  # parent package ships the fix itself (`pnpm audit` shows it as clean
+  # without the override).
+  "shell-quote@<1.11.0": 1.12.0 # critical: quote() command injection (react-devtools-core, dev only)
+  "brace-expansion@<1.1.21": 1.1.21 # DoS (minimatch 3, ESLint)
+  "brace-expansion@>=4.0.0 <5.0.12": 5.0.12 # DoS (minimatch 10, ESLint)
+  "@xmldom/xmldom@>=0.7.0 <0.8.15": 0.8.15 # injection, ReDoS (Expo config plugins)
+  "@xmldom/xmldom@>=0.9.0 <0.9.12": 0.9.12 # injection, ReDoS (Expo config plugins)
+  "undici@>=7.0.0 <7.30.1": 7.30.1 # TLS validation bypass, DoS (Miniflare)
+  "sharp@<0.35.5": 0.35.5 # libheif and librsvg CVEs (Miniflare)
+  "js-yaml@>=4.0.0 <4.3.2": 4.3.2 # CPU exhaustion (Expo CLI)
+  "nanoid@<3.3.18": 3.3.18 # infinite loop (PostCSS)
+  "postcss@<8.5.23": 8.5.23 # incomplete fix of GHSA-6g55-p6wh-862q
+  "vite@>=8.0.0 <8.1.6": 8.1.6 # fs.allow bypass, launch-editor (Vitest)
+  "source-map-js@>=1.0.0 <1.2.2": 1.2.2 # DoS (PostCSS)
+  "compression@<1.8.2": 1.8.2 # memory-leak DoS (Expo dev server)
+  "@fastify/busboy@<3.2.3": 3.2.3 # DoS, CRLF injection (GraphQL codegen)
+  "@graphql-tools/utils@<12.0.2": 12.0.4 # prototype pollution (GraphQL codegen)
+  "@graphql-tools/executor-legacy-ws@<1.1.35": 1.1.35 # TLS validation disabled (GraphQL codegen)
+  "zod@>=4.0.0 <4.6.6": 4.6.7 # memory exhaustion (Expo CLI, react-hooks lint)
