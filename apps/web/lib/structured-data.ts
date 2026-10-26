@@ -56,6 +56,34 @@ export const productJsonLd = (product: Product) => {
   };
 };
 
+/**
+ * The shop itself, for the home page: an Organization (the brand Google can
+ * show beside results) and a WebSite whose SearchAction points at our search
+ * page, which is what lets Google offer a search box for the site.
+ */
+export const siteJsonLd = (name: string) => [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name,
+    url: absoluteUrl("/"),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name,
+    url: absoluteUrl("/"),
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${absoluteUrl("/search")}?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  },
+];
+
 export interface Crumb {
   readonly name: string;
   readonly path: string;

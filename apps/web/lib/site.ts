@@ -74,4 +74,13 @@ export const baseOpenGraph = {
   siteName: SITE_NAME,
   locale: "en_GB",
   type: "website",
+  // The share image for pages without their own (app/og/route.tsx). A page
+  // with a photo, like a product, sets `images` after spreading this in.
+  // Typed as a mutable array: Next's OGImage[] doesn't accept a readonly one.
+  images: [{ url: "/og", width: 1200, height: 630, alt: SITE_NAME }] as {
+    url: string;
+    width: number;
+    height: number;
+    alt: string;
+  }[],
 } as const;

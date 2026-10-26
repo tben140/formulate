@@ -3,12 +3,19 @@ import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { JsonLd } from "@/components/json-ld";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { getNavLinks } from "@/lib/nav";
+import { SITE_NAME } from "@/lib/site";
 import { storefront } from "@/lib/storefront";
+import { siteJsonLd } from "@/lib/structured-data";
 
-export const metadata: Metadata = { title: "Double Helix" };
+export const metadata: Metadata = {
+  title: SITE_NAME,
+  // Relative, resolved against metadataBase, like every other page's.
+  alternates: { canonical: "/" },
+};
 
 /** How many products the featured row shows before "View all". */
 const FEATURED_COUNT = 4;
@@ -48,6 +55,7 @@ const HomePage = async () => {
 
   return (
     <>
+      <JsonLd data={siteJsonLd(SITE_NAME)} />
       <section
         aria-labelledby="home-intro"
         className="rounded-xl bg-surface-muted px-6 py-12 sm:px-10"
