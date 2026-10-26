@@ -295,19 +295,47 @@ production hotfix the same day (#153), with the rest of the audit on the batch
 critical advisory). The lesson: an age rule is half a policy; the other half is
 being told when an old version becomes dangerous.
 
+Reviewing that fix changed the policy around it. A two-day wait for security
+fixes protects against a hijacked "fix", but it also leaves a known hole open
+for two days. Now a fix goes in at once when four things hold: GitHub's
+reviewed advisory names that exact version, it's a patch or minor release from
+the same publisher, pnpm's trust check passes (no drop in how the package was
+published), and CI passes. If either of the last two fails, the answer is to
+investigate, not to wait, because a "security fix" that fails a trust check may
+be the attack. CI now fails on any high or critical finding, and on moderate
+ones in code that ships; a daily audit opens an issue when something new
+appears (#159). Switching Dependabot's alerts on showed 84 on `main`, 3 of them
+critical, all already fixed on the batch: a reason not to let a batch sit
+unmerged.
+
+**An upgrade that passed every check and crashed on the phone.** Expo Go on
+the App Store runs only the newest Expo SDK, so the app had to move from SDK 57
+to 58 to open in it at all. On the droplet everything passed: types, lint,
+tests, the build, the web version of the app. On an iPhone it crashed before
+the first screen. NativeWind, the library that lets the app share Tailwind
+classes with the web, swaps every import of React Native for a stand-in that
+lists React Native's exports by hand. Its stand-in had no
+`NativeComponentRegistry`, which SDK 58 calls at startup. The library's release
+candidate added it; the app then opened, and failed to load its icon fonts,
+because the stand-in still had no `AssetRegistry`. A one-line Metro rule gives
+Expo's asset loader the real module. Both failures existed only at runtime on
+a device, which is the same shape as the `lightningcss` pin (ADR 0004): a
+pre-release dependency fails far from where it's installed. The check that
+caught them was a person opening the app on a phone (#163, ADR 0003).
+
 > **TODO (Ben):** the worktree bug and anything from the lab notebook. Add
 > them here in the same form: what was assumed, what was measured, what
 > changed.
 
 ## 6. Results
 
-|                              |                                                                                                                           |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| LCP, real throttling (phone) | collection 2.20 s, product 1.92 s, search 1.98 s, home 1.61 s                                                             |
-| Accessibility                | axe (WCAG 2.2 AA) in CI on web and the theme; in the app's end-to-end suite; screen-reader labels in the app's unit tests |
-| Tests                        | Unit tests on the shared packages, the Worker and the app; end-to-end suites on all three surfaces                        |
-| Review                       | Every PR reviewed twice: by Ben, and by an automated reviewer whose findings were fixed before merging                    |
-| Security                     | `pnpm audit` 74 → 4 findings, none critical; CI fails on a critical advisory; Actions pinned to commit SHAs (#152)        |
+|                              |                                                                                                                                                          |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| LCP, real throttling (phone) | collection 2.20 s, product 1.92 s, search 1.98 s, home 1.61 s                                                                                            |
+| Accessibility                | axe (WCAG 2.2 AA) in CI on web and the theme; in the app's end-to-end suite; screen-reader labels in the app's unit tests                                |
+| Tests                        | Unit tests on the shared packages, the Worker and the app; end-to-end suites on all three surfaces                                                       |
+| Review                       | Every PR reviewed twice: by Ben, and by an automated reviewer whose findings were fixed before merging                                                   |
+| Security                     | `pnpm audit` 74 → 4 accepted findings, each with a review date; CI fails on high and critical; a daily audit; Actions pinned to commit SHAs (#152, #159) |
 
 > **TODO (Ben):** link the evidence pack (#74, SHO-80) once merged.
 
