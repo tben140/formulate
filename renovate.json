@@ -3,6 +3,7 @@
   "description": "Dependency updates for the formulate monorepo (SHO-146). Pins that exist for a documented reason are excluded below, each citing its ADR, so Renovate never proposes breaking them.",
   "extends": [
     "config:recommended",
+    "helpers:pinGitHubActionDigests",
     ":dependencyDashboard",
     ":semanticCommitTypeAll(chore)"
   ],
@@ -19,6 +20,7 @@
       "**Security fast track: check before merging** (AGENTS.md, Dependencies). Merge only if all four hold:\n1. A GitHub-reviewed advisory names this exact version as patched.\n2. It's a patch or minor release, from the same publisher as the version it replaces.\n3. pnpm's trust policy passes (the install step in CI).\n4. CI passes.\n\nIf 1 or 2 fails, close this and let the normal 7-day update bring it. If 3 or 4 fails, stop and investigate."
     ]
   },
+  "osvVulnerabilityAlerts": true,
   "prConcurrentLimit": 5,
   "labels": [
     "dependencies"
@@ -124,7 +126,7 @@
       "groupName": "Shopify CLI"
     },
     {
-      "description": "GitHub Actions in one PR. Actions pinned by commit SHA (shopify/lighthouse-ci-action) keep their digest pin.",
+      "description": "GitHub Actions in one PR. Each Action is pinned to a commit SHA (helpers:pinGitHubActionDigests); the update moves the SHA and its version comment together.",
       "matchManagers": [
         "github-actions"
       ],
