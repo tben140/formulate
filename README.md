@@ -108,8 +108,8 @@ These are load-bearing. Read the comments before changing them.
   fails at Metro bundle time — never at install time.
 - **TypeScript is pinned to `~6.0.3`, not 7.** No `typescript-eslint` release
   supports TypeScript 7 (all cap at `<6.1.0`), and its parser is what lets
-  ESLint read TypeScript at all. 6.0.3 is the sweet spot: inside that range and
-  exactly what Expo SDK 57 expects. Note TS 6 deprecates `baseUrl`, so the app
+  ESLint read TypeScript at all. 6.0.3 is the highest version inside that range,
+  and Expo SDK 58's version check accepts it. Note TS 6 deprecates `baseUrl`, so the app
   tsconfigs use `paths` alone.
 - **React is pinned to `19.3.0` workspace-wide** via a pnpm override, because
   that is the version Expo SDK 58 expects. Under the hoisted node linker a

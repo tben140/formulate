@@ -99,4 +99,7 @@ not come with it:
   under `3.1.0-rc.0`. Newer `lightningcss` versions were not re-tested.
 
 Both failures surfaced only at runtime in Expo Go, never at install, typecheck
-or bundle time: the same shape of failure as ADR 0004, from the same cause.
+or bundle time. ADR 0004's failure is one stage earlier, at Metro bundle time,
+but the cause is the same: `react-native-css` sits between the app and React
+Native, and nothing before it runs catches a mismatch. After a NativeWind or
+`react-native-css` change, open the app, not just the bundle.
