@@ -2,7 +2,7 @@
 
 import { EVENTS, addedToCart } from "@formulate/analytics";
 import { formatMoney, type CartSuggestion } from "@formulate/shopify";
-import Link from "next/link";
+import Link from "@/components/link";
 import { useActionState, useId } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";

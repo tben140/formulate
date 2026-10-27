@@ -7,7 +7,7 @@ import {
   withValueToggled,
   type FilterLike,
 } from "@formulate/shopify";
-import Link from "next/link";
+import Link from "@/components/link";
 
 /**
  * Filters for a listing, as configured in Search & Discovery (SHO-153).

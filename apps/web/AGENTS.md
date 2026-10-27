@@ -129,6 +129,12 @@ See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
 
 ## Vercel
 
+- Links use `Link` from `@/components/link`, never `next/link` directly (lint
+  enforces it). It prefetches on hover, touch or focus instead of whenever a
+  link scrolls into view: viewport prefetching was about half of every page
+  view's CDN requests, measured locally on 27 October 2026 (36–43 requests per
+  page down to 17–19).
+
 - The Vercel project's root directory is `apps/web`.
 - `vercel.json` sets security headers; keep them.
 - `<Analytics />` and `<SpeedInsights />` are mounted last in `app/layout.tsx`,

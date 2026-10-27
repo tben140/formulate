@@ -2,7 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import Link from "next/link";
+import Link from "@/components/link";
 import type { ReactNode } from "react";
 
 import { CartButton } from "@/components/cart-button";
