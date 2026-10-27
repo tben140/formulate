@@ -134,9 +134,9 @@ See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
 - `vercel.json`'s `ignoreCommand` skips a preview build unless the commit
   changes `apps/web`, `packages`, the root `package.json` or the pnpm files.
   Production always builds. It exists because the free plan allows 1,000,000
-  CDN requests a month and pauses the projects past that; e2e and Lighthouse
-  against every preview of every PR used three quarters of it by 26 October
-  2026.
+  CDN requests a month and pauses the projects past that. By 26 October 2026,
+  e2e and Lighthouse runs against every preview of every PR had used three
+  quarters of it.
   - **Vercel's side:** when the command exits 0, Vercel cancels the
     deployment ("Canceled by Ignored Build Step").
   - **GitHub's side:** the check Vercel reports is a success, so a skipped
