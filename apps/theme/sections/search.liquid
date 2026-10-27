@@ -35,7 +35,11 @@
       {%- liquid
         # URL-encoded: the terms are the shopper's own text, and this ends up in
         # an href. collection-filters escapes it as an attribute too.
-        assign encoded_terms = search.terms | url_encode
+        # Shopify hands search.terms over HTML-escaped already (a quote arrives
+        # as &quot;), so it's unescaped first, or the link would search for
+        # the entity. &amp; goes last, so "&amp;quot;" stays "&quot;".
+        assign raw_terms = search.terms | replace: '&quot;', '"' | replace: '&#39;', "'" | replace: '&lt;', '<' | replace: '&gt;', '>' | replace: '&amp;', '&'
+        assign encoded_terms = raw_terms | url_encode
         assign base = routes.search_url | append: '?type=product&q=' | append: encoded_terms
       -%}
       {% render 'collection-filters',
