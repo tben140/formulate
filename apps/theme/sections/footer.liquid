@@ -1,13 +1,11 @@
 {% comment %}
   Site footer.
 
-  apps/web has no footer at all. Rather than replicate that absence — a
-  storefront with no policy links or copyright is a genuine gap, not a design
-  choice worth copying — this is a minimal, token-styled footer that reads as
-  part of the same design system.
+  The same footer as web's (app/layout.tsx) and the app's
+  (components/site-footer.tsx): email sign-up, social and payment icons, then
+  the copyright line and the Shopify menu "Legal".
 
-  Social and payment icons sit above the copyright line, as on web and the
-  app (snippets/social-icons.liquid, snippets/payment-icons.liquid).
+  The icons are snippets/social-icons.liquid and snippets/payment-icons.liquid.
 
   The copyright name is the theme-wide `wordmark` setting (Theme settings →
   Brand), the same one the header reads, not `shop.name`, which is the dev
