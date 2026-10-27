@@ -25,7 +25,7 @@ vault to browse it as a graph; it is plain markdown either way.
 | Note                             | Surface                                                            |
 | -------------------------------- | ------------------------------------------------------------------ |
 | [Web storefront](surface-web.md) | `apps/web` — Next.js 16, React Server Components, Vercel           |
-| [Mobile app](surface-mobile.md)  | `apps/mobile` — Expo SDK 57, TanStack Query, Checkout Sheet Kit    |
+| [Mobile app](surface-mobile.md)  | `apps/mobile` — Expo SDK 58, TanStack Query, Checkout Sheet Kit    |
 | [Liquid theme](surface-theme.md) | `apps/theme` — Shopify Online Store, web components, no build step |
 
 ## Integrations

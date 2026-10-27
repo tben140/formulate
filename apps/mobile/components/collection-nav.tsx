@@ -1,6 +1,6 @@
 import { Link } from "expo-router";
 import { Fragment, useRef } from "react";
-import { Pressable, ScrollView, Text } from "react-native";
+import { Pressable, ScrollView, Text, type ScrollViewInstance } from "react-native";
 
 import { useNavLinks } from "../lib/queries";
 
@@ -29,7 +29,9 @@ export const CollectionNav = ({
   readonly onSelect?: (handle: string) => void;
 }) => {
   const { data } = useNavLinks();
-  const scroller = useRef<ScrollView>(null);
+  // React Native 0.88 types ScrollView as a function component, so the ref
+  // is its instance type, not the component.
+  const scroller = useRef<ScrollViewInstance>(null);
 
   // The app has no policy screens; those menu items are web and theme only.
   const links = data?.filter((link) => link.kind !== "policy") ?? [];
