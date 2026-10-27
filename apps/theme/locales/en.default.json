@@ -83,12 +83,12 @@
     "use_at_checkout": "Use this gift card at checkout"
   },
   "newsletter": {
-    "heading": "Get restock and subscription news",
+    "heading": "Get 10% off your first one-time order",
     "submit": "Sign up",
     "pending": "Signing up…",
     "placeholder": "you@company.com",
-    "consent": "Marketing emails about restocks and subscription offers. Unsubscribe any time.",
-    "success": "You're on the list. Check your inbox.",
+    "consent": "Marketing emails: a 10% code for your first one-time order, then restock news and subscription offers. Unsubscribe any time.",
+    "success": "You're on the list. Check your inbox for your code.",
     "error_empty": "Enter your email address.",
     "error_invalid": "That doesn't look like an email address. Check it and try again.",
     "error_unavailable": "Sign-up isn't available at the moment.",
