@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/tokens.ts",
     "./social": "./src/social.ts",
+    "./payment": "./src/payment.ts",
     "./theme.css": "./theme.css",
     "./tokens.css": "./tokens.css",
     "./fonts.css": "./fonts.css",

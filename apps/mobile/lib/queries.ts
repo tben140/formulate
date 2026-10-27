@@ -4,11 +4,13 @@ import {
   LEGAL_MENU_HANDLE,
   NAV_MENU_HANDLE,
   NavMenuQuery,
+  PaymentSettingsQuery,
   ComplementaryProductsQuery,
   ProductByHandleQuery,
   SearchProductsQuery,
   ShopPoliciesQuery,
   describeError,
+  paymentIconIds,
   productFiltersFromParams,
   toNavLinks,
 } from "@formulate/shopify";
@@ -100,6 +102,18 @@ export const useLegalLinks = () =>
           ?.items,
       ).filter((link) => link.kind === "policy"),
     staleTime: 10 * 60_000,
+  });
+
+/**
+ * The footer's payment icons: what Shopify says the store accepts, or the
+ * planned methods while it reports none (paymentIconIds).
+ */
+export const usePaymentIconIds = () =>
+  useQuery({
+    queryKey: ["payment-settings"],
+    queryFn: async () => unwrap(await storefront.request(PaymentSettingsQuery, {})).shop,
+    select: (shop) => paymentIconIds(shop.paymentSettings),
+    staleTime: 60 * 60_000,
   });
 
 /** One store policy by handle, or null when the store hasn't written it. */

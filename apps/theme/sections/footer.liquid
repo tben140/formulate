@@ -6,8 +6,8 @@
   choice worth copying — this is a minimal, token-styled footer that reads as
   part of the same design system.
 
-  Payment icons from the skeleton are omitted: they advertise a checkout this
-  surface does not yet reach, and return with P1 — Cart & selling plans.
+  Social and payment icons sit above the copyright line, as on web and the
+  app (snippets/social-icons.liquid, snippets/payment-icons.liquid).
 
   The copyright name is the theme-wide `wordmark` setting (Theme settings →
   Brand), the same one the header reads, not `shop.name`, which is the dev
@@ -103,7 +103,12 @@
       </email-capture>
     {% endif %}
 
-    {% render 'social-icons' %}
+    <div class="site-footer__badges">
+      {% render 'social-icons' %}
+      {% if section.settings.show_payment_icons %}
+        {% render 'payment-icons' %}
+      {% endif %}
+    </div>
 
     <div class="site-footer__inner">
       <p class="site-footer__copyright">
@@ -156,8 +161,30 @@
 
   /* Matched against apps/web's <SocialLinks />: gap-2, size-11 targets, size-5
      icons, text-foreground-muted. */
-  .social-links {
+  /* Matched against apps/web's footer row: social icons, then payment icons,
+     wrapping onto their own line when there isn't room. */
+  .site-footer__badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-4);
     padding-block-start: var(--spacing-6);
+  }
+
+  .payment-icons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .payment-icons__icon {
+    display: block;
+    width: 38px;
+    height: 24px;
   }
 
   .social-links__list {
@@ -294,6 +321,12 @@
       "type": "link_list",
       "id": "menu",
       "label": "t:labels.menu"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_payment_icons",
+      "label": "Show payment icons",
+      "default": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 
 import { useLegalLinks } from "../lib/queries";
 import { EmailCapture } from "./email-capture";
+import { PaymentIcons } from "./payment-icons";
 import { SocialLinks } from "./social-links";
 
 /**
@@ -40,6 +41,10 @@ export const SiteFooter = () => {
 
       <View className="mt-6">
         <SocialLinks />
+      </View>
+
+      <View className="mt-4">
+        <PaymentIcons />
       </View>
 
       {/*

@@ -123,6 +123,7 @@
     "skip_to_content": "Skip to content"
   },
   "footer": {
-    "social": "Social media"
+    "social": "Social media",
+    "payment_methods": "Payment methods"
   }
 }
