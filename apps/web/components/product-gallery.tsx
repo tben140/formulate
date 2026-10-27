@@ -27,6 +27,10 @@ export const ProductGallery = ({
   readonly title: string;
 }) => {
   const track = useRef<HTMLDivElement>(null);
+  // The image an arrow or thumbnail asked for, while the smooth scroll to it
+  // runs. Scroll events on the way would otherwise round to the image being
+  // left and put the count, the thumbnails and the next arrow press back on it.
+  const pending = useRef<number | null>(null);
   const [active, setActive] = useState(0);
   const count = images.length;
 
@@ -36,11 +40,31 @@ export const ProductGallery = ({
     const element = track.current;
     if (!element || count < 2) return;
     const onScroll = () => {
-      const index = Math.round(element.scrollLeft / element.clientWidth);
-      setActive(Math.min(Math.max(index, 0), count - 1));
+      const index = Math.min(
+        Math.max(Math.round(element.scrollLeft / element.clientWidth), 0),
+        count - 1,
+      );
+      if (pending.current !== null) {
+        if (index !== pending.current) return;
+        pending.current = null;
+      }
+      setActive(index);
+    };
+    // The shopper taking over (a swipe, a wheel, arrow keys on the focused
+    // track) ends the programmatic scroll's claim.
+    const release = () => {
+      pending.current = null;
     };
     element.addEventListener("scroll", onScroll, { passive: true });
-    return () => element.removeEventListener("scroll", onScroll);
+    for (const type of ["pointerdown", "wheel", "touchstart", "keydown"] as const) {
+      element.addEventListener(type, release, { passive: true });
+    }
+    return () => {
+      element.removeEventListener("scroll", onScroll);
+      for (const type of ["pointerdown", "wheel", "touchstart", "keydown"] as const) {
+        element.removeEventListener(type, release);
+      }
+    };
   }, [count]);
 
   const show = useCallback(
@@ -49,11 +73,12 @@ export const ProductGallery = ({
       if (!element) return;
       const target = (index + count) % count;
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      pending.current = target;
+      setActive(target);
       element.scrollTo({
         left: target * element.clientWidth,
         behavior: reduced ? "auto" : "smooth",
       });
-      setActive(target);
     },
     [count],
   );
@@ -69,6 +94,12 @@ export const ProductGallery = ({
     );
   }
 
+  // The frame takes the first image's shape, which is the page's main photo,
+  // so it's never cropped. Later images of another shape fit inside it.
+  const [first] = images;
+  const ratio =
+    first?.width && first.height ? `${first.width} / ${first.height}` : "1 / 1";
+
   return (
     <section
       aria-roledescription={count > 1 ? "carousel" : undefined}
@@ -82,6 +113,7 @@ export const ProductGallery = ({
           // focusable for keyboard users when there's somewhere to scroll.
           tabIndex={count > 1 ? 0 : undefined}
           aria-label={count > 1 ? galleryPosition(active, count) : undefined}
+          style={{ aspectRatio: ratio }}
           className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 [&::-webkit-scrollbar]:hidden"
         >
           {images.map((image, index) => (
@@ -90,12 +122,12 @@ export const ProductGallery = ({
               role={count > 1 ? "group" : undefined}
               aria-roledescription={count > 1 ? "slide" : undefined}
               aria-label={count > 1 ? galleryPosition(index, count) : undefined}
-              className="w-full shrink-0 snap-center"
+              className="h-full w-full shrink-0 snap-center"
             >
               <Image
                 data={{ ...image, altText: galleryAlt(image, title, index, count) }}
                 sizes="(min-width: 768px) 45vw, 90vw"
-                className="aspect-square h-auto w-full object-cover"
+                className="h-full w-full object-contain"
                 loading={index === 0 ? "eager" : "lazy"}
                 fetchPriority={index === 0 ? "high" : undefined}
               />

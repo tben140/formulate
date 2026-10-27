@@ -9,8 +9,9 @@
 
   The gallery is progressively enhanced by <media-gallery> in
   assets/media-gallery.js. Without JavaScript every image is still there in a
-  track that swipes and scrolls; the script adds arrows, the count and
-  thumbnails that follow it.
+  track that swipes and scrolls; the script shows the arrows, the count and
+  the thumbnails (rendered hidden, since they do nothing without it) and keeps
+  them in step.
 
   https://shopify.dev/docs/storefronts/themes/architecture/templates/product
 {% endcomment %}
@@ -58,12 +59,22 @@
     {% endif %}
     data-position-text="{{ 'product.gallery_position' | t: index: '[index]', count: '[count]' }}"
   >
-    <div class="product__media">
+    {%- comment -%}
+      The frame takes the first image's shape (the page's main photo), so it's
+      never cropped; later images of another shape fit inside it.
+    {%- endcomment -%}
+    <div
+      class="product__media"
+      {% if product.featured_image %}
+        style="--gallery-ratio: {{ product.featured_image.aspect_ratio }}"
+      {% endif %}
+    >
       {% if product.featured_image %}
         <div
           ref="track"
           class="product__track"
           {% if gallery_count > 1 %}
+            role="group"
             tabindex="0"
             aria-label="{{ 'product.gallery_position' | t: index: 1, count: gallery_count }}"
           {% endif %}
@@ -100,7 +111,7 @@
     </div>
 
     {% if gallery_count > 1 %}
-      <div class="product__thumbnails" role="group" aria-label="{{ 'product.choose_image' | t }}">
+      <div ref="thumbnails" class="product__thumbnails" role="group" aria-label="{{ 'product.choose_image' | t }}" hidden>
         {%- render 'product-thumbnail', image: product.featured_image, index: 1, count: gallery_count -%}
         {%- assign thumb_index = 1 -%}
         {%- for image in product.images -%}
@@ -177,12 +188,15 @@
     scroll-snap-align: center;
   }
 
+  .product__track {
+    aspect-ratio: var(--gallery-ratio, 1);
+  }
+
   .product__image {
     display: block;
     width: 100%;
-    height: auto;
-    aspect-ratio: 1;
-    object-fit: cover;
+    height: 100%;
+    object-fit: contain;
   }
 
   .product__placeholder {
@@ -239,6 +253,11 @@
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--color-foreground);
+  }
+
+  /* display: flex below would otherwise beat the user agent's [hidden]. */
+  .product__thumbnails[hidden] {
+    display: none;
   }
 
   .product__thumbnails {

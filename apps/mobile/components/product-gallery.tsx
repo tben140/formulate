@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
+  ScrollView,
   Text,
   View,
   type LayoutChangeEvent,
@@ -141,7 +142,13 @@ export const ProductGallery = ({
       </View>
 
       {count > 1 ? (
-        <View className="mt-3 flex-row gap-2">
+        // Scrolls sideways: six or more thumbnails are wider than a phone.
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="mt-3"
+          contentContainerClassName="gap-2"
+        >
           {images.map((image, index) => (
             <Pressable
               key={image.url}
@@ -167,7 +174,7 @@ export const ProductGallery = ({
               />
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       ) : null}
     </View>
   );

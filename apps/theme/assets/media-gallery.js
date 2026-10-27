@@ -9,6 +9,7 @@ import { Component } from "@theme/component";
  * @property {HTMLElement} [countText] - Its screen-reader wording.
  * @property {HTMLElement} [countShort] - Its visible "2 / 5".
  * @property {HTMLButtonElement[] | HTMLButtonElement} [thumbnail] - Thumbnail buttons.
+ * @property {HTMLElement} [thumbnails] - The thumbnail strip, hidden until this runs.
  */
 
 /**
@@ -30,17 +31,30 @@ import { Component } from "@theme/component";
 export class MediaGallery extends Component {
   #active = 0;
 
+  /**
+   * The slide an arrow or thumbnail asked for, while the smooth scroll to it
+   * runs. Scroll events on the way would otherwise round to the slide being
+   * left and put the count, the thumbnails and the next arrow press back on
+   * it. Cleared when the scroll arrives, or when the shopper takes over.
+   *
+   * @type {number | null}
+   */
+  #pending = null;
+
   /** @override */
   connectedCallback() {
     super.connectedCallback();
 
-    const { track, previous, next, count } = this.refs;
+    const { track, previous, next, count, thumbnails } = this.refs;
     const slides = this.#slides;
     if (!track || slides.length < 2) return;
 
     previous?.removeAttribute("hidden");
     next?.removeAttribute("hidden");
     count?.removeAttribute("hidden");
+    // Server-rendered, but buttons that do nothing until now, so hidden until
+    // they work.
+    thumbnails?.removeAttribute("hidden");
 
     previous?.addEventListener("click", () => this.#show(this.#active - 1), {
       signal: this.signal,
@@ -57,6 +71,17 @@ export class MediaGallery extends Component {
       passive: true,
       signal: this.signal,
     });
+    // A swipe, a wheel or arrow keys on the focused track: the shopper's
+    // scroll, not ours.
+    for (const type of ["pointerdown", "wheel", "touchstart", "keydown"]) {
+      track.addEventListener(
+        type,
+        () => {
+          this.#pending = null;
+        },
+        { passive: true, signal: this.signal },
+      );
+    }
     this.addEventListener("keydown", this.#handleKeydown, { signal: this.signal });
 
     this.#mark(0);
@@ -80,6 +105,10 @@ export class MediaGallery extends Component {
     if (!track) return;
     const index = Math.round(track.scrollLeft / track.clientWidth);
     const clamped = Math.min(Math.max(index, 0), this.#slides.length - 1);
+    if (this.#pending !== null) {
+      if (clamped !== this.#pending) return;
+      this.#pending = null;
+    }
     if (clamped !== this.#active) this.#mark(clamped);
   };
 
@@ -111,6 +140,7 @@ export class MediaGallery extends Component {
     if (!track || total === 0) return;
     const target = (index + total) % total;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this.#pending = target;
     track.scrollTo({
       left: target * track.clientWidth,
       behavior: reduced ? "auto" : "smooth",
@@ -142,7 +172,24 @@ export class MediaGallery extends Component {
       // Roving tabindex: only the selected thumbnail is reachable by Tab.
       thumbnail.tabIndex = selected ? 0 : -1;
     });
-    this.#thumbnails[index]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    this.#revealThumbnail(index);
+  }
+
+  /**
+   * Scrolls the thumbnail strip, and only the strip, so `index` is in view.
+   * scrollIntoView would scroll the page too, on load when the strip is below
+   * the fold. Measured with getBoundingClientRect, which also holds in RTL.
+   *
+   * @param {number} index
+   */
+  #revealThumbnail(index) {
+    const { thumbnails: strip } = this.refs;
+    const thumbnail = this.#thumbnails[index];
+    if (!strip || !thumbnail) return;
+    const box = strip.getBoundingClientRect();
+    const item = thumbnail.getBoundingClientRect();
+    if (item.left < box.left) strip.scrollLeft -= box.left - item.left;
+    else if (item.right > box.right) strip.scrollLeft += item.right - box.right;
   }
 }
 
