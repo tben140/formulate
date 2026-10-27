@@ -328,6 +328,19 @@ describe("customerAccountRequest", () => {
       await customerAccountRequest(CONFIG, "expired", "{ customer { id } }"),
     ).toMatchObject({ ok: false, error: { kind: "http", status: 401 } });
   });
+
+  it.each([
+    ["an HTML page", "<html>Bad gateway</html>"],
+    ["JSON null", "null"],
+  ])(
+    "returns invalid-response, not a throw, for a 2xx body that's %s",
+    async (_, body) => {
+      vi.stubGlobal("fetch", async () => new Response(body, { status: 200 }));
+      expect(
+        await customerAccountRequest(CONFIG, "token", "{ customer { id } }"),
+      ).toMatchObject({ ok: false, error: { kind: "invalid-response" } });
+    },
+  );
 });
 
 describe("order ids in URLs", () => {
@@ -362,6 +375,13 @@ describe("callbackParams", () => {
 
   it("returns nothing for a URL without a query", () => {
     expect(callbackParams("shop.1.app://callback")).toEqual({});
+  });
+
+  it("keeps a malformed escape as it arrived instead of throwing", () => {
+    expect(callbackParams("app://callback?code=%E0%A4%A&state=%")).toEqual({
+      code: "%E0%A4%A",
+      state: "%",
+    });
   });
 });
 

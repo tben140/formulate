@@ -13,7 +13,11 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { customerAccountConfig, requireCustomerTokens } from "@/lib/customer-account";
+import {
+  customerAccountConfig,
+  refreshAfter401,
+  requireCustomerTokens,
+} from "@/lib/customer-account";
 
 export const metadata: Metadata = {
   title: "Order",
@@ -63,7 +67,7 @@ const OrderPage = async ({ params }: PageProps) => {
 
   if (!result.ok) {
     if (result.error.kind === "http" && result.error.status === 401) {
-      redirect(`/account/refresh?return_to=${encodeURIComponent(path)}`);
+      redirect(refreshAfter401(path));
     }
     console.error(describeCustomerAccountError(result.error));
     return (

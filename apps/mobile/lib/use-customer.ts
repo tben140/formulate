@@ -27,6 +27,7 @@ import {
   isCustomerAccountAvailable,
   readCustomerTokens,
   requestAsCustomer,
+  TransientRefreshError,
   signIn,
   signOut,
 } from "./customer-account";
@@ -60,7 +61,14 @@ const queryAsCustomer = async <TData>(
   query: string,
   variables: Record<string, unknown>,
 ): Promise<TData | null> => {
-  const result = await requestAsCustomer<TData>(query, variables);
+  let result: Awaited<ReturnType<typeof requestAsCustomer<TData>>>;
+  try {
+    result = await requestAsCustomer<TData>(query, variables);
+  } catch (cause) {
+    // Renewing failed but the session isn't over: retryable, not signed out.
+    if (cause instanceof TransientRefreshError) throw loadError();
+    throw cause;
+  }
   if (!result) return null;
   if (result.ok) return result.data;
 
@@ -72,6 +80,8 @@ const queryAsCustomer = async <TData>(
   throw loadError();
 };
 
+const ORDERS_KEY = [...CUSTOMER_KEY, "orders"] as const;
+
 /** The buyer and their latest orders, or null when signed out. */
 /*
  * Each query below answers with sample data while the Expo Go account preview
@@ -81,15 +91,23 @@ const queryAsCustomer = async <TData>(
 
 export const useCustomerOrders = () => {
   const preview = usePreviewingAccount();
+  const queryClient = useQueryClient();
   return useInfiniteQuery({
-    queryKey: [...CUSTOMER_KEY, "orders", { preview }],
-    queryFn: ({ pageParam }) =>
-      preview
-        ? Promise.resolve<CustomerOrdersResult | null>(SAMPLE_ORDERS)
-        : queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, {
-            first: 20,
-            after: pageParam,
-          }),
+    queryKey: [...ORDERS_KEY, { preview }],
+    queryFn: async ({ pageParam }) => {
+      if (preview) return SAMPLE_ORDERS as CustomerOrdersResult | null;
+      const page = await queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, {
+        first: 20,
+        after: pageParam,
+      });
+      // A later page that finds the session gone (a 401 cleared the tokens)
+      // mustn't leave the earlier pages, and the last buyer's orders, on
+      // screen: start the query over, which now resolves to signed out.
+      if (page === null && pageParam !== undefined) {
+        queueMicrotask(() => void queryClient.resetQueries({ queryKey: ORDERS_KEY }));
+      }
+      return page;
+    },
     initialPageParam: undefined as string | undefined,
     // Older orders, one cursor page at a time ("Load more" on the Account tab).
     getNextPageParam: (last) =>
@@ -146,7 +164,9 @@ export const useSignIn = () => {
       }
       return outcome;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: CUSTOMER_KEY }),
+    // reset, not invalidate: drops every cached customer query, inactive ones
+    // included, so nothing from a previous session is ever shown.
+    onSuccess: () => queryClient.resetQueries({ queryKey: CUSTOMER_KEY }),
   });
 };
 
@@ -161,7 +181,10 @@ export const useSignOut = () => {
       await clearCartId();
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: CUSTOMER_KEY });
+      // reset, not invalidate: invalidating only refetches active queries, and
+      // an inactive one (an order screen visited earlier) would keep this
+      // buyer's data in memory for the next person on the phone.
+      await queryClient.resetQueries({ queryKey: CUSTOMER_KEY });
       await queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });

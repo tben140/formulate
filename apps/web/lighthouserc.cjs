@@ -25,13 +25,26 @@ const withBypass = (path) =>
     ? `${base}${path}?x-vercel-protection-bypass=${encodeURIComponent(bypass)}&x-vercel-set-bypass-cookie=true`
     : `${base}${path}`;
 
-// One listing and one product page: the two templates every shopper sees, and
-// the same pair the theme's Lighthouse run audits. `/` is left out because it
-// is a redirect to a collection, so it would audit the redirect, not a page.
-const PATHS = ["/collections/best-sellers", "/products/magnesium-glycinate"];
+// The home page, a listing and a product page: the three templates most
+// shoppers see, and the same three Shopify's action audits on the theme (its
+// entrypoint lists `/`, a product and a collection). The home page was left
+// out while `/` redirected to a collection; it has been a real page since
+// SHO-61. Search results join once predictive search (SHO-103) is in.
+const PATHS = ["/", "/collections/best-sellers", "/products/magnesium-glycinate"];
 
-/** Median of three runs, so one noisy run can neither pass nor fail a PR. */
-const median = { aggregationMethod: "median-run" };
+/**
+ * Median of three runs, per metric, so one noisy run can neither pass nor fail
+ * a PR.
+ *
+ * ⚠️ `median`, not `median-run`. `median-run` picks one representative run (by
+ * its other metrics) and checks every budget against that whole run, so a run
+ * with a one-off blocking-time spike can still be the one checked: #94 failed
+ * on 1,659 ms TBT while its other two runs measured 62 and 34 ms. `median`
+ * takes the middle value of each metric across the runs, which is what this
+ * comment always meant. A real regression raises all three runs, so it still
+ * fails.
+ */
+const median = { aggregationMethod: "median" };
 
 module.exports = {
   ci: {
@@ -43,13 +56,21 @@ module.exports = {
     },
     assert: {
       assertions: {
-        "categories:performance": ["error", { minScore: 0.5, ...median }],
+        // Ratcheted to just under recent CI actuals (SHO-68, 2026-10-07): single
+        // runs ranged perf 0.82-0.99, LCP up to 3.6 s, TBT up to 650 ms, CLS
+        // 0.003, and these are medians of three. The old floors (0.5, 6 s,
+        // 1.2 s) passed a deliberate 2 s regression (SHO-29).
+        //
+        // ⚠️ Simulated Lighthouse can't see server time behind a streamed
+        // response: a 2 s server wait still scored 0.93. e2e/performance.spec.ts
+        // times what actually arrives, and is the gate for that.
+        "categories:performance": ["error", { minScore: 0.8, ...median }],
         "categories:accessibility": ["error", { minScore: 0.95, ...median }],
         // Core Web Vitals. Lab data has no INP, so Total Blocking Time stands in
         // for it; field INP comes from Vercel Speed Insights.
-        "largest-contentful-paint": ["error", { maxNumericValue: 6000, ...median }],
-        "cumulative-layout-shift": ["error", { maxNumericValue: 0.1, ...median }],
-        "total-blocking-time": ["error", { maxNumericValue: 1200, ...median }],
+        "largest-contentful-paint": ["error", { maxNumericValue: 4000, ...median }],
+        "cumulative-layout-shift": ["error", { maxNumericValue: 0.05, ...median }],
+        "total-blocking-time": ["error", { maxNumericValue: 600, ...median }],
       },
     },
     upload: {
