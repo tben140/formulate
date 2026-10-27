@@ -3,6 +3,7 @@
   "description": "Dependency updates for the formulate monorepo (SHO-146). Pins that exist for a documented reason are excluded below, each citing its ADR, so Renovate never proposes breaking them.",
   "extends": [
     "config:recommended",
+    "helpers:pinGitHubActionDigests",
     ":dependencyDashboard",
     ":semanticCommitTypeAll(chore)"
   ],
@@ -12,16 +13,21 @@
   ],
   "minimumReleaseAge": "7 days",
   "vulnerabilityAlerts": {
-    "description": "Security fixes take the 2-day fast track in AGENTS.md (Dependencies) instead of the 7-day default.",
-    "minimumReleaseAge": "2 days"
+    "description": "Security fixes take the fast track in AGENTS.md (Dependencies): the PR opens at once instead of after 7 days. Renovate may write the minimumReleaseAgeExclude line itself, so the PR's reviewer is the gate: the note below lists the four checks, and nothing here automerges.",
+    "minimumReleaseAge": null,
+    "automerge": false,
+    "prBodyNotes": [
+      "**Security fast track: check before merging** (AGENTS.md, Dependencies). Merge only if all four hold:\n1. A GitHub-reviewed advisory names this exact version as patched.\n2. It's a patch or minor release, from the same publisher as the version it replaces.\n3. pnpm's trust policy passes (the install step in CI).\n4. CI passes.\n\nIf 1 or 2 fails, close this and let the normal 7-day update bring it. If 3 or 4 fails, stop and investigate."
+    ]
   },
+  "osvVulnerabilityAlerts": true,
   "prConcurrentLimit": 5,
   "labels": [
     "dependencies"
   ],
   "lockFileMaintenance": {
     "enabled": false,
-    "description": "Off on purpose. Lock-file maintenance re-resolves every range in the lockfile and ignores the per-package rules below, so it would move react-native-css within ^3.0.7 (only 3.0.7 reads lightningcss 1.30.1's output, a failure that shows only at Metro bundle time) and @types/react within ^19.2.0. Re-enable only once those are pinned exactly."
+    "description": "Off on purpose. Lock-file maintenance re-resolves every range in the lockfile and ignores the per-package rules below, so it would move @types/react within ^19.3.0 and every other range at once, and its react-native-css and lightningcss pins exist because a wrong pair fails only at Metro bundle time (ADR 0004). Re-enable only once the remaining ranges are pinned exactly."
   },
   "packageRules": [
     {
@@ -120,7 +126,7 @@
       "groupName": "Shopify CLI"
     },
     {
-      "description": "GitHub Actions in one PR. Actions pinned by commit SHA (shopify/lighthouse-ci-action) keep their digest pin.",
+      "description": "GitHub Actions in one PR. Each Action is pinned to a commit SHA (helpers:pinGitHubActionDigests); the update moves the SHA and its version comment together.",
       "matchManagers": [
         "github-actions"
       ],
