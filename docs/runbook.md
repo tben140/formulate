@@ -90,7 +90,9 @@ skips when its store secrets are missing.
   - Cloudflare → Workers → `formulate-api` → Deployments → the previous
     version → **Rollback**.
   - Or, from a checkout with Cloudflare credentials: `pnpm --filter
-@formulate/api exec wrangler rollback`.
+@formulate/api exec wrangler deployments list`, then `wrangler rollback
+<version-id>` with the last version known to be good. Without an id it goes
+back one version only, which is still bad if the last two deploys were.
   - Then revert on `main`. The Deploy API workflow redeploys on the next
     merge that touches the Worker.
 - **Secrets:** `wrangler secret put <NAME>` or the Cloudflare dashboard,
