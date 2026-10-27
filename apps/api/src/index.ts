@@ -218,7 +218,7 @@ export default {
         serverSubscriptionPayload({
           email,
           listId: env.KLAVIYO_LIST_ID,
-          source: "Formulate mobile",
+          source: "Double Helix mobile",
         }),
       ),
     });
