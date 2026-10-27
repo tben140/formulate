@@ -33,7 +33,15 @@ permissions:
 jobs:
   lighthouse:
     name: Lighthouse (web)
-    if: github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success'
+    # Only a Vercel deployment that is ready and has a URL. A job that names an
+    # environment (below) makes GitHub record a deployment to "ci" too, and its
+    # status fires this same event: without the environment check, each run
+    # would start another, with no URL to test.
+    if: >-
+      github.event_name != 'deployment_status' ||
+      (github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment != 'ci' &&
+      github.event.deployment_status.environment_url != '')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The secrets below live in the "ci" environment, not the repository, so

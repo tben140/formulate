@@ -133,7 +133,9 @@ hand on 25 October 2026. Any other version of those packages is still checked.
      saved secret again, and Theme Access shows a password only once, so
      that one may mean a new password from the Theme Access app.
   3. Run E2E and Lighthouse (theme) from the Actions tab, on this PR's
-     branch, and check both pass.
+     branch, and check both pass. Lighthouse (web) reads the bypass secret
+     too: re-run its latest run on a preview from the PR's checks, and check
+     it passes.
   4. Under "Deployment branches and tags", choose "Selected branches and
      tags" and add `main`, `integration/*`, `tben140/*` and `renovate/*`. A
      workflow pushed to any other branch name, as GhostAction did, then gets
