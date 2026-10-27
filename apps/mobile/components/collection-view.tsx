@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 
 import { useCollectionPages } from "../lib/queries";
 import { CollectionFilters } from "./collection-filters";
@@ -43,7 +43,9 @@ export const CollectionView = ({
     );
   }
 
-  if (isError) {
+  // Only when nothing has loaded. A failed next page keeps the products already
+  // on screen (TanStack keeps `data`), and the footer offers a retry instead.
+  if (isError && !data) {
     return (
       <View className="flex-1 items-center justify-center p-6">
         <Text className="text-base font-semibold text-danger">
@@ -124,6 +126,19 @@ export const CollectionView = ({
               className="py-4"
               accessibilityLabel="Loading more products"
             />
+          ) : isError ? (
+            <View className="items-center py-4">
+              <Text className="text-sm text-foreground-muted">
+                {"Couldn't load more products."}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void fetchNextPage()}
+                className="mt-2 rounded-md border border-border px-4 py-2"
+              >
+                <Text className="text-sm font-medium text-foreground">Try again</Text>
+              </Pressable>
+            </View>
           ) : null}
           <SiteFooter />
         </>
