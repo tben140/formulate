@@ -1,8 +1,14 @@
 import { formatDeliveryDate } from "@formulate/recharge";
 import { DELETION_COPY, deletionFailureMessage } from "@formulate/shopify";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
 
 import { Text } from "../../../components/text";
 import { useDeleteAccount, useDeletionPreview } from "../../../lib/use-customer";
@@ -18,7 +24,27 @@ const DeleteAccountScreen = () => {
   const deletion = useDeleteAccount();
   const [understood, setUnderstood] = useState(false);
 
-  if (deletion.data?.ok) {
+  const outcome = deletion.data?.result;
+  const failure = outcome && !outcome.ok ? outcome.reason : null;
+  const ready = preview.data?.ok ? preview.data : null;
+  const previewFailure =
+    !preview.isPending && !ready
+      ? deletionFailureMessage(
+          preview.data && !preview.data.ok ? preview.data.reason : "network",
+        )
+      : null;
+  const failureMessage = failure ? deletionFailureMessage(failure) : null;
+
+  // Both messages appear after a request finishes. The alert role announces on
+  // Android (with accessibilityLiveRegion below); iOS needs telling.
+  useEffect(() => {
+    if (failureMessage) AccessibilityInfo.announceForAccessibility(failureMessage);
+  }, [failureMessage, deletion.submittedAt]);
+  useEffect(() => {
+    if (previewFailure) AccessibilityInfo.announceForAccessibility(previewFailure);
+  }, [previewFailure, preview.dataUpdatedAt]);
+
+  if (outcome?.ok) {
     return (
       <View className="gap-4 p-4">
         <Text
@@ -28,6 +54,12 @@ const DeleteAccountScreen = () => {
           {DELETION_COPY.deleted.heading}
         </Text>
         <Text className="text-foreground">{DELETION_COPY.deleted.body}</Text>
+        {deletion.data?.cleanupFailed ? (
+          <Text className="text-foreground-muted">
+            This phone couldn&apos;t clear everything from your old session. Close and
+            reopen the app to finish.
+          </Text>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           onPress={() => router.replace("/")}
@@ -39,9 +71,6 @@ const DeleteAccountScreen = () => {
     );
   }
 
-  const failure = deletion.data && !deletion.data.ok ? deletion.data.reason : null;
-  const ready = preview.data?.ok ? preview.data : null;
-
   return (
     <ScrollView contentContainerClassName="gap-4 p-4">
       <Text accessibilityRole="header" className="text-2xl font-semibold text-foreground">
@@ -49,12 +78,13 @@ const DeleteAccountScreen = () => {
       </Text>
       <Text className="text-foreground">{DELETION_COPY.intro}</Text>
 
-      {failure ? (
+      {failureMessage ? (
         <Text
           accessibilityRole="alert"
+          accessibilityLiveRegion="assertive"
           className="rounded-md border border-danger px-4 py-3 text-danger"
         >
-          {deletionFailureMessage(failure)}
+          {failureMessage}
         </Text>
       ) : null}
 
@@ -76,11 +106,23 @@ const DeleteAccountScreen = () => {
       {preview.isPending ? (
         <ActivityIndicator accessibilityLabel="Checking your subscriptions" />
       ) : !ready ? (
-        <Text accessibilityRole="alert" className="text-foreground-muted">
-          {deletionFailureMessage(
-            preview.data && !preview.data.ok ? preview.data.reason : "network",
-          )}
-        </Text>
+        <View className="gap-3">
+          <Text
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            className="text-foreground-muted"
+          >
+            {previewFailure}
+          </Text>
+          {/* A failed preview resolves as data, so nothing retries it by itself. */}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void preview.refetch()}
+            className="items-center rounded-md border border-border px-4 py-3"
+          >
+            <Text className="text-sm font-semibold text-foreground">Try again</Text>
+          </Pressable>
+        </View>
       ) : (
         <>
           <Text

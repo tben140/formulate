@@ -6,10 +6,11 @@ import {
 } from "@formulate/shopify";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { previewDeletion } from "@/lib/account-deletion";
-import { requireCustomerTokens } from "@/lib/customer-account";
+import { refreshAfter401, requireCustomerTokens } from "@/lib/customer-account";
 
 export const metadata: Metadata = {
   title: "Delete your account",
@@ -45,6 +46,11 @@ interface PageProps {
 const DeleteAccountPage = async ({ searchParams }: PageProps) => {
   const tokens = await requireCustomerTokens("/account/delete");
   const preview = await previewDeletion(tokens.accessToken);
+  // Shopify can revoke a token before its recorded expiry; the Worker then
+  // answers unauthorized. One refresh, as the account page does for a 401.
+  if (!preview.ok && preview.reason === "unauthorized") {
+    redirect(refreshAfter401("/account/delete"));
+  }
   const { error } = await searchParams;
   const failure = REASONS.find((reason) => reason === error);
 

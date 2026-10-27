@@ -209,16 +209,22 @@ export const useDeleteAccount = () => {
   return useMutation({
     mutationFn: async () => {
       const result = await deleteAccount();
-      if (result.ok) {
-        await clearCustomerTokens();
-        clearRechargeSession();
-        await clearCartId();
-      }
-      return result;
+      if (!result.ok) return { result, cleanupFailed: false };
+      // The account is gone whatever happens next, so that result stands.
+      // Every cleanup step is tried even if one fails (SecureStore can reject),
+      // and a failure is reported alongside, never instead.
+      const steps = await Promise.allSettled([
+        clearCustomerTokens(),
+        Promise.resolve().then(clearRechargeSession),
+        clearCartId(),
+      ]);
+      const cleanupFailed = steps.some((step) => step.status === "rejected");
+      if (cleanupFailed && __DEV__) console.warn("deletion cleanup failed", steps);
+      return { result, cleanupFailed };
     },
-    onSuccess: async (result) => {
+    onSuccess: async ({ result }) => {
       if (!result.ok) return;
-      await queryClient.invalidateQueries({ queryKey: CUSTOMER_KEY });
+      await queryClient.resetQueries({ queryKey: CUSTOMER_KEY });
       await queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });

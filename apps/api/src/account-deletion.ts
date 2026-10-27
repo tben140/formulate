@@ -85,6 +85,7 @@ export type DeletionFailure = {
   readonly ok: false;
   readonly reason:
     | "unauthorized"
+    | "unavailable"
     | "not-configured"
     | "not-confirmed"
     | "subscriptions"
@@ -105,6 +106,26 @@ const fail = (status: number, reason: DeletionFailure["reason"]): DeletionResult
   status,
   body: { ok: false, reason },
 });
+
+/**
+ * fetch(), with a network failure or timeout as null rather than a throw. A
+ * throw would escape as a bare 500, which the storefronts read as "nothing was
+ * deleted", untrue after step 1. Each caller maps null to its own step.
+ */
+const tryFetch = async (
+  input: string,
+  init: RequestInit,
+  step: string,
+): Promise<Response | null> => {
+  try {
+    return await fetch(input, init);
+  } catch (cause) {
+    console.error(`${step}: request failed`, {
+      error: cause instanceof Error ? cause.message : "unknown",
+    });
+    return null;
+  }
+};
 
 const RECHARGE_API = "https://api.rechargeapps.com";
 const RECHARGE_VERSION = "2021-11";
@@ -127,8 +148,8 @@ interface VerifiedCustomer {
 const verifyCustomer = async (
   env: DeletionEnv,
   accessToken: string,
-): Promise<VerifiedCustomer | null> => {
-  const response = await fetch(
+): Promise<VerifiedCustomer | null | "unavailable"> => {
+  const response = await tryFetch(
     `https://shopify.com/${env.SHOPIFY_SHOP_ID}/account/customer/api/${env.SHOPIFY_API_VERSION}/graphql`,
     {
       method: "POST",
@@ -138,7 +159,10 @@ const verifyCustomer = async (
         query: "{ customer { id emailAddress { emailAddress } } }",
       }),
     },
+    "shopify customer check",
   );
+  // Shopify unreachable says nothing about the token; a 5xx neither.
+  if (!response || response.status >= 500) return "unavailable";
   if (!response.ok) return null;
   const body = (await response.json().catch(() => null)) as {
     data?: {
@@ -162,22 +186,26 @@ interface AdminSubscription {
 }
 
 const recharge = (env: DeletionEnv, path: string, init: RequestInit = {}) =>
-  fetch(`${env.RECHARGE_API_URL ?? RECHARGE_API}${path}`, {
-    ...init,
-    headers: {
-      "X-Recharge-Access-Token": env.RECHARGE_ADMIN_TOKEN ?? "",
-      "X-Recharge-Version": RECHARGE_VERSION,
-      "content-type": "application/json",
-      accept: "application/json",
+  tryFetch(
+    `${env.RECHARGE_API_URL ?? RECHARGE_API}${path}`,
+    {
+      ...init,
+      headers: {
+        "X-Recharge-Access-Token": env.RECHARGE_ADMIN_TOKEN ?? "",
+        "X-Recharge-Version": RECHARGE_VERSION,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
     },
-  });
+    "recharge",
+  );
 
 const rechargeList = async <T>(env: DeletionEnv, path: string, key: string) => {
   const response = await recharge(env, path);
-  if (!response.ok) {
+  if (!response?.ok) {
     console.error("recharge read failed", {
       path: path.split("?")[0],
-      status: response.status,
+      status: response?.status ?? null,
     });
     return null;
   }
@@ -248,8 +276,15 @@ const authorise = async (
     return fail(503, "not-configured");
   }
   const customer = await verifyCustomer(env, token);
+  if (customer === "unavailable") return fail(502, "unavailable");
   if (!customer) return fail(401, "unauthorized");
-  const adminToken = await adminAccessToken(env);
+  let adminToken: string | null;
+  try {
+    adminToken = await adminAccessToken(env);
+  } catch {
+    // Shopify unreachable, before anything has changed.
+    return fail(502, "unavailable");
+  }
   if (!adminToken) return fail(503, "not-configured");
   return { ...customer, adminToken };
 };
@@ -318,8 +353,8 @@ export const deleteAccount = async (
         send_email: false,
       }),
     });
-    if (!response.ok) {
-      console.error("recharge cancel failed", { status: response.status });
+    if (!response?.ok) {
+      console.error("recharge cancel failed", { status: response?.status ?? null });
       return fail(502, "subscriptions");
     }
   }
@@ -327,30 +362,36 @@ export const deleteAccount = async (
   // 2. Marketing data.
   // No email on the Shopify account means no Klaviyo profile keyed to it.
   if (customer.email) {
-    const response = await fetch(KLAVIYO_DELETION_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Klaviyo-API-Key ${env.KLAVIYO_DELETION_KEY}`,
-        "content-type": "application/vnd.api+json",
-        revision: KLAVIYO_REVISION,
-      },
-      body: JSON.stringify({
-        data: {
-          type: "data-privacy-deletion-job",
-          attributes: {
-            profile: { data: { type: "profile", attributes: { email: customer.email } } },
-          },
+    const response = await tryFetch(
+      KLAVIYO_DELETION_URL,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Klaviyo-API-Key ${env.KLAVIYO_DELETION_KEY}`,
+          "content-type": "application/vnd.api+json",
+          revision: KLAVIYO_REVISION,
         },
-      }),
-    });
-    if (!response.ok) {
-      console.error("klaviyo deletion failed", { status: response.status });
+        body: JSON.stringify({
+          data: {
+            type: "data-privacy-deletion-job",
+            attributes: {
+              profile: {
+                data: { type: "profile", attributes: { email: customer.email } },
+              },
+            },
+          },
+        }),
+      },
+      "klaviyo deletion",
+    );
+    if (!response?.ok) {
+      console.error("klaviyo deletion failed", { status: response?.status ?? null });
       return fail(502, "marketing");
     }
   }
 
   // 3. Shopify erasure, last: everything above must have succeeded first.
-  const response = await fetch(
+  const response = await tryFetch(
     `https://${env.SHOPIFY_STORE_DOMAIN}/admin/api/${env.SHOPIFY_API_VERSION}/graphql.json`,
     {
       method: "POST",
@@ -368,7 +409,9 @@ export const deleteAccount = async (
         variables: { customerId: `gid://shopify/Customer/${customer.id}` },
       }),
     },
+    "shopify erasure",
   );
+  if (!response) return fail(502, "erasure");
   const body = (await response.json().catch(() => null)) as {
     data?: { customerRequestDataErasure?: { userErrors?: { code?: string }[] } };
     errors?: unknown;
