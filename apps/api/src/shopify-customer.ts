@@ -9,6 +9,8 @@
  * act on someone else's account.
  */
 
+import { tryFetch } from "./try-fetch";
+
 export interface CustomerEnv {
   /** Plain vars: they name the store, they grant nothing. */
   readonly SHOPIFY_SHOP_ID: string;
@@ -28,12 +30,16 @@ export const bearerToken = (request: Request): string | null =>
 /**
  * Asked of Shopify's Customer Account API with the token itself, so only a
  * live sign-in for this shop answers.
+ *
+ * null means Shopify refused the token: unauthorized. "unavailable" means
+ * Shopify couldn't be reached or failed (a 5xx), which says nothing about the
+ * token, so callers answer 502, not 401.
  */
 export const verifyCustomer = async (
   env: CustomerEnv,
   accessToken: string,
-): Promise<VerifiedCustomer | null> => {
-  const response = await fetch(
+): Promise<VerifiedCustomer | null | "unavailable"> => {
+  const response = await tryFetch(
     `https://shopify.com/${env.SHOPIFY_SHOP_ID}/account/customer/api/${env.SHOPIFY_API_VERSION}/graphql`,
     {
       method: "POST",
@@ -43,7 +49,9 @@ export const verifyCustomer = async (
         query: "{ customer { id emailAddress { emailAddress } } }",
       }),
     },
+    "shopify customer check",
   );
+  if (!response || response.status >= 500) return "unavailable";
   if (!response.ok) return null;
   const body = (await response.json().catch(() => null)) as {
     data?: {

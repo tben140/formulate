@@ -1,4 +1,8 @@
-import { rechargeCustomerId, rechargeList, type RechargeAdminEnv } from "./recharge-admin";
+import {
+  rechargeCustomerId,
+  rechargeList,
+  type RechargeAdminEnv,
+} from "./recharge-admin";
 import { bearerToken, verifyCustomer, type CustomerEnv } from "./shopify-customer";
 
 /**
@@ -91,6 +95,9 @@ export const listSubscriptions = async (
   }
 
   const customer = await verifyCustomer(env, token);
+  if (customer === "unavailable") {
+    return { status: 502, body: { ok: false, reason: "unavailable" } };
+  }
   if (!customer) return { status: 401, body: { ok: false, reason: "unauthorized" } };
 
   const rechargeId = await rechargeCustomerId(env, customer.id);

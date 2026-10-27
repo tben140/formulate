@@ -22,14 +22,11 @@ import {
   isCustomerAccountAvailable,
   readCustomerTokens,
   requestAsCustomer,
+  TransientRefreshError,
   signIn,
   signOut,
 } from "./customer-account";
-import {
-  isRechargeConfigured,
-  loadPortal,
-  loadSubscription,
-} from "./recharge";
+import { isRechargeConfigured, loadPortal, loadSubscription } from "./recharge";
 import { storefront } from "./storefront";
 
 /**
@@ -54,7 +51,14 @@ const queryAsCustomer = async <TData>(
   query: string,
   variables: Record<string, unknown>,
 ): Promise<TData | null> => {
-  const result = await requestAsCustomer<TData>(query, variables);
+  let result: Awaited<ReturnType<typeof requestAsCustomer<TData>>>;
+  try {
+    result = await requestAsCustomer<TData>(query, variables);
+  } catch (cause) {
+    // Renewing failed but the session isn't over: retryable, not signed out.
+    if (cause instanceof TransientRefreshError) throw loadError();
+    throw cause;
+  }
   if (!result) return null;
   if (result.ok) return result.data;
 
@@ -66,15 +70,26 @@ const queryAsCustomer = async <TData>(
   throw loadError();
 };
 
+const ORDERS_KEY = [...CUSTOMER_KEY, "orders"] as const;
+
 /** The buyer and their latest orders, or null when signed out. */
-export const useCustomerOrders = () =>
-  useInfiniteQuery({
-    queryKey: [...CUSTOMER_KEY, "orders"],
-    queryFn: ({ pageParam }) =>
-      queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, {
+export const useCustomerOrders = () => {
+  const queryClient = useQueryClient();
+  return useInfiniteQuery({
+    queryKey: ORDERS_KEY,
+    queryFn: async ({ pageParam }) => {
+      const page = await queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, {
         first: 20,
         after: pageParam,
-      }),
+      });
+      // A later page that finds the session gone (a 401 cleared the tokens)
+      // mustn't leave the earlier pages, and the last buyer's orders, on
+      // screen: start the query over, which now resolves to signed out.
+      if (page === null && pageParam !== undefined) {
+        queueMicrotask(() => void queryClient.resetQueries({ queryKey: ORDERS_KEY }));
+      }
+      return page;
+    },
     initialPageParam: undefined as string | undefined,
     // Older orders, one cursor page at a time ("Load more" on the Account tab).
     getNextPageParam: (last) =>
@@ -83,6 +98,7 @@ export const useCustomerOrders = () =>
         : undefined,
     enabled: isCustomerAccountAvailable,
   });
+};
 
 /** One order. Another buyer's id comes back as `order: null`, the API's own scoping. */
 export const useCustomerOrder = (pathId: string) =>
@@ -125,7 +141,9 @@ export const useSignIn = () => {
       }
       return outcome;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: CUSTOMER_KEY }),
+    // reset, not invalidate: drops every cached customer query, inactive ones
+    // included, so nothing from a previous session is ever shown.
+    onSuccess: () => queryClient.resetQueries({ queryKey: CUSTOMER_KEY }),
   });
 };
 
@@ -139,7 +157,10 @@ export const useSignOut = () => {
       await clearCartId();
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: CUSTOMER_KEY });
+      // reset, not invalidate: invalidating only refetches active queries, and
+      // an inactive one (an order screen visited earlier) would keep this
+      // buyer's data in memory for the next person on the phone.
+      await queryClient.resetQueries({ queryKey: CUSTOMER_KEY });
       await queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
@@ -183,15 +204,18 @@ export const useDeleteAccount = () => {
   return useMutation({
     mutationFn: async () => {
       const result = await deleteAccount();
-      if (result.ok) {
-        await clearCustomerTokens();
-        await clearCartId();
-      }
-      return result;
+      if (!result.ok) return { result, cleanupFailed: false };
+      // The account is gone whatever happens next, so that result stands.
+      // Every cleanup step is tried even if one fails (SecureStore can reject),
+      // and a failure is reported alongside, never instead.
+      const steps = await Promise.allSettled([clearCustomerTokens(), clearCartId()]);
+      const cleanupFailed = steps.some((step) => step.status === "rejected");
+      if (cleanupFailed && __DEV__) console.warn("deletion cleanup failed", steps);
+      return { result, cleanupFailed };
     },
-    onSuccess: async (result) => {
+    onSuccess: async ({ result }) => {
       if (!result.ok) return;
-      await queryClient.invalidateQueries({ queryKey: CUSTOMER_KEY });
+      await queryClient.resetQueries({ queryKey: CUSTOMER_KEY });
       await queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
