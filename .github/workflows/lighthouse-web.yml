@@ -31,17 +31,42 @@ permissions:
   contents: read
 
 jobs:
+  # Only a Vercel deployment that is ready and has a URL. A job that names an
+  # environment makes GitHub record a deployment to "ci" too, and its status
+  # fires this same event: without the environment check, each run would start
+  # another, with no URL to test.
+  #
+  # No secrets here. The deployed commit must be the head of a branch in this
+  # repository before any job that holds secrets checks it out: Vercel deploys
+  # fork PRs too, and their code would otherwise run with the secrets.
+  trusted:
+    name: Lighthouse (is the commit ours?)
+    if: >-
+      github.event_name == 'deployment_status' &&
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment != 'ci' &&
+      github.event.deployment_status.environment_url != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      ours: ${{ steps.check.outputs.ours }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.deployment.sha }}
+        run: |
+          count=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/branches-where-head" --jq length)
+          echo "ours=$([ "$count" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
   lighthouse:
     name: Lighthouse (web)
-    # Only a Vercel deployment that is ready and has a URL. A job that names an
-    # environment (below) makes GitHub record a deployment to "ci" too, and its
-    # status fires this same event: without the environment check, each run
-    # would start another, with no URL to test.
+    needs: trusted
+    # Manual and scheduled runs skip `trusted` and run as before; a deployment
+    # runs only when `trusted` found the commit on one of our branches.
     if: >-
-      github.event_name != 'deployment_status' ||
-      (github.event.deployment_status.state == 'success' &&
-      github.event.deployment.environment != 'ci' &&
-      github.event.deployment_status.environment_url != '')
+      always() &&
+      (github.event_name != 'deployment_status' || needs.trusted.outputs.ours == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The secrets below live in the "ci" environment, not the repository, so

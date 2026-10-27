@@ -151,6 +151,13 @@ hand on 25 October 2026. Any other version of those packages is still checked.
   Each run will show as a "deployment to ci" on the PR; that's GitHub's
   record of the environment being used, not a release.
 
+- **Forked PRs.** Vercel deploys a fork's PR too, and E2E and Lighthouse
+  (web) run on every deployment. A secret-free `trusted` job runs first and
+  lets them continue only if the deployed commit is the head of a branch in
+  this repository, which a fork's never is. Also confirm Vercel → Settings →
+  Git → **Git Fork Protection** is on (the default), so a fork's deployment
+  waits for approval in the first place.
+
 - **Tokens.** Review personal access tokens on GitHub, npm and Expo and remove
   any that aren't needed. GhostAction spread through long-lived classic tokens.
 - **Tailscale** to 1.104.2 or later on every device (forged certificates from
