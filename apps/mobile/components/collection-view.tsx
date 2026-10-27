@@ -31,6 +31,7 @@ export const CollectionView = ({
     isError,
     error,
     hasNextPage,
+    isFetching,
     isFetchingNextPage,
     fetchNextPage,
   } = useCollectionPages(handle, { filterQuery });
@@ -114,7 +115,8 @@ export const CollectionView = ({
       // comes within half a screen. The guard stops a fast fling from asking
       // for the same page twice.
       onEndReached={() => {
-        if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+        // Not during any fetch: see app/search.tsx.
+        if (hasNextPage && !isFetching) void fetchNextPage();
       }}
       onEndReachedThreshold={0.5}
       ListFooterComponent={

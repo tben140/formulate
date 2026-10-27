@@ -101,7 +101,9 @@ const SearchScreen = () => {
       }
       // More results load as the end of the list comes near.
       onEndReached={() => {
-        if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+        // Not during any fetch: a refetch of cached pages and a next-page fetch
+        // at once can leave stale pages showing.
+        if (hasNextPage && !isFetching) void fetchNextPage();
       }}
       onEndReachedThreshold={0.5}
       ListFooterComponent={
