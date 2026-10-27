@@ -21,6 +21,7 @@ import {
   isCustomerAccountAvailable,
   readCustomerTokens,
   requestAsCustomer,
+  TransientRefreshError,
   signIn,
   signOut,
 } from "./customer-account";
@@ -54,7 +55,14 @@ const queryAsCustomer = async <TData>(
   query: string,
   variables: Record<string, unknown>,
 ): Promise<TData | null> => {
-  const result = await requestAsCustomer<TData>(query, variables);
+  let result: Awaited<ReturnType<typeof requestAsCustomer<TData>>>;
+  try {
+    result = await requestAsCustomer<TData>(query, variables);
+  } catch (cause) {
+    // Renewing failed but the session isn't over: retryable, not signed out.
+    if (cause instanceof TransientRefreshError) throw loadError();
+    throw cause;
+  }
   if (!result) return null;
   if (result.ok) return result.data;
 
@@ -125,7 +133,9 @@ export const useSignIn = () => {
       }
       return outcome;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: CUSTOMER_KEY }),
+    // reset, not invalidate: drops every cached customer query, inactive ones
+    // included, so nothing from a previous session is ever shown.
+    onSuccess: () => queryClient.resetQueries({ queryKey: CUSTOMER_KEY }),
   });
 };
 
@@ -140,7 +150,10 @@ export const useSignOut = () => {
       await clearCartId();
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: CUSTOMER_KEY });
+      // reset, not invalidate: invalidating only refetches active queries, and
+      // an inactive one (an order screen visited earlier) would keep this
+      // buyer's data in memory for the next person on the phone.
+      await queryClient.resetQueries({ queryKey: CUSTOMER_KEY });
       await queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });

@@ -5,7 +5,13 @@ import {
   orderStatusLabel,
 } from "@formulate/shopify";
 import { Link } from "expo-router";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
 
 import { Text } from "../../../components/text";
 import { isCustomerAccountAvailable } from "../../../lib/customer-account";
@@ -111,7 +117,20 @@ const AccountScreen = () => {
         <Button
           label={signIn.isPending ? "Signing in…" : "Sign in"}
           busy={signIn.isPending}
-          onPress={() => signIn.mutate()}
+          onPress={() =>
+            signIn.mutate(undefined, {
+              // The alert role announces on Android only; iOS needs telling.
+              // The message appears after the sign-in sheet has closed, so
+              // VoiceOver would otherwise say nothing.
+              onSuccess: (outcome) => {
+                if (outcome.kind === "failed") {
+                  AccessibilityInfo.announceForAccessibility(
+                    "Sign-in didn't complete. Please try again.",
+                  );
+                }
+              },
+            })
+          }
         />
       </View>
     );
