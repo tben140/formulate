@@ -135,12 +135,20 @@ See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
   changes `apps/web`, `packages`, the root `package.json` or the pnpm files.
   Production always builds. It exists because the free plan allows 1,000,000
   CDN requests a month and pauses the projects past that; e2e and Lighthouse
-  against every preview of every PR used three quarters of it by 26 October 2026. A skipped build reports "Canceled by Ignored Build Step" as a
-  success, so it never blocks a PR, and with no deployment, e2e and
-  Lighthouse don't run either. The same command is set in the Vercel
-  dashboard (Settings → Build and Deployment), which covers branches without
-  this file; this file wins where both exist. A new top-level directory the
-  web app reads from needs adding to the command.
+  against every preview of every PR used three quarters of it by 26 October
+  2026.
+  - **Vercel's side:** when the command exits 0, Vercel cancels the
+    deployment ("Canceled by Ignored Build Step").
+  - **GitHub's side:** the check Vercel reports is a success, so a skipped
+    preview never blocks a PR.
+  - **Tests:** with no deployment there's no `deployment_status` event, so
+    that preview gets no e2e or Lighthouse run. Manual runs and Lighthouse's
+    weekly check are unaffected.
+  - **The dashboard:** the same command is set in Vercel (Settings → Build
+    and Deployment), which covers branches without this file; this file wins
+    where both exist.
+  - **A new top-level directory** the web app reads from needs adding to the
+    command.
 - `<Analytics />` and `<SpeedInsights />` are mounted last in `app/layout.tsx`,
   after the footer, so they never sit between semantic landmarks. Both render
   `null` outside Vercel.
