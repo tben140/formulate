@@ -5,7 +5,13 @@ import {
   orderStatusLabel,
 } from "@formulate/shopify";
 import { Link } from "expo-router";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
 
 import { Text } from "../../../components/text";
 import { isCustomerAccountAvailable } from "../../../lib/customer-account";
@@ -77,7 +83,9 @@ const AccountScreen = () => {
     );
   }
 
-  if (orders.isError) {
+  // Only when nothing has loaded: a failed "older orders" page keeps the
+  // orders already on screen, and says so by its button instead.
+  if (orders.isError && !orders.data) {
     return (
       <View className="gap-4 p-4">
         <Text accessibilityRole="alert" className="text-foreground">
@@ -88,7 +96,9 @@ const AccountScreen = () => {
     );
   }
 
-  const firstPage = orders.data?.pages[0] ?? null;
+  // Any page coming back null means the session ended part-way: signed out.
+  const pages = orders.data?.pages ?? [];
+  const firstPage = pages.every((page) => page !== null) ? (pages[0] ?? null) : null;
   if (!firstPage) {
     const failed = signIn.data?.kind === "failed";
     return (
@@ -111,7 +121,20 @@ const AccountScreen = () => {
         <Button
           label={signIn.isPending ? "Signing in…" : "Sign in"}
           busy={signIn.isPending}
-          onPress={() => signIn.mutate()}
+          onPress={() =>
+            signIn.mutate(undefined, {
+              // The alert role announces on Android only; iOS needs telling.
+              // The message appears after the sign-in sheet has closed, so
+              // VoiceOver would otherwise say nothing.
+              onSuccess: (outcome) => {
+                if (outcome.kind === "failed") {
+                  AccessibilityInfo.announceForAccessibility(
+                    "Sign-in didn't complete. Please try again.",
+                  );
+                }
+              },
+            })
+          }
         />
       </View>
     );
@@ -204,12 +227,26 @@ const AccountScreen = () => {
           </View>
         )}
         {orders.hasNextPage ? (
-          <View className="mt-3">
+          <View className="mt-3 gap-2">
+            {orders.isFetchNextPageError ? (
+              <Text accessibilityRole="alert" className="text-sm text-danger">
+                Older orders didn&apos;t load. Please try again.
+              </Text>
+            ) : null}
             <Button
               label={orders.isFetchingNextPage ? "Loading…" : "Load older orders"}
               variant="secondary"
               busy={orders.isFetchingNextPage}
-              onPress={() => void orders.fetchNextPage()}
+              onPress={() =>
+                void orders.fetchNextPage().then((result) => {
+                  // The alert role announces on Android only.
+                  if (result.isFetchNextPageError) {
+                    AccessibilityInfo.announceForAccessibility(
+                      "Older orders didn't load. Please try again.",
+                    );
+                  }
+                })
+              }
             />
           </View>
         ) : null}
