@@ -1,12 +1,12 @@
 # Surface: mobile app
 
-`apps/mobile` — Expo SDK 57, React Native 0.86, Expo Router, NativeWind v5.
+`apps/mobile` — Expo SDK 58, React Native 0.88, Expo Router, NativeWind v5.
 
 ## Stack
 
 |          |                                                                            |
 | -------- | -------------------------------------------------------------------------- |
-| Runtime  | Expo SDK 57 / React Native 0.86, New Architecture only                     |
+| Runtime  | Expo SDK 58 / React Native 0.88, New Architecture only                     |
 | Routing  | Expo Router, with `typedRoutes` enabled                                    |
 | Styling  | NativeWind v5 preview, sharing the same Tailwind v4 token file as web      |
 | Fetching | TanStack Query over the shared Storefront client                           |
@@ -72,7 +72,7 @@ It answered the handoff question; the real implementation gets built fresh.
 
 Verified on an iPhone 17 Pro simulator:
 
-- `@shopify/checkout-sheet-kit` 3.8.1 runs on Expo SDK 57 with **no config
+- `@shopify/checkout-sheet-kit` 3.8.1 ran on Expo SDK 57 with **no config
   plugin** — autolinking picks it up through `expo prebuild`. It cannot run in
   Expo Go, so **a development build is mandatory**.
 - A real test order completed through the native sheet: Shopify **#1001**, PAID,
@@ -105,7 +105,7 @@ discovered.
 
 ## Known constraints
 
-- **NativeWind v5 is pre-release** (`5.0.0-preview.4`), chosen so both React
+- **NativeWind v5 is pre-release** (`5.0.0-rc.0`), chosen so both React
   surfaces share one Tailwind v4 token file — see
   [ADR 0003](adr/0003-nativewind-v5-and-tailwind-v4.md).
 - **`lightningcss` is pinned to `1.30.1`** workspace-wide. Anything newer fails

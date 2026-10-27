@@ -1,8 +1,15 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router";
+import type { ColorValue } from "react-native";
 
 import { useCartUi } from "../../components/cart-provider";
 import { useCart } from "../../lib/use-cart";
+
+/**
+ * React Native 0.88's ColorValue also allows numbers and null, which the icon
+ * font doesn't take. The tab bar always passes a string.
+ */
+const iconColour = (color: ColorValue) => color as string;
 
 /** brand-600 and ink-500 from packages/tokens: active and inactive tabs. */
 const ACTIVE = "#255deb";
@@ -45,7 +52,7 @@ const TabsLayout = () => {
           // becomes the start of the tab's accessible name.
           tabBarAccessibilityLabel: "Shop",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="storefront-outline" color={color} size={size} />
+            <Ionicons name="storefront-outline" color={iconColour(color)} size={size} />
           ),
         }}
       />
@@ -55,7 +62,7 @@ const TabsLayout = () => {
           title: "Search",
           tabBarAccessibilityLabel: "Search",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" color={color} size={size} />
+            <Ionicons name="search-outline" color={iconColour(color)} size={size} />
           ),
         }}
       />
@@ -64,7 +71,7 @@ const TabsLayout = () => {
         options={{
           title: "Cart",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bag-outline" color={color} size={size} />
+            <Ionicons name="bag-outline" color={iconColour(color)} size={size} />
           ),
           tabBarBadge: count > 0 ? count : undefined,
           // The badge is a bare number, which VoiceOver would read as "Cart,
