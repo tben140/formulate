@@ -1,4 +1,4 @@
-# Policy drafts: terms of service, shipping, accessibility
+# Policy drafts: terms of service, subscriptions, shipping, accessibility
 
 Drafts for Ben to read, change and paste into Shopify. Nothing here is live,
 and none of it is legal advice: have the terms checked before the store takes
@@ -6,8 +6,8 @@ real orders.
 
 **Where each goes**
 
-- **Terms of service and Shipping policy:** Shopify admin → Settings →
-  Policies.
+- **Terms of service, Subscription policy and Shipping policy:** Shopify
+  admin → Settings → Policies.
 - **Accessibility statement:** Online Store → Pages, as a page.
 
 Then add all three to the menu under Content → Menus → Legal. Web, the app
@@ -36,7 +36,7 @@ If any of those change, these drafts need to change with them.
 2. **The Subscription policy.** The live one is Shopify's generic template. It
    describes pre-orders and "try before you buy", which this store doesn't
    offer, and it says to manage subscriptions from order emails rather than
-   your account. It needs replacing too. I can draft that next.
+   your account. A replacement is below, after the terms.
 
 ---
 
@@ -175,6 +175,78 @@ These terms are governed by the law of England and Wales.
   courts.
 - **Contact us first:** if you have a complaint, please contact us at
   `[contact email]` so we can try to put it right.
+
+_Last updated: `[date]`_
+
+---
+
+## Subscription policy
+
+`[Check every line against how the plans are actually set up in Recharge
+before publishing. The discounts below are the catalogue's drafts.]`
+
+### How subscriptions work
+
+A subscription sends the same product to you on a regular schedule, at a
+lower price than buying it once. You choose the plan on the product page:
+
+| Plan          | What you get                                     | Discount  |
+| ------------- | ------------------------------------------------ | --------- |
+| Every 30 days | A 30-day supply every 30 days, charged each time | `[10%]`   |
+| Every 60 days | A 60-day supply every 60 days, charged each time | `[Check]` |
+| Every 90 days | A 90-day supply every 90 days, charged each time | `[Check]` |
+
+`[If the prepaid plans (several deliveries paid up front) stay on sale, add
+them here, with how cancelling one works: which deliveries are still sent,
+and what's refunded.]`
+
+Subscription deliveries are always free. The price you pay on each renewal
+is the subscription price shown when you subscribed, unless we tell you of a
+change in advance (below).
+
+### Changing or stopping your subscription
+
+From your account, at any time and with no fee, you can:
+
+- skip a delivery, or move it to another date;
+- pause, and restart when you're ready;
+- change how often it comes;
+- cancel.
+
+Make the change before your next renewal date and it applies to that
+renewal. There's no minimum number of deliveries.
+
+### Reminders and price changes
+
+- We email you before each renewal is charged, so you can change it in time.
+  `[Check: Recharge's upcoming-charge email must be on.]`
+- If a subscription price is going to change, we email you before it
+  applies, and you can cancel before then without paying the new price.
+  `[Check: there's no automatic price-change email yet; send one by hand.]`
+
+### Your right to cancel
+
+You can cancel your first subscription order within 14 days of delivery for
+any reason, as with any order (see our Refund policy). Products must come
+back unopened.
+
+If a renewal goes through that you didn't want, contact us within 14 days of
+its delivery. We'll refund it if the product is unopened, and we'll cover the
+return postage.
+
+The 30-day money-back guarantee in our Refund policy covers your first order
+of each product, subscription or not.
+
+### Payment
+
+Your payment details are stored securely by our payment provider, never by
+us, and charged on each renewal date. If a payment fails we'll email you, try
+again, and pause the subscription if it keeps failing.
+`[Check: Recharge's failed-payment retries and emails.]`
+
+### Questions
+
+Email `[contact email]`.
 
 _Last updated: `[date]`_
 
