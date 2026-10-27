@@ -25,6 +25,9 @@ import {
  * the account page notices the token has expired and sends the buyer through
  * here, which costs one redirect roughly every hour of an open session.
  */
+const escapeHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
 const refresh = async (request: NextRequest) => {
   const returnTo = safeReturnTo(request.nextUrl.searchParams.get("return_to"));
   const signIn = `/account/login?return_to=${encodeURIComponent(returnTo)}`;
@@ -44,11 +47,22 @@ const refresh = async (request: NextRequest) => {
     origin: requestOrigin(request.headers, request.nextUrl.origin),
   });
   if (!result.ok) {
-    // Usually an expired or revoked refresh token: the session is over, so
-    // drop it and ask the buyer to sign in again rather than looping here.
     console.error(describeCustomerAccountError(result.error));
-    await clearCustomerTokens();
-    redirect(signIn);
+    // Shopify refused the grant (a 4xx: the refresh token expired or was
+    // revoked), so the session is over: drop it and ask for a sign-in.
+    if (result.error.kind === "http" && result.error.status < 500) {
+      await clearCustomerTokens();
+      redirect(signIn);
+    }
+    // Anything else (offline, a 5xx, a garbled answer) says nothing about the
+    // refresh token, which is good for 30 days: keep it, and offer a retry.
+    return new Response(
+      `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Try again</title><p>We couldn't reach Shopify to keep you signed in. <a href="${escapeHtml(request.nextUrl.pathname + request.nextUrl.search)}">Try again</a></p>`,
+      {
+        status: 503,
+        headers: { "content-type": "text/html; charset=utf-8", "retry-after": "5" },
+      },
+    );
   }
 
   await writeCustomerTokens(result.data);
