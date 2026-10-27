@@ -9,10 +9,6 @@
   https://shopify.dev/docs/storefronts/themes/architecture/templates/search
 {% endcomment %}
 
-{%- liquid
-  assign products = search.results | where: 'object_type', 'product'
--%}
-
 <div class="container search-page">
   <h1 class="search-page__title">{{ 'search.title' | t }}</h1>
 
@@ -37,7 +33,10 @@
       <h2 id="search-results-{{ section.id }}" class="visually-hidden">{{ 'search.results' | t }}</h2>
 
       {%- liquid
-        assign base = routes.search_url | append: '?type=product&q=' | append: search.terms
+        # URL-encoded: the terms are the shopper's own text, and this ends up in
+        # an href. collection-filters escapes it as an attribute too.
+        assign encoded_terms = search.terms | url_encode
+        assign base = routes.search_url | append: '?type=product&q=' | append: encoded_terms
       -%}
       {% render 'collection-filters',
         filters: search.filters,
@@ -47,10 +46,15 @@
         terms: search.terms
       %}
 
-      {%- if products.size == 0 -%}
+      {%- if search.results_count == 0 -%}
         <p class="search-page__empty">{{ 'search.no_products' | t: terms: search.terms }}</p>
       {%- else -%}
         {% paginate search.results by 24 %}
+          {%- comment -%}
+            Read inside paginate: outside it, search.results is the whole list,
+            so every page would repeat the same products.
+          {%- endcomment -%}
+          {%- assign products = search.results | where: 'object_type', 'product' -%}
           {% render 'product-grid', products: products %}
           {{ paginate | default_pagination }}
         {% endpaginate %}

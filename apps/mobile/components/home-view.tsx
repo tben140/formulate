@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { Link } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
 import { ProductRow } from "./product-row";
@@ -19,14 +19,24 @@ const FEATURED_COUNT = 4;
  * screen waiting on the slowest query.
  */
 export const HomeView = () => {
-  const { data: navLinks } = useNavLinks();
-  const { data: cards } = useCollectionCards();
+  const nav = useNavLinks();
+  const cardsQuery = useCollectionCards();
+  const navLinks = nav.data;
+  const cards = cardsQuery.data;
 
   const menuCollections = navLinks?.filter((link) => link.kind === "collection") ?? [];
   const featuredLink = menuCollections[0];
-  const { data: featuredData } = useCollection(featuredLink?.handle ?? "", {
+  const featuredQuery = useCollection(featuredLink?.handle ?? "", {
     enabled: featuredLink !== undefined,
   });
+  const featuredData = featuredQuery.data;
+  // The introduction always shows; what's below it comes from Shopify, so it
+  // gets the same loading and error states as every other screen.
+  const loading =
+    nav.isPending ||
+    cardsQuery.isPending ||
+    (featuredLink !== undefined && featuredQuery.isPending);
+  const failed = nav.isError || cardsQuery.isError || featuredQuery.isError;
   const featured = featuredData?.collection;
 
   const byHandle = new Map((cards ?? []).map((card) => [card.handle, card]));
@@ -66,6 +76,27 @@ export const HomeView = () => {
           </Link>
         ) : null}
       </View>
+
+      {failed ? (
+        <View className="items-start gap-3">
+          <Text accessibilityRole="alert" className="text-base font-semibold text-danger">
+            Could not load from Shopify
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              void nav.refetch();
+              void cardsQuery.refetch();
+              if (featuredLink) void featuredQuery.refetch();
+            }}
+            className="rounded-md border border-border px-4 py-2"
+          >
+            <Text className="text-sm font-medium text-foreground">Try again</Text>
+          </Pressable>
+        </View>
+      ) : loading ? (
+        <ActivityIndicator accessibilityLabel="Loading the shop" />
+      ) : null}
 
       {categories.length > 0 ? (
         <View>

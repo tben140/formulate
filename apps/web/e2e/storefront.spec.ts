@@ -8,10 +8,11 @@ test("a collection renders its products", async ({ page }) => {
     page.getByRole("heading", { level: 1, name: "Best Sellers" }),
   ).toBeVisible();
   // Each product is a link to its page, with a price.
-  const cards = page.locator('main a[href^="/products/"]');
+  // A product card is a link in the page with a price in it, which keeps the
+  // breadcrumb's links out without leaning on markup.
+  const cards = page.getByRole("main").getByRole("link").filter({ hasText: "£" });
   await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThan(0);
-  await expect(cards.first()).toContainText("£");
 });
 
 /**
@@ -66,7 +67,8 @@ test("a sold-out option is marked and cannot be bought", async ({ page }) => {
   await expect(soldOut).toBeAttached();
   await expect(page.locator("label", { hasText: "200 mg" })).toHaveClass(/line-through/);
 
-  await page.locator("label", { hasText: "200 mg" }).click();
+  // The label's text includes its screen-reader-only "(sold out)".
+  await page.getByText("200 mg (sold out)", { exact: true }).click();
   // `exact`: on a phone the sticky bar (SHO-117) adds a second, differently
   // named "Sold out, …" button.
   await expect(
