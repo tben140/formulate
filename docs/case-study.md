@@ -323,8 +323,8 @@ a device, which is the same shape as the `lightningcss` pin (ADR 0004): a
 pre-release dependency fails far from where it's installed. The check that
 caught them was a person opening the app on a phone (#163, ADR 0003).
 
-**The front page was a 404 for weeks.** The repository's website link went
-to production, and production's home page redirected to the store's opening
+**The front page was a 404.** The repository's website link went to
+production, and production's home page redirected to the store's opening
 collection, a seeded demo collection deleted when the real catalogue went in.
 Every check was green: the end-to-end suite runs against each PR's preview,
 built from the batch, where the opening collection had already changed, and
