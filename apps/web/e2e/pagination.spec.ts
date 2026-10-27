@@ -11,7 +11,7 @@ import { expect, test } from "@playwright/test";
 test("a collection that fits on one page has no pagination", async ({ page }) => {
   await page.goto("/collections/best-sellers");
   await expect(
-    page.getByRole("main").getByRole("listitem").getByRole("link").first(),
+    page.getByRole("main").getByRole("link").filter({ hasText: "£" }).first(),
   ).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Pagination" })).toHaveCount(0);
 });
@@ -23,7 +23,7 @@ test("a malformed cursor shows the first page, not an error", async ({ page }) =
     page.getByRole("heading", { level: 1, name: "Best Sellers" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("main").getByRole("listitem").getByRole("link").first(),
+    page.getByRole("main").getByRole("link").filter({ hasText: "£" }).first(),
   ).toBeVisible();
 });
 
