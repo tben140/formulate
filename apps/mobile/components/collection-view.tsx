@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActivityIndicator, FlatList, View } from "react-native";
 
 import { useCollection } from "../lib/queries";
@@ -15,18 +15,31 @@ import { Text } from "./text";
  * this, so they cannot drift.
  *
  * `titleInHeader` puts the collection's title in the navigation bar, for the
- * collection route. The home screen keeps "Formulate" there.
+ * collection route. The home screen keeps "Double Helix" there.
  */
 export const CollectionView = ({
   handle,
   titleInHeader = false,
+  onSelectCollection,
 }: {
   readonly handle: string;
   readonly titleInHeader?: boolean;
+  readonly onSelectCollection?: (handle: string) => void;
 }) => {
   // The same filter query string web and the theme keep in the URL.
   const [filterQuery, setFilterQuery] = useState("");
-  const { data, isPending, isError, error } = useCollection(handle, { filterQuery });
+  const { data, isPending, isError, error, isPlaceholderData } = useCollection(handle, {
+    filterQuery,
+  });
+  const list = useRef<FlatList>(null);
+
+  const selectCollection = onSelectCollection
+    ? (next: string) => {
+        setFilterQuery("");
+        list.current?.scrollToOffset({ offset: 0, animated: false });
+        onSelectCollection(next);
+      }
+    : undefined;
 
   if (isPending) {
     return (
@@ -63,6 +76,7 @@ export const CollectionView = ({
 
   return (
     <FlatList
+      ref={list}
       data={collection.products.nodes}
       keyExtractor={(product) => product.id}
       contentContainerClassName="p-4 gap-3"
@@ -83,7 +97,7 @@ export const CollectionView = ({
       ListHeaderComponent={
         <View className="mb-2">
           {titleInHeader ? <Stack.Screen options={{ title: collection.title }} /> : null}
-          <CollectionNav current={handle} />
+          <CollectionNav current={handle} onSelect={selectCollection} />
           <Text className="text-2xl font-semibold text-foreground">
             {collection.title}
           </Text>
@@ -108,7 +122,11 @@ export const CollectionView = ({
         </Text>
       }
       ListFooterComponent={<SiteFooter />}
-      renderItem={({ item }) => <ProductRow product={item} />}
+      renderItem={({ item }) => (
+        <View className={isPlaceholderData ? "opacity-50" : undefined}>
+          <ProductRow product={item} />
+        </View>
+      )}
     />
   );
 };
