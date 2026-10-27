@@ -124,7 +124,17 @@ export const callbackParams = (url: string): Readonly<Record<string, string>> =>
   for (const pair of query.split("&")) {
     if (!pair) continue;
     const at = pair.indexOf("=");
-    const decode = (part: string) => decodeURIComponent(part.replace(/\+/g, " "));
+    // A malformed escape ("%E0%A4%A", a lone "%") stays as it arrived rather
+    // than throwing: any app can open this URL scheme, and a bad callback must
+    // end as a failed sign-in, not a crash.
+    const decode = (part: string) => {
+      const spaced = part.replace(/\+/g, " ");
+      try {
+        return decodeURIComponent(spaced);
+      } catch {
+        return spaced;
+      }
+    };
     const key = decode(at === -1 ? pair : pair.slice(0, at));
     // First value wins, as URLSearchParams.get does.
     if (!(key in params)) params[key] = at === -1 ? "" : decode(pair.slice(at + 1));
@@ -512,10 +522,23 @@ export const customerAccountRequest = async <TData>(
     };
   }
 
-  const body = (await response.json()) as {
+  // A 2xx that isn't a JSON object (an edge's HTML page, or `null`) is a
+  // result like any other, never a throw: the pages only check `ok`.
+  let body: {
     readonly data?: TData;
     readonly errors?: readonly { readonly message: string }[];
-  };
+  } | null;
+  try {
+    body = (await response.json()) as typeof body;
+  } catch {
+    body = null;
+  }
+  if (!body || typeof body !== "object") {
+    return {
+      ok: false,
+      error: { kind: "invalid-response", message: "Response was not a JSON object." },
+    };
+  }
   if (body.errors?.length)
     return { ok: false, error: { kind: "graphql", errors: body.errors } };
   if (!body.data) {

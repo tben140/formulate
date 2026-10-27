@@ -203,6 +203,8 @@ type AdminCharge = {
 
 const readOne = async <T>(env: RechargeAdminEnv, path: string, key: string) => {
   const response = await recharge(env, path);
+  // null: Recharge couldn't be reached at all.
+  if (!response) return null;
   if (response.status === 404) return "missing" as const;
   if (!response.ok) return null;
   const body = (await response.json().catch(() => null)) as Record<
@@ -220,13 +222,13 @@ const write = async (
   body: Record<string, unknown>,
 ): Promise<boolean> => {
   const response = await recharge(env, path, { method, body: JSON.stringify(body) });
-  if (!response.ok) {
+  if (!response?.ok) {
     console.error("recharge write failed", {
       path: path.replace(/\d+/g, ":id"),
-      status: response.status,
+      status: response?.status ?? null,
     });
   }
-  return response.ok;
+  return response?.ok ?? false;
 };
 
 /**
@@ -280,6 +282,7 @@ export const actOnSubscription = async (
   }
 
   const customer = await verifyCustomer(env, token);
+  if (customer === "unavailable") return fail(502, "unavailable");
   if (!customer) return fail(401, "unauthorized");
   if (!(await withinCustomerLimit(env, customer.id))) return fail(429, "rate-limited");
   const rechargeId = await rechargeCustomerId(env, customer.id);

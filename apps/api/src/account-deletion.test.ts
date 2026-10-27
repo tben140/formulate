@@ -49,6 +49,8 @@ interface Upstream {
   rechargeDown?: boolean;
   /** The Admin token exchange's response; a working token by default. */
   adminToken?: Response;
+  /** Upstreams whose fetch rejects, as on a network failure or timeout. */
+  unreachable?: readonly ("verify" | "klaviyo" | "erasure")[];
 }
 
 const jsonResponse = (body: unknown, status = 200) =>
@@ -65,6 +67,14 @@ const stubUpstream = (upstream: Upstream = {}) => {
     vi.fn((input: string, init?: RequestInit) => {
       const url = String(input);
       calls.push({ url, init });
+      const unreachable = upstream.unreachable ?? [];
+      if (
+        (unreachable.includes("verify") && url.startsWith("https://shopify.com/")) ||
+        (unreachable.includes("klaviyo") && url.startsWith("https://a.klaviyo.com/")) ||
+        (unreachable.includes("erasure") && url.includes("/admin/api/"))
+      ) {
+        return Promise.reject(new TypeError("fetch failed"));
+      }
       if (url.startsWith("https://shopify.com/")) {
         return Promise.resolve(
           upstream.customer ??
@@ -319,6 +329,26 @@ describe("⚠️ order, and stopping at the first failure", () => {
     const result = await deleteAccount(env, ...confirmed());
     expect(result.body).toEqual({ ok: false, reason: "marketing" });
     expect(kinds(calls)).not.toContain("erasure");
+  });
+
+  it("says which step failed when a request never gets an answer", async () => {
+    stubUpstream({ unreachable: ["verify"] });
+    expect((await deleteAccount(env, ...confirmed())).body).toEqual({
+      ok: false,
+      reason: "unavailable",
+    });
+
+    stubUpstream({ unreachable: ["klaviyo"] });
+    expect((await deleteAccount(env, ...confirmed())).body).toEqual({
+      ok: false,
+      reason: "marketing",
+    });
+
+    stubUpstream({ unreachable: ["erasure"] });
+    expect((await deleteAccount(env, ...confirmed())).body).toEqual({
+      ok: false,
+      reason: "erasure",
+    });
   });
 
   it("reports Shopify's user errors as a failure", async () => {

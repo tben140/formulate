@@ -76,6 +76,8 @@ const stubUpstream = (
     customer?: Response;
     rechargeCustomers?: unknown[];
     rechargeDown?: boolean;
+    /** Upstreams whose fetch rejects, as on a network failure or timeout. */
+    unreachable?: readonly ("shopify" | "recharge")[];
   } = {},
 ) => {
   const calls: string[] = [];
@@ -84,6 +86,13 @@ const stubUpstream = (
     vi.fn((input: string) => {
       const url = String(input);
       calls.push(url);
+      const unreachable = options.unreachable ?? [];
+      if (
+        (unreachable.includes("shopify") && url.startsWith("https://shopify.com/")) ||
+        (unreachable.includes("recharge") && !url.startsWith("https://shopify.com/"))
+      ) {
+        return Promise.reject(new TypeError("fetch failed"));
+      }
       if (url.startsWith("https://shopify.com/")) {
         return Promise.resolve(
           options.customer ??
@@ -248,6 +257,28 @@ describe("edge cases", () => {
       body: { ok: true, subscriptions: [], upcoming: [] },
     });
     expect(calls).toHaveLength(2);
+  });
+
+  it("says unavailable, not unauthorized, when Shopify can't be reached or fails", async () => {
+    stubUpstream({ unreachable: ["shopify"] });
+    expect(await listSubscriptions(env, request())).toEqual({
+      status: 502,
+      body: { ok: false, reason: "unavailable" },
+    });
+
+    stubUpstream({ customer: new Response("", { status: 503 }) });
+    expect(await listSubscriptions(env, request())).toEqual({
+      status: 502,
+      body: { ok: false, reason: "unavailable" },
+    });
+  });
+
+  it("says unavailable when Recharge can't be reached at all", async () => {
+    stubUpstream({ unreachable: ["recharge"] });
+    expect(await listSubscriptions(env, request())).toEqual({
+      status: 502,
+      body: { ok: false, reason: "unavailable" },
+    });
   });
 
   it("says unavailable, not empty, when Recharge can't be read", async () => {

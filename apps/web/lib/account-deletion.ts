@@ -10,7 +10,9 @@ import {
  * sends no CORS headers, on purpose, so the browser can't call it, and the
  * customer's access token never leaves this server's cookie.
  */
-const API_URL = process.env.FORMULATE_API_URL ?? "";
+// No trailing slash, so `${API_URL}/account/...` never becomes "//account",
+// which the Worker's exact path match would refuse.
+const API_URL = (process.env.FORMULATE_API_URL ?? "").replace(/\/+$/, "");
 
 type Failure = { readonly ok: false; readonly reason: DeletionFailureReason };
 

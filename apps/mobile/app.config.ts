@@ -27,6 +27,7 @@ const androidAppLinks = webHost
         action: "VIEW",
         autoVerify: true,
         data: [
+          { scheme: "https", host: webHost, path: "/" },
           { scheme: "https", host: webHost, pathPrefix: "/products/" },
           { scheme: "https", host: webHost, pathPrefix: "/collections/" },
           { scheme: "https", host: webHost, path: "/search" },
@@ -45,7 +46,7 @@ const shopId = process.env.EXPO_PUBLIC_SHOPIFY_SHOP_ID ?? "";
 const schemes = shopId ? ["formulate", `shop.${shopId}.app`] : ["formulate"];
 
 const config: ExpoConfig = {
-  name: "Formulate",
+  name: "Double Helix",
   slug: "formulate",
   scheme: schemes,
   version: "0.1.0",
@@ -53,10 +54,10 @@ const config: ExpoConfig = {
   userInterfaceStyle: "light",
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.tben140.formulate",
+    bundleIdentifier: "com.tben140.doublehelix",
   },
   android: {
-    package: "com.tben140.formulate",
+    package: "com.tben140.doublehelix",
     intentFilters: androidAppLinks,
   },
   web: {
