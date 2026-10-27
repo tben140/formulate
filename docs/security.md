@@ -120,6 +120,10 @@ account doesn't get: the settings aren't shown, and the API accepts the
 change but leaves both off (checked 26 October 2026). Secret scanning and
 push protection, which cover known token formats, are on.
 
+**Tailscale 1.104.2 or later on every device** (forged certificates from the
+distrusted eMudhra intermediates): done on the laptop, phone and droplet, 26
+October 2026.
+
 ## Still to switch on (repository owner)
 
 - **Actions policy.** Settings → Actions → General: allow only GitHub's own
@@ -132,9 +136,6 @@ push protection, which cover known token formats, are on.
   other branch can't read them.
 - **Tokens.** Review personal access tokens on GitHub, npm and Expo and remove
   any that aren't needed. GhostAction spread through long-lived classic tokens.
-- **Tailscale** to 1.104.2 or later on every device (forged certificates from
-  the distrusted eMudhra intermediates). Done on the laptop, phone and
-  droplet (26 October 2026).
 
 **Off on purpose:** "Require review from Code Owners". The owner is the only
 maintainer, and GitHub doesn't let authors approve their own PRs, so it would
@@ -168,12 +169,12 @@ injection, which React's escaping covers.
 
 **API (Cloudflare Worker)**
 
-| Risk                                       | Defence                                                                                                                                        | Where                                        |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Someone borrowing the Worker's Klaviyo key | Only an email is read from the request; the Worker builds the Klaviyo payload itself, with its own list. No CORS, so other sites can't call it | `apps/api/src/index.ts`                      |
-| Flooding the sign-up endpoint              | 5 requests a minute per IP (Cloudflare's own `CF-Connecting-IP`, which a caller can't fake), checked before the body is read                   | `apps/api/src/rate-limiter.ts`, `-policy.ts` |
-| A large or malformed body                  | Only `POST` with JSON, at most 1 KB                                                                                                            | `apps/api/src/index.ts`                      |
-| Upstream errors describing the account     | Callers only ever see `invalid-email`, `rate-limited` or `rejected`; Klaviyo's message is logged, without the address                          | `apps/api/src/index.ts`                      |
+| Risk                                       | Defence                                                                                                                                                                                                                                                            | Where                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| Someone borrowing the Worker's Klaviyo key | Only an email is read from the request; the Worker builds the Klaviyo payload itself, with its own list. No CORS headers, so a browser on another site can't read its responses. Anything outside a browser can still call it: the rate limit is the abuse control | `apps/api/src/index.ts`                      |
+| Flooding the sign-up endpoint              | 5 requests per fixed 60-second window per IP (Cloudflare's own `CF-Connecting-IP`, which a caller can't fake), checked before the body is read. A fixed window, so up to 10 can land around a window's edge                                                        | `apps/api/src/rate-limiter.ts`, `-policy.ts` |
+| A large or malformed body                  | Only `POST` with JSON, at most 1,024 bytes (measured as UTF-8, not characters)                                                                                                                                                                                     | `apps/api/src/index.ts`                      |
+| Upstream errors describing the account     | Callers only ever see `invalid-email`, `rate-limited` or `rejected`; Klaviyo's message is logged, without the address                                                                                                                                              | `apps/api/src/index.ts`                      |
 
 The per-IP limit lives in a Durable Object, so every request still reaches
 the Worker and is billed. A flood from many addresses would get through it.
@@ -191,7 +192,9 @@ an unknown script):
 
 1. **Roll back.** Vercel → the project → Deployments → the last good one →
    Instant Rollback. The Worker: `pnpm --filter @formulate/api exec wrangler
-rollback`. The theme: Online Store → Themes → publish the previous copy.
+deployments list`, pick the last version you know was good, then
+   `wrangler rollback <version-id>`. Without an id it goes back one version
+   only, which is still bad if the last two deploys were. The theme: Online Store → Themes → publish the previous copy.
 2. **Find the cause** before redeploying: the commits since the good
    deployment, the lockfile diff, and the Vercel and Worker logs.
 

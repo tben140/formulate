@@ -55,10 +55,13 @@ test("the main pages break no part of the Content Security Policy", async ({ pag
 test("nor do they once tracking is accepted and Klaviyo loads", async ({ page }) => {
   const violations = await recordViolations(page);
   await page.goto("/", { waitUntil: "networkidle" });
+  const accept = page.getByRole("button", { name: "Accept", exact: true });
+  // Without a Klaviyo key there's no consent banner and nothing to load.
+  test.skip((await accept.count()) === 0, "Klaviyo isn't configured on this deployment");
   const klaviyo = page.waitForResponse((response) =>
     response.url().startsWith("https://static.klaviyo.com/onsite/js/"),
   );
-  await page.getByRole("button", { name: "Accept", exact: true }).click();
+  await accept.click();
   await klaviyo;
   await visitMainPages(page);
   expect(violations).toEqual([]);
