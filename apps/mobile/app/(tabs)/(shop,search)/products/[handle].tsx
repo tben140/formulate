@@ -11,7 +11,10 @@ import {
 import { AddToCart } from "../../../../components/add-to-cart";
 import { useCartUi } from "../../../../components/cart-provider";
 import { PairsWellWith } from "../../../../components/pairs-well-with";
-import { ProductDescription } from "../../../../components/product-description";
+import {
+  ProductDetails,
+  ProductSummary,
+} from "../../../../components/product-description";
 import { ShareButton } from "../../../../components/share-button";
 import { SiteFooter } from "../../../../components/site-footer";
 import {
@@ -183,7 +186,11 @@ const ProductBody = ({ product }: { product: Product }) => {
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
         </View>
 
-        <ProductDescription html={product.descriptionHtml} />
+        {/*
+          Only the opening paragraph before the buy box; the rest after it, in
+          closed sections (descriptionSections), as on web and the theme.
+        */}
+        <ProductSummary html={product.descriptionHtml} />
 
         {/*
           The price lives inside AddToCart, because it changes with the selection
@@ -206,6 +213,8 @@ const ProductBody = ({ product }: { product: Product }) => {
             }}
           />
         </View>
+
+        <ProductDetails html={product.descriptionHtml} />
 
         <PairsWellWith productId={product.id} />
 

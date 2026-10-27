@@ -141,7 +141,7 @@
               {% endcomment %}
               {% if item.selling_plan_allocation %}
                 <p class="cart-line__plan">
-                  {{ item.selling_plan_allocation.selling_plan.name }}
+                  {% render 'plan-name', selling_plan: item.selling_plan_allocation.selling_plan %}
                 </p>
               {% endif %}
 

@@ -7,8 +7,12 @@ import {
   freeGiftMessage,
   findVariantByOptions,
   formatMoney,
+  GUARANTEE_DETAIL,
+  GUARANTEE_TITLE,
+  planDisplayName,
   pricePerDay,
   renewalTerms,
+  savingBadge,
   savingMessage,
   SUBSCRIPTION_BENEFITS,
   supplyLabel,
@@ -66,9 +70,8 @@ export const AddToCart = ({
     quoteFor(choice.id)?.price ?? choice.price;
   const supply = (choice: (typeof choices)[number]) =>
     supplyLabel(quoteFor(choice.id)?.units ?? 1);
-  const planName =
-    allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
-    null;
+  const chosenPlan = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
+  const planName = chosenPlan ? planDisplayName(chosenPlan.sellingPlan) : null;
 
   return (
     // No outer margin here: the product screen measures this view's top to
@@ -148,9 +151,7 @@ export const AddToCart = ({
                           ? `${choice.label}, ${formatMoney(price(choice)!)} instead of ${formatMoney(quoteFor(choice.id)!.oneTime)}`
                           : `${choice.label}, ${formatMoney(price(choice)!)}`,
                         supply(choice) ? `${supply(choice)} every delivery` : null,
-                        saving(choice)
-                          ? `${savingMessage(saving(choice)!)}. ${SUBSCRIPTION_BENEFITS}`
-                          : null,
+                        saving(choice) ? savingMessage(saving(choice)!) : null,
                       ]
                         .filter(Boolean)
                         .join(". ")
@@ -163,15 +164,19 @@ export const AddToCart = ({
                 }`}
               >
                 <View className="flex-1 pr-3">
-                  <Text className="text-sm text-foreground">{choice.label}</Text>
+                  <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
+                    <Text className="text-sm text-foreground">{choice.label}</Text>
+                    {saving(choice) ? (
+                      // The saving as a badge; the struck-through price gives
+                      // the amount. In the label above for screen readers.
+                      <Text className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-surface">
+                        {savingBadge(saving(choice)!)}
+                      </Text>
+                    ) : null}
+                  </View>
                   {supply(choice) ? (
                     <Text className="mt-0.5 text-xs text-foreground">
                       {supply(choice)} every delivery
-                    </Text>
-                  ) : null}
-                  {saving(choice) ? (
-                    <Text className="mt-0.5 text-xs text-foreground">
-                      {savingMessage(saving(choice)!)} · {SUBSCRIPTION_BENEFITS}
                     </Text>
                   ) : null}
                 </View>
@@ -200,6 +205,10 @@ export const AddToCart = ({
               </Pressable>
             ))}
           </View>
+          {/* What every subscription gives, said once rather than on each option. */}
+          <Text className="mt-2 text-xs text-foreground-muted">
+            Subscriptions: {SUBSCRIPTION_BENEFITS}
+          </Text>
         </View>
       ) : null}
 
@@ -273,6 +282,17 @@ export const AddToCart = ({
           {renewalTerms(displayPrice, planName, quote?.later, quote?.units)}
         </Text>
       ) : null}
+
+      {/*
+        The guarantee, where the decision is made (packages/shopify/src/guarantee.ts).
+        Its detail is written out: the app has no policy pages to link to.
+      */}
+      <View accessible className="items-center gap-0.5">
+        <Text className="text-sm font-semibold text-foreground">{GUARANTEE_TITLE}</Text>
+        <Text className="text-center text-xs text-foreground-muted">
+          {GUARANTEE_DETAIL}
+        </Text>
+      </View>
 
       {/*
         The sheet sliding up is a visual event VoiceOver does not narrate, and

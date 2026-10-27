@@ -1,3 +1,9 @@
+import {
+  HOME_HEADLINE,
+  cardOffer,
+  homeBenefits,
+  homeSubheading,
+} from "@formulate/shopify";
 import { Link } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 
@@ -11,8 +17,11 @@ import { ShopImage } from "./shop-image";
 const FEATURED_COUNT = 4;
 
 /**
- * The home screen (SHO-61), matching apps/web's home page: an introduction,
- * the collections to shop by, and the featured collection's first products.
+ * The home screen (SHO-61), matching apps/web's home page: the offer, its
+ * benefits, the featured collection's first products, the collections to shop
+ * by, and the quiz. Words shared with web (packages/shopify/src/home.ts); the
+ * saving is read from a featured product's plan. A page builder for web and
+ * the app is planned; until then this screen is code.
  *
  * Driven by the Shopify menu "Shop", like the web header: its collections are
  * the category cards, in menu order, and its first collection is the featured
@@ -29,6 +38,11 @@ export const HomeView = () => {
     enabled: featuredLink !== undefined,
   });
   const featured = featuredData?.collection;
+
+  const products = featured?.products.nodes.slice(0, FEATURED_COUNT) ?? [];
+  const savingPercent =
+    products.map((product) => cardOffer(product).savingPercent).find(Boolean) ?? null;
+  const heroImage = products.find((product) => product.featuredImage)?.featuredImage;
 
   const byHandle = new Map((cards ?? []).map((card) => [card.handle, card]));
   const categories = menuCollections.flatMap((link) => {
@@ -50,25 +64,88 @@ export const HomeView = () => {
           accessibilityRole="header"
           className="text-3xl font-semibold text-foreground"
         >
-          Everyday supplements, delivered on your schedule
+          {HOME_HEADLINE}
         </Text>
         <Text className="mt-3 text-base text-foreground">
-          Buy once or subscribe. Subscriptions can be skipped, paused or cancelled at any
-          time.
+          {homeSubheading(savingPercent)}
         </Text>
-        {featuredLink ? (
-          <Link href={featuredLink.path} asChild>
-            <Pressable
-              accessibilityRole="link"
-              className="mt-6 self-start rounded-md bg-brand-600 px-5 py-3"
-            >
-              <Text className="font-semibold text-surface">
-                Shop {featuredLink.title}
-              </Text>
-            </Pressable>
-          </Link>
+        <View className="mt-6 flex-row flex-wrap gap-3">
+          {featuredLink ? (
+            <Link href={featuredLink.path} asChild>
+              <Pressable
+                accessibilityRole="link"
+                className="rounded-md bg-brand-600 px-5 py-3"
+              >
+                <Text className="font-semibold text-surface">
+                  Shop {featuredLink.title}
+                </Text>
+              </Pressable>
+            </Link>
+          ) : null}
+        </View>
+        {heroImage ? (
+          <ShopImage
+            url={heroImage.url}
+            width={200}
+            height={200}
+            style={{
+              width: 200,
+              height: 200,
+              borderRadius: 12,
+              alignSelf: "center",
+              marginTop: 24,
+            }}
+          />
         ) : null}
       </View>
+
+      <View
+        accessibilityRole="list"
+        accessibilityLabel="Why Double Helix"
+        className="flex-row flex-wrap gap-2"
+      >
+        {homeBenefits(savingPercent).map((benefit) => (
+          <View
+            key={benefit}
+            // A list needs list items (axe's aria-required-children on web).
+            role="listitem"
+            className="w-[48%] flex-row gap-2 rounded-lg border border-border p-3"
+          >
+            <Text
+              className="font-semibold text-brand-600"
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            >
+              ✓
+            </Text>
+            <Text className="flex-1 text-sm text-foreground">{benefit}</Text>
+          </View>
+        ))}
+      </View>
+
+      {featuredLink && featured && products.length > 0 ? (
+        <View className="gap-3">
+          <View className="flex-row items-baseline justify-between">
+            <Text
+              accessibilityRole="header"
+              className="text-xl font-semibold text-foreground"
+            >
+              {featured.title}
+            </Text>
+            <Link href={featuredLink.path} asChild>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`View all ${featured.title}`}
+              >
+                <Text className="text-sm text-brand-600 underline">View all</Text>
+              </Pressable>
+            </Link>
+          </View>
+          {products.map((product) => (
+            <ProductRow key={product.id} product={product} />
+          ))}
+        </View>
+      ) : null}
 
       {categories.length > 0 ? (
         <View>
@@ -109,30 +186,6 @@ export const HomeView = () => {
               );
             })}
           </ScrollView>
-        </View>
-      ) : null}
-
-      {featuredLink && featured && featured.products.nodes.length > 0 ? (
-        <View className="gap-3">
-          <View className="flex-row items-baseline justify-between">
-            <Text
-              accessibilityRole="header"
-              className="text-xl font-semibold text-foreground"
-            >
-              {featured.title}
-            </Text>
-            <Link href={featuredLink.path} asChild>
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel={`View all ${featured.title}`}
-              >
-                <Text className="text-sm text-brand-600 underline">View all</Text>
-              </Pressable>
-            </Link>
-          </View>
-          {featured.products.nodes.slice(0, FEATURED_COUNT).map((product) => (
-            <ProductRow key={product.id} product={product} />
-          ))}
         </View>
       ) : null}
 

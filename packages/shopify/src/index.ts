@@ -127,8 +127,12 @@ export {
   paths,
 } from "./routes";
 export type { ProductFilter } from "./generated/graphql";
-export { descriptionBlocks } from "./description";
-export type { DescriptionBlock } from "./description";
+export {
+  DESCRIPTION_DETAILS_TITLE,
+  descriptionBlocks,
+  descriptionSections,
+} from "./description";
+export type { DescriptionBlock, DescriptionSection } from "./description";
 export {
   RENEWAL_SHORT,
   SUBSCRIPTION_BENEFITS,
@@ -136,7 +140,9 @@ export {
   deliveryPromise,
   deliveryQuote,
   isIntroductoryPlan,
+  planDisplayName,
   planIntervalDays,
+  savingBadge,
   supplyLabel,
   supplyUnits,
   pricePerDay,
@@ -161,3 +167,18 @@ export {
   isNestedLine,
 } from "./free-gift";
 export type { GiftVariantLike, NestedLineLike } from "./free-gift";
+export {
+  GUARANTEE_DAYS,
+  GUARANTEE_DETAIL,
+  GUARANTEE_TITLE,
+  REFUND_POLICY_PATH,
+} from "./guarantee";
+export {
+  FIRST_ORDER_PERCENT,
+  SIGN_UP_CONSENT,
+  SIGN_UP_HEADING,
+  SIGN_UP_SUCCESS,
+} from "./sign-up-offer";
+export { cardOffer } from "./card-offer";
+export type { CardOffer, CardOfferLike } from "./card-offer";
+export { HOME_HEADLINE, QUIZ_PROMPT, homeBenefits, homeSubheading } from "./home";
