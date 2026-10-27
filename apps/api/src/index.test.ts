@@ -224,6 +224,16 @@ describe("POST /back-in-stock (SHO-118)", () => {
     expect(body.data.attributes.profile.data.attributes.email).toBe("a@b.co");
   });
 
+  it.each([null, [], 7, "text"])(
+    "rejects a JSON body that isn't an object (%j)",
+    async (body) => {
+      const klaviyo = stubKlaviyo({ ok: true, status: 202 });
+      const response = await run(postBis(body), bisEnv);
+      expect(response.status).toBe(400);
+      expect(klaviyo).not.toHaveBeenCalled();
+    },
+  );
+
   it("reads only email and variant: no list, no consent, nothing else forwarded", async () => {
     const klaviyo = stubKlaviyo({ ok: true, status: 202 });
     await run(

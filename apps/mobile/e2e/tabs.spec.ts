@@ -25,7 +25,7 @@ test("the Search tab opens search, with results as you type", async ({ page }) =
   await switchTab(page, "Search");
   const box = page.getByRole("textbox", { name: "Search products" });
   await expect(box).toBeVisible();
-  expect(route(page)).toBe("/search");
+  await expect(page).toHaveURL(/\/search$/);
 
   await box.pressSequentially("omega", { delay: 50 });
   await expect(productLinks(page).filter({ hasText: "Omega-3 Fish Oil" })).toBeVisible();
