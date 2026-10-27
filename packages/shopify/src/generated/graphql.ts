@@ -1442,6 +1442,18 @@ export type VariantOptionFilter = {
   value: string;
 };
 
+/** The visitor's consent to data processing purposes for the shop. true means accepting the purposes, false means declining them, and null means that the visitor didn't express a preference. */
+export type VisitorConsent = {
+  /** The visitor accepts or rejects the analytics data processing purpose. */
+  analytics?: boolean | null | undefined;
+  /** The visitor accepts or rejects the first and third party marketing data processing purposes. */
+  marketing?: boolean | null | undefined;
+  /** The visitor accepts or rejects the preferences data processing purpose. */
+  preferences?: boolean | null | undefined;
+  /** The visitor accepts or rejects the sale or sharing of their data with third parties. */
+  saleOfData?: boolean | null | undefined;
+};
+
 export type CollectionProductsQueryVariables = Exact<{
   handle: string;
   first?: number | null | undefined;
@@ -1525,6 +1537,7 @@ export type CartFieldsFragment = { id: string, checkoutUrl: string, totalQuantit
 
 export type CartQueryVariables = Exact<{
   id: string | number;
+  visitorConsent: VisitorConsent;
 }>;
 
 
@@ -1535,6 +1548,7 @@ export type CartQuery = { cart: { id: string, checkoutUrl: string, totalQuantity
 
 export type CartCreateMutationVariables = Exact<{
   input: CartInput;
+  visitorConsent: VisitorConsent;
 }>;
 
 
@@ -1546,6 +1560,7 @@ export type CartCreateMutation = { cartCreate: { cart: { id: string, checkoutUrl
 export type CartLinesAddMutationVariables = Exact<{
   cartId: string | number;
   lines: Array<CartLineInput> | CartLineInput;
+  visitorConsent: VisitorConsent;
 }>;
 
 
@@ -1557,6 +1572,7 @@ export type CartLinesAddMutation = { cartLinesAdd: { cart: { id: string, checkou
 export type CartLinesUpdateMutationVariables = Exact<{
   cartId: string | number;
   lines: Array<CartLineUpdateInput> | CartLineUpdateInput;
+  visitorConsent: VisitorConsent;
 }>;
 
 
@@ -1568,6 +1584,7 @@ export type CartLinesUpdateMutation = { cartLinesUpdate: { cart: { id: string, c
 export type CartLinesRemoveMutationVariables = Exact<{
   cartId: string | number;
   lineIds: Array<string | number> | string | number;
+  visitorConsent: VisitorConsent;
 }>;
 
 
@@ -1579,6 +1596,7 @@ export type CartLinesRemoveMutation = { cartLinesRemove: { cart: { id: string, c
 export type CartBuyerIdentityUpdateMutationVariables = Exact<{
   cartId: string | number;
   buyerIdentity: CartBuyerIdentityInput;
+  visitorConsent: VisitorConsent;
 }>;
 
 
@@ -2097,7 +2115,7 @@ export const ShopNameDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<ShopNameQuery, ShopNameQueryVariables>;
 export const CartDocument = new TypedDocumentString(`
-    query Cart($id: ID!) {
+    query Cart($id: ID!, $visitorConsent: VisitorConsent!) @inContext(visitorConsent: $visitorConsent) {
   cart(id: $id) {
     ...CartFields
   }
@@ -2169,7 +2187,7 @@ export const CartDocument = new TypedDocumentString(`
   }
 }`) as unknown as TypedDocumentString<CartQuery, CartQueryVariables>;
 export const CartCreateDocument = new TypedDocumentString(`
-    mutation CartCreate($input: CartInput!) {
+    mutation CartCreate($input: CartInput!, $visitorConsent: VisitorConsent!) @inContext(visitorConsent: $visitorConsent) {
   cartCreate(input: $input) {
     cart {
       ...CartFields
@@ -2253,7 +2271,7 @@ export const CartCreateDocument = new TypedDocumentString(`
   }
 }`) as unknown as TypedDocumentString<CartCreateMutation, CartCreateMutationVariables>;
 export const CartLinesAddDocument = new TypedDocumentString(`
-    mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+    mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!, $visitorConsent: VisitorConsent!) @inContext(visitorConsent: $visitorConsent) {
   cartLinesAdd(cartId: $cartId, lines: $lines) {
     cart {
       ...CartFields
@@ -2337,7 +2355,7 @@ export const CartLinesAddDocument = new TypedDocumentString(`
   }
 }`) as unknown as TypedDocumentString<CartLinesAddMutation, CartLinesAddMutationVariables>;
 export const CartLinesUpdateDocument = new TypedDocumentString(`
-    mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+    mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!, $visitorConsent: VisitorConsent!) @inContext(visitorConsent: $visitorConsent) {
   cartLinesUpdate(cartId: $cartId, lines: $lines) {
     cart {
       ...CartFields
@@ -2416,7 +2434,7 @@ export const CartLinesUpdateDocument = new TypedDocumentString(`
   }
 }`) as unknown as TypedDocumentString<CartLinesUpdateMutation, CartLinesUpdateMutationVariables>;
 export const CartLinesRemoveDocument = new TypedDocumentString(`
-    mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+    mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!, $visitorConsent: VisitorConsent!) @inContext(visitorConsent: $visitorConsent) {
   cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
     cart {
       ...CartFields
@@ -2495,7 +2513,7 @@ export const CartLinesRemoveDocument = new TypedDocumentString(`
   }
 }`) as unknown as TypedDocumentString<CartLinesRemoveMutation, CartLinesRemoveMutationVariables>;
 export const CartBuyerIdentityUpdateDocument = new TypedDocumentString(`
-    mutation CartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+    mutation CartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!, $visitorConsent: VisitorConsent!) @inContext(visitorConsent: $visitorConsent) {
   cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
     cart {
       ...CartFields

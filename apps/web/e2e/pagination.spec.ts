@@ -10,7 +10,9 @@ import { expect, test } from "@playwright/test";
 
 test("a collection that fits on one page has no pagination", async ({ page }) => {
   await page.goto("/collections/best-sellers");
-  await expect(page.locator('main a[href^="/products/"]').first()).toBeVisible();
+  await expect(
+    page.getByRole("main").getByRole("link").filter({ hasText: "£" }).first(),
+  ).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Pagination" })).toHaveCount(0);
 });
 
@@ -20,7 +22,9 @@ test("a malformed cursor shows the first page, not an error", async ({ page }) =
   await expect(
     page.getByRole("heading", { level: 1, name: "Best Sellers" }),
   ).toBeVisible();
-  await expect(page.locator('main a[href^="/products/"]').first()).toBeVisible();
+  await expect(
+    page.getByRole("main").getByRole("link").filter({ hasText: "£" }).first(),
+  ).toBeVisible();
 });
 
 test("the first page's canonical is the bare collection URL", async ({ page }) => {
