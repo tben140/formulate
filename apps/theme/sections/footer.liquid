@@ -103,6 +103,8 @@
       </email-capture>
     {% endif %}
 
+    {% render 'social-icons' %}
+
     <div class="site-footer__inner">
       <p class="site-footer__copyright">
         &copy; {{ 'now' | date: '%Y' }} {{ settings.wordmark | default: shop.name }}
@@ -150,6 +152,48 @@
 
   .site-footer__links a:hover {
     color: var(--color-foreground);
+  }
+
+  /* Matched against apps/web's <SocialLinks />: gap-2, size-11 targets, size-5
+     icons, text-foreground-muted. */
+  .social-links {
+    padding-block-start: var(--spacing-6);
+  }
+
+  .social-links__list {
+    /* Lines the first icon up with the text above: each 20px icon sits
+       centred in a 44px tap target. */
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    margin: 0 0 0 -0.75rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .social-links__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    color: var(--color-foreground-muted);
+  }
+
+  .social-links__link:hover {
+    color: var(--color-foreground);
+  }
+
+  .social-links__link:focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+
+  .social-links__link svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: currentColor;
   }
 
   /*

@@ -100,3 +100,6 @@ export {
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
 export type { ProductFilter } from "./generated/graphql";
+
+export { policyBlocks } from "./policy-text";
+export type { PolicyBlock } from "./policy-text";

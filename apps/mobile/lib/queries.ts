@@ -1,11 +1,13 @@
 import {
   CollectionCardsQuery,
   CollectionProductsQuery,
+  LEGAL_MENU_HANDLE,
   NAV_MENU_HANDLE,
   NavMenuQuery,
   ComplementaryProductsQuery,
   ProductByHandleQuery,
   SearchProductsQuery,
+  ShopPoliciesQuery,
   describeError,
   productFiltersFromParams,
   toNavLinks,
@@ -82,6 +84,37 @@ export const useNavLinks = () =>
         unwrap(await storefront.request(NavMenuQuery, { handle: NAV_MENU_HANDLE })).menu
           ?.items,
       ),
+    staleTime: 10 * 60_000,
+  });
+
+/**
+ * The footer's policy links, from the Shopify menu "Legal", the one the web
+ * and theme footers read.
+ */
+export const useLegalLinks = () =>
+  useQuery({
+    queryKey: ["nav", LEGAL_MENU_HANDLE],
+    queryFn: async () =>
+      toNavLinks(
+        unwrap(await storefront.request(NavMenuQuery, { handle: LEGAL_MENU_HANDLE })).menu
+          ?.items,
+      ).filter((link) => link.kind === "policy"),
+    staleTime: 10 * 60_000,
+  });
+
+/** One store policy by handle, or null when the store hasn't written it. */
+export const usePolicy = (handle: string) =>
+  useQuery({
+    queryKey: ["policies"],
+    queryFn: async () => unwrap(await storefront.request(ShopPoliciesQuery, {})).shop,
+    select: (shop) =>
+      [
+        shop.privacyPolicy,
+        shop.refundPolicy,
+        shop.termsOfService,
+        shop.shippingPolicy,
+        shop.subscriptionPolicy,
+      ].find((policy) => policy?.handle === handle) ?? null,
     staleTime: 10 * 60_000,
   });
 

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/tokens.ts",
+    "./social": "./src/social.ts",
     "./theme.css": "./theme.css",
     "./tokens.css": "./tokens.css",
     "./fonts.css": "./fonts.css",
