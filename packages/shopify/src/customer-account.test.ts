@@ -322,6 +322,19 @@ describe("customerAccountRequest", () => {
       await customerAccountRequest(CONFIG, "expired", "{ customer { id } }"),
     ).toMatchObject({ ok: false, error: { kind: "http", status: 401 } });
   });
+
+  it.each([
+    ["an HTML page", "<html>Bad gateway</html>"],
+    ["JSON null", "null"],
+  ])(
+    "returns invalid-response, not a throw, for a 2xx body that's %s",
+    async (_, body) => {
+      vi.stubGlobal("fetch", async () => new Response(body, { status: 200 }));
+      expect(
+        await customerAccountRequest(CONFIG, "token", "{ customer { id } }"),
+      ).toMatchObject({ ok: false, error: { kind: "invalid-response" } });
+    },
+  );
 });
 
 describe("order ids in URLs", () => {

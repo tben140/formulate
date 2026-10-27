@@ -10,9 +10,11 @@ import { cartClient, readCartId } from "@/lib/cart";
 import {
   clearCustomerTokens,
   customerAccountConfig,
+  markRefreshedAfter401,
   readCustomerTokens,
   requestOrigin,
   safeReturnTo,
+  wasRefreshedAfter401,
   writeCustomerTokens,
 } from "@/lib/customer-account";
 
@@ -30,6 +32,14 @@ const refresh = async (request: NextRequest) => {
   const tokens = await readCustomerTokens();
   if (!tokens) redirect(signIn);
 
+  // A second 401 straight after a refresh: Shopify has ended the session, and
+  // refreshing again would loop. Sign out and ask the buyer to sign in.
+  const after401 = request.nextUrl.searchParams.get("after") === "401";
+  if (after401 && (await wasRefreshedAfter401())) {
+    await clearCustomerTokens();
+    redirect(signIn);
+  }
+
   const result = await refreshTokens(customerAccountConfig, tokens, {
     origin: requestOrigin(request.headers, request.nextUrl.origin),
   });
@@ -42,6 +52,7 @@ const refresh = async (request: NextRequest) => {
   }
 
   await writeCustomerTokens(result.data);
+  if (after401) await markRefreshedAfter401();
 
   // Keep the cart's identity on a token that still works.
   const cartId = await readCartId();

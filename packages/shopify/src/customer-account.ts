@@ -489,10 +489,23 @@ export const customerAccountRequest = async <TData>(
     };
   }
 
-  const body = (await response.json()) as {
+  // A 2xx that isn't a JSON object (an edge's HTML page, or `null`) is a
+  // result like any other, never a throw: the pages only check `ok`.
+  let body: {
     readonly data?: TData;
     readonly errors?: readonly { readonly message: string }[];
-  };
+  } | null;
+  try {
+    body = (await response.json()) as typeof body;
+  } catch {
+    body = null;
+  }
+  if (!body || typeof body !== "object") {
+    return {
+      ok: false,
+      error: { kind: "invalid-response", message: "Response was not a JSON object." },
+    };
+  }
   if (body.errors?.length)
     return { ok: false, error: { kind: "graphql", errors: body.errors } };
   if (!body.data) {

@@ -15,6 +15,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import {
   customerAccountConfig,
   formatOrderDate,
+  refreshAfter401,
   requireCustomerTokens,
 } from "@/lib/customer-account";
 
@@ -66,7 +67,7 @@ const OrderPage = async ({ params }: PageProps) => {
 
   if (!result.ok) {
     if (result.error.kind === "http" && result.error.status === 401) {
-      redirect(`/account/refresh?return_to=${encodeURIComponent(path)}`);
+      redirect(refreshAfter401(path));
     }
     console.error(describeCustomerAccountError(result.error));
     return (

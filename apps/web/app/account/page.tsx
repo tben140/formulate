@@ -15,6 +15,7 @@ import {
   customerAccountConfig,
   formatOrderDate,
   isCustomerAccountConfigured,
+  refreshAfter401,
   requireCustomerTokens,
 } from "@/lib/customer-account";
 
@@ -87,7 +88,7 @@ const AccountPage = async ({ searchParams }: PageProps) => {
     // 401 before the token's own expiry means Shopify ended the session
     // (signed out elsewhere, or revoked). A refresh settles which.
     if (result.error.kind === "http" && result.error.status === 401) {
-      redirect("/account/refresh?return_to=%2Faccount");
+      redirect(refreshAfter401("/account"));
     }
     console.error(describeCustomerAccountError(result.error));
     return (
