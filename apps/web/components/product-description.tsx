@@ -20,7 +20,10 @@ export const ProductDescription = ({ html }: { readonly html: string }) => {
         if (block.kind === "heading") {
           // h2: the product title is the page's h1.
           return (
-            <h2 key={key} className="pt-2 text-base font-semibold text-foreground">
+            <h2
+              key={key}
+              className="whitespace-pre-line pt-2 text-base font-semibold text-foreground"
+            >
               {block.text}
             </h2>
           );
@@ -33,7 +36,9 @@ export const ProductDescription = ({ html }: { readonly html: string }) => {
               className={`space-y-1 pl-5 ${block.ordered ? "list-decimal" : "list-disc"}`}
             >
               {block.items.map((item, itemIndex) => (
-                <li key={`${key}-${itemIndex}`}>{item}</li>
+                <li key={`${key}-${itemIndex}`} className="whitespace-pre-line">
+                  {item}
+                </li>
               ))}
             </List>
           );

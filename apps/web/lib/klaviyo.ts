@@ -182,7 +182,7 @@ export const subscribe = async (email: string): Promise<SubscribeResult> => {
     publicKey: KLAVIYO_PUBLIC_KEY,
     listId: KLAVIYO_LIST_ID,
     email,
-    source: "Formulate web",
+    source: "Double Helix web",
   });
 
   /*

@@ -80,7 +80,7 @@ describe("subscriptionPayload", () => {
   const payload = subscriptionPayload({
     email: "  ben@bentaylordemo.co.uk ",
     listId: LIST_ID,
-    source: "Formulate web",
+    source: "Double Helix web",
   });
 
   it("records explicit marketing consent", () => {
@@ -94,7 +94,7 @@ describe("subscriptionPayload", () => {
   });
 
   it("tags the surface, so segments can be built per runtime", () => {
-    expect(payload.data.attributes.custom_source).toBe("Formulate web");
+    expect(payload.data.attributes.custom_source).toBe("Double Helix web");
   });
 
   it("trims the address before sending it", () => {
@@ -121,7 +121,7 @@ describe("submitSubscription", () => {
     publicKey: PUBLIC_KEY,
     listId: LIST_ID,
     email: "ben@bentaylordemo.co.uk",
-    source: "Formulate web",
+    source: "Double Helix web",
   } as const;
 
   it("sends the JSON:API media type and the pinned revision", async () => {
@@ -290,7 +290,7 @@ describe("serverSubscriptionPayload", () => {
   const payload = serverSubscriptionPayload({
     email: "  ben@bentaylordemo.co.uk ",
     listId: LIST_ID,
-    source: "Formulate mobile",
+    source: "Double Helix mobile",
   });
 
   it("targets the server endpoint, not the client one", () => {
@@ -321,6 +321,6 @@ describe("serverSubscriptionPayload", () => {
   });
 
   it("tags the surface so mobile signups are distinguishable", () => {
-    expect(payload.data.attributes.custom_source).toBe("Formulate mobile");
+    expect(payload.data.attributes.custom_source).toBe("Double Helix mobile");
   });
 });
