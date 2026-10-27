@@ -95,6 +95,17 @@ describe("createStorefrontClient", () => {
     });
   });
 
+  it("is a network error when a 2xx body isn't JSON", async () => {
+    respond("<html>Bad gateway</html>", { status: 200 });
+
+    const result = await createStorefrontClient(config).request(query, { first: 1 });
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: "network", message: "Shopify's response wasn't valid JSON" },
+    });
+  });
+
   it("is a graphql error when the response lists errors", async () => {
     const errors = [{ message: "Field 'nope' doesn't exist on type 'Shop'" }];
     respond({ errors });
