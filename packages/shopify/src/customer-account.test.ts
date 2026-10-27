@@ -376,6 +376,13 @@ describe("callbackParams", () => {
   it("returns nothing for a URL without a query", () => {
     expect(callbackParams("shop.1.app://callback")).toEqual({});
   });
+
+  it("keeps a malformed escape as it arrived instead of throwing", () => {
+    expect(callbackParams("app://callback?code=%E0%A4%A&state=%")).toEqual({
+      code: "%E0%A4%A",
+      state: "%",
+    });
+  });
 });
 
 describe("formatOrderDate", () => {

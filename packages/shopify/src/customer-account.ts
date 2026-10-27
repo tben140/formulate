@@ -124,7 +124,17 @@ export const callbackParams = (url: string): Readonly<Record<string, string>> =>
   for (const pair of query.split("&")) {
     if (!pair) continue;
     const at = pair.indexOf("=");
-    const decode = (part: string) => decodeURIComponent(part.replace(/\+/g, " "));
+    // A malformed escape ("%E0%A4%A", a lone "%") stays as it arrived rather
+    // than throwing: any app can open this URL scheme, and a bad callback must
+    // end as a failed sign-in, not a crash.
+    const decode = (part: string) => {
+      const spaced = part.replace(/\+/g, " ");
+      try {
+        return decodeURIComponent(spaced);
+      } catch {
+        return spaced;
+      }
+    };
     const key = decode(at === -1 ? pair : pair.slice(0, at));
     // First value wins, as URLSearchParams.get does.
     if (!(key in params)) params[key] = at === -1 ? "" : decode(pair.slice(at + 1));
