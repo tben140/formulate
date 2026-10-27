@@ -79,6 +79,8 @@ export const AddToCart = ({
                   >
                     <Text
                       className={`text-sm ${
+                        // Muted grey on the selected brand-50 is 4.34:1,
+                        // under AA's 4.5:1: selected keeps full strength.
                         match && !match.availableForSale
                           ? // Muted grey on the selected brand-50 is 4.34:1,
                             // under AA's 4.5:1: selected keeps full strength.
@@ -98,7 +100,7 @@ export const AddToCart = ({
 
       {allocations.length > 0 ? (
         <View>
-          <Text className="mb-2 text-sm font-semibold text-foreground font-mono">
+          <Text className="mb-2 text-sm font-semibold text-foreground">
             Purchase options
           </Text>
           <View className="gap-2">
@@ -122,7 +124,7 @@ export const AddToCart = ({
                 <Text className="text-sm text-foreground">{choice.label}</Text>
                 {choice.price ? (
                   <Text
-                    className={`text-sm font-mono ${
+                    className={`font-mono text-sm ${
                       effectivePlanId === choice.id
                         ? "text-foreground"
                         : "text-foreground-muted"

@@ -15,12 +15,25 @@ import { openApp, switchTab, tab } from "./helpers";
  * isn't shipped; the app has no document.
  */
 const scan = async (page: Page) => {
+  // react-native-web (0.21.2, Modal/ModalContent.js) always sets
+  // aria-modal="true" on a Modal's root but role="dialog" only while it's
+  // active, so a sheet that is still animating closed is briefly an
+  // aria-modal element with no role, which axe rightly flags
+  // (aria-allowed-attr). That state is the library's, lasts one animation,
+  // and doesn't exist on iOS or Android; wait it out rather than scan it.
+  await page.waitForFunction(
+    () => !document.querySelector('[aria-modal="true"]:not([role="dialog"])'),
+    undefined,
+    { timeout: 5000 },
+  );
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .disableRules(["document-title"])
     .analyze();
+  // The element's HTML as well as its selector: react-native-web's class
+  // names (r-backgroundColor-…) say nothing about which component it is.
   return result.violations.flatMap((v) =>
-    v.nodes.map((n) => `${v.id}: ${n.target.join(" ")}`),
+    v.nodes.map((n) => `${v.id}: ${n.target.join(" ")} ${n.html.slice(0, 300)}`),
   );
 };
 

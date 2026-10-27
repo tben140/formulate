@@ -11,16 +11,17 @@ import { fontFor } from "../../../lib/fonts";
  * from Search is still there when you come back to Search, and Back on it
  * returns to the results, not to the shop.
  *
- * The two differ only in where they start: Shop on home, Search on search.
+ * The two differ only in where they start: Shop on home, Search on search,
+ * set by `unstable_settings` below (Expo Router 58 no longer takes
+ * `initialRouteName` on the Stack itself).
  */
 export const unstable_settings = {
   initialRouteName: "index",
   search: { initialRouteName: "search" },
 };
 
-const SharedStack = ({ segment }: { readonly segment: string }) => (
+const SharedStack = () => (
   <Stack
-    initialRouteName={segment === "(search)" ? "search" : "index"}
     // Wraps every screen below its native header, including screens added
     // later, so the demo notice can't be forgotten on one.
     screenLayout={({ children }) => (
@@ -39,7 +40,7 @@ const SharedStack = ({ segment }: { readonly segment: string }) => (
       contentStyle: { backgroundColor: "#ffffff" },
     }}
   >
-    <Stack.Screen name="index" options={{ title: "Formulate" }} />
+    <Stack.Screen name="index" options={{ title: "Double Helix" }} />
     <Stack.Screen name="search" options={{ title: "Search" }} />
     <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
     <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />

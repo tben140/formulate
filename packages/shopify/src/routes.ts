@@ -76,7 +76,7 @@ export const APP_LINK_PATHS = ["/", "/collections/*", "/products/*", "/search"] 
 /** The app's identifiers, needed by the well-known files web serves. */
 export const APP_IDENTIFIERS = {
   /** app.config.ts `ios.bundleIdentifier`. */
-  ios: "com.tben140.formulate",
+  ios: "com.tben140.doublehelix",
   /** app.config.ts `android.package`. */
-  android: "com.tben140.formulate",
+  android: "com.tben140.doublehelix",
 } as const;
