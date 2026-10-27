@@ -323,6 +323,33 @@ a device, which is the same shape as the `lightningcss` pin (ADR 0004): a
 pre-release dependency fails far from where it's installed. The check that
 caught them was a person opening the app on a phone (#163, ADR 0003).
 
+**The front page was a 404 for weeks.** The repository's website link went
+to production, and production's home page redirected to the store's opening
+collection, a seeded demo collection deleted when the real catalogue went in.
+Every check was green: the end-to-end suite runs against each PR's preview,
+built from the batch, where the opening collection had already changed, and
+nothing tested production's own front door. A one-line hotfix on `main` fixed
+it the day it was noticed (#164). The lesson is the same as the security
+flaw's: a batch that sits unmerged leaves production running code nobody is
+testing.
+
+**The free plan nearly paused the site.** Vercel's free plan includes
+1,000,000 CDN requests a month and pauses every project past that. On 26
+October it emailed at 75%. The visitors weren't the cause; the test setup was.
+Every push to any PR built a preview, and the end-to-end and Lighthouse suites
+then loaded every page and image on it, including for app, theme and docs PRs
+that couldn't change the website. About 270 previews in ten days, 49 of them in
+one day of PR updates. The fix was one rule: build a preview only when the
+website or the shared code changed, which skips the deployment, and with it the
+tests (#165). Usage dropped at once. Nothing in CI had measured what CI costs.
+
+**A speed-up that would have been a slow-down.** An early PR moved the web
+app's server code from Washington to London, for UK shoppers (#81). Measured
+from a London server before merging, Shopify's API took 155 to 315 ms to
+answer while its own timing said 8 ms of work: Shopify's API is served from the
+US, so a London function would cross the Atlantic once per query instead of
+once per page. It was closed unmerged.
+
 > **TODO (Ben):** the worktree bug and anything from the lab notebook. Add
 > them here in the same form: what was assumed, what was measured, what
 > changed.
