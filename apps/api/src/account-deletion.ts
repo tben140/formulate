@@ -18,6 +18,7 @@ import {
   hasAdminCredentials,
   type ShopifyAdminEnv,
 } from "./shopify-admin";
+import { tryFetch } from "./try-fetch";
 
 /**
  * Account deletion (SHO-90), for the web account page and the app.
@@ -99,6 +100,7 @@ export type DeletionFailure = {
   readonly reason:
     | "unauthorized"
     | "rate-limited"
+    | "unavailable"
     | "not-configured"
     | "not-confirmed"
     | "subscriptions"
@@ -189,11 +191,18 @@ const authorise = async (
     return fail(503, "not-configured");
   }
   const customer = await verifyCustomer(env, token);
+  if (customer === "unavailable") return fail(502, "unavailable");
   if (!customer) return fail(401, "unauthorized");
   // Both deletion routes come through here, so both get the per-customer
   // limit the subscription routes have (see src/shopify-customer.ts).
   if (!(await withinCustomerLimit(env, customer.id))) return fail(429, "rate-limited");
-  const adminToken = await adminAccessToken(env);
+  let adminToken: string | null;
+  try {
+    adminToken = await adminAccessToken(env);
+  } catch {
+    // Shopify unreachable, before anything has changed.
+    return fail(502, "unavailable");
+  }
   if (!adminToken) return fail(503, "not-configured");
   return { ...customer, adminToken };
 };
@@ -262,8 +271,8 @@ export const deleteAccount = async (
         send_email: false,
       }),
     });
-    if (!response.ok) {
-      console.error("recharge cancel failed", { status: response.status });
+    if (!response?.ok) {
+      console.error("recharge cancel failed", { status: response?.status ?? null });
       return fail(502, "subscriptions");
     }
   }
@@ -271,30 +280,36 @@ export const deleteAccount = async (
   // 2. Marketing data.
   // No email on the Shopify account means no Klaviyo profile keyed to it.
   if (customer.email) {
-    const response = await fetch(KLAVIYO_DELETION_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Klaviyo-API-Key ${env.KLAVIYO_DELETION_KEY}`,
-        "content-type": "application/vnd.api+json",
-        revision: KLAVIYO_REVISION,
-      },
-      body: JSON.stringify({
-        data: {
-          type: "data-privacy-deletion-job",
-          attributes: {
-            profile: { data: { type: "profile", attributes: { email: customer.email } } },
-          },
+    const response = await tryFetch(
+      KLAVIYO_DELETION_URL,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Klaviyo-API-Key ${env.KLAVIYO_DELETION_KEY}`,
+          "content-type": "application/vnd.api+json",
+          revision: KLAVIYO_REVISION,
         },
-      }),
-    });
-    if (!response.ok) {
-      console.error("klaviyo deletion failed", { status: response.status });
+        body: JSON.stringify({
+          data: {
+            type: "data-privacy-deletion-job",
+            attributes: {
+              profile: {
+                data: { type: "profile", attributes: { email: customer.email } },
+              },
+            },
+          },
+        }),
+      },
+      "klaviyo deletion",
+    );
+    if (!response?.ok) {
+      console.error("klaviyo deletion failed", { status: response?.status ?? null });
       return fail(502, "marketing");
     }
   }
 
   // 3. Shopify erasure, last: everything above must have succeeded first.
-  const response = await fetch(
+  const response = await tryFetch(
     `https://${env.SHOPIFY_STORE_DOMAIN}/admin/api/${env.SHOPIFY_API_VERSION}/graphql.json`,
     {
       method: "POST",
@@ -312,7 +327,9 @@ export const deleteAccount = async (
         variables: { customerId: `gid://shopify/Customer/${customer.id}` },
       }),
     },
+    "shopify erasure",
   );
+  if (!response) return fail(502, "erasure");
   const body = (await response.json().catch(() => null)) as {
     data?: { customerRequestDataErasure?: { userErrors?: { code?: string }[] } };
     errors?: unknown;

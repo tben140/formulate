@@ -13,7 +13,8 @@ import { getUsableTokens } from "./customer-account";
  * does for consent: a native app isn't subject to CORS, and the Worker sends
  * none, so no website can make these calls.
  */
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+// No trailing slash, so `${API_BASE_URL}/account/...` never becomes "//account".
+const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "");
 
 type Failure = { readonly ok: false; readonly reason: DeletionFailureReason };
 
@@ -22,9 +23,12 @@ const call = async <T extends { ok: true }>(
   body: unknown,
 ): Promise<T | Failure> => {
   if (!API_BASE_URL) return { ok: false, reason: "not-configured" };
-  const tokens = await getUsableTokens();
-  if (!tokens) return { ok: false, reason: "unauthorized" };
   try {
+    // Inside the try: reading or renewing stored tokens can reject (a
+    // SecureStore error, a refresh that couldn't reach Shopify), and that's a
+    // failed request like any other, not a crash of the mutation.
+    const tokens = await getUsableTokens();
+    if (!tokens) return { ok: false, reason: "unauthorized" };
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json", Authorization: tokens.accessToken },

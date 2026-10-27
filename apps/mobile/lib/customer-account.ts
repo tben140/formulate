@@ -157,22 +157,55 @@ export const signIn = async (): Promise<SignInOutcome> => {
 };
 
 /**
+ * Couldn't renew the session for a reason a retry might fix (offline, a 5xx,
+ * a garbled answer). The tokens are kept: the refresh token is still good.
+ */
+export class TransientRefreshError extends Error {
+  constructor() {
+    super("Couldn't renew the session just now.");
+    this.name = "TransientRefreshError";
+  }
+}
+
+/**
+ * One refresh at a time. Two screens' queries can find the same expiring
+ * tokens at once; two refreshes would spend the same refresh token, and if
+ * Shopify rotates it the loser's failure would sign the buyer out.
+ */
+let inFlight: Promise<CustomerTokens | null> | null = null;
+
+const renew = async (tokens: CustomerTokens): Promise<CustomerTokens | null> => {
+  const refreshed = await refreshTokens(customerAccountConfig, tokens);
+  if (refreshed.ok) {
+    await writeCustomerTokens(refreshed.data);
+    return refreshed.data;
+  }
+  console.warn(describeCustomerAccountError(refreshed.error));
+  // Only Shopify refusing the grant (a 4xx) ends the session.
+  if (refreshed.error.kind === "http" && refreshed.error.status < 500) {
+    // ...and only if these are still the stored tokens: a sign-in since then
+    // isn't this refresh's to undo.
+    const stored = await readCustomerTokens();
+    if (stored?.refreshToken === tokens.refreshToken) await clearCustomerTokens();
+    return null;
+  }
+  throw new TransientRefreshError();
+};
+
+/**
  * Tokens that are good to use now: renewed first when about to expire, or
- * null when there's no session (or it can no longer be renewed).
+ * null when there's no session (or Shopify refused to renew it). Throws
+ * TransientRefreshError when renewing failed for a reason worth retrying.
  */
 export const getUsableTokens = async (): Promise<CustomerTokens | null> => {
   const tokens = await readCustomerTokens();
   if (!tokens) return null;
   if (!isTokenExpiring(tokens)) return tokens;
 
-  const refreshed = await refreshTokens(customerAccountConfig, tokens);
-  if (!refreshed.ok) {
-    console.warn(describeCustomerAccountError(refreshed.error));
-    await clearCustomerTokens();
-    return null;
-  }
-  await writeCustomerTokens(refreshed.data);
-  return refreshed.data;
+  inFlight ??= renew(tokens).finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
 };
 
 /**

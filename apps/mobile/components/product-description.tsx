@@ -31,8 +31,15 @@ export const ProductDescription = ({ html }: { readonly html: string }) => {
           return (
             <View key={key} className="gap-1">
               {block.items.map((item, itemIndex) => (
-                <View key={`${key}-${itemIndex}`} className="flex-row gap-2">
-                  {/* The marker is decoration; the item reads on its own. */}
+                <View
+                  key={`${key}-${itemIndex}`}
+                  className="flex-row gap-2"
+                  // One element for screen readers, so an ordered step keeps
+                  // its number ("1. Mix…"); the visual marker is hidden.
+                  accessible
+                  accessibilityLabel={block.ordered ? `${itemIndex + 1}. ${item}` : item}
+                >
+                  {/* The marker is decoration; the label above carries it. */}
                   <Text
                     className="text-base text-foreground-muted"
                     accessibilityElementsHidden

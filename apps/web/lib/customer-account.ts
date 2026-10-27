@@ -109,8 +109,31 @@ export const writeCustomerTokens = async (tokens: CustomerTokens): Promise<void>
 };
 
 export const clearCustomerTokens = async (): Promise<void> => {
-  (await cookies()).delete(SESSION_COOKIE);
+  const jar = await cookies();
+  jar.delete(SESSION_COOKIE);
+  jar.delete(REFRESHED_COOKIE);
 };
+
+/**
+ * Set by /account/refresh after a refresh that followed a 401. If the renewed
+ * token gets a 401 too, the session is dead rather than expired, and another
+ * refresh would only loop: the route signs the buyer out instead. Short-lived,
+ * so a later, unrelated 401 still gets its one refresh.
+ */
+const REFRESHED_COOKIE = "formulate_customer_refreshed";
+const REFRESHED_MAX_AGE = 60 * 2;
+
+/** Only callable from a Route Handler or Server Action. */
+export const markRefreshedAfter401 = async (): Promise<void> => {
+  (await cookies()).set(REFRESHED_COOKIE, "1", cookieOptions(REFRESHED_MAX_AGE));
+};
+
+export const wasRefreshedAfter401 = async (): Promise<boolean> =>
+  (await cookies()).has(REFRESHED_COOKIE);
+
+/** Where a page sends the buyer when Shopify answers 401 for a live-looking token. */
+export const refreshAfter401 = (returnTo: string): string =>
+  `/account/refresh?after=401&return_to=${encodeURIComponent(safeReturnTo(returnTo))}`;
 
 /** What must survive the round trip to Shopify's sign-in page. */
 export interface PendingSignIn {
@@ -157,10 +180,20 @@ export const takePendingSignIn = async (): Promise<PendingSignIn | null> => {
  * someone else's, just after they've signed in and trust it most. `//evil.com`
  * and `/\evil.com` are both treated as other hosts by browsers.
  */
-export const safeReturnTo = (value: string | null | undefined): string =>
-  value && value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\")
-    ? value
-    : "/account";
+export const safeReturnTo = (value: string | null | undefined): string => {
+  if (!value?.startsWith("/")) return "/account";
+  // Parsed, not pattern-matched: the URL parser drops tabs and newlines and
+  // reads backslashes as slashes, so "/\t/evil.com" is "//evil.com" to a
+  // browser. Only a path that stays on this origin comes back.
+  const base = "https://same-origin.invalid";
+  let url: URL;
+  try {
+    url = new URL(value, base);
+  } catch {
+    return "/account";
+  }
+  return url.origin === base ? `${url.pathname}${url.search}${url.hash}` : "/account";
+};
 
 /** Where Shopify sends the buyer back to. Must be registered on the client, exactly. */
 export const callbackPath = "/account/authorize";
