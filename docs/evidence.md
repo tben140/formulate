@@ -184,7 +184,19 @@ The audit gate (`pnpm audit --audit-level critical`) runs in CI from #152.
 | Web e2e, production (`main`)        | 17 failed, 24 passed: colour contrast on purchase options and the cart confirmation, plus layout and keyboard checks, all fixed on the batch                                                                                                |
 | Expo SDK 58, droplet (#163)         | `turbo lint typecheck test build` 21/21; web e2e on React 19.3: 43 passed, 7 skipped; the app's web build and iOS bundle build                                                                                                              |
 | Expo SDK 58, iPhone (Expo Go)       | Crashed at startup, then failed to load icon fonts: two NativeWind runtime gaps found only on the device (ADR 0003). After both fixes it opened with no errors (Ben, by hand)                                                               |
-| Expo SDK 58, native build           | EAS iOS production build 3 (`a58126a3`) finished on 26 Oct and was submitted to TestFlight: #128 + #163. Klaviyo, Checkout Kit and Sentry to be checked on it by hand                                                                       |
+| Expo SDK 58, native build           | EAS iOS production build 3 (`a58126a3`) finished on 26 Oct and was submitted to TestFlight: #128 + #163                                                                                                                                     |
+| TestFlight build 3, iPhone (27 Oct) | Ben, by hand: launch, tabs and the Checkout Kit sheet work. Klaviyo: sign-up from the app at 14:00, double opt-in confirmed 15:06, welcome code `DH10-…` assigned 15:07 and received by email. Sentry isn't in this build (#98, #104)       |
+
+### Production and the free plan (2026-10-26 to 27)
+
+| Check                                | Result                                                                                                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Production front page, before        | `/` → 307 → `/collections/automated-collection` → **404**: the seeded demo collection no longer exists                                                                                                |
+| Production front page, after (#164)  | `/` → 307 → `/collections/best-sellers` → 200, checked on the live site after the deploy                                                                                                              |
+| Vercel CDN requests                  | 75% of the free plan's 1,000,000 a month by 26 Oct. About 270 deployments from 17 to 26 Oct (49 on the 26th), each followed by e2e and Lighthouse runs                                                |
+| Ignored Build Step (dashboard, #165) | An empty test commit: "Canceled by Ignored Build Step", no deployment, reported to GitHub as success. Local check: docs-only and app-only commits skip, web changes and production build              |
+| After                                | Ben, the next day: usage "reduced considerably" (the free plan shows only the last 12 hours)                                                                                                          |
+| Functions in London (#81), measured  | Storefront API from London: 155 to 315 ms to first byte, `server-timing` 8 ms of processing, served through Shopify's London edge to its US origin. Closed unmerged: London functions would be slower |
 
 ### Bug sweep (2026-10-25)
 
