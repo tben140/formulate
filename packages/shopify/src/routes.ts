@@ -61,6 +61,10 @@ export const SURFACE_ONLY_ROUTES = {
     // Not a page: the Cart tab opens the cart sheet (app/(tabs)/_layout.tsx).
     // Web's cart is a drawer with no route either.
     "/cart": "the Cart tab's placeholder; the tab opens a sheet",
+    // Not a page: where Shopify's sign-in returns. The sign-in sheet reads the
+    // URL; this only stops Android's router showing "unmatched route" for it.
+    // Web's equivalent is a route handler (/account/authorize).
+    "/callback": "the sign-in return URL, redirecting to the account tab",
   },
 } as const;
 
@@ -73,7 +77,7 @@ export const APP_LINK_PATHS = ["/", "/collections/*", "/products/*", "/search"] 
 /** The app's identifiers, needed by the well-known files web serves. */
 export const APP_IDENTIFIERS = {
   /** app.config.ts `ios.bundleIdentifier`. */
-  ios: "com.tben140.formulate",
+  ios: "com.tben140.doublehelix",
   /** app.config.ts `android.package`. */
-  android: "com.tben140.formulate",
+  android: "com.tben140.doublehelix",
 } as const;

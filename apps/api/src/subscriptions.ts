@@ -101,6 +101,9 @@ export const listSubscriptions = async (
   }
 
   const customer = await verifyCustomer(env, token);
+  if (customer === "unavailable") {
+    return { status: 502, body: { ok: false, reason: "unavailable" } };
+  }
   if (!customer) return { status: 401, body: { ok: false, reason: "unauthorized" } };
   if (!(await withinCustomerLimit(env, customer.id))) {
     return { status: 429, body: { ok: false, reason: "rate-limited" } };

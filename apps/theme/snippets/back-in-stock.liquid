@@ -46,8 +46,13 @@
     data-error-network="{{ 'newsletter.error_network' | t }}"
     {% if variant.available %}hidden{% endif %}
   >
-    {% comment %} novalidate: the messages are ours, as in the footer form. {% endcomment %}
-    <form class="back-in-stock__form" novalidate>
+    {% comment %}
+      novalidate: the messages are ours, as in the footer form.
+      hidden until back-in-stock.js runs, and POST: without JavaScript a GET
+      form would put the shopper's email address in the page URL. The alert
+      needs the script (it calls the Worker), so nothing works without it.
+    {% endcomment %}
+    <form class="back-in-stock__form" method="post" novalidate hidden>
       <label class="back-in-stock__label" for="back-in-stock-email">
         {{ 'back_in_stock.heading' | t }}
       </label>

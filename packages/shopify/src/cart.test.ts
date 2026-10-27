@@ -95,11 +95,11 @@ describe("create — buyerIdentity.email", () => {
     expect(vars.input.buyerIdentity).not.toHaveProperty("email");
   });
 
-  it("still sets the country code, which is not optional in practice", () => {
+  it("still sets the country code, which is not optional in practice", async () => {
     // Regression guard: adding email must not displace the country, or checkout
     // silently defaults to the United States on a GBP store.
     const req = request(payload);
-    void createCartClient({ request: req } as never).create({ email: "a@b.co" });
+    await createCartClient({ request: req } as never).create({ email: "a@b.co" });
 
     const [, vars] = req.mock.calls[0] as unknown as [
       unknown,
@@ -491,5 +491,111 @@ describe("describeForShopper", () => {
     expect(describeForShopper(error)).toBe(
       "Something went wrong at our end. Please try again.",
     );
+  });
+});
+
+describe("visitor consent on every cart request", () => {
+  /*
+   * A cart request that states no consent gets Shopify's regional default for
+   * the server's location, which allows tracking: the checkout URL gains
+   * visitor ids even for a shopper who declined. So every request must state
+   * the shopper's answer, and an unanswered banner counts as refused.
+   */
+  const ok = (data: unknown) => vi.fn(() => Promise.resolve({ ok: true as const, data }));
+  const consentOf = (req: ReturnType<typeof ok>, call = 0) =>
+    (req.mock.calls[call] as unknown as [unknown, { visitorConsent: unknown }])[1]
+      .visitorConsent;
+
+  const refused = {
+    analytics: false,
+    marketing: false,
+    preferences: false,
+    saleOfData: false,
+  };
+  const allowed = {
+    analytics: true,
+    marketing: true,
+    preferences: true,
+    saleOfData: true,
+  };
+
+  it("states refusal when the surface gives no choice", async () => {
+    const req = ok({ cart: null });
+    await createCartClient({ request: req } as never).get("gid://shopify/Cart/x?key=y");
+    expect(consentOf(req)).toEqual(refused);
+  });
+
+  it("treats an unanswered banner as refusal", async () => {
+    const req = ok({ cart: null });
+    await createCartClient({ request: req } as never, {
+      trackingChoice: () => "unset",
+    }).get("gid://shopify/Cart/x?key=y");
+    expect(consentOf(req)).toEqual(refused);
+  });
+
+  it("passes an acceptance on, including to the cart query that rebuilds checkoutUrl", async () => {
+    const req = ok({ cart: null });
+    await createCartClient({ request: req } as never, {
+      trackingChoice: async () => "granted" as const,
+    }).get("gid://shopify/Cart/x?key=y");
+    expect(consentOf(req)).toEqual(allowed);
+  });
+
+  it("reads the choice per request, so a change mid-visit applies at once", async () => {
+    let choice: "granted" | "denied" = "denied";
+    const req = ok({
+      cartLinesAdd: {
+        cart: { id: "gid://shopify/Cart/x?key=y" },
+        userErrors: [],
+        warnings: [],
+      },
+    });
+    const client = createCartClient({ request: req } as never, {
+      trackingChoice: () => choice,
+    });
+    await client.addLines("gid://shopify/Cart/x?key=y", []);
+    choice = "granted";
+    await client.addLines("gid://shopify/Cart/x?key=y", []);
+    expect(consentOf(req, 0)).toEqual(refused);
+    expect(consentOf(req, 1)).toEqual(allowed);
+  });
+
+  it.each([
+    [
+      "create",
+      (c: ReturnType<typeof createCartClient>) => c.create({ lines: [] }),
+      "cartCreate",
+    ],
+    [
+      "updateLines",
+      (c: ReturnType<typeof createCartClient>) =>
+        c.updateLines("gid://shopify/Cart/x?key=y", []),
+      "cartLinesUpdate",
+    ],
+    [
+      "removeLines",
+      (c: ReturnType<typeof createCartClient>) =>
+        c.removeLines("gid://shopify/Cart/x?key=y", []),
+      "cartLinesRemove",
+    ],
+    [
+      "setBuyerIdentity",
+      (c: ReturnType<typeof createCartClient>) =>
+        c.setBuyerIdentity("gid://shopify/Cart/x?key=y", { countryCode: "GB" } as never),
+      "cartBuyerIdentityUpdate",
+    ],
+  ] as const)("states refusal on %s too", async (_name, call, field) => {
+    const req = ok({ [field]: { cart: null, userErrors: [] } });
+    await call(createCartClient({ request: req } as never));
+    expect(consentOf(req)).toEqual(refused);
+  });
+
+  it("treats a choice that can't be read as refusal, and still sends the request", async () => {
+    const req = ok({ cart: null });
+    const result = await createCartClient({ request: req } as never, {
+      trackingChoice: () => Promise.reject(new Error("cookies() unavailable")),
+    }).get("gid://shopify/Cart/x?key=y");
+    expect(result.ok).toBe(true);
+    expect(consentOf(req)).toEqual(refused);
   });
 });

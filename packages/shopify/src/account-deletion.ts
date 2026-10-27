@@ -24,6 +24,7 @@ export interface DeletionPreview {
 
 export type DeletionFailureReason =
   | "unauthorized"
+  | "unavailable"
   | "not-configured"
   | "not-confirmed"
   | "subscriptions"
@@ -79,6 +80,8 @@ export const deletionFailureMessage = (reason: DeletionFailureReason): string =>
   switch (reason) {
     case "unauthorized":
       return "Your sign-in has expired. Please sign in again, then try once more.";
+    case "unavailable":
+      return "We couldn't reach the account service, so nothing has been deleted. Please try again in a moment.";
     case "not-configured":
       return "Account deletion isn't available here yet. Contact us and we'll delete your account for you.";
     case "subscriptions":

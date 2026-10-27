@@ -108,10 +108,11 @@ store's real test subscription (personal data removed). On web, the Recharge
 hosts can be overridden (`RECHARGE_ADMIN_URL`, `RECHARGE_API_URL`) to point at
 a local fake for rendering real pages.
 
-## Planned: Recharge → Klaviyo
+## Recharge → Klaviyo (live)
 
-Subscription lifecycle events feeding Klaviyo flows: upcoming charge, charge
-failed, subscription cancelled.
+Subscription lifecycle events feed Klaviyo flows. Since 6 October 2026, eleven
+Recharge flows are live, among them subscription started, upcoming order,
+payment failed, paused, cancelled and expired.
 
 This is largely configuration in the Recharge admin rather than code, which makes
 it unusually high value per hour spent — real, cross-system behaviour for very

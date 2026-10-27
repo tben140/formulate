@@ -55,12 +55,17 @@ deserialises its output inside `react-native-css`, and any newer version fails
 names deserialisation rather than versions. See
 [ADR 0004](../../docs/adr/0004-pin-lightningcss-to-1-30-1.md).
 
-NativeWind is pinned exactly at `5.0.0-preview.4`, no range, because preview
-releases can break between versions —
+NativeWind is pinned exactly at `5.0.0-rc.0` (with `react-native-css`
+`3.1.0-rc.0`), no range, because pre-releases can break between versions —
 [ADR 0003](../../docs/adr/0003-nativewind-v5-and-tailwind-v4.md).
 
-React is pinned to `19.2.3` workspace-wide. Under the hoisted node linker a
-second React copy would break hooks here.
+React is pinned to `19.3.0` workspace-wide (Expo SDK 58's version). Under the
+hoisted node linker a second React copy would break hooks here.
+
+`metro.config.js` sends expo-asset's `react-native` import to the real module.
+NativeWind's runtime swaps `react-native` for a stand-in everywhere, and that
+stand-in has no `AssetRegistry`, so without the rule every icon font fails to
+load. See ADR 0003, "Update, October 2026".
 
 ## Environment variables
 
@@ -69,7 +74,6 @@ EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN
 EXPO_PUBLIC_SHOPIFY_STOREFRONT_TOKEN
 EXPO_PUBLIC_SHOPIFY_API_VERSION
 EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY
-EXPO_PUBLIC_KLAVIYO_LIST_ID
 EXPO_PUBLIC_API_BASE_URL
 ```
 
@@ -118,8 +122,9 @@ Style props that Tailwind cannot express — `aspectRatio`, `borderRadius` on
 
 ## Klaviyo
 
-Env: `EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY`, `EXPO_PUBLIC_KLAVIYO_LIST_ID`. Both are
-public by design. A Klaviyo **private** key must never appear here — there is
+Env: `EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY`, which is public by design. There is no
+list id: the consent worker (`apps/api`) chooses the list, so a caller can't.
+A Klaviyo **private** key must never appear here — there is
 no server to hide it behind, so it would ship to every device.
 
 ⚠️ **Identity works differently here, and it is the only real divergence.**

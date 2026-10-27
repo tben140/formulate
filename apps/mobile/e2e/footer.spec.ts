@@ -31,7 +31,7 @@ for (const [screen, path] of [
     // mid-scroll; retry until it holds still.
     await expect(async () => {
       await signUp.scrollIntoViewIfNeeded({ timeout: 2_000 });
-    }).toPass();
+    }).toPass({ timeout: 15_000 });
     await signUp.tap();
     await expect(page.getByText("Enter your email address.")).toBeVisible();
 

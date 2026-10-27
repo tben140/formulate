@@ -3,6 +3,8 @@
  * customer id that shopify-customer.ts verified, never by an id from a request.
  */
 
+import { tryFetch } from "./try-fetch";
+
 export interface RechargeAdminEnv {
   /** Secret. Recharge Admin API token: customers, subscriptions, orders. */
   readonly RECHARGE_ADMIN_TOKEN?: string;
@@ -13,16 +15,21 @@ export interface RechargeAdminEnv {
 const RECHARGE_API = "https://api.rechargeapps.com";
 const RECHARGE_VERSION = "2021-11";
 
+/** A Recharge Admin call, or null when Recharge couldn't be reached. */
 export const recharge = (env: RechargeAdminEnv, path: string, init: RequestInit = {}) =>
-  fetch(`${env.RECHARGE_API_URL ?? RECHARGE_API}${path}`, {
-    ...init,
-    headers: {
-      "X-Recharge-Access-Token": env.RECHARGE_ADMIN_TOKEN ?? "",
-      "X-Recharge-Version": RECHARGE_VERSION,
-      "content-type": "application/json",
-      accept: "application/json",
+  tryFetch(
+    `${env.RECHARGE_API_URL ?? RECHARGE_API}${path}`,
+    {
+      ...init,
+      headers: {
+        "X-Recharge-Access-Token": env.RECHARGE_ADMIN_TOKEN ?? "",
+        "X-Recharge-Version": RECHARGE_VERSION,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
     },
-  });
+    "recharge",
+  );
 
 /** A list from a Recharge read, or null when Recharge couldn't be read. */
 export const rechargeList = async <T>(
@@ -31,10 +38,10 @@ export const rechargeList = async <T>(
   key: string,
 ): Promise<T[] | null> => {
   const response = await recharge(env, path);
-  if (!response.ok) {
+  if (!response?.ok) {
     console.error("recharge read failed", {
       path: path.split("?")[0],
-      status: response.status,
+      status: response?.status ?? null,
     });
     return null;
   }
