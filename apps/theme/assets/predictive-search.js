@@ -16,6 +16,9 @@ const MIN_LENGTH = 2;
 const DEBOUNCE_MS = 200;
 const LIMIT = 6;
 
+/** The id the section's adopted stylesheet gets, so it's added only once. */
+const STYLE_ID = "predictive-search-styles";
+
 /**
  * Product suggestions as you type (SHO-103), matching apps/web's
  * components/predictive-search.tsx.
@@ -111,6 +114,17 @@ export class PredictiveSearch extends Component {
       const results = parsed.querySelector("[data-predictive-search-results]");
       if (!results || this.refs.input.value.trim() !== term) return;
 
+      // Shopify includes a section's {% stylesheet %} CSS only on pages that
+      // render it, and this section is only ever fetched: the response carries
+      // its CSS in a <style data-section-stylesheet>, outside the results.
+      // Adopt it once, or the options render unstyled.
+      const style = parsed.querySelector("style[data-section-stylesheet]");
+      if (style && !document.getElementById(STYLE_ID)) {
+        const adopted = document.importNode(style, true);
+        adopted.id = STYLE_ID;
+        document.head.append(adopted);
+      }
+
       const { list, status } = this.refs;
       list.replaceChildren(
         ...Array.from(results.children, (child) => document.importNode(child, true)),
@@ -140,8 +154,16 @@ export class PredictiveSearch extends Component {
       if (options.length === 0 || this.#shownFor !== this.refs.input.value.trim()) return;
       event.preventDefault();
       this.#open();
-      const step = event.key === "ArrowDown" ? 1 : -1;
-      this.#highlight((this.#active + step + options.length) % options.length);
+      // From nothing highlighted, Up goes to the last option, as the ARIA
+      // list-autocomplete pattern does, and Down to the first.
+      const next =
+        this.#active < 0
+          ? event.key === "ArrowDown"
+            ? 0
+            : options.length - 1
+          : (this.#active + (event.key === "ArrowDown" ? 1 : -1) + options.length) %
+            options.length;
+      this.#highlight(next);
     } else if (event.key === "Enter") {
       const chosen = isOpen ? options[this.#active] : undefined;
       if (chosen) {

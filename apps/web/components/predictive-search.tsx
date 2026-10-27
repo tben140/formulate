@@ -91,8 +91,15 @@ export const PredictiveSearch = ({
         if (count === 0) return;
         event.preventDefault();
         setOpen(true);
-        const step = event.key === "ArrowDown" ? 1 : -1;
-        setActive((current) => (current + step + count) % count);
+        // From nothing highlighted, Up goes to the last suggestion, as the
+        // ARIA list-autocomplete pattern does, and Down to the first.
+        setActive((current) =>
+          current < 0
+            ? event.key === "ArrowDown"
+              ? 0
+              : count - 1
+            : (current + (event.key === "ArrowDown" ? 1 : -1) + count) % count,
+        );
         return;
       }
       case "Enter": {

@@ -45,6 +45,20 @@ test("suggestions appear as you type, and the keyboard picks one", async ({ page
   await page.waitForURL(/\/products\/magnesium-glycinate/);
 });
 
+test("Up from the box highlights the last suggestion", async ({ page }) => {
+  await page.goto("/search", { waitUntil: "networkidle" });
+  const box = page.getByRole("combobox", { name: "Search products" });
+  await box.fill("vitamin");
+  const options = page
+    .getByRole("listbox", { name: "Suggested products" })
+    .getByRole("option");
+  await expect(options.first()).toBeVisible();
+
+  await box.press("ArrowUp");
+  await expect(options.last()).toHaveAttribute("aria-selected", "true");
+  await expect(options.first()).toHaveAttribute("aria-selected", "false");
+});
+
 test("Escape closes the list, and Enter still runs a full search", async ({ page }) => {
   await page.goto("/search", { waitUntil: "networkidle" });
   const box = page.getByRole("combobox", { name: "Search products" });
