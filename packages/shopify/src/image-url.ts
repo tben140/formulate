@@ -51,6 +51,11 @@ export const sizedImageUrl = (
   if (height !== undefined) {
     parsed.searchParams.set("height", String(roundUp(height)));
     parsed.searchParams.set("crop", "center");
+  } else {
+    // Width only: let the CDN keep the aspect ratio, even if the URL was
+    // sized before.
+    parsed.searchParams.delete("height");
+    parsed.searchParams.delete("crop");
   }
   return parsed.toString();
 };

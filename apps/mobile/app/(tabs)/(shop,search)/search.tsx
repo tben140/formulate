@@ -82,7 +82,7 @@ const SearchScreen = () => {
         </View>
       }
       ListEmptyComponent={
-        <Text className="py-12 text-center text-foreground-muted font-mono">
+        <Text className="py-12 text-center text-foreground-muted">
           {!searching
             ? "Search by product name, format or ingredient."
             : data && !isFetching

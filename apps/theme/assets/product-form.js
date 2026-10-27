@@ -230,13 +230,14 @@ class ProductForm extends Component {
     // For the restock alert below the form (SHO-118), which follows whichever
     // variant is chosen. An event rather than a reference: the form doesn't
     // need to know the alert exists.
+    const detail = match
+      ? { id: match.id, title: match.title, available: match.available }
+      : null;
+    // Kept, so a listener that connects later (the alert, on first load, or a
+    // selection the browser restored) can start from the current variant.
+    this.variantDetail = detail;
     this.dispatchEvent(
-      new CustomEvent("product-form:variant-change", {
-        bubbles: true,
-        detail: match
-          ? { id: match.id, title: match.title, available: match.available }
-          : null,
-      }),
+      new CustomEvent("product-form:variant-change", { bubbles: true, detail }),
     );
   }
 
