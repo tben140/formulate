@@ -9,7 +9,7 @@ import { getNavLinks } from "@/lib/nav";
 import { getRoutineGoals } from "@/lib/routine";
 import { storefront } from "@/lib/storefront";
 
-export const metadata: Metadata = { title: "Formulate" };
+export const metadata: Metadata = { title: "Double Helix" };
 
 /** How many products the featured row shows before "View all". */
 const FEATURED_COUNT = 4;

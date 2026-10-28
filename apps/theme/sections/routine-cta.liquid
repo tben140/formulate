@@ -8,11 +8,21 @@
   Copy is about goals, never symptoms (ADR 0009).
 {% endcomment %}
 
+{% comment %}
+  On collections and an empty search too (the places a shopper is choosing,
+  or stuck), so the link is set once, in Theme settings, with a per-section
+  override. On search it shows only when nothing matched.
+{% endcomment %}
 {% liquid
   assign goal_count = shop.metaobjects.routine_goal.values.size
+  assign quiz_url = section.settings.quiz_url | default: settings.routine_quiz_url
+  assign show = true
+  if template.name == 'search' and search.results_count > 0
+    assign show = false
+  endif
 %}
 
-{% if section.settings.quiz_url != blank and goal_count > 0 %}
+{% if show and quiz_url != blank and goal_count > 0 %}
   <div class="container">
     <section class="routine-cta" aria-labelledby="routine-cta-{{ section.id }}">
       <h2 id="routine-cta-{{ section.id }}" class="routine-cta__heading">
@@ -21,7 +31,7 @@
       {% if section.settings.text != blank %}
         <p class="routine-cta__text">{{ section.settings.text }}</p>
       {% endif %}
-      <a class="routine-cta__button" href="{{ section.settings.quiz_url }}">
+      <a class="routine-cta__button" href="{{ quiz_url }}">
         {{ section.settings.button_label }}
       </a>
     </section>
@@ -94,7 +104,7 @@
       "type": "url",
       "id": "quiz_url",
       "label": "Quiz link",
-      "info": "The web store's /routine page. The section stays hidden until this is set."
+      "info": "Leave blank to use the link in Theme settings → Routine quiz. Hidden while neither is set."
     }
   ],
   "presets": [{ "name": "Routine quiz" }]

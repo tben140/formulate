@@ -168,7 +168,9 @@ experience is worse than no icon.
 
 ## Not built yet
 
-Cart drawer (AJAX Cart API), add-to-cart, Klaviyo onsite tracking.
+Nothing from the original list: the cart drawer (AJAX Cart API), add to cart and
+Klaviyo onsite tracking (Klaviyo's app embed) are built. Customer accounts are
+Shopify's own on this surface, so there's nothing to build for them here.
 
 ## Related
 
