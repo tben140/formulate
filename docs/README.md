@@ -1,4 +1,4 @@
-# Formulate — project docs
+# Double Helix — project docs
 
 Architecture, domain notes and decision records for a Shopify storefront built
 three ways over one data and design layer.
@@ -19,21 +19,22 @@ vault to browse it as a graph; it is plain markdown either way.
 | [Decision records](adr/README.md) | Why things are the way they are, with alternatives                                             |
 | [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
 | [Runbook](runbook.md)             | What's monitored, what to do when it breaks, rolling back each surface, rotating credentials   |
+| [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
 
 ## Surfaces
 
 | Note                             | Surface                                                            |
 | -------------------------------- | ------------------------------------------------------------------ |
 | [Web storefront](surface-web.md) | `apps/web` — Next.js 16, React Server Components, Vercel           |
-| [Mobile app](surface-mobile.md)  | `apps/mobile` — Expo SDK 57, TanStack Query, Checkout Sheet Kit    |
+| [Mobile app](surface-mobile.md)  | `apps/mobile` — Expo SDK 58, TanStack Query, Checkout Sheet Kit    |
 | [Liquid theme](surface-theme.md) | `apps/theme` — Shopify Online Store, web components, no build step |
 
 ## Integrations
 
-| Note                                | Status                                                      |
-| ----------------------------------- | ----------------------------------------------------------- |
-| [Recharge](integration-recharge.md) | Installed; one live test subscription. Portal not yet built |
-| [Klaviyo](integration-klaviyo.md)   | Planned. Design only — nothing shipped                      |
+| Note                                | Status                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
+| [Recharge](integration-recharge.md) | Installed; subscription flows live in Klaviyo. Read-only portal in review (#80)      |
+| [Klaviyo](integration-klaviyo.md)   | Live on web and the theme: email capture, events, flows. App events in review (#107) |
 
 ## Out of scope, kept for reference
 
