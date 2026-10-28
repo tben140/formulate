@@ -12,13 +12,14 @@ vault to browse it as a graph; it is plain markdown either way.
 
 ## Start here
 
-| Note                              | What it covers                                                                                 |
-| --------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [Architecture](architecture.md)   | The three surfaces, what they share, and where they deliberately diverge                       |
-| [Domain model](domain-model.md)   | Customer, product, cart, order, subscription — and where Shopify's shape and ours disagree     |
-| [Decision records](adr/README.md) | Why things are the way they are, with alternatives                                             |
-| [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
-| [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
+| Note                                    | What it covers                                                                                 |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [Architecture](architecture.md)         | The three surfaces, what they share, and where they deliberately diverge                       |
+| [Domain model](domain-model.md)         | Customer, product, cart, order, subscription — and where Shopify's shape and ours disagree     |
+| [Decision records](adr/README.md)       | Why things are the way they are, with alternatives                                             |
+| [The demo store](demo-store.md)         | What visitors are told, how the store is configured to behave like a real one, resetting stock |
+| [Security](security.md)                 | Supply-chain and CI defences, and the record of each dependency audit                          |
+| [Portfolio drafts](portfolio/README.md) | One-thing pages for clients, and blog outlines (drafts for Ben to rewrite)                     |
 
 ## Surfaces
 
