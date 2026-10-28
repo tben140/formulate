@@ -54,7 +54,8 @@ const ReviewItem = ({ review }: { readonly review: PublicReview }) => (
 /**
  * The product's reviews, matching web's components/product-reviews.tsx: the
  * summary, the reviews ten at a time, "Show more reviews". Hidden entirely if
- * they can't be loaded: a missing list isn't a reason for the screen to fail.
+ * the first page can't be loaded: a missing list isn't a reason for the
+ * screen to fail. A later page that fails keeps what's shown, with a retry.
  */
 export const ProductReviews = ({
   handle,
@@ -64,7 +65,7 @@ export const ProductReviews = ({
   readonly summary: ReviewSummary | null;
 }) => {
   const reviews = useReviews(handle);
-  if (reviews.isError || !reviews.data) return null;
+  if (!reviews.data) return null;
   const list = reviews.data.pages.flatMap((page) => page.reviews);
 
   return (
@@ -85,26 +86,34 @@ export const ProductReviews = ({
           </Text>
         </View>
       ) : null}
-      {list.length === 0 ? (
-        <Text className="text-foreground-muted">No reviews yet.</Text>
-      ) : (
+      {list.length > 0 ? (
         <View className="border-b border-border">
           {list.map((review) => (
             <ReviewItem key={review.id} review={review} />
           ))}
         </View>
-      )}
+      ) : null}
+      {list.length === 0 && !reviews.hasNextPage ? (
+        <Text className="text-foreground-muted">No reviews yet.</Text>
+      ) : null}
       {reviews.hasNextPage ? (
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ busy: reviews.isFetchingNextPage }}
-          onPress={() => void reviews.fetchNextPage()}
+          onPress={() => {
+            if (!reviews.isFetchingNextPage) void reviews.fetchNextPage();
+          }}
           className="mt-2 items-center rounded-md border border-border px-4 py-3"
         >
           <Text className="text-sm font-semibold text-foreground">
             {reviews.isFetchingNextPage ? "Loading…" : "Show more reviews"}
           </Text>
         </Pressable>
+      ) : null}
+      {reviews.isFetchNextPageError ? (
+        <Text accessibilityRole="alert" className="text-sm text-danger">
+          {"More reviews couldn't be loaded. Please try again."}
+        </Text>
       ) : null}
     </View>
   );

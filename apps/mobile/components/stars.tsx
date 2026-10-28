@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { starFills } from "@formulate/shopify";
+import { colours } from "@formulate/tokens";
 import { Text, View } from "react-native";
 
 /**
  * Five stars, partly filled for a fractional average, matching web's
- * components/stars.tsx without a native SVG dependency: a grey row of "★" with
- * an amber row on top, cropped to the rating's width.
+ * components/stars.tsx without a native SVG dependency. Each star is a fixed
+ * square holding an outline "☆" with a "★" on top, cropped to that star's
+ * fill, both in the `rating` token: an outline, not a pale fill, so empty
+ * stars and the filled/empty edge have 3:1 contrast (WCAG 1.4.11).
  *
- * ⚠️ The amber row sits in a box fixed at the full row's measured width, which
- * the crop can't squeeze. Cropping the text's own container made it wrap ("★★"
- * on a second line), and numberOfLines made it truncate with an ellipsis.
+ * Each glyph is centred in its own square, so "☆" and "★" line up even
+ * where the font gives them different widths, and the crop is per star.
  *
  * One accessible element with a text label: screen readers hear "4.5 out of 5
  * stars from 12 reviews", not five symbols.
@@ -22,37 +24,39 @@ export const Stars = ({
   readonly label: string;
   readonly size?: number;
 }) => {
-  const [width, setWidth] = useState(0);
-  const fill = Math.max(0, Math.min(1, value / 5));
-  const style = { fontSize: size, lineHeight: size * 1.2, letterSpacing: 1 };
+  const glyph = {
+    width: size,
+    minWidth: size,
+    flexShrink: 0,
+    fontSize: size,
+    lineHeight: size * 1.2,
+    textAlign: "center",
+    color: colours.rating,
+  } as const;
 
   return (
     <View
       accessible
       accessibilityRole="image"
       accessibilityLabel={label}
-      className="self-start"
+      className="flex-row gap-px self-start"
     >
-      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Text
-          numberOfLines={1}
-          style={[style, { color: "#e2e8f0" }]}
-          onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+      {starFills(value).map((fill, index) => (
+        <View
+          key={index}
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+          style={{ width: size, height: size * 1.2 }}
         >
-          ★★★★★
-        </Text>
-        {width > 0 ? (
+          <Text style={glyph}>☆</Text>
           <View
             className="absolute top-0 left-0 overflow-hidden"
-            style={{ width: width * fill }}
+            style={{ width: size * fill, height: size * 1.2 }}
           >
-            {/* A fixed-width box that can't shrink, so the text never wraps or truncates. */}
-            <View style={{ width, minWidth: width, flexShrink: 0 }}>
-              <Text style={[style, { color: "#f59e0b" }]}>★★★★★</Text>
-            </View>
+            <Text style={glyph}>★</Text>
           </View>
-        ) : null}
-      </View>
+        </View>
+      ))}
     </View>
   );
 };

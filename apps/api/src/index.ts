@@ -2,6 +2,7 @@ import type { RateLimiter } from "./rate-limiter";
 
 export { RateLimiter } from "./rate-limiter";
 
+import { REVIEWS_LIMIT } from "./rate-limit-policy";
 import { SUBMIT_MAX_BODY_BYTES, submitReview } from "./review-submit";
 import { cachedReviews, type ReviewsEnv } from "./reviews";
 
@@ -105,17 +106,35 @@ export default {
     }
 
     /*
-     * Rate limit keyed on the connecting IP.
+     * Rate limits keyed on the connecting IP.
      *
      * `CF-Connecting-IP` is set by Cloudflare's edge and cannot be spoofed by
      * the client — unlike `X-Forwarded-For`, which is caller-supplied and
      * would make this control trivially bypassable.
+     *
+     * Each kind of request has its own object, so review lookups never use up
+     * the sign-up allowance or the other way round.
      */
     const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-    const { success } = await env.RATE_LIMITER.get(
-      env.RATE_LIMITER.idFromName(ip),
-    ).limit();
-    if (!success) {
+    const limit = async (name: string, max?: number) =>
+      (await env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName(name)).limit(max)).success;
+
+    // Product reviews (Judge.me): public, read-only, cut down to what a page
+    // may show. See src/reviews.ts. Limited only when a lookup misses the cache
+    // and would reach Judge.me: the web app asks from its server, so all its
+    // shoppers share a few addresses. Every other path is the newsletter.
+    if (new URL(request.url).pathname === "/reviews") {
+      const raw = await request.text();
+      if (raw.length > MAX_BODY_BYTES) {
+        return json({ ok: false, reason: "rejected" }, 413);
+      }
+      const { status, body } = await cachedReviews(env, raw, () =>
+        limit(`reviews:${ip}`, REVIEWS_LIMIT),
+      );
+      return respond(body, status);
+    }
+
+    if (!(await limit(ip))) {
       return json({ ok: false, reason: "rate-limited" }, 429);
     }
 
@@ -130,13 +149,6 @@ export default {
     // Writing a review (web's form), sent on to Judge.me. See src/review-submit.ts.
     if (path === "/reviews/new") {
       const { status, body } = await submitReview(env, raw);
-      return respond(body, status);
-    }
-
-    // Product reviews (Judge.me): public, read-only, cut down to what a page
-    // may show. See src/reviews.ts. Every other path is the newsletter.
-    if (path === "/reviews") {
-      const { status, body } = await cachedReviews(env, raw);
       return respond(body, status);
     }
 

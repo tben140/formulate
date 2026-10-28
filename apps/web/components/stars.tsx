@@ -24,16 +24,21 @@ export const Stars = ({
           width={size}
           height={size}
           viewBox="0 0 20 20"
+          overflow="visible"
           aria-hidden="true"
         >
           <defs>
             <linearGradient id={`${id}-${index}`}>
-              <stop offset={fill} stopColor="currentColor" className="text-amber-500" />
-              <stop offset={fill} stopColor="#e2e8f0" />
+              <stop offset={fill} stopColor="currentColor" className="text-rating" />
+              <stop offset={fill} stopColor="currentColor" stopOpacity={0} />
             </linearGradient>
           </defs>
           <path
             fill={`url(#${id}-${index})`}
+            stroke="currentColor"
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            className="text-rating"
             d="M10 1.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L10 14.8l-5.2 2.7 1-5.8L1.6 7.6l5.8-.8z"
           />
         </svg>
