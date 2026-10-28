@@ -19,7 +19,15 @@
 {%- if types == empty -%}
   {%- assign types = planned -%}
 {%- endif -%}
-{%- assign pay_later = shop.metafields.double_helix.pay_later.value -%}
+{%- liquid
+  # Only a list metafield counts: a text one would make `contains` a
+  # substring match ("notklarna" has "klarna"), which web and the app reject.
+  assign pay_later = blank
+  assign pay_later_field = shop.metafields.double_helix.pay_later
+  if pay_later_field.type == 'list.single_line_text_field'
+    assign pay_later = pay_later_field.value
+  endif
+-%}
 <ul class="payment-icons" role="list" aria-label="{{ 'footer.payment_methods' | t }}">
   {%- for platform in order -%}
     {%- liquid

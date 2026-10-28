@@ -44,8 +44,10 @@ app), `apps/theme/snippets/payment-icons.liquid`, and the icons in
    **Storefronts access on**, or web and the app can't read it). Then set its
    value on the shop to `klarna`, `clearpay` or both.
 
-The icons change on the theme at once, on web within the page cache's
-lifetime, and in the app within an hour (the query's stale time).
+The icons change on the theme at once and on web within the page cache's
+lifetime. In the app, the payment settings are cached for an hour, then
+fetched again the next time a screen with the footer opens; a screen left open
+keeps what it has.
 
 ## Not built yet: "pay in 3" messages
 
