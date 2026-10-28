@@ -13,6 +13,13 @@ export type {
 } from "./errors";
 
 export { formatMoney } from "./format-money";
+
+export {
+  FREE_SHIPPING_THRESHOLD,
+  freeShippingMessage,
+  freeShippingProgress,
+} from "./free-shipping";
+export type { FreeShippingProgress } from "./free-shipping";
 export type { MoneyLike } from "./format-money";
 
 export {

@@ -411,6 +411,34 @@ a:hover {
   color: var(--color-foreground);
 }
 
+.free-shipping {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.free-shipping__message {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.free-shipping__track {
+  height: 6px;
+  margin-top: var(--spacing-2);
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--color-ink-100);
+}
+
+.free-shipping__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-brand-600);
+}
+
+.free-shipping__fill--unlocked {
+  background: var(--color-success);
+}
+
 .cart-drawer__empty {
   flex: 1;
   padding: var(--spacing-8) var(--spacing-4);
