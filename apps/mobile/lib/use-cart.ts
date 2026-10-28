@@ -58,8 +58,6 @@ export const useAddToCart = () => {
 
   return useMutation({
     mutationFn: async (line: CartLineInput): Promise<Cart> => {
-      const existingId = await readCartId();
-
       /*
        * A cart created for a shopper we already know carries their email from
        * the start, which is what lets Shopify record an *attributable*
@@ -67,20 +65,21 @@ export const useAddToCart = () => {
        *
        * The address comes from the Klaviyo SDK rather than local storage — it
        * is the same value the SDK attaches events to, so there is one identity
-       * rather than two that can drift.
+       * rather than two that can drift. It is only read if a cart is created.
+       *
+       * ⚠️ Only a cart Shopify says no longer exists is replaced, and within
+       * this same add. Any other failure keeps the stored id: the cart is still
+       * fine, and clearing it would silently lose everything in it. See
+       * `addLinesOrCreate` in packages/shopify (SHO-122).
        */
-      const result = existingId
-        ? await cartClient.addLines(existingId, [line])
-        : await cartClient.create({
-            lines: [line],
-            email: (await readIdentifiedEmail()) ?? undefined,
-          });
+      const { result, storedCartGone } = await cartClient.addLinesOrCreate({
+        cartId: await readCartId(),
+        lines: [line],
+        email: readIdentifiedEmail,
+      });
 
       if (!result.ok) {
-        // A stored cart can expire or have been completed, in which case
-        // addLines fails against an id that no longer resolves. Clearing lets
-        // the next attempt start a fresh cart rather than failing forever.
-        if (existingId) await clearCartId();
+        if (storedCartGone) await clearCartId();
         throw new Error(describeError(result.error));
       }
 
