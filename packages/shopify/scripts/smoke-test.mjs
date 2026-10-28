@@ -64,7 +64,9 @@ if (body.errors) {
 }
 
 console.log(`Shop:       ${body.data.shop.name}`);
-console.log(`Collection: ${body.data.collection?.title ?? "(not visible to this token)"}`);
+console.log(
+  `Collection: ${body.data.collection?.title ?? "(not visible to this token)"}`,
+);
 
 const products = body.data.collection?.products.nodes ?? [];
 console.log(`Products:   ${products.length}`);

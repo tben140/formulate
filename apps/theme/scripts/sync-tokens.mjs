@@ -42,5 +42,9 @@ for (const file of files) {
   console.log(`Wrote ${join(assets, basename(file))}`);
 }
 
-writeFileSync(join(assets, "fonts.css"), css.replaceAll('url("./fonts/', 'url("'), "utf8");
+writeFileSync(
+  join(assets, "fonts.css"),
+  css.replaceAll('url("./fonts/', 'url("'),
+  "utf8",
+);
 console.log(`Wrote ${join(assets, "fonts.css")}`);

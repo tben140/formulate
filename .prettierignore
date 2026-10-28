@@ -10,3 +10,6 @@ apps/theme/assets/tokens.css
 # every save and theme pull.
 apps/theme/templates/*.json
 apps/theme/sections/*-group.json
+
+# Written by pnpm.
+pnpm-lock.yaml
