@@ -7,8 +7,19 @@ Background: [`docs/surface-mobile.md`](../../docs/surface-mobile.md).
 
 ## The Expo Go ceiling
 
-`@shopify/checkout-sheet-kit` is a **native module**. Anything that touches
-checkout requires a **development build** — Expo Go cannot load it.
+`@shopify/checkout-sheet-kit` and `klaviyo-react-native-sdk` are **native
+modules** that Expo Go does not include. Real checkout and Klaviyo tracking need
+a **development build**.
+
+The app still runs in Expo Go, for checking screens on a real phone without a
+native build. `lib/expo-go.ts` detects it. Checkout then opens in the browser
+(`lib/checkout.tsx`) and the Klaviyo SDK is skipped (`lib/klaviyo.ts`); consent
+still works, because it goes through `apps/api`.
+
+⚠️ Never import `@shopify/checkout-sheet-kit` directly. It throws at import time
+without its native module, so a static import anywhere crashes Expo Go on
+launch. Use `CheckoutProvider` and `useCheckout` from `lib/checkout.tsx`. Every
+new `Klaviyo.*` call needs the same `isExpoGo` guard as the existing ones.
 
 Autolinking picks the module up through `expo prebuild`; no config plugin is
 needed. iOS builds need CocoaPods installed locally, because `pod install` links
