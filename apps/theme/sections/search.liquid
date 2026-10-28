@@ -36,6 +36,8 @@
       // Never twice: if Shopify still reports other types, show what came.
       if (url.searchParams.get("type") === "product") return;
       url.searchParams.set("type", "product");
+      // Page 2 of mixed results isn't page 2 of products.
+      url.searchParams.delete("page");
       location.replace(url);
     })();
   </script>
@@ -60,7 +62,16 @@
     <button class="search-page__submit" type="submit">{{ 'search.submit' | t }}</button>
   </form>
 
-  {%- if search.performed -%}
+  {%- if search.performed and product_only == false -%}
+    {%- comment -%}
+      Without JavaScript the reload above never happens, and these results
+      would mix in pages and articles: counted, paginated, then filtered out.
+      So nothing is listed; a link asks again for products only.
+    {%- endcomment -%}
+    <p class="search-page__empty">
+      <a href="{{ base | escape }}">{{ 'search.show_products' | t: terms: search.terms }}</a>
+    </p>
+  {%- elsif search.performed -%}
     <section class="search-page__results" aria-labelledby="search-results-{{ section.id }}">
       <h2 id="search-results-{{ section.id }}" class="visually-hidden">{{ 'search.results' | t }}</h2>
 

@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
-import { Link } from "expo-router";
-import { useEffect } from "react";
+import { Link, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -52,10 +52,15 @@ export const HomeView = () => {
 
   // The error and its retry appear below the introduction, so a screen reader
   // is told: a live region does that on Android, and iOS needs the call.
-  useEffect(() => {
-    if (failed && Platform.OS === "ios")
-      AccessibilityInfo.announceForAccessibility(LOAD_ERROR);
-  }, [failed]);
+  // Only while Home is the screen in front: it stays mounted behind Search, and
+  // a late failure there would interrupt VoiceOver on another screen. On
+  // coming back, an error still showing is announced then.
+  useFocusEffect(
+    useCallback(() => {
+      if (failed && Platform.OS === "ios")
+        AccessibilityInfo.announceForAccessibility(LOAD_ERROR);
+    }, [failed]),
+  );
 
   const byHandle = new Map((cards ?? []).map((card) => [card.handle, card]));
   const categories = menuCollections.flatMap((link) => {
