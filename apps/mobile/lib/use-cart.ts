@@ -27,6 +27,9 @@ import { storefront } from "./storefront";
  * to invalidate. Same feature, genuinely different machinery.
  */
 
+// No tracking choice in the app yet, so every cart request states "refused"
+// and checkout gets no visitor ids. #107 adds the app's choice: pass it here
+// as `trackingChoice` when it merges.
 const cartClient = createCartClient(storefront);
 
 /** The new cart's attributes for the custom pixel, with tracking consent only. */
