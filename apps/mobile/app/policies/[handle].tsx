@@ -65,7 +65,9 @@ const PolicyScreen = () => {
           </Text>
         ) : (
           <Text key={index} className="mt-3 text-base leading-6 text-foreground-muted">
-            {block.kind === "item" ? `•  ${block.text}` : block.text}
+            {block.kind === "item"
+              ? `${block.number === undefined ? "•" : `${block.number}.`}  ${block.text}`
+              : block.text}
           </Text>
         ),
       )}

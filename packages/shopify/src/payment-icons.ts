@@ -45,12 +45,14 @@ export const paymentIconIds = (
     | null
     | undefined,
 ): readonly PaymentIconId[] => {
-  const accepted = new Set(
-    [
-      ...(settings?.acceptedCardBrands ?? []),
-      ...(settings?.supportedDigitalWallets ?? []),
-    ].flatMap((name) => BY_SHOPIFY_NAME[name] ?? []),
-  );
-  if (accepted.size === 0) return PLANNED_PAYMENT_ICON_IDS;
+  const reported = [
+    ...(settings?.acceptedCardBrands ?? []),
+    ...(settings?.supportedDigitalWallets ?? []),
+  ];
+  if (reported.length === 0) return PLANNED_PAYMENT_ICON_IDS;
+  // Methods with no icon (JCB, say) are left out. If that leaves none, the
+  // footer shows none: the planned set would claim methods the store doesn't
+  // take.
+  const accepted = new Set(reported.flatMap((name) => BY_SHOPIFY_NAME[name] ?? []));
   return ORDER.filter((id) => accepted.has(id));
 };

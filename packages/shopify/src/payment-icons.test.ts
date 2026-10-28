@@ -30,6 +30,12 @@ describe("paymentIconIds", () => {
     ).toEqual(["visa"]);
   });
 
+  it("shows nothing, not the planned methods, when none it reports has an icon", () => {
+    expect(
+      paymentIconIds({ acceptedCardBrands: ["JCB"], supportedDigitalWallets: [] }),
+    ).toEqual([]);
+  });
+
   it("falls back to the planned methods while Shopify reports none", () => {
     expect(paymentIconIds({ acceptedCardBrands: [], supportedDigitalWallets: [] })).toBe(
       PLANNED_PAYMENT_ICON_IDS,
