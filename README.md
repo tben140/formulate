@@ -63,10 +63,11 @@ depends on where the app runs:
 
 - **Expo Go and the app's web build** open the store's checkout in the system
   browser, which asks for the storefront password the first time.
-- **Native builds** (TestFlight, the stores) use Checkout Sheet Kit, which has
-  no way to enter a storefront password. If checkout lands on the password
-  page, the kit reports a `storefront_password_required` error (3.9.1)
-  instead.
+- **Native builds** (TestFlight, the stores) show checkout in Checkout Sheet
+  Kit, which shows the store's password page first; after the password,
+  checkout opens (seen on TestFlight build 3, 27 October 2026). The kit also
+  defines a `storefront_password_required` error for when it can't get past
+  that page.
 
 Theme Access passwords can't remove this: they only let the Shopify CLI work
 on themes, and they must never ship in the app. See
