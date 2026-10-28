@@ -145,7 +145,7 @@ class EmailCapture extends Component {
             data: {
               type: "subscription",
               attributes: {
-                custom_source: "Formulate theme",
+                custom_source: "Double Helix theme",
                 profile: {
                   data: {
                     type: "profile",
