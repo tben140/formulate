@@ -13,6 +13,7 @@ test("a collection renders its products", async ({ page }) => {
   const cards = page.getByRole("main").getByRole("link").filter({ hasText: "£" });
   await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThan(0);
+  await expect(cards.first()).toHaveAttribute("href", /^\/products\/[^/]+$/);
 });
 
 /**

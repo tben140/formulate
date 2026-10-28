@@ -9,6 +9,38 @@
   https://shopify.dev/docs/storefronts/themes/architecture/templates/search
 {% endcomment %}
 
+{%- liquid
+  # Shopify hands search.terms over HTML-escaped already (a quote arrives as
+  # &quot;), so it's unescaped once here, and every use escapes or encodes it
+  # for its own context: otherwise a resubmitted search, a filter or a clear
+  # link would search for the entity. &amp; goes last, so "&amp;quot;" stays
+  # "&quot;".
+  assign raw_terms = search.terms | replace: '&quot;', '"' | replace: '&#39;', "'" | replace: '&lt;', '<' | replace: '&gt;', '>' | replace: '&amp;', '&'
+  assign encoded_terms = raw_terms | url_encode
+  assign base = routes.search_url | append: '?type=product&q=' | append: encoded_terms
+  assign product_only = false
+  if search.types.size == 1 and search.types.first == 'product'
+    assign product_only = true
+  endif
+-%}
+
+{%- if search.performed and product_only == false -%}
+  {%- comment -%}
+    A URL without type=product (web's form, a shared link) searches pages and
+    articles too, so the count and the pages would include them. Ask again for
+    products only, keeping any filters.
+  {%- endcomment -%}
+  <script>
+    (() => {
+      const url = new URL(location.href);
+      // Never twice: if Shopify still reports other types, show what came.
+      if (url.searchParams.get("type") === "product") return;
+      url.searchParams.set("type", "product");
+      location.replace(url);
+    })();
+  </script>
+{%- endif -%}
+
 <div class="container search-page">
   <h1 class="search-page__title">{{ 'search.title' | t }}</h1>
 
@@ -20,7 +52,7 @@
       class="search-page__input"
       type="search"
       name="q"
-      value="{{ search.terms | escape }}"
+      value="{{ raw_terms | escape }}"
       placeholder="{{ 'search.label' | t }}"
       autocomplete="off"
       enterkeyhint="search"
@@ -32,22 +64,12 @@
     <section class="search-page__results" aria-labelledby="search-results-{{ section.id }}">
       <h2 id="search-results-{{ section.id }}" class="visually-hidden">{{ 'search.results' | t }}</h2>
 
-      {%- liquid
-        # URL-encoded: the terms are the shopper's own text, and this ends up in
-        # an href. collection-filters escapes it as an attribute too.
-        # Shopify hands search.terms over HTML-escaped already (a quote arrives
-        # as &quot;), so it's unescaped first, or the link would search for
-        # the entity. &amp; goes last, so "&amp;quot;" stays "&quot;".
-        assign raw_terms = search.terms | replace: '&quot;', '"' | replace: '&#39;', "'" | replace: '&lt;', '<' | replace: '&gt;', '>' | replace: '&amp;', '&'
-        assign encoded_terms = raw_terms | url_encode
-        assign base = routes.search_url | append: '?type=product&q=' | append: encoded_terms
-      -%}
       {% render 'collection-filters',
         filters: search.filters,
         action: routes.search_url,
         clear_url: base,
         count: search.results_count,
-        terms: search.terms
+        terms: raw_terms
       %}
 
       {%- if search.results_count == 0 -%}
