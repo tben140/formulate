@@ -1,4 +1,4 @@
-# Formulate — project docs
+# Double Helix — project docs
 
 Architecture, domain notes and decision records for a Shopify storefront built
 three ways over one data and design layer.
@@ -19,13 +19,14 @@ vault to browse it as a graph; it is plain markdown either way.
 | [Decision records](adr/README.md) | Why things are the way they are, with alternatives                                             |
 | [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
 | [Case study](case-study.md)       | The decisions, what each cost, and what went wrong (draft)                                     |
+| [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
 
 ## Surfaces
 
 | Note                             | Surface                                                            |
 | -------------------------------- | ------------------------------------------------------------------ |
 | [Web storefront](surface-web.md) | `apps/web` — Next.js 16, React Server Components, Vercel           |
-| [Mobile app](surface-mobile.md)  | `apps/mobile` — Expo SDK 57, TanStack Query, Checkout Sheet Kit    |
+| [Mobile app](surface-mobile.md)  | `apps/mobile` — Expo SDK 58, TanStack Query, Checkout Sheet Kit    |
 | [Liquid theme](surface-theme.md) | `apps/theme` — Shopify Online Store, web components, no build step |
 
 ## Integrations
