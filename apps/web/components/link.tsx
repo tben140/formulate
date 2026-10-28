@@ -39,7 +39,9 @@ export const Link = ({
         onPointerEnter?.(event);
       }}
       onFocus={(event) => {
-        prefetch();
+        // Keyboard focus only: a tap focuses the link too (on Android), just
+        // before the click, and a mouse already prefetched on hover.
+        if (event.currentTarget.matches(":focus-visible")) prefetch();
         onFocus?.(event);
       }}
     />
