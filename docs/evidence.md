@@ -198,6 +198,18 @@ The audit gate (`pnpm audit --audit-level critical`) runs in CI from #152.
 | After                                | Ben, the next day: usage "reduced considerably" (the free plan shows only the last 12 hours)                                                                                                          |
 | Functions in London (#81), measured  | Storefront API from London: 155 to 315 ms to first byte, `server-timing` 8 ms of processing, served through Shopify's London edge to its US origin. Closed unmerged: London functions would be slower |
 
+### Requests per page view, and the batch's alerts (2026-10-27 to 28)
+
+| Check                                  | Result                                                                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vercel CDN requests, 27 Oct            | 884,027 of 1,000,000. Previews set to "Only build production" until the month resets; e2e and Lighthouse run on the droplet meanwhile                                     |
+| Requests per page view, batch (#170)   | Phone, load and scroll, same-origin requests: home 39 → 17, collection 36 → 17, product 37 → 19, search 43 → 18. Before, 18 to 25 of each were link prefetches            |
+| Requests per page view, `main` (#171)  | Collection 21 → 10, product 16 → 11. Prefetch only on mouse hover or keyboard focus; never on touch, where it would land just before the click and cost a second request  |
+| Dependabot alerts against the batch    | 81 of the 84 on `main` are fixed by the batch's lockfile (package upgraded or gone). 3 remain, all in Expo's developer tooling: zod 3.25.76, node-forge 1.4.0, uuid 7.0.3 |
+| Theme search (#169), development theme | `vitamin & zinc` stays decoded in the box and through a filter; a search without `type` reloads as products only; a query matching only pages shows "No products match"   |
+| Shopify CLI 4.9.4 (#172)               | Theme Check clean. 5.0 changed the theme commands; whether to move is assessed on 3 Nov (SHO-196)                                                                         |
+| App preview on the phone               | The droplet's Metro runs without file watching, so a new file (the payment icons) was missing from the bundle. A restart with a cleared cache fixed it (Ben, in Expo Go)  |
+
 ### Bug sweep (2026-10-25)
 
 Each surface at 390 px and 1280 px: status, console errors, failed requests
