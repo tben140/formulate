@@ -25,8 +25,8 @@ const OFFER =
  * Cancelling, with alternatives first (SHO-74).
  *
  * ⚠️ Cancelling is never more than this one page and one press (SHO-91): the
- * offers sit above the cancel form, not in front of it, and a reason is
- * optional. UK subscription rules and the FTC's click-to-cancel principle
+ * offers sit above the cancel form, not in front of it, the button is on the
+ * first screen, and a reason is optional. Checklist: docs/compliance.md. UK subscription rules and the FTC's click-to-cancel principle
  * both expect leaving to be as easy as joining.
  */
 const CancelPage = async ({ params }: PageProps) => {
@@ -102,28 +102,37 @@ const CancelPage = async ({ params }: PageProps) => {
         className="mt-8 border-t border-border pt-6"
       >
         {hidden("cancel")}
-        <fieldset>
-          <legend className="font-semibold">
-            Why are you cancelling? <span className="font-normal">(optional)</span>
-          </legend>
-          <div className="mt-3 flex flex-col gap-2 text-sm">
-            {CANCEL_REASONS.map(({ value, label }) => (
-              <label key={value} className="flex items-center gap-2">
-                <input type="radio" name="reason" value={value} />
-                {label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <label className="mt-4 flex flex-col gap-1 text-sm">
-          Anything else? <span className="text-foreground-muted">(optional)</span>
-          <textarea
-            name="comment"
-            maxLength={300}
-            rows={3}
-            className="rounded-md border border-border bg-surface px-3 py-2"
-          />
-        </label>
+        {/*
+          The reasons start closed, so the Cancel button is on the first
+          screen on a phone (SHO-91: never behind a scroll).
+        */}
+        <details>
+          <summary className="cursor-pointer text-sm font-semibold">
+            Tell us why <span className="font-normal">(optional)</span>
+          </summary>
+          <fieldset className="mt-3">
+            <legend className="font-semibold">
+              Why are you cancelling? <span className="font-normal">(optional)</span>
+            </legend>
+            <div className="mt-3 flex flex-col gap-2 text-sm">
+              {CANCEL_REASONS.map(({ value, label }) => (
+                <label key={value} className="flex items-center gap-2">
+                  <input type="radio" name="reason" value={value} />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <label className="mt-4 flex flex-col gap-1 text-sm">
+            Anything else? <span className="text-foreground-muted">(optional)</span>
+            <textarea
+              name="comment"
+              maxLength={300}
+              rows={3}
+              className="rounded-md border border-border bg-surface px-3 py-2"
+            />
+          </label>
+        </details>
         <p className="mt-4 text-sm text-foreground-muted">
           Nothing more is charged after you cancel. A delivery that has already been
           charged still arrives.
