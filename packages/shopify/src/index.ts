@@ -69,6 +69,7 @@ export {
   ShopNameQuery,
   SitemapCollectionsQuery,
   SitemapProductsQuery,
+  PaymentSettingsQuery,
   ShopPoliciesQuery,
 } from "./queries";
 
@@ -152,3 +153,8 @@ export {
   isNestedLine,
 } from "./free-gift";
 export type { GiftVariantLike, NestedLineLike } from "./free-gift";
+
+export { policyBlocks } from "./policy-text";
+export type { PolicyBlock } from "./policy-text";
+export { PLANNED_PAYMENT_ICON_IDS, paymentIconIds } from "./payment-icons";
+export type { PaymentIconId } from "./payment-icons";
