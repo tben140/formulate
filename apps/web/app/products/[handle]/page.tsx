@@ -39,6 +39,11 @@ const ProductPage = async ({ params }: PageProps) => {
             data={product.featuredImage}
             sizes="(min-width: 768px) 45vw, 90vw"
             className="h-full w-full object-cover"
+            // The page's Largest Contentful Paint. Hydrogen's Image defaults
+            // to lazy, which made the browser wait for layout before even
+            // requesting it (SHO-143).
+            loading="eager"
+            fetchPriority="high"
           />
         ) : (
           <div
