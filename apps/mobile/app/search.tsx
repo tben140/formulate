@@ -109,7 +109,7 @@ const SearchScreen = () => {
       ListFooterComponent={
         isFetchingNextPage ? (
           <ActivityIndicator className="py-4" accessibilityLabel="Loading more results" />
-        ) : null
+        ) : undefined
       }
       renderItem={({ item }) => (
         <Link href={`/products/${item.handle}`} asChild>
