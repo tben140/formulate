@@ -37,6 +37,8 @@ export const SHARED_ROUTES = [
   // The subscription portal (SHO-72).
   "/account/subscriptions",
   "/account/subscriptions/[id]",
+  // The app has drawn the store's policies itself since #166.
+  "/policies/[handle]",
 ] as const;
 
 /**
@@ -44,11 +46,7 @@ export const SHARED_ROUTES = [
  * here or in SHARED_ROUTES fails the parity test.
  */
 export const SURFACE_ONLY_ROUTES = {
-  web: {
-    // Legal pages: linked from the footer on web and the theme. The app links
-    // out to the web page rather than drawing Shopify's policy HTML.
-    "/policies/[handle]": "legal pages, linked from the web footer",
-  },
+  web: {},
   mobile: {
     // Not a page: the Cart tab opens the cart sheet (app/(tabs)/_layout.tsx).
     // Web's cart is a drawer with no route either.
