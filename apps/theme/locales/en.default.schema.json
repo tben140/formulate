@@ -13,7 +13,6 @@
     "column": "Column",
     "content": "Content",
     "custom_section": "Custom section",
-    "fonts": "Fonts",
     "footer": "Footer",
     "group": "Group",
     "header": "Header",
@@ -23,7 +22,6 @@
     "main": "Main",
     "page": "Page",
     "password": "Password",
-    "primary": "Primary",
     "product": "Product",
     "row": "Row",
     "search": "Search",
@@ -32,8 +30,7 @@
     "settings": "Settings",
     "sidebar": "Sidebar",
     "text": "Text",
-    "theme": "Theme",
-    "typography": "Typography"
+    "theme": "Theme"
   },
   "labels": {
     "alignment": "Alignment",
