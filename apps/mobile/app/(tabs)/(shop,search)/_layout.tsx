@@ -44,6 +44,7 @@ const SharedStack = () => (
     <Stack.Screen name="search" options={{ title: "Search" }} />
     <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
     <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
+    <Stack.Screen name="policies/[handle]" options={{ title: "" }} />
   </Stack>
 );
 

@@ -141,6 +141,7 @@ const CancelScreen = () => {
         <Pressable
           onPress={() => setAskWhy((open) => !open)}
           accessibilityRole="button"
+          accessibilityLabel="Tell us why (optional)"
           accessibilityState={{ expanded: askWhy }}
           className="min-h-11 justify-center self-start"
         >

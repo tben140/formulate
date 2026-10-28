@@ -64,8 +64,15 @@ test("cancelling needs no reason: one press sends 'other'", async () => {
   );
 });
 
+test("the reasons start closed, so Cancel is on the first screen", async () => {
+  await render(<CancelScreen />);
+  expect(screen.queryByRole("radio", { name: "It costs too much" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Cancel subscription" })).toBeOnTheScreen();
+});
+
 test("a chosen reason and a comment go with it", async () => {
   await render(<CancelScreen />);
+  await fireEvent.press(screen.getByRole("button", { name: "Tell us why (optional)" }));
   const reason = screen.getByRole("radio", { name: "It costs too much" });
   await fireEvent.press(reason);
   expect(screen.getByRole("radio", { name: "It costs too much" })).toBeChecked();
