@@ -19,6 +19,7 @@ vault to browse it as a graph; it is plain markdown either way.
 | [Decision records](adr/README.md) | Why things are the way they are, with alternatives                                             |
 | [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
 | [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
+| [AI agents](agents.md)            | UCP, WebMCP tools, llms.txt and Markdown pages: how agents read and buy                        |
 
 ## Surfaces
 
