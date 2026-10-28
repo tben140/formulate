@@ -5,6 +5,7 @@ import {
   withoutEmptyFilters,
 } from "@formulate/shopify";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CollectionFilters } from "@/components/collection-filters";
@@ -18,7 +19,7 @@ import { storefront } from "@/lib/storefront";
  * engines are asked not to index them (they may still follow the links).
  */
 export const metadata: Metadata = {
-  title: "Search — Formulate",
+  title: "Search",
   robots: { index: false, follow: true },
 };
 
@@ -100,7 +101,12 @@ const SearchPage = async ({ searchParams }: PageProps) => {
 
           {result.data.search.nodes.length === 0 ? (
             <p className="py-12 text-center text-foreground-muted">
-              No products match “{term}”. Try a different word, or browse the collections.
+              No products match “{term}”. Try a different word, or{" "}
+              {/* The home page lists the collections; there's no index route. */}
+              <Link href="/" className="text-brand-600 underline underline-offset-4">
+                browse the collections
+              </Link>
+              .
             </p>
           ) : (
             <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

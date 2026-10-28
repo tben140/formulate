@@ -34,6 +34,13 @@ for (const path of ["/collections/best-sellers", "/search?q=vitamin"]) {
   });
 }
 
+test("a search with no results links back to the collections", async ({ page }) => {
+  await page.goto("/search?q=zzqxnomatch");
+  await expect(page.getByText("No products match “zzqxnomatch”")).toBeVisible();
+  await page.getByRole("link", { name: "browse the collections" }).click();
+  await expect(page).toHaveURL(/\/$/);
+});
+
 test("a product page renders title, price and a buyable button", async ({ page }) => {
   await openProduct(page, "whey-protein");
   await expect(
