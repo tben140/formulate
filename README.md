@@ -55,6 +55,15 @@ is exactly what a public Storefront access token is designed for.
 ⚠️ The Admin API token must never appear in any package. Anything Admin-flavoured
 belongs behind a Next.js route handler.
 
+## The demo store's password
+
+The store is a Shopify development store, and those are always password
+protected until they move to a paid plan. The app's checkout opens the store's
+own web checkout, so the first checkout in the app asks for the storefront
+password; after that the sheet remembers it. Theme Access passwords can't
+remove this: they only let the Shopify CLI work on themes, and they must never
+ship in the app. See [`docs/demo-store.md`](docs/demo-store.md).
+
 ## Setup
 
 ```bash
