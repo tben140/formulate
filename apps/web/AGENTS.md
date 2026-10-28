@@ -131,9 +131,12 @@ See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
 
 - The Vercel project's root directory is `apps/web`.
 - `vercel.json` sets security headers; keep them.
-- `vercel.json`'s `ignoreCommand` skips a preview build unless the commit
-  changes `apps/web`, `packages`, the root `package.json` or the pnpm files.
-  Production always builds. It exists because the free plan allows 1,000,000
+- `vercel.json`'s `ignoreCommand` skips a preview build unless something in
+  `apps/web`, `packages`, the root `package.json` or the pnpm files changed
+  since the branch's last successful deployment (`VERCEL_GIT_PREVIOUS_SHA`),
+  so a push of several commits is judged on all of them. Production, a
+  branch's first deployment, and a previous commit the shallow clone lacks
+  (`git diff` errors) all build. It exists because the free plan allows 1,000,000
   CDN requests a month and pauses the projects past that. By 26 October 2026,
   e2e and Lighthouse runs against every preview of every PR had used three
   quarters of it.
