@@ -34,7 +34,7 @@ export const CollectionNav = ({
   // is its instance type, not the component.
   const scroller = useRef<ScrollViewInstance>(null);
 
-  // The app has no policy screens; those menu items are web and theme only.
+  // Policies belong in the footer (the Legal menu), not the header chips.
   const links = data?.filter((link) => link.kind !== "policy") ?? [];
   if (links.length === 0) return null;
 

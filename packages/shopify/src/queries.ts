@@ -697,3 +697,18 @@ export const ProductRecommendationsQuery = graphql(`
     }
   }
 `);
+
+/**
+ * The payment methods Shopify reports the store accepts, for the footer's
+ * payment icons (see paymentIconIds).
+ */
+export const PaymentSettingsQuery = graphql(`
+  query PaymentSettings {
+    shop {
+      paymentSettings {
+        acceptedCardBrands
+        supportedDigitalWallets
+      }
+    }
+  }
+`);
