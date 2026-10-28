@@ -39,6 +39,8 @@ export const SHARED_ROUTES = [
   "/account/subscriptions/[id]",
   // Account deletion's confirmation (SHO-90).
   "/account/delete",
+  // The app has drawn the store's policies itself since #166.
+  "/policies/[handle]",
 ] as const;
 
 /**
@@ -47,9 +49,6 @@ export const SHARED_ROUTES = [
  */
 export const SURFACE_ONLY_ROUTES = {
   web: {
-    // Legal pages: linked from the footer on web and the theme. The app links
-    // out to the web page rather than drawing Shopify's policy HTML.
-    "/policies/[handle]": "legal pages, linked from the web footer",
     // Account deletion (SHO-90): the app shows its result in place, and the
     // help page must work for someone without the app (app store rule). The
     // confirm route is a POST handler, not a page.

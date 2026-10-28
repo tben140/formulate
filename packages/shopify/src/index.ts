@@ -113,6 +113,7 @@ export {
   ShopNameQuery,
   SitemapCollectionsQuery,
   SitemapProductsQuery,
+  PaymentSettingsQuery,
   ShopPoliciesQuery,
 } from "./queries";
 
@@ -164,3 +165,8 @@ export {
 export type { ProductFilter } from "./generated/graphql";
 export { descriptionBlocks } from "./description";
 export type { DescriptionBlock } from "./description";
+
+export { policyBlocks } from "./policy-text";
+export type { PolicyBlock } from "./policy-text";
+export { PLANNED_PAYMENT_ICON_IDS, paymentIconIds } from "./payment-icons";
+export type { PaymentIconId } from "./payment-icons";
