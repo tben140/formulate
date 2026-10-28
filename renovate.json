@@ -1,0 +1,133 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Dependency updates for the formulate monorepo (SHO-146). Pins that exist for a documented reason are excluded below, each citing its ADR, so Renovate never proposes breaking them.",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "timezone": "Europe/London",
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 5,
+  "labels": [
+    "dependencies"
+  ],
+  "lockFileMaintenance": {
+    "enabled": false,
+    "description": "Off on purpose. Lock-file maintenance re-resolves every range in the lockfile and ignores the per-package rules below, so it would move react-native-css within ^3.0.7 (only 3.0.7 reads lightningcss 1.30.1's output, a failure that shows only at Metro bundle time) and @types/react within ^19.2.0. Re-enable only once those are pinned exactly."
+  },
+  "packageRules": [
+    {
+      "description": "NativeWind is a preview release pinned exactly; previews break between versions. See docs/adr/0003-nativewind-v5-and-tailwind-v4.md.",
+      "matchPackageNames": [
+        "nativewind",
+        "react-native-css"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "lightningcss must stay at 1.30.1: newer versions fail at Metro bundle time only. Pinned through pnpm overrides. See docs/adr/0004-pin-lightningcss-to-1-30-1.md.",
+      "matchPackageNames": [
+        "lightningcss"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "React is pinned workspace-wide to the exact version the Expo SDK expects; a second copy breaks hooks under the hoisted linker. It moves only with an Expo SDK upgrade.",
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "TypeScript stays on 6.0.x: typescript-eslint caps its peer range at <6.1.0, so the pin is ~6.0.3 (patches only). Blocks 6.1+ and 7. See docs/adr/0002-typescript-6-over-7.md.",
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "allowedVersions": "<6.1.0"
+    },
+    {
+      "description": "Every other non-major devDependency update in one weekly PR. Listed before the specific groups so they override it (later rules win).",
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "dev dependencies (non-major)"
+    },
+    {
+      "description": "Expo SDK packages and React Native must match the versions the SDK expects, which Renovate cannot know. Grouped (eslint-config-expo too: its major tracks the SDK), and held on the Dependency Dashboard for a human to approve; apply with `npx expo install --fix` and check with `npx expo install --check`.",
+      "matchPackageNames": [
+        "expo",
+        "expo-*",
+        "@expo/*",
+        "react-native",
+        "react-native-*",
+        "@react-native/*",
+        "jest-expo",
+        "eslint-config-expo"
+      ],
+      "groupName": "Expo SDK",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Playwright is pinned exactly because each release expects one browser build; axe travels with it.",
+      "matchPackageNames": [
+        "@playwright/test",
+        "@axe-core/playwright"
+      ],
+      "groupName": "Playwright and axe"
+    },
+    {
+      "description": "Next.js and its ESLint config move together.",
+      "matchPackageNames": [
+        "next",
+        "eslint-config-next",
+        "@next/*"
+      ],
+      "groupName": "Next.js"
+    },
+    {
+      "description": "Lint tooling, grouped so one PR carries a coordinated bump. eslint-config-expo is excluded: it moves with the Expo SDK group above.",
+      "matchPackageNames": [
+        "eslint",
+        "eslint-*",
+        "!eslint-config-expo",
+        "@eslint/*",
+        "typescript-eslint",
+        "@typescript-eslint/*",
+        "prettier"
+      ],
+      "groupName": "Lint tooling"
+    },
+    {
+      "description": "Shopify CLI (theme tooling) is pinned exactly; bump deliberately.",
+      "matchPackageNames": [
+        "@shopify/cli"
+      ],
+      "groupName": "Shopify CLI"
+    },
+    {
+      "description": "GitHub Actions in one PR. Actions pinned by commit SHA (shopify/lighthouse-ci-action) keep their digest pin.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "Major updates wait on the Dependency Dashboard for a human decision.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}
