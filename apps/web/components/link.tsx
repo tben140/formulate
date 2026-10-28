@@ -13,14 +13,14 @@ import type { ComponentProps } from "react";
  * counts each one against a monthly allowance (1,000,000 CDN requests) and
  * pauses the site past it.
  *
- * Here a link prefetches when the pointer rests on it, a finger lands on it or
- * keyboard focus reaches it: still ahead of the click, for the one link that's
- * about to be used.
+ * Here a link prefetches when the pointer rests on it or keyboard focus reaches
+ * it: still ahead of the click, for the one link that's about to be used. Not
+ * on touchstart: a swipe through a product grid starts on a card too. A tap
+ * still gets one, since mobile browsers fire mouseenter just before the click.
  */
 export const Link = ({
   href,
   onMouseEnter,
-  onTouchStart,
   onFocus,
   ...props
 }: ComponentProps<typeof NextLink>) => {
@@ -36,10 +36,6 @@ export const Link = ({
       onMouseEnter={(event) => {
         prefetch();
         onMouseEnter?.(event);
-      }}
-      onTouchStart={(event) => {
-        prefetch();
-        onTouchStart?.(event);
       }}
       onFocus={(event) => {
         prefetch();
