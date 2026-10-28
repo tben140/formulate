@@ -80,3 +80,10 @@ to whatever it names — do not simply take the newest.
 ## Related
 
 - [ADR 0003](0003-nativewind-v5-and-tailwind-v4.md) · [Mobile app](../surface-mobile.md)
+
+## Update, October 2026
+
+With NativeWind `5.0.0-rc.0` and `react-native-css` `3.1.0-rc.0` (Expo SDK 58,
+[ADR 0003](0003-nativewind-v5-and-tailwind-v4.md)), the app still bundles and
+runs with `lightningcss` 1.30.1. Whether newer versions now work was not tested,
+so the pin stays.
