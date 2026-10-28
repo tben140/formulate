@@ -339,9 +339,19 @@ October it emailed at 75%. The visitors weren't the cause; the test setup was.
 Every push to any PR built a preview, and the end-to-end and Lighthouse suites
 then loaded every page and image on it, including for app, theme and docs PRs
 that couldn't change the website. About 270 previews in ten days, 49 of them in
-one day of PR updates. The fix was one rule: build a preview only when the
-website or the shared code changed, which skips the deployment, and with it the
-tests (#165). Usage dropped at once. Nothing in CI had measured what CI costs.
+one day of PR updates. The first fix was one rule: build a preview only when
+the website or the shared code changed, which skips the deployment, and with it
+the tests (#165). By the next evening usage was at 884,027 anyway, so previews
+were turned off until the month resets, and the end-to-end and Lighthouse
+suites ran on the droplet instead. That left what a real visitor costs, which
+nobody had counted either: Next.js prefetches every link that scrolls into
+view, so a phone loading the collection page made 36 requests, 19 of them for
+products nobody opened. Prefetching on intent instead (a mouse resting on a
+link, or keyboard focus reaching it) brought every page to 17–19 (#170, and
+#171 on `main`). Touch gets no prefetch at all: the automated reviewer pointed
+out that a tap's emulated hover and its focus both land just before the
+click, so a prefetch there costs a second request instead of saving one.
+Nothing in CI had measured what CI costs, or what a page view costs.
 
 **A speed-up that would have been a slow-down.** An early PR moved the web
 app's server code from Washington to London, for UK shoppers (#81). Measured
@@ -349,6 +359,15 @@ from a London server before merging, Shopify's API took 155 to 315 ms to
 answer while its own timing said 8 ms of work: Shopify's API is served from the
 US, so a London function would cross the Atlantic once per query instead of
 once per page. It was closed unmerged.
+
+**A preview that served yesterday's app.** The droplet runs the app's
+development server without file watching, to save memory. A new file in a PR
+(the payment icons) then didn't exist as far as the server was concerned:
+reloading on the phone failed to find it, and before that, older changes had
+quietly shown the previous version. Restarting the server with its cache
+cleared fixed it, and the preview script now has a command for exactly that.
+The general point: when a check is done on a phone, first make sure the phone
+is running the code under review.
 
 > **TODO (Ben):** the worktree bug and anything from the lab notebook. Add
 > them here in the same form: what was assumed, what was measured, what
