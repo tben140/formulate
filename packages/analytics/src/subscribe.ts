@@ -105,7 +105,7 @@ export const isPlausibleEmail = (value: string): boolean =>
  * across three runtimes" is the claim this project makes, and this is the
  * field that lets someone check it in a UI we do not control.
  */
-export type SubscriptionSource = "Formulate web" | "Formulate theme" | "Formulate mobile";
+export type SubscriptionSource = "Double Helix web" | "Double Helix theme" | "Double Helix mobile";
 
 interface SubscriptionInput {
   readonly email: string;
