@@ -44,13 +44,15 @@ module.exports = {
     },
     assert: {
       assertions: {
-        // Budgets: see docs/surface-theme.md (Lighthouse in CI) for the runs
-        // they were set from. Ratchet them as web's were (SHO-68).
-        "categories:performance": ["error", { minScore: 0.7, ...median }],
+        // Set from the first CI run (2026-10-28, #178), medians per page:
+        // performance 0.91-0.98, accessibility 1.00, LCP 2.0-3.2 s (the
+        // product page is slowest), CLS 0.021-0.025, TBT 68-106 ms. Just under
+        // those, with room for runner noise; ratchet as web's were (SHO-68).
+        "categories:performance": ["error", { minScore: 0.85, ...median }],
         "categories:accessibility": ["error", { minScore: 0.95, ...median }],
-        "largest-contentful-paint": ["error", { maxNumericValue: 4500, ...median }],
+        "largest-contentful-paint": ["error", { maxNumericValue: 4000, ...median }],
         "cumulative-layout-shift": ["error", { maxNumericValue: 0.05, ...median }],
-        "total-blocking-time": ["error", { maxNumericValue: 600, ...median }],
+        "total-blocking-time": ["error", { maxNumericValue: 300, ...median }],
       },
     },
     upload: {

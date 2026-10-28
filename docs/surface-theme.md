@@ -150,11 +150,12 @@ with three tries and a clear failure message, sets the preview cookie for the
 theme under test, and fails if the store doesn't then show that theme. Reports
 are a workflow artifact, never public storage.
 
-Measured on the droplet on 2026-10-28 (3 runs per page, development theme
-191213732152): performance 0.67–0.74, LCP 2.3–3.2 s, CLS 0, TBT 0.8–1.5 s.
-The droplet's CPU is slower than Lighthouse expects, which inflates TBT and
-lowers performance compared with GitHub's runners; the budgets come from CI
-runs, and ratchet as web's did (SHO-68).
+Budgets (medians of 3 runs per page): performance ≥ 0.85, accessibility ≥
+0.95, LCP ≤ 4 s, CLS ≤ 0.05, TBT ≤ 300 ms. Set from the first CI run
+(2026-10-28, #178): performance 0.91–0.98, LCP 2.0–3.2 s, CLS about 0.02, TBT
+68–106 ms. On the droplet the same pages scored 0.67–0.74 with TBT 0.8–1.5 s:
+its CPU is slower than Lighthouse expects, so judge budgets from CI runs only.
+Ratchet them as web's were (SHO-68).
 
 This replaced Shopify's `lighthouse-ci-action`, which took minimum scores
 only, judged one representative run (so one noisy run could fail a PR), timed
