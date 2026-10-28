@@ -1,8 +1,17 @@
 "use client";
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
-import { formatMoney, type Cart, type CartSuggestion } from "@formulate/shopify";
-import { useEffect, useRef } from "react";
+import {
+  formatMoney,
+  initialOptimisticCart,
+  optimisticCart,
+  optimisticCartReducer,
+  pendingLineIds,
+  type Cart,
+  type CartChange,
+  type CartSuggestion,
+} from "@formulate/shopify";
+import { useEffect, useOptimistic, useRef, useState } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
@@ -45,7 +54,41 @@ export const CartDrawer = ({
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  const lines = cart?.lines.nodes ?? [];
+  /*
+   * Quantity changes and removals show at once (SHO-52). The optimistic layer
+   * lasts until the action's re-render brings Shopify's cart in as `cart`; if
+   * the action failed, that cart is the old one, so the change simply undoes
+   * itself, and the message says why.
+   */
+  const [state, applyChange] = useOptimistic(
+    initialOptimisticCart(cart),
+    (current, change: CartChange) =>
+      optimisticCartReducer(current, { type: "start", change }),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const shown = optimisticCart(state);
+  const busy = pendingLineIds(state);
+  const lines = shown?.lines.nodes ?? [];
+
+  const changeLine = async (formData: FormData) => {
+    const lineId = String(formData.get("lineId") ?? "");
+    const remove = formData.get("quantity") === null;
+    const quantity = Number(formData.get("quantity") ?? 0);
+    setError(null);
+    applyChange(
+      remove || quantity <= 0
+        ? { id: crypto.randomUUID(), kind: "remove", lineId }
+        : { id: crypto.randomUUID(), kind: "update", lineId, quantity },
+    );
+    try {
+      const result = await (remove ? removeCartLine(formData) : updateCartLine(formData));
+      if (result.message) setError(result.message);
+    } catch {
+      // The request itself failed (offline, a deploy mid-flight). The change
+      // undoes itself when this returns; say so rather than reach the error page.
+      setError("Your cart couldn't be updated. Check your connection and try again.");
+    }
+  };
 
   return (
     /*
@@ -74,9 +117,9 @@ export const CartDrawer = ({
         <header className="flex items-center justify-between border-b border-border px-4 py-4">
           <h2 id={CART_DRAWER_TITLE_ID} className="text-lg font-semibold">
             Cart{/* A real space: the margin alone reads "Cart2 items". */}{" "}
-            {cart?.totalQuantity ? (
+            {shown?.totalQuantity ? (
               <span className="ml-2 text-sm font-normal text-foreground-muted">
-                {cart.totalQuantity} {cart.totalQuantity === 1 ? "item" : "items"}
+                {shown.totalQuantity} {shown.totalQuantity === 1 ? "item" : "items"}
               </span>
             ) : null}
           </h2>
@@ -92,8 +135,17 @@ export const CartDrawer = ({
 
         {/* Above the lines, so it is read before the list rather than after it. */}
         <FreeShippingBar
-          subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
+          subtotal={lines.length > 0 ? (shown?.cost.subtotalAmount ?? null) : null}
         />
+
+        {error ? (
+          <p
+            role="alert"
+            className="border-b border-border px-4 py-2 text-sm text-danger"
+          >
+            {error}
+          </p>
+        ) : null}
 
         {lines.length === 0 ? (
           <p className="flex-1 px-4 py-8 text-sm text-foreground-muted">
@@ -111,7 +163,11 @@ export const CartDrawer = ({
                 const variant = line.merchandise;
 
                 return (
-                  <li key={line.id} className="flex gap-3 px-4 py-4">
+                  <li
+                    key={line.id}
+                    aria-busy={busy.has(line.id)}
+                    className={`flex gap-3 px-4 py-4 ${busy.has(line.id) ? "opacity-60" : ""}`}
+                  >
                     {variant.image ? (
                       // Plain <img>: these are Shopify CDN URLs at a fixed small
                       // size inside a dialog, so next/image's optimisation and
@@ -146,7 +202,7 @@ export const CartDrawer = ({
                       ) : null}
 
                       <div className="mt-2 flex items-center justify-between gap-2">
-                        <form action={updateCartLine} className="flex items-center gap-1">
+                        <form action={changeLine} className="flex items-center gap-1">
                           <input type="hidden" name="lineId" value={line.id} />
                           <label htmlFor={`qty-${line.id}`} className="sr-only">
                             Quantity for {variant.product.title}
@@ -156,6 +212,8 @@ export const CartDrawer = ({
                             name="quantity"
                             type="number"
                             min={0}
+                            // Keyed by quantity, so a rolled-back change resets the field too.
+                            key={line.quantity}
                             defaultValue={line.quantity}
                             className="w-16 rounded-md border border-border px-2 py-1 text-sm"
                           />
@@ -173,7 +231,7 @@ export const CartDrawer = ({
                       </div>
                     </div>
 
-                    <form action={removeCartLine}>
+                    <form action={changeLine}>
                       <input type="hidden" name="lineId" value={line.id} />
                       <button
                         type="submit"
@@ -194,12 +252,12 @@ export const CartDrawer = ({
           </div>
         )}
 
-        {cart && lines.length > 0 ? (
+        {cart && shown && lines.length > 0 ? (
           <footer className="border-t border-border px-4 py-4">
             <div className="mb-3 flex items-center justify-between text-sm">
               <span className="text-foreground-muted">Subtotal</span>
               <span className="font-mono font-medium">
-                {formatMoney(cart.cost.subtotalAmount)}
+                {formatMoney(shown.cost.subtotalAmount)}
               </span>
             </div>
 

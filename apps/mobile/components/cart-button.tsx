@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 
-import { useCart } from "../lib/use-cart";
+import { useOptimisticCart } from "../lib/use-cart";
 
 import { useCartUi } from "./cart-provider";
 
@@ -13,7 +13,7 @@ import { useCartUi } from "./cart-provider";
  */
 export const CartButton = () => {
   const { openCart } = useCartUi();
-  const { data: cart } = useCart();
+  const { cart } = useOptimisticCart();
   const count = cart?.totalQuantity ?? 0;
 
   return (

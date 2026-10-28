@@ -2,11 +2,19 @@ import {
   createCartClient,
   describeError,
   describeForShopper,
+  optimisticCart,
+  pendingLineIds,
   type Cart,
+  type CartChange,
   type CartLineInput,
   type StorefrontError,
 } from "@formulate/shopify";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { clearCartId, readCartId, writeCartId } from "./cart-storage";
 import { readIdentifiedEmail } from "./klaviyo";
@@ -31,6 +39,12 @@ import { storefront } from "./storefront";
 const cartClient = createCartClient(storefront);
 
 const CART_KEY = ["cart"] as const;
+const LINE_KEY = ["cart", "line"] as const;
+
+interface LineChange {
+  readonly lineId: string;
+  readonly quantity: number;
+}
 
 /**
  * An Error whose message a shopper can read, with the developer detail logged.
@@ -119,13 +133,11 @@ export const useUpdateCartLine = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      lineId,
-      quantity,
-    }: {
-      lineId: string;
-      quantity: number;
-    }): Promise<Cart> => {
+    mutationKey: LINE_KEY,
+    // One at a time: each answer is the whole cart, and a slow early answer
+    // must not land after a later one and undo it.
+    scope: { id: "cart-lines" },
+    mutationFn: async ({ lineId, quantity }: LineChange): Promise<Cart> => {
       const id = await readCartId();
       if (!id) throw new Error("No cart to update.");
 
@@ -138,6 +150,31 @@ export const useUpdateCartLine = () => {
     },
     onSuccess: (cart) => queryClient.setQueryData(CART_KEY, cart),
   });
+};
+
+/**
+ * The cart as the shopper should see it: Shopify's last cart with the line
+ * changes still in flight already applied (SHO-52, the shared
+ * `optimisticCart`). A failed change drops out of the pending list, so the
+ * view returns to Shopify's cart by itself; `useUpdateCartLine().error` says
+ * why.
+ */
+export const useOptimisticCart = () => {
+  const { data, isPending } = useCart();
+  const pending = useMutationState({
+    filters: { mutationKey: LINE_KEY, status: "pending" },
+    select: (mutation) => mutation.state.variables as LineChange,
+  });
+  const state = {
+    confirmed: data ?? null,
+    pending: pending.map((change, index): CartChange =>
+      change.quantity > 0
+        ? { id: String(index), kind: "update", ...change }
+        : { id: String(index), kind: "remove", lineId: change.lineId },
+    ),
+    error: null,
+  };
+  return { cart: optimisticCart(state), busy: pendingLineIds(state), isPending };
 };
 
 /** Called after checkout completes, so the next read starts a fresh cart. */

@@ -106,3 +106,16 @@ export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";
 export { PLANNED_PAYMENT_ICON_IDS, paymentIconIds } from "./payment-icons";
 export type { PaymentIconId } from "./payment-icons";
+export {
+  initialOptimisticCart,
+  optimisticCart,
+  optimisticCartReducer,
+  pendingAddQuantity,
+  pendingLineIds,
+} from "./cart-optimistic";
+export type {
+  CartChange,
+  OptimisticCartAction,
+  OptimisticCartLike,
+  OptimisticCartState,
+} from "./cart-optimistic";

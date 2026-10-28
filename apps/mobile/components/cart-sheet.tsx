@@ -11,7 +11,7 @@ import {
 } from "react-native";
 
 import { useCheckout } from "../lib/checkout";
-import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
+import { useClearCart, useOptimisticCart, useUpdateCartLine } from "../lib/use-cart";
 
 import { FreeShippingBar } from "./free-shipping-bar";
 
@@ -40,7 +40,8 @@ export const CartSheet = ({
   readonly visible: boolean;
   readonly onClose: () => void;
 }) => {
-  const { data: cart, isPending } = useCart();
+  // Line changes show at once; see useOptimisticCart (SHO-52).
+  const { cart, busy, isPending } = useOptimisticCart();
   const updateLine = useUpdateCartLine();
   const clearCart = useClearCart();
   const checkout = useCheckout();
@@ -143,6 +144,16 @@ export const CartSheet = ({
           subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
         />
 
+        {updateLine.error ? (
+          <Text
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            className="border-b border-border px-4 py-2 text-sm text-danger"
+          >
+            {updateLine.error.message}
+          </Text>
+        ) : null}
+
         {isPending ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator />
@@ -157,7 +168,8 @@ export const CartSheet = ({
               return (
                 <View
                   key={line.id}
-                  className="flex-row gap-3 border-b border-border px-4 py-4"
+                  accessibilityState={{ busy: busy.has(line.id) }}
+                  className={`flex-row gap-3 border-b border-border px-4 py-4 ${busy.has(line.id) ? "opacity-60" : ""}`}
                 >
                   {variant.image ? (
                     <Image
