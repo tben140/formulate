@@ -15,6 +15,21 @@ export type AttributeInput = {
   value: string;
 };
 
+/** Card brand, such as Visa or Mastercard, which can be used for payments. */
+export type CardBrand =
+  /** American Express. */
+  | 'AMERICAN_EXPRESS'
+  /** Diners Club. */
+  | 'DINERS_CLUB'
+  /** Discover. */
+  | 'DISCOVER'
+  /** JCB. */
+  | 'JCB'
+  /** Mastercard. */
+  | 'MASTERCARD'
+  /** Visa. */
+  | 'VISA';
+
 /**
  * Specifies a delivery address for a cart. Provide either a [`deliveryAddress`](https://shopify.dev/docs/api/storefront/current/input-objects/CartAddressInput#fields-deliveryAddress) with full address details, or a [`copyFromCustomerAddressId`](https://shopify.dev/docs/api/storefront/current/input-objects/CartAddressInput#fields-copyFromCustomerAddressId) to copy from an existing customer address. Used by [`CartSelectableAddressInput`](https://shopify.dev/docs/api/storefront/current/input-objects/CartSelectableAddressInput) and [`CartSelectableAddressUpdateInput`](https://shopify.dev/docs/api/storefront/current/input-objects/CartSelectableAddressUpdateInput).
  *
@@ -1311,6 +1326,17 @@ export type DeliveryAddressValidationStrategy =
    */
   | 'STRICT';
 
+/** Digital wallet, such as Apple Pay, which can be used for accelerated checkouts. */
+export type DigitalWallet =
+  /** Android Pay. */
+  | 'ANDROID_PAY'
+  /** Apple Pay. */
+  | 'APPLE_PAY'
+  /** Google Pay. */
+  | 'GOOGLE_PAY'
+  /** Shopify Pay. */
+  | 'SHOPIFY_PAY';
+
 /**
  * The type of data that the filter group represents.
  *
@@ -1625,6 +1651,11 @@ export type ProductRecommendationsQueryVariables = Exact<{
 
 
 export type ProductRecommendationsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, availableForSale: boolean, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, variants: { nodes: Array<{ id: string, availableForSale: boolean }> } }> | null };
+
+export type PaymentSettingsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type PaymentSettingsQuery = { shop: { paymentSettings: { acceptedCardBrands: Array<CardBrand>, supportedDigitalWallets: Array<DigitalWallet> } } };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -2652,3 +2683,13 @@ export const ProductRecommendationsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<ProductRecommendationsQuery, ProductRecommendationsQueryVariables>;
+export const PaymentSettingsDocument = new TypedDocumentString(`
+    query PaymentSettings {
+  shop {
+    paymentSettings {
+      acceptedCardBrands
+      supportedDigitalWallets
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<PaymentSettingsQuery, PaymentSettingsQueryVariables>;
