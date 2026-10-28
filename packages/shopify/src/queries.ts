@@ -491,8 +491,11 @@ export const CartFields = graphql(`
  * Returns null for a cart that has been completed at checkout, so a null here
  * is normal rather than exceptional.
  */
+// Every cart document carries the shopper's tracking choice as
+// `@inContext(visitorConsent:)`. See `visitorConsentFor` in ./cart for why.
 export const CartQuery = graphql(`
-  query Cart($id: ID!) {
+  query Cart($id: ID!, $visitorConsent: VisitorConsent!)
+  @inContext(visitorConsent: $visitorConsent) {
     cart(id: $id) {
       ...CartFields
     }
@@ -503,7 +506,8 @@ export const CartQuery = graphql(`
  * `buyerIdentity` is not optional in practice — see DEFAULT_COUNTRY_CODE.
  */
 export const CartCreateMutation = graphql(`
-  mutation CartCreate($input: CartInput!) {
+  mutation CartCreate($input: CartInput!, $visitorConsent: VisitorConsent!)
+  @inContext(visitorConsent: $visitorConsent) {
     cartCreate(input: $input) {
       cart {
         ...CartFields
@@ -525,7 +529,11 @@ export const CartCreateMutation = graphql(`
 `);
 
 export const CartLinesAddMutation = graphql(`
-  mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+  mutation CartLinesAdd(
+    $cartId: ID!
+    $lines: [CartLineInput!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
     cartLinesAdd(cartId: $cartId, lines: $lines) {
       cart {
         ...CartFields
@@ -547,7 +555,11 @@ export const CartLinesAddMutation = graphql(`
 `);
 
 export const CartLinesUpdateMutation = graphql(`
-  mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+  mutation CartLinesUpdate(
+    $cartId: ID!
+    $lines: [CartLineUpdateInput!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
     cartLinesUpdate(cartId: $cartId, lines: $lines) {
       cart {
         ...CartFields
@@ -562,7 +574,11 @@ export const CartLinesUpdateMutation = graphql(`
 `);
 
 export const CartLinesRemoveMutation = graphql(`
-  mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+  mutation CartLinesRemove(
+    $cartId: ID!
+    $lineIds: [ID!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
     cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
       cart {
         ...CartFields
@@ -584,7 +600,8 @@ export const CartBuyerIdentityUpdateMutation = graphql(`
   mutation CartBuyerIdentityUpdate(
     $cartId: ID!
     $buyerIdentity: CartBuyerIdentityInput!
-  ) {
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
     cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
       cart {
         ...CartFields
@@ -677,6 +694,21 @@ export const ProductRecommendationsQuery = graphql(`
           id
           availableForSale
         }
+      }
+    }
+  }
+`);
+
+/**
+ * The payment methods Shopify reports the store accepts, for the footer's
+ * payment icons (see paymentIconIds).
+ */
+export const PaymentSettingsQuery = graphql(`
+  query PaymentSettings {
+    shop {
+      paymentSettings {
+        acceptedCardBrands
+        supportedDigitalWallets
       }
     }
   }
