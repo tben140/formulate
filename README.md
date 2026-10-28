@@ -58,11 +58,19 @@ belongs behind a Next.js route handler.
 ## The demo store's password
 
 The store is a Shopify development store, and those are always password
-protected until they move to a paid plan. The app's checkout opens the store's
-own web checkout, so the first checkout in the app asks for the storefront
-password; after that the sheet remembers it. Theme Access passwords can't
-remove this: they only let the Shopify CLI work on themes, and they must never
-ship in the app. See [`docs/demo-store.md`](docs/demo-store.md).
+protected until they move to a paid plan. How checkout meets that password
+depends on where the app runs:
+
+- **Expo Go and the app's web build** open the store's checkout in the system
+  browser, which asks for the storefront password the first time.
+- **Native builds** (TestFlight, the stores) use Checkout Sheet Kit, which has
+  no way to enter a storefront password. If checkout lands on the password
+  page, the kit reports a `storefront_password_required` error (3.9.1)
+  instead.
+
+Theme Access passwords can't remove this: they only let the Shopify CLI work
+on themes, and they must never ship in the app. See
+[`docs/demo-store.md`](docs/demo-store.md).
 
 ## Setup
 
