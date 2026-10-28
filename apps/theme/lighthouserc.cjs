@@ -44,15 +44,17 @@ module.exports = {
     },
     assert: {
       assertions: {
-        // Set from the first CI run (2026-10-28, #178), medians per page:
-        // performance 0.91-0.98, accessibility 1.00, LCP 2.0-3.2 s (the
-        // product page is slowest), CLS 0.021-0.025, TBT 68-106 ms. Just under
-        // those, with room for runner noise; ratchet as web's were (SHO-68).
-        "categories:performance": ["error", { minScore: 0.85, ...median }],
+        // From the first two CI runs (2026-10-28, #178), per-page medians:
+        // performance 0.83-0.98, LCP 2.0-3.3 s, CLS 0-0.025, TBT 68-326 ms.
+        // GitHub's runners vary about 3x on TBT between runs, so the budgets
+        // leave room for a slow runner: web's values where web has them
+        // (TBT 600 ms, CLS 0.05, LCP 4 s), performance a little below web's.
+        // Ratchet with more runs, as web's were (SHO-68).
+        "categories:performance": ["error", { minScore: 0.75, ...median }],
         "categories:accessibility": ["error", { minScore: 0.95, ...median }],
         "largest-contentful-paint": ["error", { maxNumericValue: 4000, ...median }],
         "cumulative-layout-shift": ["error", { maxNumericValue: 0.05, ...median }],
-        "total-blocking-time": ["error", { maxNumericValue: 300, ...median }],
+        "total-blocking-time": ["error", { maxNumericValue: 600, ...median }],
       },
     },
     upload: {
