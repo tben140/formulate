@@ -1,4 +1,4 @@
-{% comment %}
+{% doc %}
   The brand's social accounts as icon links, for the footer.
 
   The links come from Theme settings → Social media (placeholders: each is
@@ -6,7 +6,7 @@
   icon. The order, labels and icon paths match packages/tokens/src/social.ts,
   which web and the app read: Simple Icons 13.21.0 (CC0), one path on a 24×24
   viewBox, drawn in the text colour.
-{% endcomment %}
+{% enddoc %}
 {%- assign platforms = 'instagram tiktok youtube facebook pinterest x' | split: ' ' -%}
 <nav class="social-links" aria-label="{{ 'footer.social' | t }}">
   <ul class="social-links__list" role="list">
