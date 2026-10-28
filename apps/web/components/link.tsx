@@ -13,14 +13,15 @@ import type { ComponentProps } from "react";
  * counts each one against a monthly allowance (1,000,000 CDN requests) and
  * pauses the site past it (apps/web/AGENTS.md).
  *
- * Here a link prefetches when the pointer rests on it, a finger lands on it or
- * keyboard focus reaches it: still ahead of the click, for the one link that's
- * about to be used.
+ * Here a link prefetches when a mouse or pen rests on it or keyboard focus
+ * reaches it: still ahead of the click, for the one link that's about to be
+ * used. Touch gets none. A swipe through a product grid starts on a card, and
+ * a tap's emulated hover lands just before the click, when Next.js sends its
+ * own navigation request rather than waiting, so it would cost two.
  */
 export const Link = ({
   href,
-  onMouseEnter,
-  onTouchStart,
+  onPointerEnter,
   onFocus,
   ...props
 }: ComponentProps<typeof NextLink>) => {
@@ -33,16 +34,14 @@ export const Link = ({
       {...props}
       href={href}
       prefetch={false}
-      onMouseEnter={(event) => {
-        prefetch();
-        onMouseEnter?.(event);
-      }}
-      onTouchStart={(event) => {
-        prefetch();
-        onTouchStart?.(event);
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "touch") prefetch();
+        onPointerEnter?.(event);
       }}
       onFocus={(event) => {
-        prefetch();
+        // Keyboard focus only: a tap focuses the link too (on Android), just
+        // before the click, and a mouse already prefetched on hover.
+        if (event.currentTarget.matches(":focus-visible")) prefetch();
         onFocus?.(event);
       }}
     />
