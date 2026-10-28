@@ -34,6 +34,42 @@ load-bearing and look like neglect from the outside. They are recorded in
 - [TypeScript is `~6.0.3`, not 7](docs/adr/0002-typescript-6-over-7.md). No
   `typescript-eslint` release supports 7.
 
+## Environments and secrets
+
+Every variable is documented in its app's example file, which says what it is
+for and whether it is secret. Copy the example, never the other way round.
+
+| App           | Example file         | Local copy (gitignored) |
+| ------------- | -------------------- | ----------------------- |
+| `apps/web`    | `.env.example`       | `.env.local`            |
+| `apps/mobile` | `.env.example`       | `.env.local`            |
+| `apps/theme`  | `.env.local.example` | `.env.local`            |
+| `apps/api`    | `.dev.vars.example`  | `.dev.vars`             |
+
+Three tiers, and each value lives in exactly one place per tier:
+
+| Tier       | Web                                         | Mobile                                      | API worker                         |
+| ---------- | ------------------------------------------- | ------------------------------------------- | ---------------------------------- |
+| Local      | `apps/web/.env.local`                       | `apps/mobile/.env.local`                    | `apps/api/.dev.vars`               |
+| Preview    | Vercel env vars, **Preview** environment    | EAS env vars, `preview` (and `development`) | `wrangler secret put` (one worker) |
+| Production | Vercel env vars, **Production** environment | EAS env vars, `production`                  | `wrangler secret put`              |
+
+The theme has no tiers of its own: its only secret is the store password for
+the Shopify CLI, and Shopify injects everything else server-side.
+
+⚠️ **`NEXT_PUBLIC_*` and `EXPO_PUBLIC_*` values ship to every browser and every
+device.** Only values that are public by design may carry those prefixes: the
+Storefront public token (mobile only; web keeps it server-side), the Klaviyo
+public site key, the list id, and URLs. A private key under either prefix is a
+leaked key.
+
+Never secret, and pinned in the repository instead: `SHOPIFY_API_VERSION`
+(also in `eas.json`) and `KLAVIYO_LIST_ID` for the worker (in
+`wrangler.jsonc` `vars`).
+
+Not configured yet, and to be added here when they are: Sentry DSN (SHO-27) and
+Vercel's own project settings (SHO-22).
+
 ## Verification
 
 `turbo lint typecheck build` is the bar, and CI runs it on every pull request

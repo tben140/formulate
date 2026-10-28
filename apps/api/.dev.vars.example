@@ -1,0 +1,13 @@
+# apps/api: copy to apps/api/.dev.vars for `pnpm --filter @formulate/api dev`.
+# .dev.vars is gitignored. It holds a PRIVATE key, and this repository is public.
+#
+# Deployed workers never read this file. Set the secret there with
+#   pnpm --filter @formulate/api exec wrangler secret put KLAVIYO_PRIVATE_KEY
+# which encrypts it and never writes it to disk. Never put it in wrangler.jsonc
+# `vars`; see apps/api/AGENTS.md.
+#
+# KLAVIYO_LIST_ID is not here: it is not secret, and lives in wrangler.jsonc.
+
+# A Klaviyo private API key, scoped to what the worker needs (profiles and
+# subscriptions, write).
+KLAVIYO_PRIVATE_KEY=
