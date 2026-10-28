@@ -95,13 +95,45 @@ attribute keys. `src/pixel.test.ts` runs the file the way Shopify does and
 fails if they drift. **Changing the pixel means pasting it into the admin
 again.**
 
+## Orders: the webhook (SHO-88)
+
+The pixel can't count an order when it doesn't run: analytics declined again in
+checkout, a blocker, a tab closed on the thank-you page. So the API Worker also
+takes Shopify's **orders/create** webhook (`POST /webhooks/orders-create`,
+`apps/api/src/order-webhook.ts`) and sends the same `order_completed`.
+
+- **One event per order.** Pixel and webhook use the same event id,
+  `orderEventUuid(order id)` in `packages/analytics`, which the pixel repeats
+  (`pixel.test.ts` checks they agree). PostHog keeps one event per id, so the
+  pair, Shopify's retries and replays all count once.
+- **Only with consent.** It sends only when the order's cart carries
+  `_posthog_id`, which web and the app add only for shoppers who allowed
+  analytics.
+- **Signed.** Nothing is read before the HMAC of the raw body checks out
+  (`crypto.subtle.verify`). A failed PostHog call returns 502, so Shopify
+  retries.
+- **One difference:** the webhook payload doesn't say which lines are on a
+  selling plan, so its event has no `has_subscription`. The pixel's has it.
+
+**To switch it on** (store owner):
+
+1. On the Worker: `wrangler secret put SHOPIFY_WEBHOOK_SECRET` (the client
+   secret of the app that owns the webhook) and `wrangler secret put
+POSTHOG_KEY` (the public project key). Until both are set it answers 503 and
+   sends nothing.
+2. Subscribe that app to **orders/create** at
+   `https://<worker>/webhooks/orders-create`, JSON.
+3. Place a test order from web with analytics accepted: one `order_completed`
+   in PostHog, under the same person as the visit.
+
 ## Known gaps
 
 - **Signed-in shoppers aren't identified.** `identify()` exists but nothing
   calls it yet: customer sign-in (#76 web, #78 app) isn't in this branch's
   base. It should be called at sign-in with the Shopify customer id.
 - **Consent in checkout is Shopify's.** A web shopper who accepted on web but
-  is asked again in checkout and declines sends no `order_completed`.
+  declines again in checkout sends no `order_completed` from the pixel. The
+  webhook above fills that gap once it's switched on.
 - **The theme can't report collections or selling plans** on its events:
   Shopify's pixel events don't carry them.
 

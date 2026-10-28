@@ -1,0 +1,143 @@
+import { orderEventUuid } from "@formulate/analytics";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import worker from "./index";
+
+const SECRET = "shpss_not_a_real_secret";
+
+const sign = async (body: string, secret = SECRET) => {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  return btoa(String.fromCharCode(...new Uint8Array(mac)));
+};
+
+const order = JSON.stringify({
+  id: 6500000000001,
+  created_at: "2026-10-28T19:40:00+00:00",
+  currency: "GBP",
+  total_price: "39.85",
+  note_attributes: [
+    { name: "_posthog_id", value: "web-visitor-id" },
+    { name: "_surface", value: "web" },
+  ],
+  line_items: [{ quantity: 2 }, { quantity: 1 }],
+});
+
+const env = (overrides = {}) => ({
+  KLAVIYO_PRIVATE_KEY: "pk",
+  KLAVIYO_LIST_ID: "list",
+  SHOPIFY_WEBHOOK_SECRET: SECRET,
+  POSTHOG_KEY: "phc_test",
+  RATE_LIMITER: {
+    idFromName: (name: string) => name,
+    // The webhook must never reach the shoppers' limiter.
+    get: () => ({ limit: () => Promise.reject(new Error("rate limiter used")) }),
+  },
+  ...overrides,
+});
+
+const webhook = async (body: string, headers: Record<string, string> = {}) =>
+  new Request("https://api.example/webhooks/orders-create", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-shopify-topic": "orders/create",
+      "x-shopify-hmac-sha256": await sign(body),
+      ...headers,
+    },
+    body,
+  });
+
+const call = (request: Request, e = env()) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the stubs stand in for Cloudflare bindings
+  worker.fetch(request, e as any);
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe("orders/create webhook", () => {
+  it("sends the order to PostHog with the order's fixed event id", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await call(await webhook(order));
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, { body: string }];
+    expect(url).toBe("https://eu.i.posthog.com/i/v0/e/");
+    expect(JSON.parse(init.body)).toMatchObject({
+      event: "order_completed",
+      uuid: orderEventUuid("6500000000001"),
+      distinct_id: "web-visitor-id",
+      properties: { order_value: 39.85, item_count: 3, surface: "web" },
+    });
+  });
+
+  it("sends the same event id for a retried or replayed webhook", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })));
+    vi.stubGlobal("fetch", fetchMock);
+    await call(await webhook(order));
+    await call(await webhook(order));
+    const ids = fetchMock.mock.calls.map(
+      (args) => JSON.parse((args as unknown as [string, { body: string }])[1].body).uuid,
+    );
+    expect(ids[0]).toBe(ids[1]);
+  });
+
+  it("rejects a wrong signature before parsing, and sends nothing", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const forged = await webhook(order, {
+      "x-shopify-hmac-sha256": await sign(order, "wrong"),
+    });
+    expect((await call(forged)).status).toBe(401);
+    const garbage = await webhook(order, { "x-shopify-hmac-sha256": "not base64!" });
+    expect((await call(garbage)).status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a signature over a different body", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const request = new Request("https://api.example/webhooks/orders-create", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-shopify-topic": "orders/create",
+        "x-shopify-hmac-sha256": await sign(order),
+      },
+      body: order.replace("39.85", "0.01"),
+    });
+    expect((await call(request)).status).toBe(401);
+  });
+
+  it("accepts an order without an analytics id, and sends nothing (no consent)", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const untagged = JSON.stringify({ ...JSON.parse(order), note_attributes: [] });
+    expect((await call(await webhook(untagged))).status).toBe(200);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("asks Shopify to retry when PostHog fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response("", { status: 503 }))),
+    );
+    expect((await call(await webhook(order))).status).toBe(502);
+  });
+
+  it("refuses everything until the secret is set, and other topics", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    expect(
+      (await call(await webhook(order), env({ SHOPIFY_WEBHOOK_SECRET: undefined })))
+        .status,
+    ).toBe(503);
+    expect(
+      (await call(await webhook(order, { "x-shopify-topic": "orders/paid" }))).status,
+    ).toBe(400);
+  });
+});

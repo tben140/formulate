@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { orderEventUuid } from "./order-event";
 import { CART_ATTRIBUTES, POSTHOG_HOST, PRODUCT_EVENTS } from "./product-analytics";
 
 /**
@@ -155,6 +156,8 @@ describe("PostHog custom pixel", () => {
     );
     expect(sent?.body).toMatchObject({
       event: PRODUCT_EVENTS.orderCompleted,
+      // The same id the order webhook sends (SHO-88), so PostHog keeps one.
+      uuid: orderEventUuid("6500000000001"),
       distinct_id: "web-visitor-id",
       properties: {
         order_id: "6500000000001",

@@ -62,3 +62,5 @@ export type {
   ProductRef,
   Surface,
 } from "./product-analytics";
+export { POSTHOG_CAPTURE_URL, orderCompletedEvent, orderEventUuid } from "./order-event";
+export type { CapturedOrderEvent, WebhookOrder } from "./order-event";

@@ -105,10 +105,40 @@ const productRef = (product, url) => ({
   product_title: product?.title ?? "",
 });
 
-const send = async (event, name, properties, distinctId, surface = "theme") => {
+/**
+ * An order's event id, the same one the server sends from Shopify's order
+ * webhook, so PostHog keeps one order_completed per order. Must match
+ * orderEventUuid in packages/analytics (pixel.test.ts checks).
+ */
+const fnv64 = (text, basis) => {
+  let hash = basis;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= BigInt(text.charCodeAt(i));
+    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return hash;
+};
+const orderEventUuid = (orderId) => {
+  const key = `order_completed:${orderId}`;
+  const hex =
+    fnv64(key, 0xcbf29ce484222325n).toString(16).padStart(16, "0") +
+    fnv64(key, 0x84222325cbf29ce4n).toString(16).padStart(16, "0");
+  const variant = ((parseInt(hex[16] ?? "0", 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+};
+
+const send = async (
+  event,
+  name,
+  properties,
+  distinctId,
+  surface = "theme",
+  uuid = undefined,
+) => {
   if (!POSTHOG_KEY || POSTHOG_KEY.startsWith("__")) return;
   const body = {
     api_key: POSTHOG_KEY,
+    ...(uuid ? { uuid } : {}),
     event: name,
     // Shopify's own id for this browser: the same on the theme and its checkout.
     distinct_id: distinctId || event.clientId,
@@ -216,5 +246,6 @@ analytics.subscribe("checkout_completed", (event) => {
     },
     attribute(checkout, ATTRIBUTES.distinctId),
     surfaceOf(checkout),
+    checkout.order?.id ? orderEventUuid(numericId(checkout.order.id)) : undefined,
   );
 });
