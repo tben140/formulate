@@ -34,6 +34,29 @@ import { CartSuggestions } from "./cart-suggestions";
  * Hand-rolling any of that is where accessible drawers usually go wrong. The
  * only thing added on top is the slide, which is pure CSS in globals.css.
  */
+/**
+ * A line's quantity field. It stays mounted while the quantity changes, so a
+ * shopper who pressed Enter keeps focus; a rolled-back change still resets
+ * what it shows.
+ */
+const QuantityInput = ({ id, quantity }: { id: string; quantity: number }) => {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.value = String(quantity);
+  }, [quantity]);
+  return (
+    <input
+      ref={ref}
+      id={id}
+      name="quantity"
+      type="number"
+      min={0}
+      defaultValue={quantity}
+      className="w-16 rounded-md border border-border px-2 py-1 text-sm"
+    />
+  );
+};
+
 export const CartDrawer = ({
   cart,
   suggestions = [],
@@ -207,16 +230,7 @@ export const CartDrawer = ({
                           <label htmlFor={`qty-${line.id}`} className="sr-only">
                             Quantity for {variant.product.title}
                           </label>
-                          <input
-                            id={`qty-${line.id}`}
-                            name="quantity"
-                            type="number"
-                            min={0}
-                            // Keyed by quantity, so a rolled-back change resets the field too.
-                            key={line.quantity}
-                            defaultValue={line.quantity}
-                            className="w-16 rounded-md border border-border px-2 py-1 text-sm"
-                          />
+                          <QuantityInput id={`qty-${line.id}`} quantity={line.quantity} />
                           <button
                             type="submit"
                             className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
@@ -271,19 +285,33 @@ export const CartDrawer = ({
               anchor keeps middle-click, right-click and keyboard behaviour that
               a scripted redirect would break.
             */}
-            <a
-              href={cart.checkoutUrl}
-              // Fires before navigation rather than after. Checkout is
-              // cross-origin, so there is no "after" — the page is gone.
-              // Klaviyo's onsite script queues and flushes, which is what makes
-              // a beacon unnecessary here.
-              onClick={() =>
-                track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain))
-              }
-              className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface hover:bg-brand-700"
-            >
-              Checkout
-            </a>
+            {/*
+              Held while a line change is in flight: Shopify's checkout would
+              open on the cart before the change, and a failure couldn't be
+              shown once the shopper had left.
+            */}
+            {busy.size > 0 ? (
+              <p
+                aria-live="polite"
+                className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface opacity-60"
+              >
+                Updating your cart…
+              </p>
+            ) : (
+              <a
+                href={cart.checkoutUrl}
+                // Fires before navigation rather than after. Checkout is
+                // cross-origin, so there is no "after" — the page is gone.
+                // Klaviyo's onsite script queues and flushes, which is what makes
+                // a beacon unnecessary here.
+                onClick={() =>
+                  track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain))
+                }
+                className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface hover:bg-brand-700"
+              >
+                Checkout
+              </a>
+            )}
           </footer>
         ) : null}
       </div>

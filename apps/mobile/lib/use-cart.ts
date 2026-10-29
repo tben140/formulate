@@ -15,6 +15,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { clearCartId, readCartId, writeCartId } from "./cart-storage";
 import { readIdentifiedEmail } from "./klaviyo";
@@ -131,8 +132,15 @@ export const useAddToCart = () => {
 
 export const useUpdateCartLine = () => {
   const queryClient = useQueryClient();
+  /*
+   * The last failure of any queued change. `mutation.error` only follows the
+   * latest `mutate()`, so a first "+" failing while a second waits would show
+   * nothing. Option callbacks run for every change, so the error lives here:
+   * set by whichever change fails, cleared by the shopper's next change.
+   */
+  const [lineError, setLineError] = useState<Error | null>(null);
 
-  return useMutation({
+  const mutation = useMutation({
     mutationKey: LINE_KEY,
     // One at a time: each answer is the whole cart, and a slow early answer
     // must not land after a later one and undo it.
@@ -148,16 +156,20 @@ export const useUpdateCartLine = () => {
 
       return result.data;
     },
+    // Runs when the change is made, even while it waits its turn in the scope.
+    onMutate: () => setLineError(null),
+    onError: (error) => setLineError(error),
     onSuccess: (cart) => queryClient.setQueryData(CART_KEY, cart),
   });
+  return { ...mutation, lineError };
 };
 
 /**
  * The cart as the shopper should see it: Shopify's last cart with the line
  * changes still in flight already applied (SHO-52, the shared
  * `optimisticCart`). A failed change drops out of the pending list, so the
- * view returns to Shopify's cart by itself; `useUpdateCartLine().error` says
- * why.
+ * view returns to Shopify's cart by itself; `useUpdateCartLine().lineError`
+ * says why.
  */
 export const useOptimisticCart = () => {
   const { data, isPending } = useCart();

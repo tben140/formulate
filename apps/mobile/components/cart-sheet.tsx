@@ -144,13 +144,13 @@ export const CartSheet = ({
           subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
         />
 
-        {updateLine.error ? (
+        {updateLine.lineError ? (
           <Text
             accessibilityRole="alert"
             accessibilityLiveRegion="polite"
             className="border-b border-border px-4 py-2 text-sm text-danger"
           >
-            {updateLine.error.message}
+            {updateLine.lineError.message}
           </Text>
         ) : null}
 
@@ -266,13 +266,16 @@ export const CartSheet = ({
               Taxes and shipping calculated at checkout.
             </Text>
 
+            {/* Held while a line change is in flight, as on web. */}
             <Pressable
               onPress={() => checkout.present(cart.checkoutUrl)}
+              disabled={busy.size > 0}
               accessibilityRole="button"
-              className="rounded-md bg-brand-600 px-4 py-3"
+              accessibilityState={{ disabled: busy.size > 0, busy: busy.size > 0 }}
+              className={`rounded-md bg-brand-600 px-4 py-3 ${busy.size > 0 ? "opacity-60" : ""}`}
             >
               <Text className="text-center text-sm font-semibold text-surface">
-                Checkout
+                {busy.size > 0 ? "Updating your cart…" : "Checkout"}
               </Text>
             </Pressable>
           </View>
