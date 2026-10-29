@@ -1,4 +1,11 @@
 import {
+  blendCodesOf,
+  blendLabelOf,
+  blendRange,
+  type BlendEnv,
+  type BlendOption,
+} from "./blend";
+import {
   rechargeCustomerId,
   rechargeList,
   type RechargeAdminEnv,
@@ -27,7 +34,7 @@ import {
  * out, by name. Never return a Recharge object as it arrived.
  */
 
-export type SubscriptionsEnv = CustomerEnv & RechargeAdminEnv;
+export type SubscriptionsEnv = CustomerEnv & RechargeAdminEnv & BlendEnv;
 
 /** The fields @formulate/recharge's RechargeSubscription declares, and no others. */
 const pickSubscription = (s: Record<string, unknown>) => ({
@@ -45,6 +52,10 @@ const pickSubscription = (s: Record<string, unknown>) => ({
   is_swappable: s.is_swappable,
   cancelled_at: s.cancelled_at ?? null,
   created_at: s.created_at,
+  // A daily pack's ingredients: the codes and the words only, never the
+  // other properties.
+  blend: blendCodesOf(s.properties),
+  blend_label: blendLabelOf(s.properties),
 });
 
 const list = (value: unknown): Record<string, unknown>[] =>
@@ -78,6 +89,8 @@ export type SubscriptionsResult =
         readonly ok: true;
         readonly subscriptions: readonly ReturnType<typeof pickSubscription>[];
         readonly upcoming: readonly ReturnType<typeof pickCharge>[];
+        /** The range to choose from, when any subscription is a pack. */
+        readonly blendOptions?: readonly BlendOption[];
       };
     }
   | {
@@ -132,12 +145,18 @@ export const listSubscriptions = async (
   );
   if (!charges) return { status: 502, body: { ok: false, reason: "unavailable" } };
 
+  const picked = subscriptions.map(pickSubscription);
+  const blendOptions = picked.some((s) => s.blend.length > 0)
+    ? ((await blendRange(env)) ?? undefined)
+    : undefined;
+
   return {
     status: 200,
     body: {
       ok: true,
-      subscriptions: subscriptions.map(pickSubscription),
+      subscriptions: picked,
       upcoming: charges.map(pickCharge),
+      ...(blendOptions ? { blendOptions } : {}),
     },
   };
 };

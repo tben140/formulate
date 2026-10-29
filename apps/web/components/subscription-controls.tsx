@@ -4,6 +4,7 @@ import {
   isoDateFrom,
   MAX_PAUSE_MONTHS,
   MAX_SUBSCRIPTION_QUANTITY,
+  type BlendOption,
   type RechargeSubscription,
 } from "@formulate/recharge";
 import Link from "next/link";
@@ -50,9 +51,13 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 
 export const SubscriptionControls = ({
   subscription,
+  blendOptions = [],
 }: {
   readonly subscription: RechargeSubscription;
+  /** For a daily pack: the range to choose from (from the Worker). */
+  readonly blendOptions?: readonly BlendOption[];
 }) => {
+  const blend = subscription.blend ?? [];
   const id = subscription.id;
 
   if (subscription.status === "cancelled") {
@@ -70,6 +75,39 @@ export const SubscriptionControls = ({
   return (
     <div className="mt-8">
       <h2 className="text-xl font-semibold">Manage</h2>
+
+      {blend.length > 0 && blendOptions.length > 0 ? (
+        <Section title="Your blend">
+          <form action={changeSubscriptionAction}>
+            <Hidden id={id} action="blend" />
+            <input type="hidden" name="size" value={blend.length} />
+            <fieldset>
+              <legend className="text-sm text-foreground-muted">
+                Choose {blend.length}. Your price stays the same; the change applies from
+                your next delivery.
+              </legend>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {blendOptions.map((option) => (
+                  <li key={option.code}>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="code"
+                        value={option.code}
+                        defaultChecked={blend.includes(option.code)}
+                      />
+                      {option.name}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+            <SubmitButton className={`${SECONDARY} mt-3`} pendingLabel="Saving…">
+              Save blend
+            </SubmitButton>
+          </form>
+        </Section>
+      ) : null}
 
       {subscription.is_skippable ? (
         <Section title="Skip the next delivery">

@@ -77,6 +77,9 @@ const SubscriptionScreen = () => {
       <View className="border-t border-border">
         <Row label="Status" value={subscriptionStatusLabel(subscription.status)} />
         <Row label="Delivery" value={deliveryFrequency(subscription)} />
+        {subscription.blend_label ? (
+          <Row label="Blend" value={subscription.blend_label} />
+        ) : null}
         <Row label="Quantity" value={String(subscription.quantity)} />
         {price ? <Row label="Price per delivery" value={formatMoney(price)} /> : null}
         {subscription.status === "active" && next ? (
@@ -126,6 +129,7 @@ const SubscriptionScreen = () => {
         // so they show it.
         key={`${done ?? ""}:${charge ?? ""}:${at ?? ""}`}
         subscription={subscription}
+        blendOptions={query.data.blendOptions}
         arrivedAfter={
           done
             ? {

@@ -89,6 +89,9 @@ const SubscriptionPage = async ({ params, searchParams }: PageProps) => {
       <dl className="mt-6 divide-y divide-border border-y border-border text-sm">
         <Row label="Status" value={subscriptionStatusLabel(subscription.status)} />
         <Row label="Delivery" value={deliveryFrequency(subscription)} />
+        {subscription.blend_label ? (
+          <Row label="Blend" value={subscription.blend_label} />
+        ) : null}
         <Row label="Quantity" value={String(subscription.quantity)} />
         {price ? <Row label="Price per delivery" value={formatMoney(price)} /> : null}
         {subscription.status === "active" && next ? (
@@ -120,7 +123,10 @@ const SubscriptionPage = async ({ params, searchParams }: PageProps) => {
         </>
       ) : null}
 
-      <SubscriptionControls subscription={subscription} />
+      <SubscriptionControls
+        subscription={subscription}
+        blendOptions={data.blendOptions}
+      />
     </article>
   );
 };
