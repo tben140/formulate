@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  CART_ATTRIBUTES,
   POSTHOG_HOST,
   addedToCartProperties,
+  cartAttributes,
   cartViewedProperties,
   checkoutStartedProperties,
   productViewedProperties,
@@ -178,6 +180,11 @@ describe("payload builders", () => {
     expect(addedToCartProperties(withoutCost, 1)?.price).toBe(17.95);
   });
 
+  it("reports what this add added, not the line's running total", () => {
+    // The line holds 2 after a second add of 1: the event must say 1.
+    expect(addedToCartProperties(line, 1)).toMatchObject({ quantity: 1, price: 15.26 });
+  });
+
   it("totals the cart, and marks a checkout with any subscription line", () => {
     expect(cartViewedProperties(cart)).toEqual({
       item_count: 3,
@@ -200,5 +207,26 @@ describe("payload builders", () => {
         priceRange: { minVariantPrice: { amount: "17.95", currencyCode: "GBP" } },
       }),
     ).toMatchObject({ product_id: "10940384149816", price: 17.95, currency: "GBP" });
+  });
+
+  it("names a viewed product's collections, sorted like Klaviyo's Categories", () => {
+    expect(
+      productViewedProperties({
+        ...line.merchandise.product,
+        priceRange: { minVariantPrice: { amount: "17.95", currencyCode: "GBP" } },
+        collections: {
+          nodes: [{ title: "Daily Essentials" }, { title: "Best Sellers" }],
+        },
+      }).collections,
+    ).toEqual(["Best Sellers", "Daily Essentials"]);
+  });
+});
+
+describe("cartAttributes", () => {
+  it("hands checkout the visitor's id and surface under the pixel's keys", () => {
+    expect(cartAttributes("0f9b-id", "web")).toEqual([
+      { key: CART_ATTRIBUTES.distinctId, value: "0f9b-id" },
+      { key: CART_ATTRIBUTES.surface, value: "web" },
+    ]);
   });
 });

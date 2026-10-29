@@ -23,6 +23,7 @@ import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 import { analytics } from "@/lib/product-analytics";
 
+import { AnalyticsIdField } from "./analytics-id-field";
 import { useCartUi } from "./cart-provider";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -147,6 +148,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       className="mt-6"
     >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
+      <AnalyticsIdField />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
 
       {product.options.map((option) =>

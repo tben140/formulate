@@ -14,6 +14,7 @@ import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 import { analytics } from "@/lib/product-analytics";
 
+import { AnalyticsIdField } from "./analytics-id-field";
 import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
 
 const IDLE: CartActionState = { status: "idle" };
@@ -118,6 +119,7 @@ const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
           }}
         >
           <input type="hidden" name="merchandiseId" value={suggestion.variantId} />
+          <AnalyticsIdField />
           <button
             type="submit"
             aria-disabled={pending || undefined}

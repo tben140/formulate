@@ -209,6 +209,23 @@ describe("addLinesOrCreate", () => {
     expect(email).not.toHaveBeenCalled();
   });
 
+  it("puts attributes on a new cart, and never on an existing one", async () => {
+    // How a purchase is credited to the visit that led to it: checkout reads
+    // the attributes. An existing cart keeps whatever it was created with.
+    const attributes = [{ key: "_surface", value: "app" }];
+    const fresh = client(() => added);
+    await fresh.cart.addLinesOrCreate({ cartId: null, lines: LINES, attributes });
+    const [, vars] = fresh.request.mock.calls[0] as unknown as [
+      unknown,
+      { input: { attributes?: unknown } },
+    ];
+    expect(vars.input.attributes).toEqual(attributes);
+
+    const existing = client(() => added);
+    await existing.cart.addLinesOrCreate({ cartId: STORED, lines: LINES, attributes });
+    expect(calls(existing.request)).toEqual(["add"]);
+  });
+
   it("keeps the stored cart when the network fails", async () => {
     // The bug: this used to clear the id, orphaning everything in the cart.
     const { request, cart } = client(() =>

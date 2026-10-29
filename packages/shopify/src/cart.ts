@@ -155,6 +155,13 @@ export interface CartClient {
      * seen from the shopper's side.
      */
     readonly email?: string;
+    /**
+     * Cart attributes, carried through to checkout and onto the order. Used to
+     * hand checkout the shopper's analytics id and surface, which is how a
+     * purchase is credited to the visit that led to it (packages/analytics,
+     * `cartAttributes`). Set only at creation.
+     */
+    readonly attributes?: readonly { readonly key: string; readonly value: string }[];
   }) => Promise<StorefrontResult<Cart>>;
 
   readonly addLines: (
@@ -186,6 +193,8 @@ export interface CartClient {
      * it goes through the Klaviyo SDK. See `create` for why it matters.
      */
     readonly email?: () => Promise<string | null | undefined>;
+    /** Attributes for a new cart; see `create`. Ignored when adding to one. */
+    readonly attributes?: readonly { readonly key: string; readonly value: string }[];
   }) => Promise<AddLinesOutcome>;
 
   readonly updateLines: (
@@ -361,6 +370,7 @@ export const createCartClient = (
           // Omitted rather than sent empty — Shopify rejects "" as an address.
           ...(options?.email ? { email: options.email } : {}),
         },
+        ...(options?.attributes?.length ? { attributes: [...options.attributes] } : {}),
       },
     });
 
@@ -421,7 +431,7 @@ export const createCartClient = (
   return {
     ...client,
 
-    addLinesOrCreate: async ({ cartId, lines, email }) => {
+    addLinesOrCreate: async ({ cartId, lines, email, attributes }) => {
       if (cartId) {
         const added = await requestAdd(cartId, lines);
         const result = added.ok ? fromPayload(added.data.cartLinesAdd) : added;
@@ -434,6 +444,7 @@ export const createCartClient = (
       const created = await requestCreate({
         lines,
         email: (await email?.()) ?? undefined,
+        attributes,
       });
       const result = created.ok ? fromPayload(created.data.cartCreate) : created;
       const warnings = created.ok ? (created.data.cartCreate?.warnings ?? []) : [];

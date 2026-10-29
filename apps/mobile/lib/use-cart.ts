@@ -1,3 +1,4 @@
+import { cartAttributes } from "@formulate/analytics";
 import {
   createCartClient,
   describeError,
@@ -10,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { clearCartId, readCartId, writeCartId } from "./cart-storage";
 import { readIdentifiedEmail } from "./klaviyo";
+import { analyticsDistinctId } from "./product-analytics";
 import { storefront } from "./storefront";
 
 /**
@@ -29,6 +31,12 @@ import { storefront } from "./storefront";
 // and checkout gets no visitor ids. #107 adds the app's choice: pass it here
 // as `trackingChoice` when it merges.
 const cartClient = createCartClient(storefront);
+
+/** The new cart's attributes for the custom pixel, with tracking consent only. */
+const newCartAttributes = () => {
+  const id = analyticsDistinctId();
+  return id ? cartAttributes(id, "app") : undefined;
+};
 
 const CART_KEY = ["cart"] as const;
 
@@ -98,6 +106,8 @@ export const useAddToCart = () => {
         cartId: await readCartId(),
         lines: [line],
         email: readIdentifiedEmail,
+        // So checkout can credit the order to this shopper; consent only.
+        attributes: newCartAttributes(),
       });
 
       if (!result.ok) {
