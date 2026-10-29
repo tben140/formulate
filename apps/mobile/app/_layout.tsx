@@ -10,30 +10,27 @@ import { CartProvider } from "../components/cart-provider";
 import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
 import { initKlaviyo } from "../lib/klaviyo";
-import {
-  analytics,
-  loadAnalyticsConsent,
-  useAnalyticsConsent,
-} from "../lib/product-analytics";
+import { analytics, loadAnalyticsIdentity } from "../lib/product-analytics";
+import { loadTrackingConsent, useTrackingConsent } from "../lib/tracking-consent";
 
 import "../global.css";
 
 /*
- * Started once, at module scope rather than in an effect.
+ * Set up once, at module scope rather than in an effect, so nothing renders
+ * before the vendors are listening for the tracking choice.
  *
- * Every other `Klaviyo.*` call is a no-op until this has run, and it fails
- * quietly rather than throwing — so initialising inside an effect would leave a
- * window where early calls vanish, which is exactly the silent-failure shape
- * this integration keeps producing. Module scope runs before any render.
+ * Klaviyo only starts when the choice says yes (lib/klaviyo.ts). PostHog's
+ * stored id is read before the choice, so no event can mint a new id over a
+ * returning shopper's (lib/product-analytics.ts). Nothing is sent by either
+ * until the choice, loaded last, says yes.
  */
 initKlaviyo();
-// The stored analytics choice (SHO-87); nothing is sent until it says yes.
-void loadAnalyticsConsent();
+void loadAnalyticsIdentity().then(loadTrackingConsent);
 
 /** A PostHog screen view per route (SHO-87); nothing without consent. */
 const AnalyticsScreens = () => {
   const pathname = usePathname();
-  const consent = useAnalyticsConsent();
+  const consent = useTrackingConsent();
   useEffect(() => {
     analytics()?.screen(pathname);
   }, [pathname, consent]);

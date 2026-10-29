@@ -58,6 +58,10 @@ browse or cart-abandonment flows. Correct, if less convenient for the flows.
 
 ### Mobile
 
+> Since October 2026 (SHO-109) the app sends Klaviyo's three events behind one
+> in-app choice shared with PostHog, and `Klaviyo.initialize` waits for it, as
+> this section required. See docs/integration-klaviyo.md.
+
 Mobile has **no behavioural tracking to gate today**. It initialises the Klaviyo
 SDK and calls `setEmail` only after an explicit newsletter sign-up
 ([ADR 0007](0007-mobile-consent-goes-through-a-worker.md)). Our code emits no

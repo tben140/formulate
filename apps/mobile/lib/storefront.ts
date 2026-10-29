@@ -9,8 +9,11 @@ import { createStorefrontClient, DEFAULT_API_VERSION } from "@formulate/shopify"
  * reads and rate limited per buyer IP. An Admin API token must never appear
  * here.
  */
+/** The `*.myshopify.com` domain. Klaviyo's product URLs use it, as web's do. */
+export const STORE_DOMAIN = process.env.EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN ?? "";
+
 export const storefront = createStorefrontClient({
-  domain: process.env.EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN ?? "",
+  domain: STORE_DOMAIN,
   token: process.env.EXPO_PUBLIC_SHOPIFY_STOREFRONT_TOKEN ?? "",
   apiVersion: process.env.EXPO_PUBLIC_SHOPIFY_API_VERSION ?? DEFAULT_API_VERSION,
 });

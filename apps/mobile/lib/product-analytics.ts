@@ -7,8 +7,13 @@ import {
 } from "@formulate/analytics";
 import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
-import { useSyncExternalStore } from "react";
 import { Platform } from "react-native";
+
+import {
+  POSTHOG_KEY,
+  subscribeToTrackingConsent,
+  trackingConsent,
+} from "./tracking-consent";
 
 /**
  * PostHog product analytics in the app (SHO-87), the app's half of
@@ -18,84 +23,50 @@ import { Platform } from "react-native";
  * ⚠️ As on web, the gate is the client's existence. `analytics()` is null until
  * the shopper accepts in the app's banner (components/analytics-consent.tsx),
  * and the anonymous id is only created then. Declining, or withdrawing later,
- * deletes it.
+ * deletes it. The choice itself lives in lib/tracking-consent.ts, shared with
+ * Klaviyo.
  *
- * The choice and the id are kept in the keychain (expo-secure-store), the app's
- * one persistent store; the session lives in memory and ends after 30 idle
- * minutes or when the app process does.
+ * The id is kept in the keychain (expo-secure-store), the app's one persistent
+ * store; the session lives in memory and ends after 30 idle minutes or when
+ * the app process does.
  */
 
-export const POSTHOG_KEY = process.env.EXPO_PUBLIC_POSTHOG_KEY ?? "";
-
-export type AnalyticsConsent = "granted" | "denied" | "unset" | "loading";
-
-const CONSENT_KEY = "formulate.analytics.consent";
 const ID_KEY = "formulate.analytics.id";
 
-let consent: AnalyticsConsent = POSTHOG_KEY ? "loading" : "denied";
 let distinctId: string | null = null;
 let session: { id: string; lastActive: number } | null = null;
 let client: ProductAnalytics | null = null;
-const listeners = new Set<() => void>();
 
-const notify = () => listeners.forEach((listener) => listener());
+/**
+ * Reads the stored anonymous id. Called at startup **before** the choice is
+ * loaded (app/_layout.tsx), so no event can be sent, and mint a new id over a
+ * returning shopper's, while the keychain read is still in flight: `analytics()`
+ * is null until the choice says `granted`, and that comes second. An id only
+ * exists if the shopper accepted before, so reading it tracks nothing.
+ */
+/** Counts withdrawals, so an id read that started before one is discarded. */
+let forgotten = 0;
 
-/** Reads the stored choice once, at startup (app/_layout.tsx). */
-export const loadAnalyticsConsent = async (): Promise<void> => {
+export const loadAnalyticsIdentity = async (): Promise<void> => {
   if (!POSTHOG_KEY) return;
-  const stored = await SecureStore.getItemAsync(CONSENT_KEY).catch(() => null);
-  consent = stored === "granted" || stored === "denied" ? stored : "unset";
-  if (consent === "granted") {
-    const stored = await SecureStore.getItemAsync(ID_KEY).catch(() => null);
-    // The choice can change while the id is read (the banner reopened and
-    // declined); a withdrawal must not get the old id back.
-    if (consent === "granted") distinctId = stored;
-  }
-  notify();
+  const generation = forgotten;
+  const stored = await SecureStore.getItemAsync(ID_KEY).catch(() => null);
+  // A decline during the read deletes the id; the read mustn't bring it back.
+  if (generation === forgotten) distinctId ??= stored;
 };
 
-export const setAnalyticsConsent = async (next: "granted" | "denied"): Promise<void> => {
-  consent = next;
-  await SecureStore.setItemAsync(CONSENT_KEY, next).catch(() => undefined);
-  if (next === "denied") {
-    distinctId = null;
-    session = null;
-    client = null;
-    await SecureStore.deleteItemAsync(ID_KEY).catch(() => undefined);
-  }
-  notify();
-};
-
-/** Re-renders when the choice changes or finishes loading. */
-export const useAnalyticsConsent = (): AnalyticsConsent =>
-  useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    () => consent,
-    () => consent,
-  );
-
-let askAgain = false;
-/** "Privacy choices" in the footer: show the banner again. */
-export const reopenAnalyticsChoice = (): void => {
-  askAgain = true;
-  notify();
-};
-export const useAnalyticsChoiceReopened = (): boolean =>
-  useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    () => askAgain,
-    () => askAgain,
-  );
-export const closeAnalyticsChoice = (): void => {
-  askAgain = false;
-  notify();
-};
+/*
+ * Follows the app's one tracking choice (lib/tracking-consent.ts): declining,
+ * or withdrawing later, deletes the id, the session and the client.
+ */
+subscribeToTrackingConsent(() => {
+  if (trackingConsent() !== "denied") return;
+  forgotten += 1;
+  distinctId = null;
+  session = null;
+  client = null;
+  void SecureStore.deleteItemAsync(ID_KEY).catch(() => undefined);
+});
 
 const identity = () => {
   if (!distinctId) {
@@ -112,7 +83,7 @@ const identity = () => {
 
 /** The client, or null without a key or consent. */
 export const analytics = (): ProductAnalytics | null => {
-  if (!POSTHOG_KEY || consent !== "granted") return null;
+  if (!POSTHOG_KEY || trackingConsent() !== "granted") return null;
   client ??= createProductAnalytics({
     apiKey: POSTHOG_KEY,
     surface: "app",
