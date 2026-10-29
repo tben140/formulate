@@ -104,7 +104,15 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       const added = addedToCartProperties(line, state.addedQuantity ?? 1);
       if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
     }
-  }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
+  }, [
+    state.token,
+    state.status,
+    state.cart,
+    state.addedLineId,
+    state.addedQuantity,
+    openCart,
+    storeDomain,
+  ]);
 
   const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
   const displayPrice =
