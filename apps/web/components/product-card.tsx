@@ -8,7 +8,7 @@ import { Image } from "@shopify/hydrogen-react";
 import Link from "next/link";
 
 import { CampaignBadge } from "@/components/campaign-badge";
-import { now } from "@/lib/campaign";
+import { campaignView } from "@/lib/campaign";
 
 type CardImage = {
   readonly url: string;
@@ -36,7 +36,7 @@ export type ProductCardData = {
  * raced the LCP image and the JavaScript on a phone (SHO-148). Use
  * `priorityIndex` from @formulate/shopify to pick it.
  */
-export const ProductCard = ({
+export const ProductCard = async ({
   product,
   sizes,
   headingLevel = "h2",
@@ -48,7 +48,7 @@ export const ProductCard = ({
   readonly priority?: boolean;
 }) => {
   const Heading = headingLevel;
-  const badge = campaignBadge(product.campaign, now());
+  const badge = campaignBadge(product.campaign, await campaignView());
   return (
     <Link
       href={`/products/${product.handle}`}

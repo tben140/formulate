@@ -136,16 +136,51 @@ handling opens it in the campaign screen. The route-parity test covers it.
 - **Cost:** a traffic spike counts against Vercel's free CDN allowance.
   Hero images go through Shopify's CDN at the right sizes.
 
-## Checking a campaign before it starts
+## Previewing a campaign
 
-Each surface can be shown a different "now", outside production only:
+Before a campaign starts, or for one only emails can reach, open its preview
+link. It shows the whole surface as if that campaign were live, for you only,
+with a "Previewing … Stop preview" strip. Only what's shown changes: Shopify
+still applies the discount on its own dates.
 
-- **Web:** `CAMPAIGN_PREVIEW_AT=2026-11-28T12:00:00Z` (ignored when
-  `VERCEL_ENV` is `production`).
-- **Theme:** the "Campaign preview time" theme setting, on an unpublished
-  theme. Leave it empty on the live theme.
-- **App:** `EXPO_PUBLIC_CAMPAIGN_PREVIEW_AT`, honoured in development builds
-  only.
+| Surface | How                                                                                                                                              |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Web     | `https://<site>/pages/campaigns/<handle>/preview?token=<CAMPAIGN_PREVIEW_TOKEN>`. Lasts a day in that browser, or until Stop.                    |
+| App     | `formulate://pages/campaigns/<handle>?preview=<token>` (Expo Go: `exp://<host>/--/pages/campaigns/<handle>?preview=<token>`). Lasts the session. |
+| Theme   | An unpublished copy of the theme with "Campaign preview time" set (theme settings → Campaigns), opened with its Preview link.                    |
+
+`CAMPAIGN_PREVIEW_TOKEN` is a long random secret set **in Vercel only**. The
+app sends the token to the web site's `/api/campaign-preview` to check it, so
+the secret is never in the app's bundle. A wrong token gets a plain 404.
+
+For local checks, `CAMPAIGN_PREVIEW_AT` (web) and
+`EXPO_PUBLIC_CAMPAIGN_PREVIEW_AT` (app, development builds) move the clock
+instead. Both are ignored in production.
+
+## Offers only for people with an email link
+
+Set the campaign's **Audience** to `email_link`. Then:
+
+1. **Make the codes single-use, one per person.** A Shopify discount with
+   unique codes, loaded into a Klaviyo coupon, as the welcome flow does. A
+   shared code ends up on deal sites; a single-use one can't spread.
+2. **Link to** `https://<site>/discount/<code>?redirect=/pages/campaigns/<handle>`
+   in the email (Klaviyo fills `<code>` per person).
+3. **The link puts the code on the cart** and opens the campaign page. Web and
+   the app handle `/discount/<code>` themselves; the theme uses Shopify's own.
+4. **Only people who came through the link see it.** Web remembers that in a
+   cookie for 30 days, the app on the device. Everyone else gets no banner or
+   badges, and the page says the offer is for email subscribers. Liquid can't
+   tell who came through the link, so the theme never advertises an email-only
+   campaign; its page shows to anyone with the URL, kept out of search, and
+   the code remains the gate.
+
+Shopify decides whether a code is valid, at checkout. A wrong code still
+opens the page; the cart simply shows no discount.
+
+## Moving the clock (local checks)
+
+See "Previewing a campaign" above.
 
 ## Where it lives
 

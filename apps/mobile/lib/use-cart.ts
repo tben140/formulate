@@ -183,3 +183,20 @@ export const useIdentifyBuyer = () => {
     onError: () => undefined,
   });
 };
+
+/**
+ * Applies an email link's discount code to the cart (SHO-169), making a cart
+ * if there's none. Shopify decides at checkout whether the code is valid.
+ */
+export const useApplyDiscountCode = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (code: string) => {
+      const result = await cartClient.applyDiscountCode(await readCartId(), code);
+      if (!result.ok) throw shopperError(result.error);
+      await writeCartId(result.data.id);
+      return result.data;
+    },
+    onSuccess: (cart) => queryClient.setQueryData(CART_KEY, cart),
+  });
+};

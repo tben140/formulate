@@ -12,6 +12,29 @@
     render 'campaign-status', campaign: campaign
   endcapture
   assign status = status | strip
+
+  comment
+    An email-link campaign: the page is reached from the email, after
+    Shopify's /discount/<code> link has put the code on the cart. Liquid can't
+    see who came that way, so the page shows on its dates to anyone with the
+    URL; the single-use code is the real gate. Banners and badges never show
+    it, and it's kept out of search (layout/theme.liquid).
+  endcomment
+  if status == 'restricted'
+    assign start_s = campaign.starts_at.value | date: '%s' | plus: 0
+    assign end_s = campaign.ends_at.value | date: '%s' | plus: 0
+    assign now_s = 'now' | date: '%s' | plus: 0
+    if settings.campaign_preview_at != blank
+      assign now_s = settings.campaign_preview_at | date: '%s' | plus: 0
+    endif
+    if now_s < start_s
+      assign status = 'upcoming'
+    elsif now_s < end_s
+      assign status = 'active'
+    else
+      assign status = 'ended'
+    endif
+  endif
   assign headline = campaign.headline.value | default: campaign.title.value
 -%}
 

@@ -26,6 +26,10 @@
 
     {% # Social, title, etc. %}
     {% render 'meta-tags' %}
+    {%- comment -%} An email-only campaign page stays out of search (SHO-169). {%- endcomment -%}
+    {%- if metaobject.audience.value == 'email_link' -%}
+      <meta name="robots" content="noindex, nofollow">
+    {%- endif -%}
 
     {% # Import map and web components %}
     {% render 'scripts' %}

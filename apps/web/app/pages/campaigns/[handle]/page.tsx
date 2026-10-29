@@ -17,7 +17,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CampaignBadge } from "@/components/campaign-badge";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
-import { now } from "@/lib/campaign";
+import { campaignView } from "@/lib/campaign";
 import { baseOpenGraph } from "@/lib/site";
 import { storefront } from "@/lib/storefront";
 
@@ -34,6 +34,9 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   const result = await getCampaign(handle);
   const campaign = result.ok ? toCampaign(result.data.metaobject) : null;
   if (!campaign) return {};
+  // An email-only offer is kept out of search engines and link previews.
+  if (campaign.audience === "email_link")
+    return { title: campaign.title, robots: { index: false, follow: false } };
   return {
     title: campaign.headline,
     description: campaign.offer,
@@ -63,7 +66,7 @@ const CampaignPage = async ({ params }: PageProps) => {
   const campaign = toCampaign(result.data.metaobject);
   if (!campaign) notFound();
 
-  const status = campaignStatus(campaign, now());
+  const status = campaignStatus(campaign, await campaignView());
   const products =
     status === "active"
       ? (result.data.metaobject?.products?.reference?.products.nodes ?? [])
@@ -85,9 +88,11 @@ const CampaignPage = async ({ params }: PageProps) => {
               ? campaignStartsLabel(campaign)
               : status === "active"
                 ? campaignEndsLabel(campaign)
-                : "This offer has ended."}
+                : status === "restricted"
+                  ? "This offer is for our email subscribers. Open it from the link in your email."
+                  : "This offer has ended."}
           </p>
-          {status !== "ended" ? (
+          {status === "upcoming" || status === "active" ? (
             <div className="mt-4 space-y-3">
               {paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
@@ -98,7 +103,7 @@ const CampaignPage = async ({ params }: PageProps) => {
               Shop the range
             </Link>
           )}
-          {status !== "ended" && campaign.subscriberPerk ? (
+          {(status === "upcoming" || status === "active") && campaign.subscriberPerk ? (
             <p className="mt-4 rounded-lg border border-border p-3 text-sm">
               <strong className="font-semibold">Subscribers:</strong>{" "}
               {campaign.subscriberPerk}.

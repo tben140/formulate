@@ -12,7 +12,7 @@ import { useCartUi } from "../../components/cart-provider";
 import { PairsWellWith } from "../../components/pairs-well-with";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
-import { campaignClock } from "../../lib/campaign";
+import { useCampaignView } from "../../lib/campaign";
 import { useProduct } from "../../lib/queries";
 import { usePurchase, type Product } from "../../lib/use-purchase";
 
@@ -81,14 +81,14 @@ const ProductBody = ({ product }: { product: Product }) => {
   const purchase = usePurchase(product);
 
   // The campaign, if live for any variant; named variants when it's narrowed.
-  const now = campaignClock();
+  const campaignView = useCampaignView();
   const variantCampaigns = product.variants.nodes.map((variant) => variant.campaign);
   const covered = product.variants.nodes.filter((variant) =>
-    campaignForVariant(product.campaign, variant, variantCampaigns, now),
+    campaignForVariant(product.campaign, variant, variantCampaigns, campaignView),
   );
   const campaign =
     covered.length > 0
-      ? campaignForVariant(product.campaign, covered[0], variantCampaigns, now)
+      ? campaignForVariant(product.campaign, covered[0], variantCampaigns, campaignView)
       : null;
   const coveredNames =
     covered.length < product.variants.nodes.length

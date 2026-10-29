@@ -14,6 +14,7 @@ import type {
 import {
   CartBuyerIdentityUpdateMutation,
   CartCreateMutation,
+  CartDiscountCodesUpdateMutation,
   CartLinesAddMutation,
   CartLinesRemoveMutation,
   CartLinesUpdateMutation,
@@ -202,6 +203,16 @@ export interface CartClient {
   readonly setBuyerIdentity: (
     cartId: string,
     buyerIdentity: CartBuyerIdentityInput,
+  ) => Promise<StorefrontResult<Cart>>;
+
+  /**
+   * Adds a discount code to the cart, keeping any already there, or makes a
+   * cart holding just the code when there's none (or it has gone). Persist
+   * `result.data.id` on success. For email links: /discount/<code>.
+   */
+  readonly applyDiscountCode: (
+    cartId: string | null,
+    code: string,
   ) => Promise<StorefrontResult<Cart>>;
 }
 
@@ -406,6 +417,34 @@ export const createCartClient = (
         visitorConsent: await consent(),
       });
       return result.ok ? fromPayload(result.data.cartLinesRemove) : result;
+    },
+
+    applyDiscountCode: async (cartId, code) => {
+      if (cartId) {
+        const current = await storefront.request(CartQuery, {
+          id: cartId,
+          visitorConsent: await consent(),
+        });
+        if (!current.ok) return current;
+        const cart = current.data.cart;
+        if (cart) {
+          const codes = cart.discountCodes.map((discount) => discount.code);
+          const updated = await storefront.request(CartDiscountCodesUpdateMutation, {
+            cartId,
+            discountCodes: codes.includes(code) ? codes : [...codes, code],
+            visitorConsent: await consent(),
+          });
+          return updated.ok ? fromPayload(updated.data.cartDiscountCodesUpdate) : updated;
+        }
+      }
+      const created = await storefront.request(CartCreateMutation, {
+        visitorConsent: await consent(),
+        input: {
+          discountCodes: [code],
+          buyerIdentity: { countryCode: DEFAULT_COUNTRY_CODE as CountryCode },
+        },
+      });
+      return created.ok ? fromPayload(created.data.cartCreate) : created;
     },
 
     setBuyerIdentity: async (cartId, buyerIdentity) => {

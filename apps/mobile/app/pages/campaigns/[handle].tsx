@@ -7,11 +7,16 @@ import {
 } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Link, Stack, useLocalSearchParams } from "expo-router";
+import { useEffect } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 import { CampaignBadge } from "../../../components/campaign-badge";
 import { ProductRow } from "../../../components/product-row";
-import { campaignClock, useCampaign } from "../../../lib/campaign";
+import {
+  startCampaignPreview,
+  useCampaign,
+  useCampaignView,
+} from "../../../lib/campaign";
 
 /**
  * A campaign's screen (SHO-169), at the same path as its web and theme page,
@@ -20,8 +25,17 @@ import { campaignClock, useCampaign } from "../../../lib/campaign";
  * starts it says when; afterwards that it has ended.
  */
 const CampaignScreen = () => {
-  const { handle = "" } = useLocalSearchParams<{ handle: string }>();
+  const { handle = "", preview } = useLocalSearchParams<{
+    handle: string;
+    preview?: string;
+  }>();
   const { data, isPending, isError } = useCampaign(handle);
+  const view = useCampaignView();
+
+  // A preview link (?preview=<token>): the web site checks the token.
+  useEffect(() => {
+    if (preview) void startCampaignPreview(handle, preview);
+  }, [handle, preview]);
 
   if (isPending) {
     return (
@@ -44,7 +58,7 @@ const CampaignScreen = () => {
     );
   }
 
-  const status = campaignStatus(campaign, campaignClock());
+  const status = campaignStatus(campaign, view);
   const products =
     status === "active"
       ? (data?.metaobject?.products?.reference?.products.nodes ?? [])
@@ -76,9 +90,11 @@ const CampaignScreen = () => {
             ? campaignStartsLabel(campaign)
             : status === "active"
               ? campaignEndsLabel(campaign)
-              : "This offer has ended."}
+              : status === "restricted"
+                ? "This offer is for our email subscribers. Open it from the link in your email."
+                : "This offer has ended."}
         </Text>
-        {status === "ended" ? (
+        {status === "ended" || status === "restricted" ? (
           <Link href="/" asChild>
             <Pressable accessibilityRole="link" className="self-start">
               <Text className="text-base text-foreground underline">Shop the range</Text>
@@ -91,7 +107,7 @@ const CampaignScreen = () => {
             </Text>
           ))
         )}
-        {status !== "ended" && campaign.subscriberPerk ? (
+        {(status === "upcoming" || status === "active") && campaign.subscriberPerk ? (
           <View className="rounded-lg border border-border p-3">
             <Text className="text-sm text-foreground">
               <Text className="font-semibold">Subscribers:</Text>{" "}

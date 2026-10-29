@@ -49,6 +49,7 @@ export {
   CartLinesUpdateMutation,
   CampaignByHandleQuery,
   CampaignsQuery,
+  CartDiscountCodesUpdateMutation,
   CartQuery,
   CollectionCardsQuery,
   CollectionProductsQuery,
@@ -114,12 +115,22 @@ export {
   campaignBadge,
   campaignEndsLabel,
   campaignForVariant,
+  campaignHandleFromPath,
   campaignNow,
   campaignParagraphs,
   campaignPath,
   campaignStartsLabel,
   campaignStatus,
+  canSeeCampaign,
   isCampaignActive,
+  isCampaignLive,
+  safeRedirectPath,
   toCampaign,
 } from "./campaign";
-export type { Campaign, CampaignImage, CampaignNode, CampaignRef } from "./campaign";
+export type {
+  Campaign,
+  CampaignImage,
+  CampaignNode,
+  CampaignRef,
+  CampaignView,
+} from "./campaign";

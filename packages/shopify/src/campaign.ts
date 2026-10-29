@@ -27,6 +27,7 @@ export interface CampaignNode {
   readonly subscriberPerk?: FieldValue | null;
   readonly body?: FieldValue | null;
   readonly terms?: FieldValue | null;
+  readonly audience?: FieldValue | null;
   readonly image?: {
     readonly reference?: {
       readonly image?: CampaignImage | null;
@@ -60,6 +61,22 @@ export interface Campaign {
   readonly terms: string;
   readonly image: CampaignImage | null;
   readonly collectionHandle: string | null;
+  /** `email_link`: only for people who arrived through an email link. */
+  readonly audience: "everyone" | "email_link";
+}
+
+/**
+ * Who's looking, and when. Surfaces build one per request (web) or render
+ * (app) and pass it to everything below.
+ *
+ * - `preview`: a campaign handle being previewed through a preview link. It's
+ *   shown as if live, whatever its dates or audience.
+ * - `access`: campaigns this visitor reached through an email link.
+ */
+export interface CampaignView {
+  readonly now: Date;
+  readonly preview?: string | null;
+  readonly access?: ReadonlySet<string>;
 }
 
 const text = (field: FieldValue | null | undefined): string | null => {
@@ -103,6 +120,7 @@ export const toCampaign = (node: CampaignNode | null | undefined): Campaign | nu
     terms,
     image: node.image?.reference?.image ?? null,
     collectionHandle: node.collection?.reference?.handle ?? null,
+    audience: text(node.audience) === "email_link" ? "email_link" : "everyone",
   };
 };
 
@@ -110,19 +128,35 @@ export const toCampaign = (node: CampaignNode | null | undefined): Campaign | nu
 export const isCampaignActive = (campaign: Campaign, now: Date): boolean =>
   campaign.startsAt <= now && now < campaign.endsAt;
 
+/** Whether this visitor may see the campaign at all, dates aside. */
+export const canSeeCampaign = (campaign: Campaign, view: CampaignView): boolean =>
+  view.preview === campaign.handle ||
+  campaign.audience === "everyone" ||
+  (view.access?.has(campaign.handle) ?? false);
+
+/** Shown as live to this visitor: previewed, or live and visible to them. */
+export const isCampaignLive = (campaign: Campaign, view: CampaignView): boolean =>
+  view.preview === campaign.handle ||
+  (canSeeCampaign(campaign, view) && isCampaignActive(campaign, view.now));
+
 /**
- * The campaign to show site-wide: the active one ending soonest, so the most
- * urgent offer leads when two overlap.
+ * The campaign to show site-wide: a previewed one first, then the live one
+ * ending soonest, so the most urgent offer leads when two overlap.
  */
 export const activeCampaign = (
   nodes: readonly (CampaignNode | null | undefined)[],
-  now: Date,
-): Campaign | null =>
-  nodes
+  view: CampaignView,
+): Campaign | null => {
+  const live = nodes
     .map(toCampaign)
     .filter((campaign): campaign is Campaign => campaign !== null)
-    .filter((campaign) => isCampaignActive(campaign, now))
-    .sort((a, b) => a.endsAt.getTime() - b.endsAt.getTime())[0] ?? null;
+    .filter((campaign) => isCampaignLive(campaign, view));
+  return (
+    live.find((campaign) => campaign.handle === view.preview) ??
+    live.sort((a, b) => a.endsAt.getTime() - b.endsAt.getTime())[0] ??
+    null
+  );
+};
 
 /** A product's or variant's `double_helix.campaign` field. */
 export interface CampaignRef {
@@ -130,7 +164,7 @@ export interface CampaignRef {
 }
 
 /**
- * The campaign for one variant, if it's live.
+ * The campaign for one variant, if it's live for this visitor.
  *
  * The product's field puts the product in the campaign. If any of its variants
  * also has the field, the campaign covers only those variants, e.g. only the
@@ -140,25 +174,25 @@ export const campaignForVariant = (
   productCampaign: CampaignRef | null | undefined,
   variant: { readonly campaign?: CampaignRef | null } | null | undefined,
   variantCampaigns: readonly (CampaignRef | null | undefined)[],
-  now: Date,
+  view: CampaignView,
 ): Campaign | null => {
   const campaign = toCampaign(productCampaign?.reference as CampaignNode | null);
-  if (!campaign || !isCampaignActive(campaign, now)) return null;
+  if (!campaign || !isCampaignLive(campaign, view)) return null;
   const narrowed = variantCampaigns.some((ref) => ref?.reference?.handle);
   if (narrowed && variant?.campaign?.reference?.handle !== campaign.handle) return null;
   return campaign;
 };
 
 /**
- * The badge for a product card: the product's campaign, if it's live. Cards
- * don't narrow by variant; the product page does.
+ * The badge for a product card: the product's campaign, if it's live for this
+ * visitor. Cards don't narrow by variant; the product page does.
  */
 export const campaignBadge = (
   productCampaign: CampaignRef | null | undefined,
-  now: Date,
+  view: CampaignView,
 ): string | null => {
   const campaign = toCampaign(productCampaign?.reference as CampaignNode | null);
-  return campaign && isCampaignActive(campaign, now) ? campaign.badge : null;
+  return campaign && isCampaignLive(campaign, view) ? campaign.badge : null;
 };
 
 /** The same path on the theme (Shopify's metaobject pages) and on web. */
@@ -199,12 +233,33 @@ export const campaignEndsLabel = (campaign: Campaign): string =>
 export const campaignStartsLabel = (campaign: Campaign): string =>
   `Starts ${ukTime(campaign.startsAt)}`;
 
-/** Where a campaign is relative to now, for its landing page. */
+/**
+ * Where a campaign is for this visitor, for its landing page. `restricted`:
+ * an email-link campaign reached without the link.
+ */
 export const campaignStatus = (
   campaign: Campaign,
-  now: Date,
-): "upcoming" | "active" | "ended" =>
-  now < campaign.startsAt ? "upcoming" : now < campaign.endsAt ? "active" : "ended";
+  view: CampaignView,
+): "upcoming" | "active" | "ended" | "restricted" => {
+  if (view.preview === campaign.handle) return "active";
+  if (!canSeeCampaign(campaign, view)) return "restricted";
+  return view.now < campaign.startsAt
+    ? "upcoming"
+    : view.now < campaign.endsAt
+      ? "active"
+      : "ended";
+};
+
+/**
+ * Where an email link may send someone after applying its code: a path on
+ * this site only, never another origin (`//evil.example`, `/\evil.example`).
+ */
+export const safeRedirectPath = (redirect: string | null | undefined): string =>
+  redirect && /^\/(?![/\\])[^\s]*$/.test(redirect) ? redirect : "/";
+
+/** The campaign a path is the landing page of, if any. */
+export const campaignHandleFromPath = (path: string): string | null =>
+  /^\/pages\/campaigns\/([a-z0-9-]+)\/?(?:[?#].*)?$/.exec(path)?.[1] ?? null;
 
 interface RichTextNode {
   readonly type?: string;

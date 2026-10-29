@@ -1,6 +1,8 @@
 {% doc %}
   Outputs one word for a campaign metaobject (SHO-169): `active`, `upcoming`,
-  `ended`, or `invalid` when it can't be shown honestly (no dates, dates the
+  `ended`, `restricted` for an email-link-only campaign (Liquid can't tell
+  who arrived through the link, so the theme never advertises one), or
+  `invalid` when it can't be shown honestly (no dates, dates the
   wrong way round, no badge, offer or terms). Capture it to branch on it.
 
   The same rules as packages/shopify/src/campaign.ts, which web and the app
@@ -27,6 +29,8 @@
     echo 'invalid'
   elsif campaign.badge.value == blank or campaign.offer.value == blank or campaign.terms.value == blank
     echo 'invalid'
+  elsif campaign.audience.value == 'email_link'
+    echo 'restricted'
   elsif now_s < start_s
     echo 'upcoming'
   elsif now_s < end_s

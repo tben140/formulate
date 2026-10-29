@@ -439,6 +439,12 @@ export const CartFields = graphql(`
     id
     checkoutUrl
     totalQuantity
+    # Codes applied, e.g. from an email link (/discount/<code>). Kept so a new
+    # code is added to them rather than replacing them.
+    discountCodes {
+      code
+      applicable
+    }
     buyerIdentity {
       countryCode
     }
@@ -548,6 +554,26 @@ export const CartCreateMutation = graphql(`
         code
         message
         target
+      }
+    }
+  }
+`);
+
+/** Sets the cart's discount codes, e.g. one from an email link (SHO-169). */
+export const CartDiscountCodesUpdateMutation = graphql(`
+  mutation CartDiscountCodesUpdate(
+    $cartId: ID!
+    $discountCodes: [String!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
+    cartDiscountCodesUpdate(cartId: $cartId, discountCodes: $discountCodes) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+        code
       }
     }
   }
@@ -763,6 +789,9 @@ export const CampaignBadgeFields = graphql(`
       value
     }
     terms: field(key: "terms") {
+      value
+    }
+    audience: field(key: "audience") {
       value
     }
   }

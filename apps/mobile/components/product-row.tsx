@@ -8,7 +8,7 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Text, View } from "react-native";
 
-import { campaignClock } from "../lib/campaign";
+import { useCampaignView } from "../lib/campaign";
 import { CampaignBadge } from "./campaign-badge";
 
 export type ProductRowData = {
@@ -25,7 +25,7 @@ export type ProductRowData = {
  * product screen. Used by collection screens and the home screen.
  */
 export const ProductRow = ({ product }: { readonly product: ProductRowData }) => {
-  const badge = campaignBadge(product.campaign, campaignClock());
+  const badge = campaignBadge(product.campaign, useCampaignView());
   return (
     <Link href={`/products/${product.handle}`} asChild>
       <View

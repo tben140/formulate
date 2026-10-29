@@ -12,7 +12,7 @@ import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
-import { now } from "@/lib/campaign";
+import { campaignView } from "@/lib/campaign";
 import { getProduct } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
 import { baseOpenGraph } from "@/lib/site";
@@ -79,13 +79,14 @@ const ProductPage = async ({ params }: PageProps) => {
   const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, navLinks);
 
   // The campaign, if live for any variant; named variants when it's narrowed.
+  const view = await campaignView();
   const variantCampaigns = product.variants.nodes.map((variant) => variant.campaign);
   const covered = product.variants.nodes.filter((variant) =>
-    campaignForVariant(product.campaign, variant, variantCampaigns, now()),
+    campaignForVariant(product.campaign, variant, variantCampaigns, view),
   );
   const campaign =
     covered.length > 0
-      ? campaignForVariant(product.campaign, covered[0], variantCampaigns, now())
+      ? campaignForVariant(product.campaign, covered[0], variantCampaigns, view)
       : null;
   const coveredNames =
     covered.length < product.variants.nodes.length

@@ -9,7 +9,9 @@ import {
   campaignParagraphs,
   campaignPath,
   campaignStartsLabel,
+  campaignHandleFromPath,
   campaignStatus,
+  safeRedirectPath,
   toCampaign,
   type CampaignNode,
 } from "./campaign";
@@ -48,11 +50,11 @@ describe("toCampaign", () => {
 
 describe("activeCampaign", () => {
   it("is live from the start up to, not including, the end", () => {
-    expect(activeCampaign([blackFriday], before)).toBeNull();
-    expect(activeCampaign([blackFriday], new Date("2026-11-27T00:00:00Z"))?.handle).toBe(
+    expect(activeCampaign([blackFriday], { now: before })).toBeNull();
+    expect(activeCampaign([blackFriday], { now: new Date("2026-11-27T00:00:00Z") })?.handle).toBe(
       "black-friday-2026",
     );
-    expect(activeCampaign([blackFriday], end)).toBeNull();
+    expect(activeCampaign([blackFriday], { now: end })).toBeNull();
   });
 
   it("leads with the campaign ending soonest", () => {
@@ -61,7 +63,7 @@ describe("activeCampaign", () => {
       handle: "flash",
       endsAt: v("2026-11-29T00:00:00Z"),
     };
-    expect(activeCampaign([blackFriday, flash, null], during)?.handle).toBe("flash");
+    expect(activeCampaign([blackFriday, flash, null], { now: during })?.handle).toBe("flash");
   });
 });
 
@@ -71,27 +73,27 @@ describe("campaignForVariant", () => {
   const notIn = { campaign: null };
 
   it("covers every variant when none is narrowed", () => {
-    expect(campaignForVariant(product, notIn, [null, null], during)?.badge).toBe(
+    expect(campaignForVariant(product, notIn, [null, null], { now: during })?.badge).toBe(
       "Black Friday",
     );
   });
 
   it("covers only the marked variants when some are", () => {
     const refs = [in90.campaign, null];
-    expect(campaignForVariant(product, in90, refs, during)).not.toBeNull();
-    expect(campaignForVariant(product, notIn, refs, during)).toBeNull();
+    expect(campaignForVariant(product, in90, refs, { now: during })).not.toBeNull();
+    expect(campaignForVariant(product, notIn, refs, { now: during })).toBeNull();
   });
 
   it("shows nothing outside the dates", () => {
-    expect(campaignForVariant(product, notIn, [], before)).toBeNull();
+    expect(campaignForVariant(product, notIn, [], { now: before })).toBeNull();
   });
 });
 
 describe("campaignBadge", () => {
   it("badges a card only while the campaign is live", () => {
-    expect(campaignBadge({ reference: blackFriday }, during)).toBe("Black Friday");
-    expect(campaignBadge({ reference: blackFriday }, before)).toBeNull();
-    expect(campaignBadge(null, during)).toBeNull();
+    expect(campaignBadge({ reference: blackFriday }, { now: during })).toBe("Black Friday");
+    expect(campaignBadge({ reference: blackFriday }, { now: before })).toBeNull();
+    expect(campaignBadge(null, { now: during })).toBeNull();
   });
 });
 
@@ -105,9 +107,9 @@ describe("helpers", () => {
   it("knows whether a campaign is upcoming, live or over", () => {
     const campaign = toCampaign(blackFriday);
     if (!campaign) throw new Error("expected a campaign");
-    expect(campaignStatus(campaign, before)).toBe("upcoming");
-    expect(campaignStatus(campaign, during)).toBe("active");
-    expect(campaignStatus(campaign, end)).toBe("ended");
+    expect(campaignStatus(campaign, { now: before })).toBe("upcoming");
+    expect(campaignStatus(campaign, { now: during })).toBe("active");
+    expect(campaignStatus(campaign, { now: end })).toBe("ended");
   });
 
   it("uses a preview time only when it parses", () => {
@@ -131,5 +133,48 @@ describe("helpers", () => {
     expect(campaignParagraphs(body)).toEqual(["One.", "Two"]);
     expect(campaignParagraphs("{")).toEqual([]);
     expect(campaignParagraphs(null)).toEqual([]);
+  });
+});
+
+describe("who sees a campaign", () => {
+  const emailOnly: CampaignNode = { ...blackFriday, handle: "vip", audience: v("email_link") };
+
+  it("hides an email-link campaign from everyone without the link", () => {
+    expect(activeCampaign([emailOnly], { now: during })).toBeNull();
+    expect(campaignBadge({ reference: emailOnly }, { now: during })).toBeNull();
+    const campaign = toCampaign(emailOnly);
+    expect(campaign && campaignStatus(campaign, { now: during })).toBe("restricted");
+  });
+
+  it("shows it to someone who came through the link, on its dates", () => {
+    const access = new Set(["vip"]);
+    expect(activeCampaign([emailOnly], { now: during, access })?.handle).toBe("vip");
+    expect(activeCampaign([emailOnly], { now: before, access })).toBeNull();
+  });
+
+  it("shows a previewed campaign as live, whatever its dates or audience", () => {
+    const view = { now: before, preview: "vip" };
+    expect(activeCampaign([blackFriday, emailOnly], view)?.handle).toBe("vip");
+    expect(campaignBadge({ reference: emailOnly }, view)).toBe("Black Friday");
+    const campaign = toCampaign(emailOnly);
+    expect(campaign && campaignStatus(campaign, view)).toBe("active");
+    // Only the previewed one: Black Friday itself is still upcoming.
+    expect(campaignBadge({ reference: blackFriday }, view)).toBeNull();
+  });
+});
+
+describe("email links", () => {
+  it("redirects only to a path on this site", () => {
+    expect(safeRedirectPath("/pages/campaigns/vip")).toBe("/pages/campaigns/vip");
+    expect(safeRedirectPath("//evil.example")).toBe("/");
+    expect(safeRedirectPath("/\\evil.example")).toBe("/");
+    expect(safeRedirectPath("https://evil.example")).toBe("/");
+    expect(safeRedirectPath(null)).toBe("/");
+  });
+
+  it("finds the campaign a landing path belongs to", () => {
+    expect(campaignHandleFromPath("/pages/campaigns/vip")).toBe("vip");
+    expect(campaignHandleFromPath("/pages/campaigns/vip?x=1")).toBe("vip");
+    expect(campaignHandleFromPath("/products/vip")).toBeNull();
   });
 });
