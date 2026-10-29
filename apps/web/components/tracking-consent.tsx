@@ -218,7 +218,9 @@ const ConsentBanner = ({
  */
 export const CookiePreferencesButton = () => {
   const context = useContext(ConsentContext);
-  if (!context || !KLAVIYO_PUBLIC_KEY) return null;
+  // The same condition as the banner: withdrawal must be reachable whenever
+  // there was anything to accept (ADR 0008).
+  if (!context || !(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY)) return null;
 
   return (
     <button

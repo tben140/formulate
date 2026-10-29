@@ -343,12 +343,11 @@ export const productViewedProperties = (
  *
  * ⚠️ `quantity` is what this add added, not the line's total. Adding a product
  * already in the cart grows its line in place, so the line's quantity counts
- * every earlier add too. Callers pass what they asked for; the line's quantity
- * is only the default for a first add.
+ * every earlier add too. Required, so no caller can forget it.
  */
 export const addedToCartProperties = (
   line: CartLineLike,
-  quantity: number = line.quantity,
+  quantity: number,
 ): ProductEventProperties["product_added_to_cart"] | null => {
   const { merchandise } = line;
   if (!merchandise.product || !merchandise.id || !merchandise.price) return null;

@@ -67,7 +67,7 @@ const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
         const line = next.cart?.lines.nodes.find((l) => l.id === next.addedLineId);
         if (next.cart && line)
           track(EVENTS.addedToCart, addedToCart(next.cart, line, storeDomain));
-        const added = line ? addedToCartProperties(line, next.addedQuantity) : null;
+        const added = line ? addedToCartProperties(line, next.addedQuantity ?? 1) : null;
         if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
         // The drawer's heading survives the re-render and announces the new
         // count, which is also the confirmation a screen reader needs. Made
