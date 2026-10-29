@@ -46,7 +46,10 @@ export const loadAnalyticsConsent = async (): Promise<void> => {
   const stored = await SecureStore.getItemAsync(CONSENT_KEY).catch(() => null);
   consent = stored === "granted" || stored === "denied" ? stored : "unset";
   if (consent === "granted") {
-    distinctId = await SecureStore.getItemAsync(ID_KEY).catch(() => null);
+    const stored = await SecureStore.getItemAsync(ID_KEY).catch(() => null);
+    // The choice can change while the id is read (the banner reopened and
+    // declined); a withdrawal must not get the old id back.
+    if (consent === "granted") distinctId = stored;
   }
   notify();
 };
