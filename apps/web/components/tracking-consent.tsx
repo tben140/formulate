@@ -29,6 +29,8 @@ import {
 
 interface ConsentContextValue {
   readonly reopen: () => void;
+  /** The current choice, for anything that waits for consent (SHO-172). */
+  readonly consent: TrackingConsent;
 }
 
 const ConsentContext = createContext<ConsentContextValue | null>(null);
@@ -130,7 +132,7 @@ export const TrackingConsentProvider = ({
     Boolean(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY) && (consent === "unset" || reopened);
 
   return (
-    <ConsentContext.Provider value={{ reopen: () => setReopened(true) }}>
+    <ConsentContext.Provider value={{ reopen: () => setReopened(true), consent }}>
       {children}
 
       {showBanner ? (
@@ -232,3 +234,7 @@ export const CookiePreferencesButton = () => {
     </button>
   );
 };
+
+/** The shopper's tracking choice, or "unset" outside the provider. */
+export const useTrackingConsent = (): TrackingConsent =>
+  useContext(ConsentContext)?.consent ?? "unset";
