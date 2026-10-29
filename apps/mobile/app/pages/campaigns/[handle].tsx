@@ -12,6 +12,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-nati
 
 import { CampaignBadge } from "../../../components/campaign-badge";
 import { ProductRow } from "../../../components/product-row";
+import { SiteFooter } from "../../../components/site-footer";
 import {
   startCampaignPreview,
   useCampaign,
@@ -66,7 +67,9 @@ const CampaignScreen = () => {
 
   return (
     <ScrollView contentContainerClassName="p-4 gap-6">
-      <Stack.Screen options={{ title: campaign.badge }} />
+      <Stack.Screen
+        options={{ title: status === "restricted" ? campaign.title : campaign.badge }}
+      />
 
       {campaign.image ? (
         <Image
@@ -78,7 +81,7 @@ const CampaignScreen = () => {
       ) : null}
 
       <View className="gap-3">
-        <CampaignBadge label={campaign.badge} />
+        {status === "restricted" ? null : <CampaignBadge label={campaign.badge} />}
         <Text
           accessibilityRole="header"
           className="text-3xl font-semibold text-foreground"
@@ -101,11 +104,17 @@ const CampaignScreen = () => {
             </Pressable>
           </Link>
         ) : (
-          campaignParagraphs(campaign.body).map((paragraph) => (
-            <Text key={paragraph} className="text-base text-foreground">
-              {paragraph}
+          <>
+            {/* The offer itself, always: `body` is optional. */}
+            <Text className="text-lg font-semibold text-foreground">
+              {campaign.offer}
             </Text>
-          ))
+            {campaignParagraphs(campaign.body).map((paragraph) => (
+              <Text key={paragraph} className="text-base text-foreground">
+                {paragraph}
+              </Text>
+            ))}
+          </>
         )}
         {(status === "upcoming" || status === "active") && campaign.subscriberPerk ? (
           <View className="rounded-lg border border-border p-3">
@@ -140,6 +149,8 @@ const CampaignScreen = () => {
         </Text>
         <Text className="text-sm text-foreground-muted">{campaign.terms}</Text>
       </View>
+
+      <SiteFooter />
     </ScrollView>
   );
 };

@@ -6,6 +6,7 @@ import {
   isCampaignHandle,
   isPreviewToken,
   PREVIEW_COOKIE,
+  previewCookieValue,
 } from "@/lib/campaign";
 
 /**
@@ -27,10 +28,12 @@ export const GET = async (
     !isPreviewToken(request.nextUrl.searchParams.get("token"))
   )
     notFound();
+  const value = previewCookieValue(handle);
+  if (!value) notFound();
   const response = NextResponse.redirect(
     new URL(`/pages/campaigns/${handle}`, request.url),
   );
-  response.cookies.set(PREVIEW_COOKIE, handle, cookieOptions(60 * 60 * 24));
+  response.cookies.set(PREVIEW_COOKIE, value, cookieOptions(60 * 60 * 24));
   response.headers.set("cache-control", "no-store");
   response.headers.set("referrer-policy", "no-referrer");
   return response;

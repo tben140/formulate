@@ -8,13 +8,14 @@
 {%- liquid
   if which == 'starts'
     assign at = campaign.starts_at.value | date: '%s' | plus: 0
-    echo 'Starts '
+    assign time = at | date: '%H:%M %a %-d %b'
+    echo 'campaign.starts' | t: time: time
   else
     comment
       The last minute the offer runs, so midnight reads as the day before.
     endcomment
     assign at = campaign.ends_at.value | date: '%s' | minus: 60
-    echo 'Ends '
+    assign time = at | date: '%H:%M %a %-d %b'
+    echo 'campaign.ends' | t: time: time
   endif
-  echo at | date: '%H:%M %a %-d %b'
 -%}

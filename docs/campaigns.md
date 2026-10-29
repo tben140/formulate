@@ -70,11 +70,13 @@ disagree.
 
 Cached pages must not outlive the campaign:
 
-- **Web:** pages that show campaign content revalidate at `starts_at` and
-  `ends_at` at the latest (a revalidate time worked out from the dates), not
-  on the usual hour.
-- **App:** TanStack Query refetches on focus; the shared function is checked
-  at render, so a stale campaign hides itself.
+- **Web:** pages render per request (the campaign view reads cookies), so
+  there's nothing to revalidate; the list of campaigns is cached for a minute,
+  shared by every visitor. A tab left open refreshes itself at the next start
+  or end time, since the layout isn't re-rendered on client-side navigation.
+- **App:** TanStack Query refetches every five minutes at most; the shared
+  function is checked at render, and the app re-renders at the next start or
+  end time, so banners, badges and offers change together.
 - **Theme:** Liquid compares the dates on each render; Shopify's page cache
   follows metaobject changes.
 
@@ -133,8 +135,9 @@ handling opens it in the campaign screen. The route-parity test covers it.
 - **Measurement:** campaign tagged on PostHog events and UTMs; a 10% holdout
   from email, so January can show what the sale added rather than moved
   forward.
-- **Cost:** a traffic spike counts against Vercel's free CDN allowance.
-  Hero images go through Shopify's CDN at the right sizes.
+- **Cost:** web pages are rendered per request, so a traffic spike costs
+  function time as well as counting against Vercel's free CDN allowance. Hero
+  images go through Shopify's CDN at the right sizes.
 
 ## Previewing a campaign
 
@@ -151,7 +154,9 @@ still applies the discount on its own dates.
 
 `CAMPAIGN_PREVIEW_TOKEN` is a long random secret set **in Vercel only**. The
 app sends the token to the web site's `/api/campaign-preview` to check it, so
-the secret is never in the app's bundle. A wrong token gets a plain 404.
+the secret is never in the app's bundle. A wrong token gets a plain 404. On
+web, the preview cookie is signed with the same secret, so it can't be set
+by hand; changing the secret ends every preview.
 
 For local checks, `CAMPAIGN_PREVIEW_AT` (web) and
 `EXPO_PUBLIC_CAMPAIGN_PREVIEW_AT` (app, development builds) move the clock
@@ -177,6 +182,12 @@ Set the campaign's **Audience** to `email_link`. Then:
 
 Shopify decides whether a code is valid, at checkout. A wrong code still
 opens the page; the cart simply shows no discount.
+
+## Housekeeping
+
+Delete a campaign's entry (and its collection and discount) once it has
+ended. The theme's banner and collections list read the first 50 campaigns
+only, a Liquid limit, so a long tail of old ones could hide a live one.
 
 ## Moving the clock (local checks)
 

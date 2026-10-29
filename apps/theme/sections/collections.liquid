@@ -18,6 +18,10 @@
     {%- endcomment -%}
     {%- liquid
       assign hidden_handles = '|'
+      comment
+        Shopify gives the first 50 campaigns here. Fine while old campaigns
+        are deleted after they end (docs/campaigns.md, "Housekeeping").
+      endcomment
       for campaign in shop.metaobjects.campaign.values
         capture status
           render 'campaign-status', campaign: campaign

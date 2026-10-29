@@ -16,12 +16,24 @@ import { cartClient, readCartId, writeCartId } from "@/lib/cart";
  * code still redirects: the page says nothing about codes, and the cart
  * simply shows no discount.
  */
+/**
+ * Next has usually decoded the segment already, so a code with a literal `%`
+ * (`50%OFF`) is no longer valid percent-encoding; it's kept as it is.
+ */
+const safeDecode = (value: string): string => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
 export const GET = async (
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> },
 ) => {
   const { code: raw } = await params;
-  const code = decodeURIComponent(raw).trim().slice(0, 255);
+  const code = safeDecode(raw).trim().slice(0, 255);
   const redirect = safeRedirectPath(request.nextUrl.searchParams.get("redirect"));
 
   if (code) {

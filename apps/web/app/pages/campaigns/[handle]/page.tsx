@@ -79,7 +79,7 @@ const CampaignPage = async ({ params }: PageProps) => {
 
       <header className="grid gap-6 md:grid-cols-2 md:items-center">
         <div>
-          <CampaignBadge label={campaign.badge} />
+          {status === "restricted" ? null : <CampaignBadge label={campaign.badge} />}
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-balance">
             {campaign.headline}
           </h1>
@@ -94,6 +94,8 @@ const CampaignPage = async ({ params }: PageProps) => {
           </p>
           {status === "upcoming" || status === "active" ? (
             <div className="mt-4 space-y-3">
+              {/* The offer itself, always: `body` is optional. */}
+              <p className="text-lg font-semibold">{campaign.offer}</p>
               {paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}

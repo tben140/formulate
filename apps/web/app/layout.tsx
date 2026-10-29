@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { CampaignBanner, CampaignPreviewStrip } from "@/components/campaign-banner";
+import { CampaignRefresh } from "@/components/campaign-refresh";
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
@@ -18,7 +19,7 @@ import {
   CookiePreferencesButton,
   TrackingConsentProvider,
 } from "@/components/tracking-consent";
-import { campaignView, getActiveCampaign } from "@/lib/campaign";
+import { campaignView, getActiveCampaign, getNextCampaignChange } from "@/lib/campaign";
 import { getCart } from "@/lib/cart";
 import { getLegalLinks, getNavLinks } from "@/lib/nav";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
@@ -59,12 +60,13 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   // In parallel: neither depends on the other, and both are on every page.
-  const [cart, navLinks, legalLinks, campaign, view] = await Promise.all([
+  const [cart, navLinks, legalLinks, campaign, view, campaignChange] = await Promise.all([
     getCart(),
     getNavLinks(),
     getLegalLinks(),
     getActiveCampaign(),
     campaignView(),
+    getNextCampaignChange(),
   ]);
   // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
   // no request at all.
@@ -104,6 +106,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
               <CampaignPreviewStrip campaign={campaign} />
             ) : null}
             {campaign ? <CampaignBanner campaign={campaign} /> : null}
+            {campaignChange ? <CampaignRefresh at={campaignChange} /> : null}
             <header className="border-b border-border">
               {/*
                 One row from md up: wordmark, collections, cart. Below that the

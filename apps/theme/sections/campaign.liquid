@@ -40,8 +40,8 @@
 
 {% if status == 'invalid' %}
   <div class="page-section">
-    <h1>This campaign isn't available.</h1>
-    <a class="campaign__link" href="{{ routes.root_url }}">Shop the range</a>
+    <h1>{{ 'campaign.unavailable' | t }}</h1>
+    <a class="campaign__link" href="{{ routes.root_url }}">{{ 'campaign.shop_the_range' | t }}</a>
   </div>
 {% else %}
   <article class="campaign page-section" data-campaign-status="{{ status }}">
@@ -58,16 +58,18 @@
             {%- when 'active' -%}
               {% render 'campaign-ends', campaign: campaign %}
             {%- else -%}
-              This offer has ended.
+              {{ 'campaign.ended' | t }}
           {%- endcase -%}
         </p>
         {% if status == 'ended' %}
-          <a class="campaign__link" href="{{ routes.root_url }}">Shop the range</a>
+          <a class="campaign__link" href="{{ routes.root_url }}">{{ 'campaign.shop_the_range' | t }}</a>
         {% else %}
+          {% comment %} The offer itself, always: `body` is optional. {% endcomment %}
+          <p class="campaign__offer">{{ campaign.offer.value | escape }}</p>
           <div class="campaign__body">{{ campaign.body | metafield_tag }}</div>
           {% if campaign.subscriber_perk.value != blank %}
             <p class="campaign__perk">
-              <strong>Subscribers:</strong>
+              <strong>{{ 'campaign.subscribers' | t }}</strong>
               {{ campaign.subscriber_perk.value | escape }}.
             </p>
           {% endif %}
@@ -88,13 +90,13 @@
 
     {% if status == 'active' and campaign.collection.value %}
       <section class="campaign__products" aria-labelledby="campaign-products">
-        <h2 id="campaign-products">In the {{ campaign.badge.value | escape }} offer</h2>
+        <h2 id="campaign-products">{{ 'campaign.in_offer' | t: badge: campaign.badge.value | escape }}</h2>
         {% render 'product-grid', products: campaign.collection.value.products, section_index: 2 %}
       </section>
     {% endif %}
 
     <section class="campaign__terms" aria-labelledby="campaign-terms">
-      <h2 id="campaign-terms">Terms</h2>
+      <h2 id="campaign-terms">{{ 'campaign.terms' | t }}</h2>
       <p>{{ campaign.terms.value | escape | newline_to_br }}</p>
     </section>
   </article>
@@ -124,6 +126,12 @@
   .campaign__when {
     margin-block-start: var(--spacing-2);
     color: var(--color-foreground-muted);
+  }
+
+  .campaign__offer {
+    margin-block-start: var(--spacing-3);
+    font-size: var(--text-lg);
+    font-weight: 600;
   }
 
   .campaign__body > * + *,

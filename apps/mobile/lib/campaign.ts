@@ -3,7 +3,9 @@ import {
   CampaignByHandleQuery,
   campaignNow,
   CampaignsQuery,
+  type CampaignNode,
   describeError,
+  toCampaign,
   type CampaignView,
 } from "@formulate/shopify";
 import { useQuery } from "@tanstack/react-query";
@@ -15,7 +17,8 @@ import { storefront } from "./storefront";
 /**
  * Campaigns in the app (SHO-169). The dates are checked at render, against
  * the visitor's view, so a campaign appears and disappears on time even from
- * a cached query.
+ * a cached query. An app left open across a start or end time re-renders
+ * then (`scheduleNextChange`), so banners, badges and offers change together.
  *
  * The view, as on web:
  * - `preview`: a campaign opened through its preview link
@@ -31,9 +34,15 @@ import { storefront } from "./storefront";
 const ACCESS_KEY = "doublehelix.campaign.access";
 const HANDLE = /^[a-z0-9-]{1,64}$/;
 
-let state: { preview: string | null; access: ReadonlySet<string> } = {
+let state: {
+  preview: string | null;
+  access: ReadonlySet<string>;
+  /** Bumped when a campaign starts or ends, so everything re-renders. */
+  tick: number;
+} = {
   preview: null,
   access: new Set(),
+  tick: 0,
 };
 const listeners = new Set<() => void>();
 const set = (next: Partial<typeof state>) => {
@@ -46,20 +55,45 @@ const subscribe = (listener: () => void) => {
 };
 
 // Restored once at startup; until then nothing email-only shows, which is the
-// safe side.
-void SecureStore.getItemAsync(ACCESS_KEY)
-  .then((value) =>
-    set({ access: new Set((value ?? "").split(",").filter((h) => HANDLE.test(h))) }),
-  )
+// safe side. Merged with anything granted meanwhile (an email link that opened
+// the app), and grants wait for it, so neither loses the other's handles.
+const restored = SecureStore.getItemAsync(ACCESS_KEY)
+  .then((value) => {
+    const stored = (value ?? "").split(",").filter((h) => HANDLE.test(h));
+    set({ access: new Set([...stored, ...state.access]) });
+  })
   .catch(() => undefined);
 
 /** Remembers that this device came through a campaign's email link. */
 export const grantCampaignAccess = async (handle: string): Promise<void> => {
   if (!HANDLE.test(handle)) return;
+  await restored;
   const access = [...state.access].filter((known) => known !== handle).slice(-9);
   const next = new Set([...access, handle]);
   set({ access: next });
   await SecureStore.setItemAsync(ACCESS_KEY, [...next].join(",")).catch(() => undefined);
+};
+
+let changeTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Re-renders every campaign-aware component at the next start or end time
+ * within a day (timers further out aren't worth holding; the five-minute
+ * refetch schedules again).
+ */
+const scheduleNextChange = (nodes: readonly (CampaignNode | null | undefined)[]) => {
+  const now = campaignClock().getTime();
+  const next = Math.min(
+    ...nodes
+      .map(toCampaign)
+      .flatMap((campaign) =>
+        campaign ? [campaign.startsAt.getTime(), campaign.endsAt.getTime()] : [],
+      )
+      .filter((time) => time > now && time - now <= 24 * 60 * 60 * 1000),
+  );
+  clearTimeout(changeTimer);
+  if (Number.isFinite(next))
+    changeTimer = setTimeout(() => set({ tick: state.tick + 1 }), next - now + 1000);
 };
 
 /**
@@ -104,7 +138,11 @@ export const useActiveCampaign = () => {
   const view = useCampaignView();
   const { data } = useQuery({
     queryKey: ["campaigns"],
-    queryFn: async () => unwrap(await storefront.request(CampaignsQuery, {})),
+    queryFn: async () => {
+      const data = unwrap(await storefront.request(CampaignsQuery, {}));
+      scheduleNextChange(data.metaobjects.nodes);
+      return data;
+    },
     staleTime: 5 * 60 * 1000,
   });
   return data ? activeCampaign(data.metaobjects.nodes, view) : null;
