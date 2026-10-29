@@ -8,6 +8,6 @@ export const GET = async (
   _request: Request,
   { params }: { params: Promise<{ handle: string }> },
 ): Promise<Response> => {
-  const body = await productMarkdown((await params).handle);
-  return body ? markdownResponse(body) : markdownResponse("# Not found\n", 404);
+  const doc = await productMarkdown((await params).handle);
+  return markdownResponse(doc);
 };

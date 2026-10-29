@@ -35,21 +35,45 @@ const md = (text: string): string => text.replace(/([\\`*_[\]<>#|])/g, "\\$1").t
 
 const demoNotice = `> **${DEMO_STORE_NOTICE.label}:** ${DEMO_STORE_NOTICE.message}`;
 
-export const markdownResponse = (body: string, status = 200): Response =>
+/** A document, or why there isn't one. */
+export interface MarkdownDoc {
+  readonly status: 200 | 404 | 503;
+  readonly body: string;
+}
+
+const NOT_FOUND: MarkdownDoc = { status: 404, body: "# Not found\n" };
+
+/**
+ * Shopify didn't answer. Never cached: a failure must not be served to agents
+ * for an hour as if it were the catalogue.
+ */
+const UNAVAILABLE: MarkdownDoc = {
+  status: 503,
+  body: "# Temporarily unavailable\n\nThe catalogue couldn't be loaded. Try again shortly.\n",
+};
+
+const found = (body: string): MarkdownDoc => ({ status: 200, body });
+
+export const markdownResponse = ({ status, body }: MarkdownDoc): Response =>
   new Response(body, {
     status,
     headers: {
       "content-type": "text/markdown; charset=utf-8",
-      // Shared by every agent; an hour is plenty for a demo catalogue, and
-      // keeps these off the request budget.
-      "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      // A real answer is shared by every agent for an hour, which is plenty for
+      // a demo catalogue and keeps these off the request budget. Anything else
+      // isn't cached.
+      "cache-control":
+        status === 200
+          ? "public, s-maxage=3600, stale-while-revalidate=86400"
+          : "no-store",
       vary: "accept",
     },
   });
 
-export const productMarkdown = async (handle: string): Promise<string | null> => {
+export const productMarkdown = async (handle: string): Promise<MarkdownDoc> => {
   const result = await getProduct(handle);
-  if (!result.ok || !result.data.product) return null;
+  if (!result.ok) return UNAVAILABLE;
+  if (!result.data.product) return NOT_FOUND;
   const product = result.data.product;
 
   const ownedPlanIds = new Set(
@@ -71,7 +95,7 @@ export const productMarkdown = async (handle: string): Promise<string | null> =>
     ].join("\n");
   });
 
-  return `# ${md(product.title)}
+  return found(`# ${md(product.title)}
 
 ${demoNotice}
 
@@ -82,19 +106,20 @@ ${md(product.description)}
 ${variants.join("\n")}
 
 Page: ${absoluteUrl(`/products/${product.handle}`)}
-`;
+`);
 };
 
-export const collectionMarkdown = async (handle: string): Promise<string | null> => {
+export const collectionMarkdown = async (handle: string): Promise<MarkdownDoc> => {
   const result = await getCollection(handle);
-  if (!result.ok || !result.data.collection) return null;
+  if (!result.ok) return UNAVAILABLE;
+  if (!result.data.collection) return NOT_FOUND;
   const collection = result.data.collection;
   const products = collection.products.nodes.map(
     (product) =>
       `- [${md(product.title)}](${absoluteUrl(`/products/${product.handle}.md`)}): from ${formatMoney(product.priceRange.minVariantPrice)}`,
   );
 
-  return `# ${md(collection.title)}
+  return found(`# ${md(collection.title)}
 
 ${demoNotice}
 
@@ -103,13 +128,14 @@ ${md(collection.description)}
 ${products.length > 0 ? products.join("\n") : "No products in this collection."}
 
 Page: ${absoluteUrl(`/collections/${handle}`)}
-`;
+`);
 };
 
-export const searchMarkdown = async (query: string): Promise<string> => {
+export const searchMarkdown = async (query: string): Promise<MarkdownDoc> => {
   const result = query
     ? await storefront.request(SearchProductsQuery, { query, first: 20 })
     : null;
+  if (result && !result.ok) return UNAVAILABLE;
   const products = result?.ok
     ? result.data.search.nodes.flatMap((node) =>
         node.__typename === "Product" ? [node] : [],
@@ -119,19 +145,20 @@ export const searchMarkdown = async (query: string): Promise<string> => {
     (product) =>
       `- [${md(product.title)}](${absoluteUrl(`/products/${product.handle}.md`)}): from ${formatMoney(product.priceRange.minVariantPrice)}`,
   );
-  return `# Search: ${md(query)}
+  return found(`# Search: ${md(query)}
 
 ${demoNotice}
 
 ${lines.length > 0 ? lines.join("\n") : "No products match."}
-`;
+`);
 };
 
-export const llmsTxt = async (): Promise<string> => {
+export const llmsTxt = async (): Promise<MarkdownDoc> => {
   const [collections, policies] = await Promise.all([
     storefront.request(CollectionCardsQuery, {}),
     storefront.request(ShopPoliciesQuery, {}),
   ]);
+  if (!collections.ok || !policies.ok) return UNAVAILABLE;
   const collectionLines = collections.ok
     ? collections.data.collections.nodes
         .filter((collection) => collection.products.nodes.length > 0)
@@ -156,7 +183,7 @@ export const llmsTxt = async (): Promise<string> => {
         )
     : [];
 
-  return `# ${SITE_NAME}
+  return found(`# ${SITE_NAME}
 
 > Supplements, bought once or on subscription, from a UK store.
 
@@ -178,5 +205,5 @@ Search, carts and checkout use Shopify's Universal Commerce Protocol (UCP).
 ## Policies
 
 ${policyLines.join("\n")}
-`;
+`);
 };

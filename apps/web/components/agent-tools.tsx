@@ -22,13 +22,15 @@ interface ToolResult {
   readonly content: readonly { readonly type: "text"; readonly text: string }[];
 }
 interface ModelContext {
-  registerTool: (tool: {
-    name: string;
-    description: string;
-    inputSchema: object;
-    execute: (input: Record<string, unknown>) => Promise<ToolResult>;
-  }) => unknown;
-  unregisterTool?: (name: string) => void;
+  registerTool: (
+    tool: {
+      name: string;
+      description: string;
+      inputSchema: object;
+      execute: (input: Record<string, unknown>) => Promise<ToolResult>;
+    },
+    options?: { signal?: AbortSignal },
+  ) => unknown;
 }
 
 const modelContext = (): ModelContext | null => {
@@ -48,7 +50,8 @@ const markdown = async (path: string): Promise<ToolResult> => {
   return text(await response.text());
 };
 
-const NAMES = ["search_products", "get_product", "add_to_cart", "open_cart"] as const;
+/** The quantity cap every storefront enforces (SHO-132). */
+const MAX_QUANTITY = 6;
 
 export const AgentTools = () => {
   const router = useRouter();
@@ -58,7 +61,22 @@ export const AgentTools = () => {
     const context = modelContext();
     if (!context) return;
 
-    context.registerTool({
+    // WebMCP removes a tool when its registration's signal aborts; there is no
+    // unregisterTool. One controller for all four, aborted on cleanup, so a
+    // re-run of this effect never registers a duplicate name.
+    const controller = new AbortController();
+    const register = (tool: Parameters<ModelContext["registerTool"]>[0]) => {
+      try {
+        // Newer Chrome returns a promise; a rejection must not go unhandled.
+        void Promise.resolve(
+          context.registerTool(tool, { signal: controller.signal }),
+        ).catch(() => undefined);
+      } catch {
+        // An older implementation that throws synchronously: skip the tool.
+      }
+    };
+
+    register({
       name: "search_products",
       description:
         "Search this store's products. Returns Markdown: each product with its price and a link to its details. A demo store: checkout is a test, no one is charged.",
@@ -70,7 +88,7 @@ export const AgentTools = () => {
       execute: (input) =>
         markdown(`/search.md?q=${encodeURIComponent(String(input.query ?? ""))}`),
     });
-    context.registerTool({
+    register({
       name: "get_product",
       description:
         "A product's description, options, prices, stock and subscription plans, as Markdown, with the variant and selling plan ids add_to_cart needs.",
@@ -84,7 +102,7 @@ export const AgentTools = () => {
       execute: (input) =>
         markdown(`/products/${encodeURIComponent(String(input.handle ?? ""))}.md`),
     });
-    context.registerTool({
+    register({
       name: "add_to_cart",
       description:
         "Add a product variant to the shopper's cart, once or on a subscription plan. Use ids from get_product. The shopper sees the cart open.",
@@ -97,15 +115,20 @@ export const AgentTools = () => {
             description:
               "gid://shopify/SellingPlan/… for a subscription; omit for one-time",
           },
-          quantity: { type: "integer", minimum: 1, maximum: 6 },
+          quantity: { type: "integer", minimum: 1, maximum: MAX_QUANTITY },
         },
         required: ["variantId"],
       },
       execute: async (input) => {
+        // The schema states the range, but nothing makes a caller honour it.
+        const quantity = input.quantity === undefined ? 1 : Number(input.quantity);
+        if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) {
+          return text(`Quantity must be a whole number from 1 to ${MAX_QUANTITY}.`);
+        }
         const form = new FormData();
         form.set("merchandiseId", String(input.variantId ?? ""));
         if (input.sellingPlanId) form.set("sellingPlanId", String(input.sellingPlanId));
-        form.set("quantity", String(input.quantity ?? 1));
+        form.set("quantity", String(quantity));
         const result = await addToCart({ status: "idle" }, form);
         if (result.status !== "success")
           return text(result.message ?? "Couldn't add that.");
@@ -116,7 +139,7 @@ export const AgentTools = () => {
         );
       },
     });
-    context.registerTool({
+    register({
       name: "open_cart",
       description:
         "Open the shopper's cart on this page, where they can review it and check out.",
@@ -127,9 +150,7 @@ export const AgentTools = () => {
       },
     });
 
-    return () => {
-      for (const name of NAMES) context.unregisterTool?.(name);
-    };
+    return () => controller.abort();
   }, [router, openCart]);
 
   return null;
