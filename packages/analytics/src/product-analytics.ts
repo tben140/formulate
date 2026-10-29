@@ -285,15 +285,20 @@ export const productViewedProperties = (
 });
 
 /** Null when the line isn't a product variant (nothing to attribute it to). */
+/**
+ * `quantity` is how many this add put in, not the line's new total: adding one
+ * to a line of two reports 1.
+ */
 export const addedToCartProperties = (
   line: CartLineLike,
+  quantity: number,
 ): ProductEventProperties["product_added_to_cart"] | null => {
   const { merchandise } = line;
   if (!merchandise.product || !merchandise.id || !merchandise.price) return null;
   return {
     ...productRef(merchandise.product),
     variant_id: numericId(merchandise.id),
-    quantity: line.quantity,
+    quantity,
     // The unit price charged, not the variant's list price: a subscription
     // line costs less (15% here), and a funnel's revenue must say so.
     price: line.cost

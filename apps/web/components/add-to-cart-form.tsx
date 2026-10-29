@@ -101,10 +101,18 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
     if (state.cart && line) {
       track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
-      const added = addedToCartProperties(line);
+      const added = addedToCartProperties(line, state.addedQuantity ?? 1);
       if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
     }
-  }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
+  }, [
+    state.token,
+    state.status,
+    state.cart,
+    state.addedLineId,
+    state.addedQuantity,
+    openCart,
+    storeDomain,
+  ]);
 
   const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
   const displayPrice =
