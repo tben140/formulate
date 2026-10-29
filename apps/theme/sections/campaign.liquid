@@ -1,0 +1,165 @@
+{% comment %}
+  A campaign's landing page (SHO-169), at /pages/campaigns/<handle>, the same
+  path apps/web serves. Matches apps/web's app/pages/campaigns/[handle].
+
+  Before the campaign it says when it starts; afterwards that it has ended.
+  Shared links keep working, and nothing claims an offer that isn't running.
+{% endcomment %}
+
+{%- liquid
+  assign campaign = metaobject
+  capture status
+    render 'campaign-status', campaign: campaign
+  endcapture
+  assign headline = campaign.headline.value | default: campaign.title.value
+-%}
+
+{% if status == 'invalid' %}
+  <div class="page-section">
+    <h1>This campaign isn't available.</h1>
+    <a class="campaign__link" href="{{ routes.root_url }}">Shop the range</a>
+  </div>
+{% else %}
+  <article class="campaign page-section">
+    {% render 'breadcrumbs', current: campaign.title.value %}
+
+    <header class="campaign__header">
+      <div>
+        <span class="campaign-badge">{{ campaign.badge.value | escape }}</span>
+        <h1 class="campaign__title">{{ headline | escape }}</h1>
+        <p class="campaign__when">
+          {%- case status -%}
+            {%- when 'upcoming' -%}
+              {% render 'campaign-ends', campaign: campaign, which: 'starts' %}
+            {%- when 'active' -%}
+              {% render 'campaign-ends', campaign: campaign %}
+            {%- else -%}
+              This offer has ended.
+          {%- endcase -%}
+        </p>
+        {% if status == 'ended' %}
+          <a class="campaign__link" href="{{ routes.root_url }}">Shop the range</a>
+        {% else %}
+          <div class="campaign__body">{{ campaign.body | metafield_tag }}</div>
+          {% if campaign.subscriber_perk.value != blank %}
+            <p class="campaign__perk">
+              <strong>Subscribers:</strong>
+              {{ campaign.subscriber_perk.value | escape }}.
+            </p>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% if campaign.image.value %}
+        <div class="campaign__media">
+          {% render 'image',
+            class: 'campaign__image',
+            image: campaign.image.value,
+            width: 1200,
+            loading: 'eager',
+            fetchpriority: 'high'
+          %}
+        </div>
+      {% endif %}
+    </header>
+
+    {% if status == 'active' and campaign.collection.value %}
+      <section class="campaign__products" aria-labelledby="campaign-products">
+        <h2 id="campaign-products">In the {{ campaign.badge.value | escape }} offer</h2>
+        {% render 'product-grid', products: campaign.collection.value.products, section_index: 2 %}
+      </section>
+    {% endif %}
+
+    <section class="campaign__terms" aria-labelledby="campaign-terms">
+      <h2 id="campaign-terms">Terms</h2>
+      <p>{{ campaign.terms.value | escape | newline_to_br }}</p>
+    </section>
+  </article>
+{% endif %}
+
+{% stylesheet %}
+  .campaign__header {
+    display: grid;
+    gap: var(--spacing-6);
+    padding-block-start: var(--spacing-4);
+  }
+
+  @media (min-width: 48rem) {
+    .campaign__header {
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+    }
+  }
+
+  .campaign__title {
+    margin-block-start: var(--spacing-3);
+    font-size: var(--text-3xl);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  .campaign__when {
+    margin-block-start: var(--spacing-2);
+    color: var(--color-foreground-muted);
+  }
+
+  .campaign__body > * + *,
+  .campaign__body {
+    margin-block-start: var(--spacing-3);
+  }
+
+  .campaign__perk {
+    margin-block-start: var(--spacing-4);
+    padding: var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+  }
+
+  .campaign__link {
+    display: inline-block;
+    margin-block-start: var(--spacing-4);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .campaign__media {
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-muted);
+  }
+
+  .campaign__image {
+    width: 100%;
+    height: auto;
+  }
+
+  .campaign__products,
+  .campaign__terms {
+    margin-block-start: var(--spacing-10);
+  }
+
+  .campaign__products h2 {
+    margin-block-end: var(--spacing-4);
+    font-size: var(--text-xl);
+    font-weight: 600;
+  }
+
+  .campaign__terms {
+    max-width: 48rem;
+    font-size: var(--text-sm);
+    color: var(--color-foreground-muted);
+  }
+
+  .campaign__terms h2 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--color-foreground);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Campaign",
+  "settings": []
+}
+{% endschema %}

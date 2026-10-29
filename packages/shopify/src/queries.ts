@@ -33,6 +33,12 @@ export const CollectionProductsQuery = graphql(`
           id
           handle
           title
+          # Campaign badge (SHO-169); the dates decide whether it shows.
+          campaign: metafield(namespace: "double_helix", key: "campaign") {
+            reference {
+              ...CampaignBadgeFields
+            }
+          }
           featuredImage {
             url
             altText
@@ -58,6 +64,12 @@ export const ProductByHandleQuery = graphql(`
       handle
       title
       description
+      # The campaign this product is in (SHO-169), whole, for the product page.
+      campaign: metafield(namespace: "double_helix", key: "campaign") {
+        reference {
+          ...CampaignFields
+        }
+      }
       # The merchant's search-engine overrides from the admin. Either can be
       # null, in which case apps/web falls back to the title and description.
       seo {
@@ -148,6 +160,14 @@ export const ProductByHandleQuery = graphql(`
           id
           title
           availableForSale
+          # Set on some variants only: the campaign then covers only those.
+          campaign: metafield(namespace: "double_helix", key: "campaign") {
+            reference {
+              ... on Metaobject {
+                handle
+              }
+            }
+          }
           # For the Product structured data on apps/web. Can be null.
           sku
           selectedOptions {
@@ -220,6 +240,12 @@ export const ProductCardFields = graphql(`
     id
     handle
     title
+    # Campaign badge (SHO-169); the dates decide whether it shows.
+    campaign: metafield(namespace: "double_helix", key: "campaign") {
+      reference {
+        ...CampaignBadgeFields
+      }
+    }
     featuredImage {
       url
       altText
@@ -708,6 +734,110 @@ export const PaymentSettingsQuery = graphql(`
       paymentSettings {
         acceptedCardBrands
         supportedDigitalWallets
+      }
+    }
+  }
+`);
+
+/* -------------------------------------------------------------------------- */
+/*  Campaigns (SHO-169)                                                        */
+/* -------------------------------------------------------------------------- */
+
+/** What a card needs to badge a product: see src/campaign.ts. */
+export const CampaignBadgeFields = graphql(`
+  fragment CampaignBadgeFields on Metaobject {
+    handle
+    title: field(key: "title") {
+      value
+    }
+    startsAt: field(key: "starts_at") {
+      value
+    }
+    endsAt: field(key: "ends_at") {
+      value
+    }
+    badge: field(key: "badge") {
+      value
+    }
+    offer: field(key: "offer") {
+      value
+    }
+    terms: field(key: "terms") {
+      value
+    }
+  }
+`);
+
+/** A whole campaign: banner, landing page, product page. */
+export const CampaignFields = graphql(`
+  fragment CampaignFields on Metaobject {
+    ...CampaignBadgeFields
+    headline: field(key: "headline") {
+      value
+    }
+    bannerText: field(key: "banner_text") {
+      value
+    }
+    discountCode: field(key: "discount_code") {
+      value
+    }
+    subscriberPerk: field(key: "subscriber_perk") {
+      value
+    }
+    body: field(key: "body") {
+      value
+    }
+    image: field(key: "image") {
+      reference {
+        ... on MediaImage {
+          image {
+            url
+            altText
+            width
+            height
+          }
+        }
+      }
+    }
+    collection: field(key: "collection") {
+      reference {
+        ... on Collection {
+          handle
+        }
+      }
+    }
+  }
+`);
+
+/**
+ * Every published campaign, for the site-wide banner. Few enough to fetch
+ * whole; src/campaign.ts picks the live one.
+ */
+export const CampaignsQuery = graphql(`
+  query Campaigns {
+    metaobjects(type: "campaign", first: 20) {
+      nodes {
+        ...CampaignFields
+      }
+    }
+  }
+`);
+
+/** One campaign and its products, for the landing page. */
+export const CampaignByHandleQuery = graphql(`
+  query CampaignByHandle($handle: String!) {
+    metaobject(handle: { type: "campaign", handle: $handle }) {
+      ...CampaignFields
+      products: field(key: "collection") {
+        reference {
+          ... on Collection {
+            products(first: 50, sortKey: COLLECTION_DEFAULT) {
+              nodes {
+                ...ProductCardFields
+              }
+            }
+          }
+        }
       }
     }
   }

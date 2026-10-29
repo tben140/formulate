@@ -1,6 +1,14 @@
-import { formatMoney, type MoneyLike } from "@formulate/shopify";
+import {
+  campaignBadge,
+  formatMoney,
+  type CampaignRef,
+  type MoneyLike,
+} from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import Link from "next/link";
+
+import { CampaignBadge } from "@/components/campaign-badge";
+import { now } from "@/lib/campaign";
 
 type CardImage = {
   readonly url: string;
@@ -14,6 +22,8 @@ export type ProductCardData = {
   readonly title: string;
   readonly featuredImage?: CardImage | null;
   readonly priceRange: { readonly minVariantPrice: MoneyLike };
+  /** Its campaign (SHO-169): badged only while live. */
+  readonly campaign?: CampaignRef | null;
 };
 
 /**
@@ -38,12 +48,18 @@ export const ProductCard = ({
   readonly priority?: boolean;
 }) => {
   const Heading = headingLevel;
+  const badge = campaignBadge(product.campaign, now());
   return (
     <Link
       href={`/products/${product.handle}`}
       className="group block rounded-lg border border-border p-3 transition-colors hover:border-brand-400"
     >
-      <div className="mb-3 aspect-square overflow-hidden rounded-md bg-surface-muted">
+      <div className="relative mb-3 aspect-square overflow-hidden rounded-md bg-surface-muted">
+        {badge ? (
+          <span className="absolute top-2 left-2 z-10">
+            <CampaignBadge label={badge} />
+          </span>
+        ) : null}
         {product.featuredImage ? (
           <Image
             data={product.featuredImage}

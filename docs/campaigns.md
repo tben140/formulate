@@ -135,3 +135,24 @@ handling opens it in the campaign screen. The route-parity test covers it.
   forward.
 - **Cost:** a traffic spike counts against Vercel's free CDN allowance.
   Hero images go through Shopify's CDN at the right sizes.
+
+## Checking a campaign before it starts
+
+Each surface can be shown a different "now", outside production only:
+
+- **Web:** `CAMPAIGN_PREVIEW_AT=2026-11-28T12:00:00Z` (ignored when
+  `VERCEL_ENV` is `production`).
+- **Theme:** the "Campaign preview time" theme setting, on an unpublished
+  theme. Leave it empty on the live theme.
+- **App:** `EXPO_PUBLIC_CAMPAIGN_PREVIEW_AT`, honoured in development builds
+  only.
+
+## Where it lives
+
+- `packages/shopify/src/campaign.ts`: the rules (dates, the variant rule, the
+  labels), with tests. `queries.ts` has `CampaignFields`, `CampaignsQuery` and
+  `CampaignByHandleQuery`.
+- Theme: `snippets/campaign-status.liquid` applies the same rules in Liquid;
+  `campaign-banner`, `campaign-badge`, `campaign-offer` and the
+  `metaobject/campaign` template use it. The collections list hides a
+  campaign's collection outside its dates.

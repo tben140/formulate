@@ -1,0 +1,37 @@
+{% doc %}
+  Outputs one word for a campaign metaobject (SHO-169): `active`, `upcoming`,
+  `ended`, or `invalid` when it can't be shown honestly (no dates, dates the
+  wrong way round, no badge, offer or terms). Capture it to branch on it.
+
+  The same rules as packages/shopify/src/campaign.ts, which web and the app
+  use: live from starts_at up to, not including, ends_at. Metaobjects don't
+  switch themselves off, so this is where the dates are enforced.
+
+  The "Campaign preview time" theme setting stands in for now, to check a
+  campaign before it starts. Leave it empty on the live theme.
+
+  @param {object} campaign - A `campaign` metaobject.
+
+  @example
+  {% capture status %}{% render 'campaign-status', campaign: campaign %}{% endcapture %}
+{% enddoc %}
+{%- liquid
+  assign now_s = 'now' | date: '%s' | plus: 0
+  if settings.campaign_preview_at != blank
+    assign now_s = settings.campaign_preview_at | date: '%s' | plus: 0
+  endif
+  assign start_s = campaign.starts_at.value | date: '%s' | plus: 0
+  assign end_s = campaign.ends_at.value | date: '%s' | plus: 0
+
+  if campaign == blank or start_s == 0 or end_s <= start_s
+    echo 'invalid'
+  elsif campaign.badge.value == blank or campaign.offer.value == blank or campaign.terms.value == blank
+    echo 'invalid'
+  elsif now_s < start_s
+    echo 'upcoming'
+  elsif now_s < end_s
+    echo 'active'
+  else
+    echo 'ended'
+  endif
+-%}

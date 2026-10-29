@@ -1,0 +1,20 @@
+{% doc %}
+  "Ends 23:59 Mon 30 Nov" or "Starts 00:00 Fri 27 Nov", in the shop's time
+  zone (Europe/London), as packages/shopify/src/campaign.ts words it.
+
+  @param {object} campaign - A `campaign` metaobject.
+  @param {string} [which] - `starts` for the start time; the end otherwise.
+{% enddoc %}
+{%- liquid
+  if which == 'starts'
+    assign at = campaign.starts_at.value | date: '%s' | plus: 0
+    echo 'Starts '
+  else
+    comment
+      The last minute the offer runs, so midnight reads as the day before.
+    endcomment
+    assign at = campaign.ends_at.value | date: '%s' | minus: 60
+    echo 'Ends '
+  endif
+  echo at | date: '%H:%M %a %-d %b'
+-%}

@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { CampaignBanner } from "@/components/campaign-banner";
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
@@ -17,6 +18,7 @@ import {
   CookiePreferencesButton,
   TrackingConsentProvider,
 } from "@/components/tracking-consent";
+import { getActiveCampaign } from "@/lib/campaign";
 import { getCart } from "@/lib/cart";
 import { getLegalLinks, getNavLinks } from "@/lib/nav";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
@@ -57,10 +59,11 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   // In parallel: neither depends on the other, and both are on every page.
-  const [cart, navLinks, legalLinks] = await Promise.all([
+  const [cart, navLinks, legalLinks, campaign] = await Promise.all([
     getCart(),
     getNavLinks(),
     getLegalLinks(),
+    getActiveCampaign(),
   ]);
   // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
   // no request at all.
@@ -96,6 +99,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         <TrackingConsentProvider initialConsent={consent}>
           <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
             <DemoNotice />
+            {campaign ? <CampaignBanner campaign={campaign} /> : null}
             <header className="border-b border-border">
               {/*
                 One row from md up: wordmark, collections, cart. Below that the

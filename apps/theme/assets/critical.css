@@ -183,6 +183,7 @@ body {
 }
 
 .product-card__media {
+  position: relative;
   aspect-ratio: 1;
   margin-block-end: var(--spacing-3);
   overflow: hidden;
@@ -1194,4 +1195,23 @@ a:hover {
 .cart-line__price,
 .cart-drawer__subtotal-value {
   font-family: var(--font-mono);
+}
+
+/* A campaign's label (SHO-169), on cards and the product page. Matched to
+   apps/web's CampaignBadge: rounded-full bg-brand-700 px-2 py-0.5 text-xs. */
+.campaign-badge {
+  display: inline-block;
+  padding: 0.125rem var(--spacing-2);
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-surface);
+  background: var(--color-brand-700);
+}
+
+.product-card__media .campaign-badge {
+  position: absolute;
+  top: var(--spacing-2);
+  left: var(--spacing-2);
+  z-index: 1;
 }

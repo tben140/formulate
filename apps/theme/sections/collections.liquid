@@ -12,7 +12,24 @@
     class="collections {{ section.settings.grid_item_width }}"
     style="--grid-gap: {{ section.settings.grid_gap }}px"
   >
+    {%- comment -%}
+      A campaign's collection is listed only while its campaign is live
+      (SHO-169), so a sale doesn't show before it starts or after it ends.
+    {%- endcomment -%}
+    {%- liquid
+      assign hidden_handles = '|'
+      for campaign in shop.metaobjects.campaign.values
+        capture status
+          render 'campaign-status', campaign: campaign
+        endcapture
+        if status != 'active' and campaign.collection.value
+          assign hidden_handles = hidden_handles | append: campaign.collection.value.handle | append: '|'
+        endif
+      endfor
+    -%}
     {% for collection in collections %}
+      {%- assign needle = '|' | append: collection.handle | append: '|' -%}
+      {%- if hidden_handles contains needle -%}{%- continue -%}{%- endif -%}
       <a class="collection-card" href="{{ collection.url }}">
         {% if collection.featured_image %}
           {% render 'image',

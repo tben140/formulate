@@ -15,6 +15,10 @@
       "type": "demo-notice",
       "settings": {}
     },
+    "campaign_banner": {
+      "type": "campaign-banner",
+      "settings": {}
+    },
     "header": {
       "type": "header",
       "settings": {
@@ -24,6 +28,7 @@
   },
   "order": [
     "demo_notice",
+    "campaign_banner",
     "header"
   ],
 }

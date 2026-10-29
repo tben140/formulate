@@ -1,0 +1,18 @@
+{% doc %}
+  A product's campaign badge, only while the campaign is live (SHO-169).
+  Matches apps/web's components/campaign-badge.tsx.
+
+  @param {object} product - The product whose `double_helix.campaign` to read.
+{% enddoc %}
+{%- liquid
+  assign campaign = product.metafields.double_helix.campaign.value
+  if campaign != blank
+    capture status
+      render 'campaign-status', campaign: campaign
+    endcapture
+    if status == 'active'
+      assign label = campaign.badge.value | escape
+      echo '<span class="campaign-badge">' | append: label | append: '</span>'
+    endif
+  endif
+-%}

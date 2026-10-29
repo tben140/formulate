@@ -50,6 +50,7 @@
     <li>
       <a class="product-card" href="{{ product.url }}">
         <div class="product-card__media">
+          {% render 'campaign-badge', product: product %}
           {% if product.featured_image %}
             {% render 'image',
               class: 'product-card__image',

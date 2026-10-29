@@ -1,0 +1,59 @@
+{% doc %}
+  The campaign on a product page (SHO-169): the offer as Shopify applies it at
+  checkout, the real end time, and what subscribers get instead. Matches
+  apps/web's components/campaign-offer.tsx.
+
+  If any variant has its own `double_helix.campaign`, the campaign covers only
+  those variants, and they're named.
+
+  @param {object} product - The product whose campaign to show.
+{% enddoc %}
+{%- liquid
+  assign campaign = product.metafields.double_helix.campaign.value
+  assign status = ''
+  if campaign != blank
+    capture status
+      render 'campaign-status', campaign: campaign
+    endcapture
+  endif
+
+  assign narrowed = false
+  assign covered = ''
+  if status == 'active'
+    for variant in product.variants
+      assign variant_campaign = variant.metafields.double_helix.campaign.value
+      if variant_campaign != blank
+        assign narrowed = true
+        if variant_campaign.system.handle == campaign.system.handle
+          assign covered = covered | append: '|' | append: variant.title
+        endif
+      endif
+    endfor
+  endif
+  assign covered_names = covered | remove_first: '|' | split: '|' | join: ', '
+
+  assign show = false
+  if status == 'active'
+    if narrowed == false or covered != blank
+      assign show = true
+    endif
+  endif
+-%}
+{%- if show -%}
+  <aside class="campaign-offer" aria-label="{{ campaign.title.value | escape }}">
+    <div class="campaign-offer__top">
+      <span class="campaign-badge">{{ campaign.badge.value | escape }}</span>
+      <span class="campaign-offer__ends">{% render 'campaign-ends', campaign: campaign %}</span>
+    </div>
+    <p class="campaign-offer__offer">
+      {{ campaign.offer.value | escape -}}
+      {%- if narrowed %} ({{ covered_names | escape }} only){% endif %}
+    </p>
+    {% if campaign.subscriber_perk.value != blank %}
+      <p class="campaign-offer__perk">{{ campaign.subscriber_perk.value | escape }}.</p>
+    {% endif %}
+    <a href="/pages/campaigns/{{ campaign.system.handle }}">
+      See the {{ campaign.badge.value | escape }} offer and terms
+    </a>
+  </aside>
+{%- endif -%}
