@@ -28,7 +28,7 @@
  * visitors who allowed analytics, on the theme and in checkout.
  */
 
-/* global analytics, browser, fetch -- provided by Shopify's custom pixel sandbox */
+/* global analytics, browser, fetch, setTimeout -- provided by Shopify's custom pixel sandbox */
 
 const POSTHOG_KEY = "__POSTHOG_KEY__";
 const POSTHOG_HOST = "https://eu.i.posthog.com";
@@ -175,21 +175,31 @@ const send = async (
 
 /**
  * Tells the API Worker this order reached PostHog, so the webhook's backup
- * isn't sent (apps/api/src/order-backup.ts). Plain text and no-cors: no
- * preflight, and nothing to read back.
+ * isn't sent (apps/api/src/order-backup.ts). Plain text, so no preflight; the
+ * Worker answers with CORS headers so the status can be checked. Anything but
+ * a 2xx (a 429 included) is retried, a few times over about 15 seconds: a
+ * lost note means the backup sends a second copy of the order.
  */
-const reportCounted = async (orderId) => {
-  if (!orderId || API_URL.startsWith("__")) return;
-  try {
-    await fetch(`${API_URL}/orders/counted`, {
+const COUNTED_RETRY_DELAYS_MS = [1000, 4000, 10000];
+
+const reportCounted = async (
+  orderId,
+  wait = (ms) => new Promise((r) => setTimeout(r, ms)),
+) => {
+  if (!orderId || API_URL.startsWith("__")) return false;
+  for (let attempt = 0; ; attempt++) {
+    const ok = await fetch(`${API_URL}/orders/counted`, {
       method: "POST",
-      mode: "no-cors",
       headers: { "content-type": "text/plain" },
       body: orderId,
       keepalive: true,
-    });
-  } catch {
-    // The backup then sends a second copy; PostHog still has the first.
+    }).then(
+      (response) => response.ok === true,
+      () => false,
+    );
+    if (ok) return true;
+    if (attempt >= COUNTED_RETRY_DELAYS_MS.length) return false;
+    await wait(COUNTED_RETRY_DELAYS_MS[attempt]);
   }
 };
 

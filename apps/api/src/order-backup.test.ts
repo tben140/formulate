@@ -2,7 +2,14 @@ import type { CapturedOrderEvent } from "@formulate/analytics";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import worker from "./index";
-import { BACKUP_DELAY_MS, FORGET_AFTER_MS, OrderBackup } from "./order-backup";
+import {
+  BACKUP_DELAY_MS,
+  FORGET_AFTER_MS,
+  MAX_SEND_ATTEMPTS,
+  OrderBackup,
+  RETRY_FIRST_MS,
+  RETRY_MAX_MS,
+} from "./order-backup";
 
 /** Durable Object storage as a Map, with its one alarm. */
 const fakeState = () => {
@@ -42,6 +49,7 @@ const now = Date.parse("2026-10-29T12:00:00Z");
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("OrderBackup", () => {
@@ -94,15 +102,45 @@ describe("OrderBackup", () => {
     expect(data.get("event")).toEqual(event);
   });
 
-  it("throws on a failed send so Cloudflare retries, and keeps the event", async () => {
+  it("retries a failed send itself, backing off to an hour", async () => {
+    vi.useFakeTimers({ now, toFake: ["Date"] });
     vi.stubGlobal(
       "fetch",
       vi.fn(() => Promise.resolve(new Response("", { status: 503 }))),
     );
+    const { backup, data, alarm } = object();
+    await backup.schedule(event);
+    await backup.alarm();
+    expect(alarm()).toBe(now + RETRY_FIRST_MS);
+    await backup.alarm();
+    expect(alarm()).toBe(now + 2 * RETRY_FIRST_MS);
+    for (let i = 0; i < 10; i++) await backup.alarm();
+    expect(alarm()).toBe(now + RETRY_MAX_MS);
+    expect(data.get("event")).toEqual(event);
+  });
+
+  it("retries after a network failure too", async () => {
+    vi.useFakeTimers({ now, toFake: ["Date"] });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new Error("fetch failed"))),
+    );
+    const { backup, alarm } = object();
+    await backup.schedule(event);
+    await expect(backup.alarm()).resolves.toBeUndefined();
+    expect(alarm()).toBe(now + RETRY_FIRST_MS);
+  });
+
+  it("gives up after the last attempt and forgets the order", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response("", { status: 503 }))),
+    );
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const { backup, data } = object();
     await backup.schedule(event);
-    await expect(backup.alarm()).rejects.toThrow("PostHog answered 503");
-    expect(data.get("event")).toEqual(event);
+    for (let i = 0; i < MAX_SEND_ATTEMPTS; i++) await backup.alarm();
+    expect(data.size).toBe(0);
   });
 });
 

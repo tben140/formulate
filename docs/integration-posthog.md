@@ -114,14 +114,16 @@ twice.
 order.
 
 1. After PostHog accepts the pixel's event, the pixel posts the order id to
-   `POST /orders/counted` (plain text, no CORS preflight, rate-limited per
-   IP). The order's object remembers it for three days, past Shopify's 48
-   hours of retries.
+   `POST /orders/counted` (plain text, so no CORS preflight; rate-limited per
+   IP). It checks the status and retries anything but a 2xx, a 429 included,
+   three times over about 15 seconds. The order's object remembers the note
+   for three days, past Shopify's 48 hours of retries.
 2. The webhook stores its event in the same object and sets a ten-minute
    alarm. If the pixel has already reported, it stores nothing.
 3. When the alarm fires, the event is sent only if the pixel still hasn't
-   reported. A failed send throws, and Cloudflare retries the alarm with
-   backoff. The object then empties itself.
+   reported. A failed send sets its own next attempt, backing off from a
+   minute to an hour, for about two days; then the event is dropped. The
+   object then empties itself.
 
 So the pixel's richer event (`has_subscription`, the browser session) wins
 whenever it ran, and the webhook covers the rest. Shopify's retries keep the
@@ -130,15 +132,17 @@ first stored event.
 - **Only with consent.** The webhook acts only when the order's cart carries
   `_posthog_id`, which web and the app add only for shoppers who allowed
   analytics.
-- **Signed.** Nothing is read before the HMAC of the raw body checks out
-  (`crypto.subtle.verify`), and a body over 256 KB is refused before it's
-  read. A consented order that arrives before `POSTHOG_KEY` is set gets 503,
+- **Signed.** Nothing is parsed before the HMAC of the raw body checks out
+  (`crypto.subtle.verify`). The body is read with a 256 KB cap: a larger
+  `Content-Length` is refused straight away, and reading stops at the cap
+  otherwise (413). A consented order that arrives before `POSTHOG_KEY` is set gets 503,
   so Shopify retries it.
 - **The "counted" note isn't signed.** The pixel can't hold a secret. Faking
   one only stops the backup for an order whose id the caller knows: a gap in
   analytics, never a wrong number.
-- **Edge case:** a thank-you page that first loads more than ten minutes after
-  the order (rare) can still count it twice.
+- **Edge cases:** a thank-you page that first loads more than ten minutes
+  after the order (rare), or a note that still fails after its retries, can
+  count the order twice.
 - **The backup's event has no `has_subscription`:** the webhook payload
   doesn't say which lines are on a selling plan.
 
@@ -153,8 +157,9 @@ first stored event.
    secret) and `wrangler secret put POSTHOG_KEY` (the public project key).
    Until both are set it answers 503 and sends nothing.
 3. In the custom pixel (Settings → Customer events), replace `__API_URL__`
-   with `https://<worker>` and save. Until then the webhook's backup is sent
-   for every order, so do this in the same sitting.
+   with `https://<worker>` and save. Until then, the webhook's backup is sent
+   for every eligible order (one with `_posthog_id`), so do this in the same
+   sitting.
 4. **Send test notification** from the webhook page (no `_posthog_id`, so 200
    and nothing sent), then place a test order from web with analytics
    accepted: one `order_completed` in PostHog, from the pixel, under the same

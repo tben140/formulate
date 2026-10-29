@@ -30,6 +30,15 @@ export const BACKUP_DELAY_MS = 10 * 60 * 1000;
 /** Past Shopify's 48 hours of webhook retries, then the object is emptied. */
 export const FORGET_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 
+/**
+ * A failed send is retried by this object, not by throwing: Cloudflare's own
+ * alarm retries give up after about two minutes, and an outage can be longer.
+ * Backoff doubles from a minute to an hour, for about two days in all.
+ */
+export const RETRY_FIRST_MS = 60 * 1000;
+export const RETRY_MAX_MS = 60 * 60 * 1000;
+export const MAX_SEND_ATTEMPTS = 54;
+
 export class OrderBackup extends DurableObject {
   /** The pixel's note: this order's event reached PostHog. */
   async counted(): Promise<void> {
@@ -51,19 +60,32 @@ export class OrderBackup extends DurableObject {
 
   /**
    * Sends the backup if it's still owed, then forgets the order. A failed send
-   * throws, and Cloudflare retries the alarm with backoff.
+   * sets the next attempt itself; after MAX_SEND_ATTEMPTS the event is dropped,
+   * an analytics gap rather than an alarm that never stops.
    */
   override async alarm(): Promise<void> {
     const event = await this.ctx.storage.get<CapturedOrderEvent>("event");
     const counted = await this.ctx.storage.get<boolean>("counted");
     if (event && !counted) {
-      const response = await fetch(POSTHOG_CAPTURE_URL, {
+      const sent = await fetch(POSTHOG_CAPTURE_URL, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(event),
-      });
-      // The status only: the event carries the visitor's id.
-      if (!response.ok) throw new Error(`PostHog answered ${response.status}`);
+      }).then(
+        (response) => response.ok,
+        () => false,
+      );
+      if (!sent) {
+        const attempts = ((await this.ctx.storage.get<number>("attempts")) ?? 0) + 1;
+        if (attempts < MAX_SEND_ATTEMPTS) {
+          await this.ctx.storage.put("attempts", attempts);
+          const delay = Math.min(RETRY_FIRST_MS * 2 ** (attempts - 1), RETRY_MAX_MS);
+          await this.ctx.storage.setAlarm(Date.now() + delay);
+          return;
+        }
+        // The status only, never the event: it carries the visitor's id.
+        console.warn(`Order backup dropped after ${attempts} failed sends`);
+      }
     }
     await this.ctx.storage.deleteAll();
   }
@@ -79,15 +101,20 @@ const MAX_COUNTED_BYTES = 32;
 
 /**
  * `POST /orders/counted` from the pixel, body: the numeric order id as plain
- * text. Plain text so the pixel can send it without a CORS preflight; the
- * pixel never reads the answer, so none is offered.
+ * text. Plain text so the pixel can send it without a CORS preflight. The
+ * pixel reads only the status, and retries anything but a 2xx.
  */
 export const handleOrderCounted = async (
   request: Request,
   env: OrderCountedEnv,
 ): Promise<Response> => {
+  // Readable from any origin: the pixel runs in Shopify's sandbox and checks
+  // the status to retry. A status is all there is to read.
   const status = (code: number) =>
-    new Response(null, { status: code, headers: { "cache-control": "no-store" } });
+    new Response(null, {
+      status: code,
+      headers: { "cache-control": "no-store", "access-control-allow-origin": "*" },
+    });
 
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
   const { success } = await env.RATE_LIMITER.get(

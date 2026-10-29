@@ -228,7 +228,7 @@ describe("PostHog custom pixel", () => {
       expect(calls).toHaveLength(2);
       expect(calls[1]).toMatchObject({
         url: "https://api.example/orders/counted",
-        init: { method: "POST", mode: "no-cors", body: "6500000000001" },
+        init: { method: "POST", body: "6500000000001" },
       });
     });
 
@@ -238,6 +238,35 @@ describe("PostHog custom pixel", () => {
 
     it("doesn't report anything until the URL is filled in", async () => {
       expect(await completed("__API_URL__", true)).toHaveLength(1);
+    });
+
+    it("retries the note when the Worker refuses it, e.g. a 429", async () => {
+      vi.useFakeTimers();
+      try {
+        const { handlers, fetchMock } = loadPixel("phc_test", "https://api.example");
+        const answers = [false, false, true];
+        fetchMock.mockImplementation((url: string) =>
+          Promise.resolve({
+            ok: url.endsWith("/orders/counted") ? answers.shift() : true,
+          }),
+        );
+        handlers.get("checkout_completed")?.({
+          name: "checkout_completed",
+          clientId: "shopify-client-id",
+          timestamp: "2026-10-15T12:00:00.000Z",
+          context: { document: { location: { href: "https://shop.example/thank-you" } } },
+          data: {
+            checkout: checkout([{ key: CART_ATTRIBUTES.distinctId, value: "web-id" }]),
+          },
+        });
+        await vi.runAllTimersAsync();
+        const counted = fetchMock.mock.calls.filter(([url]) =>
+          String(url).endsWith("/orders/counted"),
+        );
+        expect(counted).toHaveLength(3);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 });

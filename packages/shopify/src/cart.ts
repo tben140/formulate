@@ -12,6 +12,7 @@ import type {
 } from "./generated/graphql";
 
 import {
+  CartAttributesUpdateMutation,
   CartBuyerIdentityUpdateMutation,
   CartCreateMutation,
   CartLinesAddMutation,
@@ -193,7 +194,11 @@ export interface CartClient {
      * it goes through the Klaviyo SDK. See `create` for why it matters.
      */
     readonly email?: () => Promise<string | null | undefined>;
-    /** Attributes for a new cart; see `create`. Ignored when adding to one. */
+    /**
+     * Attributes the cart should carry; see `create`. A new cart gets them at
+     * creation; an existing one is updated only when one is missing or
+     * different, e.g. the shopper consented after the cart was made.
+     */
     readonly attributes?: readonly { readonly key: string; readonly value: string }[];
   }) => Promise<AddLinesOutcome>;
 
@@ -381,6 +386,28 @@ export const createCartClient = (
       visitorConsent: await consent(),
     });
 
+  /**
+   * The cart with `attributes` merged in, if any is missing or different.
+   * Analytics only: if the update fails, the add still stands.
+   */
+  const withAttributes = async (
+    result: StorefrontResult<Cart>,
+    attributes: readonly { readonly key: string; readonly value: string }[] | undefined,
+  ): Promise<StorefrontResult<Cart>> => {
+    if (!result.ok || !attributes?.length) return result;
+    const current = new Map(result.data.attributes.map((a) => [a.key, a.value ?? ""]));
+    if (attributes.every((a) => current.get(a.key) === a.value)) return result;
+    for (const a of attributes) current.set(a.key, a.value);
+    const updated = await storefront.request(CartAttributesUpdateMutation, {
+      cartId: result.data.id,
+      attributes: [...current].map(([key, value]) => ({ key, value })),
+      visitorConsent: await consent(),
+    });
+    if (!updated.ok) return result;
+    const merged = fromPayload(updated.data.cartAttributesUpdate);
+    return merged.ok ? merged : result;
+  };
+
   const client: Omit<CartClient, "addLinesOrCreate"> = {
     get: async (cartId) => {
       const result = await storefront.request(CartQuery, {
@@ -437,7 +464,13 @@ export const createCartClient = (
         const result = added.ok ? fromPayload(added.data.cartLinesAdd) : added;
         if (result.ok || !isCartGone(result.error)) {
           const warnings = added.ok ? (added.data.cartLinesAdd?.warnings ?? []) : [];
-          return settleStock(client, result, warnings, lines, false);
+          return settleStock(
+            client,
+            await withAttributes(result, attributes),
+            warnings,
+            lines,
+            false,
+          );
         }
       }
 
