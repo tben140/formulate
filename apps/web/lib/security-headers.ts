@@ -79,11 +79,25 @@ const vercelPreviewToolbar: Record<string, readonly string[]> = {
   "frame-src": ["https://vercel.live"],
 };
 
-/** The policy for this build: `VERCEL_ENV` is "preview" on preview builds. */
-export const buildPolicy = (preview: boolean): string =>
+/**
+ * `next dev` only: React rebuilds server error stacks in the browser with
+ * eval, and logs a CSP error without it. Production builds never get this.
+ */
+const development: Record<string, readonly string[]> = {
+  "script-src": ["'unsafe-eval'"],
+};
+
+/**
+ * The policy for this build: `VERCEL_ENV` is "preview" on preview builds, and
+ * `NODE_ENV` "development" under `next dev`.
+ */
+export const buildPolicy = (preview: boolean, dev = false): string =>
   Object.entries(policy)
     .map(([directive, sources]) => {
-      const extra = preview ? (vercelPreviewToolbar[directive] ?? []) : [];
+      const extra = [
+        ...(preview ? (vercelPreviewToolbar[directive] ?? []) : []),
+        ...(dev ? (development[directive] ?? []) : []),
+      ];
       // A source list with 'none' can't take anything else.
       const all =
         extra.length > 0 ? [...sources.filter((s) => s !== "'none'"), ...extra] : sources;
@@ -91,7 +105,10 @@ export const buildPolicy = (preview: boolean): string =>
     })
     .join("; ");
 
-export const contentSecurityPolicy = buildPolicy(process.env.VERCEL_ENV === "preview");
+export const contentSecurityPolicy = buildPolicy(
+  process.env.VERCEL_ENV === "preview",
+  process.env.NODE_ENV === "development",
+);
 
 export const securityHeaders: readonly { key: string; value: string }[] = [
   { key: "Content-Security-Policy", value: contentSecurityPolicy },
