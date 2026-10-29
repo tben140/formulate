@@ -107,5 +107,5 @@ overrides:
   "compression@<1.8.2": 1.8.2 # memory-leak DoS (Expo dev server)
   "@fastify/busboy@<3.2.3": 3.2.3 # DoS, CRLF injection (GraphQL codegen)
   "@graphql-tools/utils@<12.0.2": 12.0.4 # prototype pollution (GraphQL codegen)
-  "@graphql-tools/executor-legacy-ws@<1.1.36": 1.1.36 # TLS validation disabled; connection params leak between requests (GraphQL codegen)
+  "@graphql-tools/executor-legacy-ws@<1.1.36": 1.1.36 # GHSA-6fw5-9hq8-w87g (TLS validation disabled, fixed 1.1.35), GHSA-434m-5hcj-pxf3 (connection params leak, fixed 1.1.36) (GraphQL codegen)
   "zod@>=4.0.0 <4.6.6": 4.6.7 # memory exhaustion (Expo CLI, react-hooks lint)
