@@ -1,4 +1,4 @@
-# Blog post outlines (SHO-82)
+# Blog post outlines
 
 > Drafts. Each outline is built from something that actually happened in this
 > project, includes a thing that went wrong first, and ends on the caveat.
@@ -12,14 +12,12 @@
   broke only at Metro bundle time, never at install.
 - **What works:** one TypeScript token source that generates the CSS each
   surface reads (ADR 0003, ADR 0004), checked in CI for drift.
-- **Code to show:** `packages/tokens`, the drift check in `ci.yml`.
+- **Code to show:** `packages/tokens`, the drift check in
+  `.github/workflows/ci.yml`.
 - **Caveat:** it rests on a pre-release library; the fallback (generating two
   formats) is still on record.
 
 ## 2. What a page view costs: nearly pausing a site on a free plan
-
-_Replaces "iOS performance in CI without a macOS runner": that work (SHO-26)
-was dropped for v1, and SHO-82 asks only for problems actually hit._
 
 - **Hook:** the visitors weren't the problem; the test setup was.
 - **Got wrong first:** every PR built a preview and ran 50 browser tests and
@@ -28,7 +26,7 @@ was dropped for v1, and SHO-82 asks only for problems actually hit._
   one collection page.
 - **What works:** previews only for changes that can affect the site;
   prefetch on intent (mouse hover, keyboard focus, never touch).
-- **Code to show:** `components/link.tsx` (#171), the measured before/after
+- **Code to show:** `apps/web/components/link.tsx` (#171), the measured before/after
   table.
 - **Caveat:** CI that measures its own cost is still missing.
 
@@ -39,7 +37,7 @@ was dropped for v1, and SHO-82 asks only for problems actually hit._
 - **Got wrong first:** seed selling plans that check out and never charge;
   three plans at one price; free delivery that renewals charged for.
 - **What works:** app-owned plans only, prices from Shopify's allocations, the
-  portal through a Worker, blend details in line properties (SHO-84: editable
+  customer portal through a Worker (designed; in review), blend details in line properties (SHO-84: editable
   after purchase, and kept through a variant swap).
 - **Code to show:** `hasOwningApp`, the Worker's subscription actions.
 - **Caveat:** a property update replaces the whole list; repricing on a swap

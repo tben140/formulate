@@ -1,6 +1,6 @@
 # Slide-in cart for Liquid themes
 
-> Draft (SHO-119). Rewrite in your own words.
+> Draft. Rewrite in your own words.
 
 **For:** a Shopify store whose cart page sends shoppers away from the product
 they were looking at.
@@ -22,10 +22,10 @@ element, so the parts drawers usually get wrong come for free and correct:
 **Proof:**
 
 - The same drawer on the Liquid theme and the headless storefront
-  (`apps/web/components/cart-drawer.tsx`), checked by keyboard in automated
-  end-to-end tests on every change.
-- Changes show at once and undo themselves with a message if the store
-  refuses (#181).
+  (`apps/web/components/cart-drawer.tsx`). On the headless storefront it is
+  checked by keyboard in automated end-to-end tests on every change.
+- Planned (in review, #181): changes show at once and undo themselves with a
+  message if the store refuses. Today a change waits for Shopify.
 - Something that went wrong: making the drawer's heading focusable for one
   feature made it the first focus on _every_ add to cart. The keyboard test
   caught it before it shipped.
