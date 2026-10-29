@@ -55,6 +55,8 @@ export interface RoutineProduct {
   readonly variantId: string;
   /** The roughly-monthly subscription plan to offer, or null for one-off only. */
   readonly sellingPlanId: string | null;
+  /** That plan's interval in days, if it states one. */
+  readonly planDays?: number | null;
   /** Price per month on that plan (or one-off if there's no plan). */
   readonly monthlyPrice: number;
   readonly currencyCode: string;
@@ -268,7 +270,11 @@ export interface PlanChoice {
  */
 export const monthlyPlan = (
   plans: readonly PlanChoice[],
-): { readonly id: string; readonly monthlyPrice: number } | null => {
+): {
+  readonly id: string;
+  readonly frequencyDays: number;
+  readonly monthlyPrice: number;
+} | null => {
   const readable = plans.filter((plan) => plan.frequencyDays !== null);
   if (readable.length === 0) return null;
   const best = readable.reduce((closest, plan) =>
@@ -278,6 +284,7 @@ export const monthlyPlan = (
   );
   return {
     id: best.id,
+    frequencyDays: best.frequencyDays!,
     monthlyPrice:
       Math.round(((best.perDeliveryPrice * 30) / best.frequencyDays!) * 100) / 100,
   };
@@ -309,6 +316,8 @@ export const ROUTINE_ATTRIBUTES = { id: "_routine", label: "Routine" } as const;
 export interface RoutinePick {
   readonly variantId: string;
   readonly sellingPlanId: string | null;
+  /** The plan's interval in days, as the form posted it. */
+  readonly planDays?: number | null;
   readonly title: string;
 }
 
@@ -320,6 +329,10 @@ export const newRoutineId = (): string =>
  * The cart lines for a routine. Subscription lines share the routine id and a
  * readable label; a one-off product isn't part of the renewal, so it's added
  * plain. One subscription on its own isn't a routine, so it isn't tagged.
+ *
+ * Nor are subscriptions on different intervals (a four-week plan beside a
+ * 30-day one): they'd renew apart, so calling them one routine would be
+ * false. They're added as ordinary subscriptions instead.
  */
 export const routineCartLines = (
   picks: readonly RoutinePick[],
@@ -332,7 +345,11 @@ export const routineCartLines = (
 }[] => {
   const subscribed = picks.filter((pick) => pick.sellingPlanId);
   const label = subscribed.map((pick) => pick.title).join(" + ");
-  const tag = subscribed.length > 1;
+  const [first] = subscribed;
+  const tag =
+    subscribed.length > 1 &&
+    typeof first?.planDays === "number" &&
+    subscribed.every((pick) => pick.planDays === first.planDays);
   return picks.map((pick) =>
     pick.sellingPlanId
       ? {

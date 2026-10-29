@@ -227,9 +227,10 @@ describe("reading Shopify's data", () => {
         { id: "60", frequencyDays: 60, perDeliveryPrice: 15 },
         { id: "30", frequencyDays: 30, perDeliveryPrice: 15.26 },
       ]),
-    ).toEqual({ id: "30", monthlyPrice: 15.26 });
+    ).toEqual({ id: "30", frequencyDays: 30, monthlyPrice: 15.26 });
     expect(monthlyPlan([{ id: "60", frequencyDays: 60, perDeliveryPrice: 20 }])).toEqual({
       id: "60",
+      frequencyDays: 60,
       monthlyPrice: 10,
     });
     expect(monthlyPlan([])).toBeNull();
@@ -354,11 +355,13 @@ describe("one routine, one renewal (SHO-176)", () => {
     {
       variantId: "gid://shopify/ProductVariant/1",
       sellingPlanId: "gid://shopify/SellingPlan/30",
+      planDays: 30,
       title: "Magnesium Glycinate",
     },
     {
       variantId: "gid://shopify/ProductVariant/2",
       sellingPlanId: "gid://shopify/SellingPlan/30",
+      planDays: 30,
       title: "Vitamin D3",
     },
     { variantId: "gid://shopify/ProductVariant/3", sellingPlanId: null, title: "Shaker" },
@@ -385,6 +388,19 @@ describe("one routine, one renewal (SHO-176)", () => {
     });
     const lone = routineCartLines([picks[0]!, picks[2]!], "r-test");
     expect(lone[0]?.attributes).toBeUndefined();
+  });
+
+  it("doesn't tag subscriptions that would renew on different intervals", () => {
+    const mixed = routineCartLines([picks[0]!, { ...picks[1]!, planDays: 28 }], "r-test");
+    expect(mixed.every((line) => line.attributes === undefined)).toBe(true);
+    const unknown = routineCartLines(
+      [
+        { ...picks[0]!, planDays: null },
+        { ...picks[1]!, planDays: null },
+      ],
+      "r-test",
+    );
+    expect(unknown.every((line) => line.attributes === undefined)).toBe(true);
   });
 
   it("gives each routine its own id", () => {

@@ -69,7 +69,7 @@ export const RoutineResults = ({
                 <input
                   type="checkbox"
                   name="item"
-                  value={`${product.variantId}|${product.sellingPlanId ?? ""}|${encodeURIComponent(product.title)}`}
+                  value={`${product.variantId}|${product.sellingPlanId ?? ""}|${encodeURIComponent(product.title)}|${product.planDays ?? ""}`}
                   checked={ticked.has(product.id)}
                   onChange={() => toggle(product.id)}
                 />
