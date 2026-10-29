@@ -4,7 +4,8 @@
  *
  * Install: Shopify admin → Settings → Customer events → Add custom pixel.
  * Paste this whole file, replace __POSTHOG_KEY__ with the project's public key
- * (the same value as NEXT_PUBLIC_POSTHOG_KEY), set Permission to "Required"
+ * (the same value as NEXT_PUBLIC_POSTHOG_KEY) and __API_URL__ with the API
+ * Worker's URL, set Permission to "Required"
  * with Analytics ticked, set Data sale to "Data collected does not qualify as
  * data sale", then Save and Connect. See docs/integration-posthog.md.
  *
@@ -31,6 +32,13 @@
 
 const POSTHOG_KEY = "__POSTHOG_KEY__";
 const POSTHOG_HOST = "https://eu.i.posthog.com";
+/*
+ * The API Worker's URL (https://formulate-api.<subdomain>.workers.dev). After
+ * PostHog accepts an order, the pixel tells the Worker, so the order webhook
+ * doesn't send its backup copy. Left as the placeholder, the pixel still
+ * works; the webhook then sends a second event for every order.
+ */
+const API_URL = "__API_URL__";
 
 /** Must match PRODUCT_EVENTS in packages/analytics. */
 const EVENTS = {
@@ -135,7 +143,7 @@ const send = async (
   surface = "theme",
   uuid = undefined,
 ) => {
-  if (!POSTHOG_KEY || POSTHOG_KEY.startsWith("__")) return;
+  if (!POSTHOG_KEY || POSTHOG_KEY.startsWith("__")) return false;
   const body = {
     api_key: POSTHOG_KEY,
     ...(uuid ? { uuid } : {}),
@@ -152,14 +160,36 @@ const send = async (
     },
   };
   try {
-    await fetch(`${POSTHOG_HOST}/i/v0/e/`, {
+    const response = await fetch(`${POSTHOG_HOST}/i/v0/e/`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
       keepalive: true,
     });
+    return response.ok === true;
   } catch {
     // Analytics never gets in the way of a purchase.
+    return false;
+  }
+};
+
+/**
+ * Tells the API Worker this order reached PostHog, so the webhook's backup
+ * isn't sent (apps/api/src/order-backup.ts). Plain text and no-cors: no
+ * preflight, and nothing to read back.
+ */
+const reportCounted = async (orderId) => {
+  if (!orderId || API_URL.startsWith("__")) return;
+  try {
+    await fetch(`${API_URL}/orders/counted`, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "content-type": "text/plain" },
+      body: orderId,
+      keepalive: true,
+    });
+  } catch {
+    // The backup then sends a second copy; PostHog still has the first.
   }
 };
 
@@ -234,11 +264,12 @@ analytics.subscribe("checkout_started", (event) => {
 analytics.subscribe("checkout_completed", (event) => {
   const checkout = event.data?.checkout;
   if (!checkout) return;
+  const orderId = numericId(checkout.order?.id);
   void send(
     event,
     EVENTS.orderCompleted,
     {
-      order_id: numericId(checkout.order?.id),
+      order_id: orderId,
       item_count: lineCount(checkout),
       order_value: amount(checkout.totalPrice),
       currency: checkout.currencyCode ?? checkout.totalPrice?.currencyCode ?? "",
@@ -246,6 +277,6 @@ analytics.subscribe("checkout_completed", (event) => {
     },
     attribute(checkout, ATTRIBUTES.distinctId),
     surfaceOf(checkout),
-    checkout.order?.id ? orderEventUuid(numericId(checkout.order.id)) : undefined,
-  );
+    orderId ? orderEventUuid(orderId) : undefined,
+  ).then((sent) => (sent ? reportCounted(orderId) : undefined));
 });

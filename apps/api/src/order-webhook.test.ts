@@ -29,6 +29,16 @@ const order = JSON.stringify({
   line_items: [{ quantity: 2 }, { quantity: 1 }],
 });
 
+/** The order objects the webhook reached, by order id, with what they got. */
+const backups = new Map<string, { schedule: ReturnType<typeof vi.fn> }>();
+const backup = (orderId: string) => {
+  const existing = backups.get(orderId);
+  if (existing) return existing;
+  const created = { schedule: vi.fn(() => Promise.resolve("scheduled")) };
+  backups.set(orderId, created);
+  return created;
+};
+
 const env = (overrides = {}) => ({
   KLAVIYO_PRIVATE_KEY: "pk",
   KLAVIYO_LIST_ID: "list",
@@ -38,6 +48,10 @@ const env = (overrides = {}) => ({
     idFromName: (name: string) => name,
     // The webhook must never reach the shoppers' limiter.
     get: () => ({ limit: () => Promise.reject(new Error("rate limiter used")) }),
+  },
+  ORDER_BACKUP: {
+    idFromName: (name: string) => name,
+    get: (id: string) => backup(id),
   },
   ...overrides,
 });
@@ -58,34 +72,32 @@ const call = (request: Request, e = env()) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the stubs stand in for Cloudflare bindings
   worker.fetch(request, e as any);
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  backups.clear();
+});
 
 describe("orders/create webhook", () => {
-  it("sends the order to PostHog with the order's fixed event id", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })));
+  it("hands the order's event to its backup object, not to PostHog", async () => {
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const response = await call(await webhook(order));
     expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledOnce();
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, { body: string }];
-    expect(url).toBe("https://eu.i.posthog.com/i/v0/e/");
-    expect(JSON.parse(init.body)).toMatchObject({
+    expect(fetchMock).not.toHaveBeenCalled();
+    const scheduled = backup("6500000000001").schedule.mock.calls[0]?.[0];
+    expect(scheduled).toMatchObject({
       event: "order_completed",
       uuid: orderEventUuid("6500000000001"),
       distinct_id: "web-visitor-id",
+      timestamp: "2026-10-28T19:40:00.000Z",
       properties: { order_value: 39.85, item_count: 3, surface: "web" },
     });
   });
 
-  it("sends the same event id for a retried or replayed webhook", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })));
-    vi.stubGlobal("fetch", fetchMock);
-    await call(await webhook(order));
-    await call(await webhook(order));
-    const ids = fetchMock.mock.calls.map(
-      (args) => JSON.parse((args as unknown as [string, { body: string }])[1].body).uuid,
-    );
-    expect(ids[0]).toBe(ids[1]);
+  it("asks Shopify to retry when the backup can't be stored", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    backup("6500000000001").schedule.mockRejectedValueOnce(new Error("storage"));
+    expect((await call(await webhook(order))).status).toBe(503);
   });
 
   it("rejects a wrong signature before parsing, and sends nothing", async () => {
@@ -120,22 +132,7 @@ describe("orders/create webhook", () => {
     const untagged = JSON.stringify({ ...JSON.parse(order), note_attributes: [] });
     expect((await call(await webhook(untagged))).status).toBe(200);
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("asks Shopify to retry when PostHog fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.resolve(new Response("", { status: 503 }))),
-    );
-    expect((await call(await webhook(order))).status).toBe(502);
-  });
-
-  it("asks Shopify to retry when PostHog can't be reached", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.reject(new TypeError("network down"))),
-    );
-    expect((await call(await webhook(order))).status).toBe(502);
+    expect(backups.size).toBe(0);
   });
 
   it("asks Shopify to retry a consented order until the PostHog key is set", async () => {

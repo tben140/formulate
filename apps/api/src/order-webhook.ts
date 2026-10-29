@@ -1,17 +1,17 @@
-import {
-  POSTHOG_CAPTURE_URL,
-  orderCompletedEvent,
-  type WebhookOrder,
-} from "@formulate/analytics";
+import { orderCompletedEvent, type WebhookOrder } from "@formulate/analytics";
+
+import type { OrderBackup } from "./order-backup";
 
 /**
- * Shopify's orders/create webhook → PostHog `order_completed` (SHO-88).
+ * Shopify's orders/create webhook → PostHog `order_completed` (SHO-88), as a
+ * backup for the checkout pixel.
  *
- * The browser's checkout pixel sends the same event when it can; this makes
- * sure an order is counted when it can't. Both use the order's fixed event id,
- * and Shopify's retries (it retries any non-2xx) carry the same `created_at`,
- * so PostHog collapses them. ⚠️ The pixel's timestamp differs, so an order
- * both send can count twice: docs/integration-posthog.md, "Known gaps".
+ * The pixel sends the event when it runs; this makes sure an order is counted
+ * when it doesn't. The event isn't sent from here: it goes to the order's
+ * OrderBackup object (./order-backup.ts), which sends it ten minutes later
+ * only if the pixel hasn't reported the order. So an order counts once
+ * whichever way it arrives, and Shopify's retries (it retries any non-2xx)
+ * keep the first event.
  *
  * ⚠️ Public URL, so nothing happens before the signature checks out: an HMAC
  * of the raw body with the app's client secret, compared by
@@ -26,6 +26,8 @@ export interface OrderWebhookEnv {
    * accepted; consented ones get 503, so Shopify retries them once it's set.
    */
   readonly POSTHOG_KEY?: string;
+  /** One object per order: waits for the pixel, then sends if it must. */
+  readonly ORDER_BACKUP: DurableObjectNamespace<OrderBackup>;
 }
 
 /** An order webhook is a few KB; well past any real order. */
@@ -45,7 +47,10 @@ const base64ToBytes = (value: string): Uint8Array | null => {
  * declared length, and a body without one (chunked) is read only up to the
  * limit.
  */
-const readBounded = async (request: Request, limit: number): Promise<string | null> => {
+export const readBounded = async (
+  request: Request,
+  limit: number,
+): Promise<string | null> => {
   if (Number(request.headers.get("content-length") ?? 0) > limit) return null;
   if (!request.body) return "";
   const reader = request.body.getReader();
@@ -114,17 +119,13 @@ export const handleOrderWebhook = async (
   // Consented, but no key to send with: ask Shopify to retry once it's set.
   if (!env.POSTHOG_KEY) return status(503);
 
-  // A failed send makes Shopify retry later; the fixed event id makes that safe.
-  // A network failure is caught and not logged: the event carries the
-  // visitor's id.
+  // Stored and timed, not sent yet. If storing fails, Shopify retries.
   try {
-    const response = await fetch(POSTHOG_CAPTURE_URL, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(event),
-    });
-    return status(response.ok ? 200 : 502);
+    await env.ORDER_BACKUP.get(env.ORDER_BACKUP.idFromName(String(order.id))).schedule(
+      event,
+    );
+    return status(200);
   } catch {
-    return status(502);
+    return status(503);
   }
 };

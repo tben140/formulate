@@ -1,6 +1,8 @@
+import { handleOrderCounted } from "./order-backup";
 import { handleOrderWebhook, type OrderWebhookEnv } from "./order-webhook";
 import type { RateLimiter } from "./rate-limiter";
 
+export { OrderBackup } from "./order-backup";
 export { RateLimiter } from "./rate-limiter";
 
 import {
@@ -95,8 +97,14 @@ export default {
 
     // Shopify's order webhook (SHO-88): signed by Shopify, so it is checked by
     // its signature, not the per-IP limit meant for shoppers.
-    if (new URL(request.url).pathname === "/webhooks/orders-create") {
+    const { pathname } = new URL(request.url);
+    if (pathname === "/webhooks/orders-create") {
       return handleOrderWebhook(request, env);
+    }
+    // The checkout pixel's "order counted" note (SHO-88): plain text, limited
+    // per IP. It can only stop a backup event, never send one.
+    if (pathname === "/orders/counted") {
+      return handleOrderCounted(request, env);
     }
 
     // Rejected before the body is read. An attacker should not be able to make
