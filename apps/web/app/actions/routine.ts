@@ -3,8 +3,10 @@
 import {
   describeError,
   describeForShopper,
+  newRoutineId,
   parseAnswers,
-  type CartLineInput,
+  routineCartLines,
+  type RoutinePick,
 } from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -21,29 +23,45 @@ import { clearSavedAnswers, getRoutineGoals, writeSavedAnswers } from "@/lib/rou
 import type { CartActionState } from "./cart";
 
 /**
+ * A product title as the form posted it. It only labels the routine (a line
+ * property the shopper sees), so a malformed or forged one is cut short, not
+ * trusted for anything.
+ */
+const readableTitle = (encoded = ""): string => {
+  try {
+    return decodeURIComponent(encoded).slice(0, 80);
+  } catch {
+    return "";
+  }
+};
+
+/**
  * "Subscribe to this routine": every ticked product in one cart request, each
  * on its subscription plan. The shopper can untick products first, which is
  * the "edit before adding" decision on SHO-161.
  *
- * Each ticked box posts `item` as "variantId|sellingPlanId" (the plan empty
- * for a one-off product).
+ * The subscriptions share a routine id as a line property, so Recharge renews
+ * them together and the portal can treat them as one routine (SHO-176,
+ * `routineCartLines`).
+ *
+ * Each ticked box posts `item` as "variantId|sellingPlanId|title" (the plan
+ * empty for a one-off product, the title URI-encoded).
  */
 export const addRoutineToCart = async (
   _previous: CartActionState,
   formData: FormData,
 ): Promise<CartActionState> => {
-  const lines: CartLineInput[] = formData
+  const picks: RoutinePick[] = formData
     .getAll("item")
     .map(String)
     .map((item) => item.split("|"))
-    .filter(([merchandiseId]) =>
-      merchandiseId?.startsWith("gid://shopify/ProductVariant/"),
-    )
-    .map(([merchandiseId, sellingPlanId]) => ({
-      merchandiseId: merchandiseId!,
-      quantity: 1,
-      ...(sellingPlanId ? { sellingPlanId } : {}),
+    .filter(([variantId]) => variantId?.startsWith("gid://shopify/ProductVariant/"))
+    .map(([variantId, sellingPlanId, title]) => ({
+      variantId: variantId!,
+      sellingPlanId: sellingPlanId || null,
+      title: readableTitle(title),
     }));
+  const lines = routineCartLines(picks, newRoutineId());
 
   if (lines.length === 0) {
     return { status: "error", message: "Tick at least one product to add." };

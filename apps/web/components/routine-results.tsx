@@ -69,7 +69,7 @@ export const RoutineResults = ({
                 <input
                   type="checkbox"
                   name="item"
-                  value={`${product.variantId}|${product.sellingPlanId ?? ""}`}
+                  value={`${product.variantId}|${product.sellingPlanId ?? ""}|${encodeURIComponent(product.title)}`}
                   checked={ticked.has(product.id)}
                   onChange={() => toggle(product.id)}
                 />
@@ -128,8 +128,8 @@ export const RoutineResults = ({
       </p>
 
       <p className="text-sm text-foreground-muted">
-        Subscriptions can be skipped, paused or cancelled any time. Prefer to pick
-        yourself?{" "}
+        Subscribed together, they renew on the same day. Skip, pause or cancel any time.
+        Prefer to pick yourself?{" "}
         <Link href="/collections/best-sellers" className="underline underline-offset-4">
           Browse best sellers
         </Link>

@@ -282,3 +282,115 @@ export const monthlyPlan = (
       Math.round(((best.perDeliveryPrice * 30) / best.frequencyDays!) * 100) / 100,
   };
 };
+
+/* -------------------------------------------------------------------------- */
+/*  One routine, one renewal (SHO-176)                                         */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * A routine is bought as one subscription per product, all on the same
+ * roughly-monthly plan, and every one carries the same routine id as a line
+ * property. Line properties reach Recharge's subscriptions (verified on order
+ * #1011, SHO-84), and Recharge already charges subscriptions with the same
+ * date, address and payment method together. So the shopper gets one
+ * renewal, and the portal can show, skip or pause the routine as one thing by
+ * grouping on the id.
+ *
+ * Why not one bundled line: Shopify rejects a Cart Transform expand on a line
+ * with a selling plan, so a subscription can't be one line priced from its
+ * parts; and Recharge's own bundles need a plan this store doesn't have.
+ * docs/integration-recharge.md, "Routines as one renewal".
+ */
+
+/** Line property keys. `_routine` is hidden at checkout; `Routine` is shown. */
+export const ROUTINE_ATTRIBUTES = { id: "_routine", label: "Routine" } as const;
+
+/** What the routine form posts for each ticked product. */
+export interface RoutinePick {
+  readonly variantId: string;
+  readonly sellingPlanId: string | null;
+  readonly title: string;
+}
+
+/** A short id for one routine, unique enough to tell a shopper's routines apart. */
+export const newRoutineId = (): string =>
+  `r-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+/**
+ * The cart lines for a routine. Subscription lines share the routine id and a
+ * readable label; a one-off product isn't part of the renewal, so it's added
+ * plain. One subscription on its own isn't a routine, so it isn't tagged.
+ */
+export const routineCartLines = (
+  picks: readonly RoutinePick[],
+  routineId: string,
+): {
+  merchandiseId: string;
+  quantity: number;
+  sellingPlanId?: string;
+  attributes?: { key: string; value: string }[];
+}[] => {
+  const subscribed = picks.filter((pick) => pick.sellingPlanId);
+  const label = subscribed.map((pick) => pick.title).join(" + ");
+  const tag = subscribed.length > 1;
+  return picks.map((pick) =>
+    pick.sellingPlanId
+      ? {
+          merchandiseId: pick.variantId,
+          quantity: 1,
+          sellingPlanId: pick.sellingPlanId,
+          ...(tag
+            ? {
+                attributes: [
+                  { key: ROUTINE_ATTRIBUTES.id, value: routineId },
+                  { key: ROUTINE_ATTRIBUTES.label, value: label },
+                ],
+              }
+            : {}),
+        }
+      : { merchandiseId: pick.variantId, quantity: 1 },
+  );
+};
+
+/** A subscription as the portal reads it: its id and line properties. */
+export interface PropertiedSubscription {
+  readonly id: string | number;
+  readonly properties: readonly { readonly name: string; readonly value: string }[];
+}
+
+/**
+ * Subscriptions grouped into routines, for the portal: each routine's id,
+ * label and members, then the subscriptions that belong to none. A routine
+ * left with one member (the rest cancelled) is shown on its own.
+ */
+export const groupByRoutine = <S extends PropertiedSubscription>(
+  subscriptions: readonly S[],
+): {
+  routines: { id: string; label: string; subscriptions: S[] }[];
+  single: S[];
+} => {
+  const property = (subscription: S, name: string) =>
+    subscription.properties.find((entry) => entry.name === name)?.value ?? "";
+  const byId = new Map<string, { id: string; label: string; subscriptions: S[] }>();
+  const single: S[] = [];
+  for (const subscription of subscriptions) {
+    const id = property(subscription, ROUTINE_ATTRIBUTES.id);
+    if (!id) {
+      single.push(subscription);
+      continue;
+    }
+    const group = byId.get(id) ?? {
+      id,
+      label: property(subscription, ROUTINE_ATTRIBUTES.label),
+      subscriptions: [],
+    };
+    group.subscriptions.push(subscription);
+    byId.set(id, group);
+  }
+  const routines = [...byId.values()].filter((group) => {
+    if (group.subscriptions.length > 1) return true;
+    single.push(...group.subscriptions);
+    return false;
+  });
+  return { routines, single };
+};

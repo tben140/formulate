@@ -99,6 +99,40 @@ This is largely configuration in the Recharge admin rather than code, which make
 it unusually high value per hour spent — real, cross-system behaviour for very
 little build. See [Klaviyo](integration-klaviyo.md).
 
+## Routines as one renewal (SHO-176)
+
+The routine quiz (SHO-161) sells 2 to 4 products. The shopper should get one
+routine: one renewal date, one thing to skip or pause. Three ways to do that
+were checked:
+
+- **Recharge bundles.** They're built for this, but they need a Recharge plan
+  this store doesn't have (the same upgrade question as the storefront token).
+- **One bundled cart line** (a Cart Transform `lineExpand`, priced by Shopify
+  from its parts). Shopify rejects expand, merge and update operations at
+  checkout on a line with a selling plan, so a subscription can't be one.
+- **One subscription per product, tied together. This is the one built.**
+  Every subscription in the routine carries two line properties: `_routine`
+  (an id, hidden at checkout) and `Routine` (the product names, shown). Line
+  properties reach Recharge's subscriptions (order #1011, SHO-84). The
+  products are bought together on the same roughly-monthly plan, so they
+  share a renewal date, and Recharge charges subscriptions with the same date,
+  address and payment method as one order.
+
+Shared code: `routineCartLines`, which builds the lines, and `groupByRoutine`,
+which gives the portal each routine and its members, in
+`packages/shopify/src/routine-quiz.ts`.
+
+**Still to do:**
+
+- **The portal shows a routine as one card.** Skip, pause and reschedule then
+  apply to every member, so the dates stay together. It goes on the portal
+  stack (#72, #136). Until then, changing one subscription on its own splits
+  it from the routine's date.
+- **Check with a test order** that Recharge does combine the routine into one
+  charge. The order needs the store owner's OK.
+- **The app and the theme:** the app's quiz isn't built yet. The theme's
+  routine page would post the same two properties.
+
 ## Open questions
 
 - Which Recharge API version and auth model the portal reads through.
