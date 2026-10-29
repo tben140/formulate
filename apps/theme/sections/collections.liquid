@@ -22,6 +22,7 @@
         capture status
           render 'campaign-status', campaign: campaign
         endcapture
+        assign status = status | strip
         if status != 'active' and campaign.collection.value
           assign hidden_handles = hidden_handles | append: campaign.collection.value.handle | append: '|'
         endif

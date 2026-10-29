@@ -10,6 +10,7 @@
     capture status
       render 'campaign-status', campaign: campaign
     endcapture
+    assign status = status | strip
     if status == 'active'
       assign label = campaign.badge.value | escape
       echo '<span class="campaign-badge">' | append: label | append: '</span>'

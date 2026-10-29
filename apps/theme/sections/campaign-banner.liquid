@@ -13,6 +13,7 @@
     capture status
       render 'campaign-status', campaign: campaign
     endcapture
+    assign status = status | strip
     if status == 'active'
       assign end_s = campaign.ends_at.value | date: '%s' | plus: 0
       if shown == nil or end_s < shown_end

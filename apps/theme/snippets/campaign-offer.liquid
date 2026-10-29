@@ -15,6 +15,7 @@
     capture status
       render 'campaign-status', campaign: campaign
     endcapture
+    assign status = status | strip
   endif
 
   assign narrowed = false

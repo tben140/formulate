@@ -11,6 +11,7 @@
   capture status
     render 'campaign-status', campaign: campaign
   endcapture
+  assign status = status | strip
   assign headline = campaign.headline.value | default: campaign.title.value
 -%}
 
@@ -20,7 +21,7 @@
     <a class="campaign__link" href="{{ routes.root_url }}">Shop the range</a>
   </div>
 {% else %}
-  <article class="campaign page-section">
+  <article class="campaign page-section" data-campaign-status="{{ status }}">
     {% render 'breadcrumbs', current: campaign.title.value %}
 
     <header class="campaign__header">
