@@ -130,6 +130,49 @@ describe("orders/create webhook", () => {
     expect((await call(await webhook(order))).status).toBe(502);
   });
 
+  it("asks Shopify to retry when PostHog can't be reached", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new TypeError("network down"))),
+    );
+    expect((await call(await webhook(order))).status).toBe(502);
+  });
+
+  it("asks Shopify to retry a consented order until the PostHog key is set", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    expect(
+      (await call(await webhook(order), env({ POSTHOG_KEY: undefined }))).status,
+    ).toBe(503);
+    const untagged = JSON.stringify({ ...JSON.parse(order), note_attributes: [] });
+    expect(
+      (await call(await webhook(untagged), env({ POSTHOG_KEY: undefined }))).status,
+    ).toBe(200);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a body over the limit, declared or streamed, before checking it", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const big = "x".repeat(256 * 1024 + 1);
+    expect((await call(await webhook(big))).status).toBe(413);
+    const chunk = new TextEncoder().encode("x".repeat(64 * 1024));
+    let sent = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent++ < 5) controller.enqueue(chunk);
+        else controller.close();
+      },
+    });
+    const chunked = new Request("https://api.example/webhooks/orders-create", {
+      method: "POST",
+      headers: { "x-shopify-topic": "orders/create", "x-shopify-hmac-sha256": "x" },
+      body: stream,
+      // @ts-expect-error -- needed for a streamed request body in Node
+      duplex: "half",
+    });
+    expect((await call(chunked)).status).toBe(413);
+  });
+
   it("refuses everything until the secret is set, and other topics", async () => {
     vi.stubGlobal("fetch", vi.fn());
     expect(

@@ -102,10 +102,16 @@ checkout, a blocker, a tab closed on the thank-you page. So the API Worker also
 takes Shopify's **orders/create** webhook (`POST /webhooks/orders-create`,
 `apps/api/src/order-webhook.ts`) and sends the same `order_completed`.
 
-- **One event per order.** Pixel and webhook use the same event id,
-  `orderEventUuid(order id)` in `packages/analytics`, which the pixel repeats
-  (`pixel.test.ts` checks they agree). PostHog keeps one event per id, so the
-  pair, Shopify's retries and replays all count once.
+- **Retries count once; the pixel and webhook pair may not.** Both senders
+  use the same event id, `orderEventUuid(order id)` in `packages/analytics`,
+  which the pixel repeats (`pixel.test.ts` checks they agree). PostHog
+  de-duplicates events only when the id, event name, `distinct_id` _and_
+  `timestamp` all match, and only eventually (in background merges), so a
+  duplicate can show for a while first. Shopify's retries and replays carry the
+  same `created_at`, so they collapse. The pixel stamps the time its
+  `checkout_completed` fired, which it can't make equal to the order's
+  `created_at`, so an order both senders see can count twice. ⚠️ Open: settle
+  this before switching the webhook on (see Known gaps).
 - **Only with consent.** It sends only when the order's cart carries
   `_posthog_id`, which web and the app add only for shoppers who allowed
   analytics.
@@ -127,6 +133,11 @@ POSTHOG_KEY` (the public project key). Until both are set it answers 503 and
    in PostHog, under the same person as the visit.
 
 ## Known gaps
+
+- **Pixel and webhook can both count an order.** See "Orders: the webhook".
+  The fix is to make one sender own `order_completed`: either the webhook
+  (every order counted, but no `has_subscription` and no browser session on
+  the event) or the pixel (the current gaps stay). Not yet decided.
 
 - **Signed-in shoppers aren't identified.** `identify()` exists but nothing
   calls it yet: customer sign-in (#76 web, #78 app) isn't in this branch's
