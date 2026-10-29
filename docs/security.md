@@ -147,7 +147,7 @@ block every merge. Turn it on when there's a second maintainer.
 
 | Risk                                      | Defence                                                                                                                                   | Where                                   |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| A script loaded from somewhere unexpected | A Content Security Policy lists every host the site loads from. **Report-only for now** (below)                                           | `apps/web/lib/security-headers.ts`      |
+| A script loaded from somewhere unexpected | A Content Security Policy lists every host the site loads from, and browsers block the rest (below)                                       | `apps/web/lib/security-headers.ts`      |
 | Another site framing ours (clickjacking)  | `X-Frame-Options: DENY`                                                                                                                   | the same file                           |
 | A downgrade to plain HTTP                 | `Strict-Transport-Security` for two years, without `preload` until the real domain is bought                                              | the same file                           |
 | A response read as the wrong type         | `X-Content-Type-Options: nosniff`                                                                                                         | the same file                           |
@@ -156,14 +156,15 @@ block every merge. Turn it on when there's a second maintainer.
 | The image optimiser fetching on request   | No `images` setting, so `/_next/image` fetches nothing remote. Every image comes straight from Shopify's CDN through Hydrogen's `<Image>` | `apps/web/next.config.ts`               |
 | A header or policy quietly dropped        | e2e tests check the headers, and fail on any policy violation on the main pages, with and without tracking accepted                       | `apps/web/e2e/security-headers.spec.ts` |
 
-**The Content Security Policy, and when it starts blocking.** It's sent as
-`Content-Security-Policy-Report-Only`, so browsers report what it would block
-without blocking anything. The batch still has PRs that add third parties
-(PostHog, Sentry, ad tags); each adds its hosts to the policy, and the e2e test
-says when one is missing. Once those have merged and the test has stayed
-clean, switch the header to `Content-Security-Policy`. `script-src` allows
-`'unsafe-inline'` because Next's App Router inlines its hydration data;
-per-request nonces would make every page dynamic and undo the cached
+**The Content Security Policy is enforced.** It's sent as
+`Content-Security-Policy`, so a browser blocks anything it doesn't list (it
+was report-only first, SHO-192). The hosts for the batch's third parties are
+in it already: Klaviyo, PostHog (EU), Sentry's ingest hosts, Shopify's CDN
+for the Shop Pay button, and Shopify's customer accounts for signing out. A PR
+adding a new third party adds its host in the same change; the e2e test fails
+on any violation, so a missing one shows before it ships. `script-src`
+allows `'unsafe-inline'` because Next's App Router inlines its hydration
+data; per-request nonces would make every page dynamic and undo the cached
 catalogue. So the policy limits where scripts come from, not inline
 injection, which React's escaping covers.
 
