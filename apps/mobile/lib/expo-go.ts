@@ -19,8 +19,7 @@ import { Platform } from "react-native";
  * Development builds and store builds are `bare` or `standalone`, never
  * `storeClient`, so nothing changes for them.
  */
-export const isExpoGo =
-  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+export const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 /**
  * Whether the native SDKs (Checkout Sheet Kit, Klaviyo) can load: not in Expo

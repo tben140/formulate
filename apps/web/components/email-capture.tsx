@@ -37,8 +37,7 @@ const errorMessage = (result: Extract<SubscribeResult, { ok: false }>): string =
   }
 };
 
-type Status =
-  { readonly kind: "idle" } | { readonly kind: "done"; readonly message: string };
+type Status = { readonly kind: "idle" } | { readonly kind: "done"; readonly message: string };
 
 /**
  * Newsletter sign-up — and the identity moment for the whole Klaviyo
