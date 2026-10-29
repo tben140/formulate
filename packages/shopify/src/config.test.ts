@@ -26,9 +26,11 @@ describe("DEFAULT_COLLECTION_HANDLE", () => {
   it.each(COPIES)("is the handle %s uses", (path) => {
     const text = readFileSync(root + path, "utf8");
     const handles = [
-      ...text.matchAll(/collections(?:\/|\['|: )([a-z0-9-]+)/g),
-      ...text.matchAll(/collection_handle: ([a-z0-9-]+)/g),
-      ...text.matchAll(/handle: "([a-z0-9-]+)"/g),
+      // Up to the next delimiter, so a longer handle (best-sellers_2026) is
+      // read whole and fails, rather than matching its first part.
+      ...text.matchAll(/collections(?:\/|\['|: )([^\s'"`,/?#)\]]+)/g),
+      ...text.matchAll(/collection_handle: (\S+)/g),
+      ...text.matchAll(/handle: "([^"]+)"/g),
     ].map((match) => match[1]);
     expect(handles.length, `no collection handle found in ${path}`).toBeGreaterThan(0);
     expect(new Set(handles)).toEqual(new Set([DEFAULT_COLLECTION_HANDLE]));
