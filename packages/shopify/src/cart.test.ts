@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createCartClient, isCartGone, isCartId, stockNotice } from "./cart";
 import { describeForShopper } from "./errors";
 import {
+  CartAttributesUpdateMutation,
   CartCreateMutation,
   CartLinesAddMutation,
   CartLinesRemoveMutation,
@@ -161,7 +162,10 @@ describe("addLinesOrCreate", () => {
 
   const ok = (data: unknown) => Promise.resolve({ ok: true as const, data });
   const added = ok({
-    cartLinesAdd: { cart: { id: STORED, lines: { nodes: [] } }, userErrors: [] },
+    cartLinesAdd: {
+      cart: { id: STORED, attributes: [], lines: { nodes: [] } },
+      userErrors: [],
+    },
   });
   const created = ok({
     cartCreate: { cart: { id: FRESH, lines: { nodes: [] } }, userErrors: [] },
@@ -181,19 +185,34 @@ describe("addLinesOrCreate", () => {
     onAdd: () => Promise<unknown>,
     onCreate: () => Promise<unknown> = () => created,
   ) => {
-    const request = vi.fn((document: unknown) =>
+    const request = vi.fn((document: unknown, vars?: { attributes?: unknown }) =>
       document === CartLinesAddMutation
         ? onAdd()
         : document === CartCreateMutation
           ? onCreate()
-          : Promise.reject(new Error("unexpected document")),
+          : document === CartAttributesUpdateMutation
+            ? ok({
+                cartAttributesUpdate: {
+                  cart: {
+                    id: STORED,
+                    attributes: vars?.attributes,
+                    lines: { nodes: [] },
+                  },
+                  userErrors: [],
+                },
+              })
+            : Promise.reject(new Error("unexpected document")),
     );
     return { request, cart: createCartClient({ request } as never) };
   };
 
   const calls = (request: ReturnType<typeof vi.fn>) =>
     request.mock.calls.map(([document]) =>
-      document === CartLinesAddMutation ? "add" : "create",
+      document === CartLinesAddMutation
+        ? "add"
+        : document === CartAttributesUpdateMutation
+          ? "attributes"
+          : "create",
     );
 
   it("adds to the stored cart and leaves it in place", async () => {
@@ -209,9 +228,9 @@ describe("addLinesOrCreate", () => {
     expect(email).not.toHaveBeenCalled();
   });
 
-  it("puts attributes on a new cart, and never on an existing one", async () => {
+  it("puts attributes on a new cart", async () => {
     // How a purchase is credited to the visit that led to it: checkout reads
-    // the attributes. An existing cart keeps whatever it was created with.
+    // the attributes.
     const attributes = [{ key: "_surface", value: "app" }];
     const fresh = client(() => added);
     await fresh.cart.addLinesOrCreate({ cartId: null, lines: LINES, attributes });
@@ -220,9 +239,58 @@ describe("addLinesOrCreate", () => {
       { input: { attributes?: unknown } },
     ];
     expect(vars.input.attributes).toEqual(attributes);
+  });
 
-    const existing = client(() => added);
-    await existing.cart.addLinesOrCreate({ cartId: STORED, lines: LINES, attributes });
+  it("adds missing attributes to an existing cart, keeping its others", async () => {
+    // A cart made before consent has no analytics id; the order must still
+    // carry one once the shopper consents.
+    const existing = client(() =>
+      ok({
+        cartLinesAdd: {
+          cart: {
+            id: STORED,
+            attributes: [{ key: "_surface", value: "web" }],
+            lines: { nodes: [] },
+          },
+          userErrors: [],
+        },
+      }),
+    );
+    const outcome = await existing.cart.addLinesOrCreate({
+      cartId: STORED,
+      lines: LINES,
+      attributes: [{ key: "_posthog_id", value: "visitor-1" }],
+    });
+    expect(calls(existing.request)).toEqual(["add", "attributes"]);
+    expect(outcome.result).toMatchObject({
+      ok: true,
+      data: {
+        attributes: [
+          { key: "_surface", value: "web" },
+          { key: "_posthog_id", value: "visitor-1" },
+        ],
+      },
+    });
+  });
+
+  it("leaves an existing cart's attributes alone when they already match", async () => {
+    const existing = client(() =>
+      ok({
+        cartLinesAdd: {
+          cart: {
+            id: STORED,
+            attributes: [{ key: "_surface", value: "app" }],
+            lines: { nodes: [] },
+          },
+          userErrors: [],
+        },
+      }),
+    );
+    await existing.cart.addLinesOrCreate({
+      cartId: STORED,
+      lines: LINES,
+      attributes: [{ key: "_surface", value: "app" }],
+    });
     expect(calls(existing.request)).toEqual(["add"]);
   });
 

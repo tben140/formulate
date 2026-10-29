@@ -4,7 +4,8 @@
  *
  * Install: Shopify admin → Settings → Customer events → Add custom pixel.
  * Paste this whole file, replace __POSTHOG_KEY__ with the project's public key
- * (the same value as NEXT_PUBLIC_POSTHOG_KEY), set Permission to "Required"
+ * (the same value as NEXT_PUBLIC_POSTHOG_KEY) and __API_URL__ with the API
+ * Worker's URL, set Permission to "Required"
  * with Analytics ticked, set Data sale to "Data collected does not qualify as
  * data sale", then Save and Connect. See docs/integration-posthog.md.
  *
@@ -27,10 +28,17 @@
  * visitors who allowed analytics, on the theme and in checkout.
  */
 
-/* global analytics, browser, fetch -- provided by Shopify's custom pixel sandbox */
+/* global analytics, browser, fetch, setTimeout -- provided by Shopify's custom pixel sandbox */
 
 const POSTHOG_KEY = "__POSTHOG_KEY__";
 const POSTHOG_HOST = "https://eu.i.posthog.com";
+/*
+ * The API Worker's URL (https://formulate-api.<subdomain>.workers.dev). After
+ * PostHog accepts an order, the pixel tells the Worker, so the order webhook
+ * doesn't send its backup copy. Left as the placeholder, the pixel still
+ * works; the webhook then sends a second event for every order.
+ */
+const API_URL = "__API_URL__";
 
 /** Must match PRODUCT_EVENTS in packages/analytics. */
 const EVENTS = {
@@ -105,10 +113,40 @@ const productRef = (product, url) => ({
   product_title: product?.title ?? "",
 });
 
-const send = async (event, name, properties, distinctId, surface = "theme") => {
-  if (!POSTHOG_KEY || POSTHOG_KEY.startsWith("__")) return;
+/**
+ * An order's event id, the same one the server sends from Shopify's order
+ * webhook, so PostHog keeps one order_completed per order. Must match
+ * orderEventUuid in packages/analytics (pixel.test.ts checks).
+ */
+const fnv64 = (text, basis) => {
+  let hash = basis;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= BigInt(text.charCodeAt(i));
+    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return hash;
+};
+const orderEventUuid = (orderId) => {
+  const key = `order_completed:${orderId}`;
+  const hex =
+    fnv64(key, 0xcbf29ce484222325n).toString(16).padStart(16, "0") +
+    fnv64(key, 0x84222325cbf29ce4n).toString(16).padStart(16, "0");
+  const variant = ((parseInt(hex[16] ?? "0", 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+};
+
+const send = async (
+  event,
+  name,
+  properties,
+  distinctId,
+  surface = "theme",
+  uuid = undefined,
+) => {
+  if (!POSTHOG_KEY || POSTHOG_KEY.startsWith("__")) return false;
   const body = {
     api_key: POSTHOG_KEY,
+    ...(uuid ? { uuid } : {}),
     event: name,
     // Shopify's own id for this browser: the same on the theme and its checkout.
     distinct_id: distinctId || event.clientId,
@@ -122,14 +160,46 @@ const send = async (event, name, properties, distinctId, surface = "theme") => {
     },
   };
   try {
-    await fetch(`${POSTHOG_HOST}/i/v0/e/`, {
+    const response = await fetch(`${POSTHOG_HOST}/i/v0/e/`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
       keepalive: true,
     });
+    return response.ok === true;
   } catch {
     // Analytics never gets in the way of a purchase.
+    return false;
+  }
+};
+
+/**
+ * Tells the API Worker this order reached PostHog, so the webhook's backup
+ * isn't sent (apps/api/src/order-backup.ts). Plain text, so no preflight; the
+ * Worker answers with CORS headers so the status can be checked. Anything but
+ * a 2xx (a 429 included) is retried, a few times over about 15 seconds: a
+ * lost note means the backup sends a second copy of the order.
+ */
+const COUNTED_RETRY_DELAYS_MS = [1000, 4000, 10000];
+
+const reportCounted = async (
+  orderId,
+  wait = (ms) => new Promise((r) => setTimeout(r, ms)),
+) => {
+  if (!orderId || API_URL.startsWith("__")) return false;
+  for (let attempt = 0; ; attempt++) {
+    const ok = await fetch(`${API_URL}/orders/counted`, {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: orderId,
+      keepalive: true,
+    }).then(
+      (response) => response.ok === true,
+      () => false,
+    );
+    if (ok) return true;
+    if (attempt >= COUNTED_RETRY_DELAYS_MS.length) return false;
+    await wait(COUNTED_RETRY_DELAYS_MS[attempt]);
   }
 };
 
@@ -204,11 +274,12 @@ analytics.subscribe("checkout_started", (event) => {
 analytics.subscribe("checkout_completed", (event) => {
   const checkout = event.data?.checkout;
   if (!checkout) return;
+  const orderId = numericId(checkout.order?.id);
   void send(
     event,
     EVENTS.orderCompleted,
     {
-      order_id: numericId(checkout.order?.id),
+      order_id: orderId,
       item_count: lineCount(checkout),
       order_value: amount(checkout.totalPrice),
       currency: checkout.currencyCode ?? checkout.totalPrice?.currencyCode ?? "",
@@ -216,5 +287,6 @@ analytics.subscribe("checkout_completed", (event) => {
     },
     attribute(checkout, ATTRIBUTES.distinctId),
     surfaceOf(checkout),
-  );
+    orderId ? orderEventUuid(orderId) : undefined,
+  ).then((sent) => (sent ? reportCounted(orderId) : undefined));
 });

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { orderEventUuid } from "./order-event";
 import { CART_ATTRIBUTES, POSTHOG_HOST, PRODUCT_EVENTS } from "./product-analytics";
 
 /**
@@ -20,7 +21,7 @@ interface SentBody {
   readonly properties: Readonly<Record<string, unknown>>;
 }
 
-const loadPixel = (key = "phc_test") => {
+const loadPixel = (key = "phc_test", apiUrl = "__API_URL__") => {
   const handlers = new Map<string, Handler>();
   const analytics = {
     subscribe: (name: string, handler: Handler) => handlers.set(name, handler),
@@ -41,7 +42,7 @@ const loadPixel = (key = "phc_test") => {
     SOURCE.replace(
       `const POSTHOG_KEY = "__POSTHOG_KEY__"`,
       `const POSTHOG_KEY = "${key}"`,
-    ),
+    ).replace(`const API_URL = "__API_URL__"`, `const API_URL = "${apiUrl}"`),
   )(analytics, browser, fetchMock);
 
   /** Fires a Shopify event and returns what reached PostHog, if anything. */
@@ -61,7 +62,7 @@ const loadPixel = (key = "phc_test") => {
     return call ? { url: call[0], body: JSON.parse(call[1].body) as SentBody } : null;
   };
 
-  return { fire, handlers };
+  return { fire, handlers, fetchMock };
 };
 
 const money = (value: number) => ({ amount: value, currencyCode: "GBP" });
@@ -155,6 +156,8 @@ describe("PostHog custom pixel", () => {
     );
     expect(sent?.body).toMatchObject({
       event: PRODUCT_EVENTS.orderCompleted,
+      // The same id the order webhook sends (SHO-88), so PostHog keeps one.
+      uuid: orderEventUuid("6500000000001"),
       distinct_id: "web-visitor-id",
       properties: {
         order_id: "6500000000001",
@@ -199,5 +202,71 @@ describe("PostHog custom pixel", () => {
   it("sends nothing until the key placeholder is replaced", async () => {
     const { fire } = loadPixel("__POSTHOG_KEY__");
     expect(await fire("page_viewed", {}, "/")).toBeNull();
+  });
+  describe("telling the API Worker an order was counted", () => {
+    const completed = async (apiUrl: string, ok: boolean) => {
+      const { handlers, fetchMock } = loadPixel("phc_test", apiUrl);
+      fetchMock.mockImplementation(() => Promise.resolve({ ok }));
+      handlers.get("checkout_completed")?.({
+        name: "checkout_completed",
+        clientId: "shopify-client-id",
+        timestamp: "2026-10-15T12:00:00.000Z",
+        context: { document: { location: { href: "https://shop.example/thank-you" } } },
+        data: {
+          checkout: checkout([{ key: CART_ATTRIBUTES.distinctId, value: "web-id" }]),
+        },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return fetchMock.mock.calls.map((call) => ({
+        url: call[0],
+        init: call[1] as unknown as Record<string, unknown>,
+      }));
+    };
+
+    it("reports the order once PostHog has accepted it", async () => {
+      const calls = await completed("https://api.example", true);
+      expect(calls).toHaveLength(2);
+      expect(calls[1]).toMatchObject({
+        url: "https://api.example/orders/counted",
+        init: { method: "POST", body: "6500000000001" },
+      });
+    });
+
+    it("doesn't report an order PostHog refused, so the webhook's backup is sent", async () => {
+      expect(await completed("https://api.example", false)).toHaveLength(1);
+    });
+
+    it("doesn't report anything until the URL is filled in", async () => {
+      expect(await completed("__API_URL__", true)).toHaveLength(1);
+    });
+
+    it("retries the note when the Worker refuses it, e.g. a 429", async () => {
+      vi.useFakeTimers();
+      try {
+        const { handlers, fetchMock } = loadPixel("phc_test", "https://api.example");
+        const answers = [false, false, true];
+        fetchMock.mockImplementation((url: string) =>
+          Promise.resolve({
+            ok: url.endsWith("/orders/counted") ? answers.shift() : true,
+          }),
+        );
+        handlers.get("checkout_completed")?.({
+          name: "checkout_completed",
+          clientId: "shopify-client-id",
+          timestamp: "2026-10-15T12:00:00.000Z",
+          context: { document: { location: { href: "https://shop.example/thank-you" } } },
+          data: {
+            checkout: checkout([{ key: CART_ATTRIBUTES.distinctId, value: "web-id" }]),
+          },
+        });
+        await vi.runAllTimersAsync();
+        const counted = fetchMock.mock.calls.filter(([url]) =>
+          String(url).endsWith("/orders/counted"),
+        );
+        expect(counted).toHaveLength(3);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

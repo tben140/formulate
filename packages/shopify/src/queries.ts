@@ -413,6 +413,13 @@ export const CartFields = graphql(`
     id
     checkoutUrl
     totalQuantity
+    # The analytics attributes (_posthog_id, _surface): an add to an existing
+    # cart checks them, so consent given after the cart was made still reaches
+    # the order. See addLinesOrCreate.
+    attributes {
+      key
+      value
+    }
     buyerIdentity {
       countryCode
     }
@@ -522,6 +529,29 @@ export const CartCreateMutation = graphql(`
         code
         message
         target
+      }
+    }
+  }
+`);
+
+/**
+ * Replaces the cart's attributes. Used when an add finds the analytics
+ * attributes missing or stale on a cart made before consent (SHO-88).
+ */
+export const CartAttributesUpdateMutation = graphql(`
+  mutation CartAttributesUpdate(
+    $cartId: ID!
+    $attributes: [AttributeInput!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
+    cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+        code
       }
     }
   }
