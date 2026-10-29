@@ -4,11 +4,15 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { campaignForVariant } from "@formulate/shopify";
+
 import { AddToCart } from "../../components/add-to-cart";
+import { CampaignOffer } from "../../components/campaign-offer";
 import { useCartUi } from "../../components/cart-provider";
 import { PairsWellWith } from "../../components/pairs-well-with";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
+import { campaignClock } from "../../lib/campaign";
 import { useProduct } from "../../lib/queries";
 import { usePurchase, type Product } from "../../lib/use-purchase";
 
@@ -75,6 +79,21 @@ const ProductBody = ({ product }: { product: Product }) => {
   const { openCart } = useCartUi();
   const { bottom } = useSafeAreaInsets();
   const purchase = usePurchase(product);
+
+  // The campaign, if live for any variant; named variants when it's narrowed.
+  const now = campaignClock();
+  const variantCampaigns = product.variants.nodes.map((variant) => variant.campaign);
+  const covered = product.variants.nodes.filter((variant) =>
+    campaignForVariant(product.campaign, variant, variantCampaigns, now),
+  );
+  const campaign =
+    covered.length > 0
+      ? campaignForVariant(product.campaign, covered[0], variantCampaigns, now)
+      : null;
+  const coveredNames =
+    covered.length < product.variants.nodes.length
+      ? covered.map((variant) => variant.title)
+      : null;
 
   /*
    * Where the in-page Add to cart button is, in scroll-content coordinates,
@@ -155,6 +174,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         <View>
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
         </View>
+
+        {campaign ? <CampaignOffer campaign={campaign} variants={coveredNames} /> : null}
 
         {product.description ? (
           <Text className="text-base text-foreground-muted">{product.description}</Text>
