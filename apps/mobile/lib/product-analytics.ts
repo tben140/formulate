@@ -44,10 +44,15 @@ let client: ProductAnalytics | null = null;
  * is null until the choice says `granted`, and that comes second. An id only
  * exists if the shopper accepted before, so reading it tracks nothing.
  */
+/** Counts withdrawals, so an id read that started before one is discarded. */
+let forgotten = 0;
+
 export const loadAnalyticsIdentity = async (): Promise<void> => {
   if (!POSTHOG_KEY) return;
+  const generation = forgotten;
   const stored = await SecureStore.getItemAsync(ID_KEY).catch(() => null);
-  distinctId ??= stored;
+  // A decline during the read deletes the id; the read mustn't bring it back.
+  if (generation === forgotten) distinctId ??= stored;
 };
 
 /*
@@ -56,6 +61,7 @@ export const loadAnalyticsIdentity = async (): Promise<void> => {
  */
 subscribeToTrackingConsent(() => {
   if (trackingConsent() !== "denied") return;
+  forgotten += 1;
   distinctId = null;
   session = null;
   client = null;
