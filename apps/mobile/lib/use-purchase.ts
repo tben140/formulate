@@ -105,9 +105,8 @@ export const usePurchase = (product: Product) => {
               l.merchandise.id === variant.id &&
               (l.sellingPlanAllocation?.sellingPlan.id ?? ONE_TIME) === effectivePlanId,
           );
-          const added = line ? addedToCartProperties(line) : null;
-          if (added)
-            analytics()?.capture(PRODUCT_EVENTS.addedToCart, { ...added, quantity: 1 });
+          const added = line ? addedToCartProperties(line, 1) : null;
+          if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
         },
       },
     );

@@ -161,20 +161,21 @@ describe("payload builders", () => {
   };
 
   it("describes an added line, including its plan", () => {
-    expect(addedToCartProperties(line)).toEqual({
+    // One added to a line that now holds two: the event says 1.
+    expect(addedToCartProperties(line, 1)).toEqual({
       product_id: "10940384149816",
       product_handle: "magnesium-glycinate",
       product_title: "Magnesium Glycinate",
       variant_id: "53092466032952",
-      quantity: 2,
+      quantity: 1,
       // The line's cost per unit (30.52 / 2), not the variant's list price.
       price: 15.26,
       currency: "GBP",
       selling_plan: "30 day subscription with 15% discount",
     });
-    expect(addedToCartProperties({ quantity: 1, merchandise: {} })).toBeNull();
+    expect(addedToCartProperties({ quantity: 1, merchandise: {} }, 1)).toBeNull();
     const { cost: _cost, ...withoutCost } = line;
-    expect(addedToCartProperties(withoutCost)?.price).toBe(17.95);
+    expect(addedToCartProperties(withoutCost, 1)?.price).toBe(17.95);
   });
 
   it("totals the cart, and marks a checkout with any subscription line", () => {
