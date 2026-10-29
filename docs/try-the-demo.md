@@ -1,6 +1,6 @@
 # Try the demo
 
-> **Draft (SHO-78).** Nothing here is published yet. The bracketed items are
+> **Draft.** Nothing here is published yet. The bracketed items are
 > decisions or values the store owner fills in. Parts marked _after the batch_
 > depend on PRs still in review.
 
@@ -15,21 +15,21 @@ reviewer where to find each one, what to try, and what's real.
   nobody is charged and nothing ships. Every page says so in a bar at the top.
 - **Pay with the test card:** card number `1`, any future expiry date, any
   security code, any name. `2` shows a decline.
-- **Orders are real orders** in Shopify and in Recharge, so the subscription
-  you create is a real subscription you can then manage.
+- **Orders are real orders** in Shopify. A subscription purchase also creates
+  a real Recharge subscription, which you can then manage.
 - **Development stores are always password protected.** Browsing the web store
   needs no password. Checkout, and the whole Liquid theme, ask for the store's
   password first: **[given on request]**.
 
 ## Where to find it
 
-| Storefront     | Link                                                                   | Notes                                                             |
-| -------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Web (headless) | **[the production domain; today https://web-six-murex-18.vercel.app]** | The main demo                                                     |
-| iOS app        | **[TestFlight public link]**                                           | Checkout opens in Shopify's native sheet, after the password page |
-| Android app    | **[EAS internal distribution link or QR]**                             | _After the batch_                                                 |
-| Liquid theme   | **[the store's URL]**                                                  | Same features, built the theme way                                |
-| Source         | https://github.com/tben140/formulate                                   | Start with the README and `docs/architecture.md`                  |
+| Storefront     | Link                                                                        | Notes                                                             |
+| -------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Web (headless) | [Demo web store](https://web-six-murex-18.vercel.app) (until a real domain) | The main demo                                                     |
+| iOS app        | **[TestFlight public link]**                                                | Checkout opens in Shopify's native sheet, after the password page |
+| Android app    | **[EAS internal distribution link or QR]**                                  | _After the batch_                                                 |
+| Liquid theme   | **[the store's URL]**                                                       | Same features, built the theme way                                |
+| Source         | [Source on GitHub](https://github.com/tben140/formulate)                    | Start with the README and `docs/architecture.md`                  |
 
 ## A ten-minute tour
 
@@ -59,10 +59,10 @@ reviewer where to find each one, what to try, and what's real.
 - Speed: Lighthouse budgets are enforced in CI on web and the theme.
 - Every surface showing the same prices, plans and promises.
 
-## Decisions for the owner (SHO-78)
+## Decisions for the owner
 
 1. **A real domain.** About £10 a year; it's also what Klaviyo's sending domain
-   needs (SHO-114). Until then the `vercel.app` address works.
+   needs. Until then the `vercel.app` address works.
 2. **iOS distribution.** TestFlight works today (build 3) with invited testers.
    A **public link** lets anyone join without an invite. It needs Apple's beta
    review of the build, usually a day or so.
