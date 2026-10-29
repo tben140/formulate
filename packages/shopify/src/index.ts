@@ -42,6 +42,8 @@ export {
 export type { SelectedOption } from "./product-selection";
 
 export {
+  BlendIngredientsQuery,
+  BlendVariantQuery,
   CartBuyerIdentityUpdateMutation,
   CartCreateMutation,
   CartLinesAddMutation,
@@ -106,3 +108,20 @@ export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";
 export { PLANNED_PAYMENT_ICON_IDS, paymentIconIds } from "./payment-icons";
 export type { PaymentIconId } from "./payment-icons";
+
+export {
+  BLEND_ATTRIBUTES,
+  BLEND_PRESETS,
+  MIN_BLEND_SIZE,
+  availablePresets,
+  blendAttributes,
+  blendCodes,
+  blendLabel,
+  blendSize,
+  checkBlend,
+  isBlendProduct,
+  maxBlendSize,
+  toBlendIngredients,
+  variantForBlend,
+} from "./blend";
+export type { BlendCheck, BlendIngredient, BlendIngredientNode } from "./blend";

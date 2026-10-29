@@ -148,6 +148,10 @@ export const ProductByHandleQuery = graphql(`
           id
           title
           availableForSale
+          # Custom-blend packs only: how many ingredients this size holds.
+          blendSize: metafield(namespace: "double_helix", key: "blend_size") {
+            value
+          }
           # For the Product structured data on apps/web. Can be null.
           sku
           selectedOptions {
@@ -434,6 +438,12 @@ export const CartFields = graphql(`
       nodes {
         id
         quantity
+        # A custom blend's ingredients (_blend codes, Blend label): the cart
+        # shows the label under the line. See src/blend.ts.
+        attributes {
+          key
+          value
+        }
         cost {
           totalAmount {
             amount
@@ -708,6 +718,59 @@ export const PaymentSettingsQuery = graphql(`
       paymentSettings {
         acceptedCardBrands
         supportedDigitalWallets
+      }
+    }
+  }
+`);
+
+/* -------------------------------------------------------------------------- */
+/*  Custom blends                                                              */
+/* -------------------------------------------------------------------------- */
+
+/** The ingredients a daily pack can hold: see src/blend.ts. */
+export const BlendIngredientsQuery = graphql(`
+  query BlendIngredients {
+    metaobjects(type: "blend_ingredient", first: 50) {
+      nodes {
+        handle
+        name: field(key: "name") {
+          value
+        }
+        code: field(key: "code") {
+          value
+        }
+        amount: field(key: "amount") {
+          value
+        }
+        nrv: field(key: "nrv") {
+          value
+        }
+        claim: field(key: "claim") {
+          value
+        }
+        caution: field(key: "caution") {
+          value
+        }
+        vegan: field(key: "vegan") {
+          value
+        }
+        sort: field(key: "sort") {
+          value
+        }
+      }
+    }
+  }
+`);
+
+/** A variant's pack size, for the server to check a blend before adding it. */
+export const BlendVariantQuery = graphql(`
+  query BlendVariant($id: ID!) {
+    node(id: $id) {
+      ... on ProductVariant {
+        id
+        blendSize: metafield(namespace: "double_helix", key: "blend_size") {
+          value
+        }
       }
     }
   }

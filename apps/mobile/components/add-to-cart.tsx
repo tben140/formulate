@@ -2,6 +2,7 @@ import { findVariantByOptions, formatMoney, withOption } from "@formulate/shopif
 import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 
 import type { Product, Purchase } from "../lib/use-purchase";
+import { BlendPicker } from "./blend-picker";
 
 /**
  * Variant pickers, subscribe-and-save, and add to cart.
@@ -34,13 +35,26 @@ export const AddToCart = ({
     choices,
     label,
     add,
+    isBlend,
+    blendIngredients,
+    blendMax,
+    picked,
+    setPicked,
   } = purchase;
 
   return (
     // No outer margin here: the product screen measures this view's top to
     // place the button, and a margin inside it would put that 8px out.
     <View className="gap-5">
-      {product.options.map((option) =>
+      {isBlend ? (
+        <BlendPicker
+          ingredients={blendIngredients}
+          picked={picked}
+          max={blendMax}
+          onChange={setPicked}
+        />
+      ) : null}
+      {(isBlend ? [] : product.options).map((option) =>
         // A single option called "Title" with one value is Shopify's stand-in
         // for "this product has no options".
         option.optionValues.length <= 1 ? null : (

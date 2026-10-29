@@ -1,7 +1,12 @@
 "use client";
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
-import { formatMoney, type Cart, type CartSuggestion } from "@formulate/shopify";
+import {
+  formatMoney,
+  type Cart,
+  type CartSuggestion,
+  BLEND_ATTRIBUTES,
+} from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
@@ -133,6 +138,17 @@ export const CartDrawer = ({
                       {variant.title !== "Default Title" ? (
                         <p className="text-xs text-foreground-muted">{variant.title}</p>
                       ) : null}
+                      {/* A custom blend's ingredients, as the order will show them. */}
+                      {line.attributes
+                        .filter((attribute) => attribute.key === BLEND_ATTRIBUTES.label)
+                        .map((attribute) => (
+                          <p
+                            key={attribute.key}
+                            className="text-xs text-foreground-muted"
+                          >
+                            {attribute.value}
+                          </p>
+                        ))}
 
                       {/*
                       The subscription line is the whole reason the selling-plan

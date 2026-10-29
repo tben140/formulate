@@ -119,6 +119,13 @@
               {% unless item.variant.title == 'Default Title' %}
                 <p class="cart-line__variant">{{ item.variant.title }}</p>
               {% endunless %}
+              {%- comment -%} A custom blend's ingredients; `_` properties stay hidden. {%- endcomment -%}
+              {%- for property in item.properties -%}
+                {%- assign first_char = property.first | slice: 0 -%}
+                {%- unless first_char == '_' or property.last == blank -%}
+                  <p class="cart-line__variant">{{ property.last | escape }}</p>
+                {%- endunless -%}
+              {%- endfor -%}
 
               {% comment %}
                 The subscription line. This is the whole reason the selling-plan

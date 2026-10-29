@@ -95,7 +95,9 @@ class ProductForm extends Component {
     // different variant. Trusting it skipped the rebuild, and an add could
     // send one variant's selling plan with another variant's id.
     const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
-    this.#plansBuiltFor = rendered ? Number(this.refs.planList?.dataset.builtFor) || null : null;
+    this.#plansBuiltFor = rendered
+      ? Number(this.refs.planList?.dataset.builtFor) || null
+      : null;
     this.#sync();
     this.#observeMainButton();
   }
@@ -343,6 +345,16 @@ class ProductForm extends Component {
     const variantId = String(data.get("id") ?? "");
     if (!variantId) return;
 
+    // A custom blend that isn't complete yet (assets/blend-picker.js).
+    if (form.querySelector('blend-picker[data-ready="false"]')) return;
+
+    /** @type {Record<string, string>} Line properties: `properties[Name]` fields. */
+    const properties = {};
+    for (const [key, value] of data) {
+      const name = /^properties\[(.+)\]$/.exec(key)?.[1];
+      if (name && typeof value === "string" && value) properties[name] = value;
+    }
+
     if (this.#adding) return;
     this.#adding = true;
 
@@ -367,6 +379,7 @@ class ProductForm extends Component {
         variantId,
         Number(data.get("quantity") ?? 1),
         String(data.get("selling_plan") ?? ""),
+        properties,
       );
 
       // The drawer is re-rendered from the response rather than refetched, so
@@ -379,7 +392,8 @@ class ProductForm extends Component {
     } catch (error) {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
-      const message = error instanceof Error ? error.message : "Could not update your cart.";
+      const message =
+        error instanceof Error ? error.message : "Could not update your cart.";
       if (status) status.textContent = message;
       // The status line sits by the main button, off screen whenever the bar
       // is up, so the bar shows the message too. Not a live region: the
