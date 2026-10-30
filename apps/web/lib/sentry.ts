@@ -45,12 +45,17 @@ export const sentryOptions = {
  * headers. Every service the server calls belongs to someone else (Shopify,
  * Klaviyo, Meta, TikTok…). The SDK's default is every request.
  *
+ * ⚠️ A sampler, not tracesSampleRate. With a rate, the SDK follows the
+ * sampling decision in an incoming `sentry-trace` header, so anyone could
+ * send `-1` and have every request traced, using up the quota. The sampler
+ * ignores what the caller says (it never reads `parentSampled`).
+ *
  * Traces carry URLs, headers, IPs and the user, like errors, so
  * scrubTransaction (packages/analytics) strips them.
  */
 export const serverSentryOptions = {
   ...sentryOptions,
-  tracesSampleRate: sentryOptions.environment === "production" ? 0.1 : 1,
+  tracesSampler: () => (sentryOptions.environment === "production" ? 0.1 : 1),
   tracePropagationTargets: [],
   beforeSendTransaction: scrubTransaction,
 };
