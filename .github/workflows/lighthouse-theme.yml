@@ -96,7 +96,7 @@ jobs:
           SHOPIFY_FLAG_STORE: ${{ secrets.SHOP_STORE }}
           SHOPIFY_CLI_NO_ANALYTICS: "1"
         run: |
-          npx --yes @shopify/cli@4.6.0 theme push --path apps/theme --unpublished \
+          npx --yes @shopify/cli@4.9.4 theme push --path apps/theme --unpublished \
             --theme "LHCI ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --json > "$RUNNER_TEMP/push.json"
           id=$(jq -r '.theme.id' "$RUNNER_TEMP/push.json")
           if [ -z "$id" ] || [ "$id" = null ]; then
@@ -140,4 +140,4 @@ jobs:
           SHOPIFY_FLAG_STORE: ${{ secrets.SHOP_STORE }}
           SHOPIFY_CLI_NO_ANALYTICS: "1"
           THEME_ID: ${{ steps.push.outputs.theme_id }}
-        run: npx --yes @shopify/cli@4.6.0 theme delete --theme "$THEME_ID" --force
+        run: npx --yes @shopify/cli@4.9.4 theme delete --theme "$THEME_ID" --force
