@@ -13,3 +13,7 @@ apps/theme/sections/*-group.json
 
 # Written by pnpm.
 pnpm-lock.yaml
+
+# An accepted ADR, merged before Prettier covered Markdown. Records are
+# immutable once merged (docs/adr/README.md), so it keeps its original layout.
+docs/adr/0007-mobile-consent-goes-through-a-worker.md
