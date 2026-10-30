@@ -62,7 +62,7 @@ export const siteUrl = resolveSiteUrl();
 /** An absolute URL on this site, for places that do not accept relative ones. */
 export const absoluteUrl = (path: string): string => new URL(path, siteUrl).toString();
 
-export const SITE_NAME = "Formulate";
+export const SITE_NAME = "Double Helix";
 
 /**
  * The Open Graph fields every page shares. A page that sets its own
