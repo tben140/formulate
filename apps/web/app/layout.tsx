@@ -10,6 +10,7 @@ import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
 import { EmailCapture } from "@/components/email-capture";
 import { getCart } from "@/lib/cart";
+import { getCartSuggestions } from "@/lib/recommendations";
 import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
 
 import "./globals.css";
@@ -34,6 +35,9 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   const cart = await getCart();
+  // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
+  // no request at all.
+  const suggestions = await getCartSuggestions(cart);
 
   return (
     <html lang="en-GB">
@@ -70,7 +74,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             </div>
           </footer>
 
-          <CartDrawer cart={cart} />
+          <CartDrawer cart={cart} suggestions={suggestions} />
         </CartProvider>
 
         {/*
