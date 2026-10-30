@@ -6,10 +6,10 @@ import { adminFromEnv, type Admin } from "./admin";
 import { calendar, calendarMarkdown } from "./calendar";
 import { campaignOf } from "./campaign-node";
 import { checkCampaign } from "./check";
-import { plannedEmails } from "./emails";
+import { plannedEmails, plannedPushes } from "./emails";
 import { perkKey, planPerks } from "./perks";
 import { activeSubscriptions, addPerk, perkOnetimes } from "./recharge";
-import { createDraft, getEmails } from "./klaviyo";
+import { createDraft, createPushDraft, getEmails } from "./klaviyo";
 import { campaignReport, reportMarkdown } from "./report";
 import {
   createCampaign,
@@ -34,6 +34,8 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
                                               templates: ${Object.keys(TEMPLATES).join(", ")}
   pnpm campaigns sync <handle> [--activate]   the Function discount, from the record
   pnpm campaigns emails <handle> [--create]   the planned emails; --create makes Klaviyo drafts
+  pnpm campaigns pushes <handle> [--create]   launch and last-day pushes; --create makes Klaviyo
+                                              drafts for KLAVIYO_PUSH_SEGMENT_ID
   pnpm campaigns report <handle>              results, as Markdown
   pnpm campaigns perks <handle> [--apply]     the subscriber perk on each next delivery after
                                               the campaign; plans unless --apply
@@ -173,6 +175,28 @@ Next:
           if (!key) throw new Error("--create needs KLAVIYO_PRIVATE_KEY.");
           console.log(`  created draft ${await createDraft(key, email)}`);
         }
+      }
+      return 0;
+    }
+
+    case "pushes": {
+      if (!handle) break;
+      const admin = await adminFromEnv();
+      const entry = await getEntry(admin, handle);
+      if (!entry) throw new Error(`No campaign "${handle}".`);
+      const create = rest.includes("--create");
+      const key = process.env.KLAVIYO_PRIVATE_KEY;
+      const segment = process.env.KLAVIYO_PUSH_SEGMENT_ID;
+      if (create && (!key || !segment))
+        throw new Error(
+          "--create needs KLAVIYO_PRIVATE_KEY and KLAVIYO_PUSH_SEGMENT_ID.",
+        );
+      for (const push of plannedPushes(entry)) {
+        console.log(
+          `${push.sendAt}  ${push.name}  "${push.title}: ${push.body}"  → ${push.deepLink}`,
+        );
+        if (create)
+          console.log(`  created draft ${await createPushDraft(key!, push, segment!)}`);
       }
       return 0;
     }

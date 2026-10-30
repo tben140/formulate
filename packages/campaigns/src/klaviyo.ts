@@ -1,4 +1,4 @@
-import type { PlannedEmail } from "./emails";
+import type { PlannedEmail, PlannedPush } from "./emails";
 import type { EmailInfo } from "./types";
 
 /**
@@ -102,5 +102,54 @@ export const createDraft = async (
   });
   if (!response.ok)
     throw new Error(`Klaviyo: HTTP ${response.status} creating "${email.name}"`);
+  return ((await response.json()) as { data: { id: string } }).data.id;
+};
+
+/**
+ * A draft push campaign for a planned push, to `segmentId` (people who chose
+ * offer notifications), opening the campaign screen. Never scheduled.
+ */
+export const createPushDraft = async (
+  key: string,
+  push: PlannedPush,
+  segmentId: string,
+): Promise<string> => {
+  const response = await fetch(`${BASE}/campaigns`, {
+    method: "POST",
+    headers: headers(key),
+    body: JSON.stringify({
+      data: {
+        type: "campaign",
+        attributes: {
+          name: push.name,
+          audiences: { included: [segmentId] },
+          send_strategy: { method: "static", datetime: push.sendAt },
+          "campaign-messages": {
+            data: [
+              {
+                type: "campaign-message",
+                attributes: {
+                  definition: {
+                    channel: "mobile_push",
+                    notification_type: "standard",
+                    content: { title: push.title, body: push.body },
+                    options: {
+                      on_open: {
+                        type: "deep_link",
+                        ios_deep_link: push.deepLink,
+                        android_deep_link: push.deepLink,
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    }),
+  });
+  if (!response.ok)
+    throw new Error(`Klaviyo: HTTP ${response.status} creating "${push.name}"`);
   return ((await response.json()) as { data: { id: string } }).data.id;
 };

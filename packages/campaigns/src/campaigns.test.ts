@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { calendar } from "./calendar";
 import { checkCampaign, percentsIn } from "./check";
-import { plannedEmails } from "./emails";
+import { plannedEmails, plannedPushes } from "./emails";
 import blackFriday from "./fixtures/black-friday.json";
 import { campaignReport, type ReportOrder } from "./report";
 import { discountConfig, sameConfig } from "./sync";
@@ -370,5 +370,26 @@ describe("campaignReport", () => {
         { title: "Vitamin D3", quantity: 1 },
       ],
     });
+  });
+});
+
+describe("plannedPushes", () => {
+  it("times the pushes like the emails and opens the campaign screen", () => {
+    expect(plannedPushes(live.entry)).toEqual([
+      {
+        name: "Black Friday 2026: launch push",
+        sendAt: "2026-11-27T00:00:00.000Z",
+        title: "Black Friday is on",
+        body: "25% off one-time orders, taken at checkout",
+        deepLink: "formulate://pages/campaigns/black-friday-2026",
+      },
+      {
+        name: "Black Friday 2026: last day push",
+        sendAt: "2026-11-30T00:00:00.000Z",
+        title: "Last day of Black Friday",
+        body: "25% off one-time orders, taken at checkout. Ends 23:59 Mon 30 Nov.",
+        deepLink: "formulate://pages/campaigns/black-friday-2026",
+      },
+    ]);
   });
 });
