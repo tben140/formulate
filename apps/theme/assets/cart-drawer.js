@@ -305,9 +305,7 @@ class CartDrawer extends Component {
       // the tap failed (sold out, a quantity rule): Shopify's description is
       // written for shoppers, as on the product page.
       button?.removeAttribute("aria-disabled");
-      const body = form
-        .closest(".cart-suggestion")
-        ?.querySelector(".cart-suggestion__body");
+      const body = form.closest(".cart-suggestion")?.querySelector(".cart-suggestion__body");
       if (body) {
         let message = body.querySelector(".cart-suggestion__error");
         if (!message) {
