@@ -279,6 +279,7 @@
         "id": {{ variant.id | json }},
         "available": {{ variant.available | json }},
         "options": {{ variant.options | json }},
+        "blendSize": {{ variant.metafields.double_helix.blend_size.value | json }},
         "price": {{ variant.price | money | json }},
         "plans": [
           {%- assign first_plan = true -%}

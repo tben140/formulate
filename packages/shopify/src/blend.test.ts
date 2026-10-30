@@ -65,7 +65,7 @@ describe("checkBlend", () => {
 });
 
 describe("attributes", () => {
-  it("writes the codes and the label the warehouse reads", () => {
+  it("writes the codes and the readable label", () => {
     expect(blendAttributes(["d3", "k2", "mg"], range)).toEqual([
       { key: "_blend", value: "d3,k2,mg" },
       { key: "Blend", value: "Vitamin D3 + Vitamin K2 + Magnesium" },

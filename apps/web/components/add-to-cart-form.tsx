@@ -60,7 +60,11 @@ export const AddToCartForm = ({
    * A custom-blend pack: the shopper picks ingredients, and the count picks the
    * variant (and so the price). Its size option is never shown as a picker.
    */
-  const isBlend = blendIngredients.length > 0 && isBlendProduct(product);
+  const isBlend = isBlendProduct(product);
+  // The range failed to load (or is empty): stay a pack, but nothing can be
+  // added. Falling back to ordinary options would offer a pack with no blend,
+  // which the action rejects.
+  const noIngredients = isBlend && blendIngredients.length === 0;
   const [picked, setPicked] = useState<string[]>([]);
   const blendMax = maxBlendSize(product.variants.nodes);
   const blendReady =
@@ -129,13 +133,15 @@ export const AddToCartForm = ({
 
   const buttonLabel = pending
     ? "Adding…"
-    : isBlend && !blendReady
-      ? `Choose ${MIN_BLEND_SIZE} to ${blendMax} ingredients`
-      : soldOut
-        ? "Sold out"
-        : !variant
-          ? "Unavailable in this combination"
-          : "Add to cart";
+    : noIngredients
+      ? "Unavailable right now"
+      : isBlend && !blendReady
+        ? `Choose ${MIN_BLEND_SIZE} to ${blendMax} ingredients`
+        : soldOut
+          ? "Sold out"
+          : !variant
+            ? "Unavailable in this combination"
+            : "Add to cart";
 
   // Nothing to add: no variant for this combination, or it's sold out.
   const unavailable = !variant || soldOut || (isBlend && !blendReady);
@@ -159,7 +165,11 @@ export const AddToCartForm = ({
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
       {isBlend ? <input type="hidden" name="blend" value={picked.join(",")} /> : null}
 
-      {isBlend ? (
+      {noIngredients ? (
+        <p role="alert" className="mb-5 text-sm text-danger">
+          We couldn&apos;t load the ingredients. Please try again in a moment.
+        </p>
+      ) : isBlend ? (
         <BlendPicker
           ingredients={blendIngredients}
           picked={picked}

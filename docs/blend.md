@@ -40,13 +40,17 @@ An entry missing its name, code, amount or claim is left out of the picker.
 
 ## What goes on the order
 
-Two line properties, both built on the server (or the Worker) from the codes,
-never taken from the browser:
+Two line properties:
 
-| Property | Example                               | Seen by                                           |
-| -------- | ------------------------------------- | ------------------------------------------------- |
-| `_blend` | `d3,k2,mg`                            | Code only (hidden at checkout by the leading `_`) |
-| `Blend`  | `Vitamin D3 + Vitamin K2 + Magnesium` | The shopper at checkout, the order, the warehouse |
+| Property | Example                               | What it is                                                    |
+| -------- | ------------------------------------- | ------------------------------------------------------------- |
+| `_blend` | `d3,k2,mg`                            | **The record.** Packing and "Edit my blend" go by these codes |
+| `Blend`  | `Vitamin D3 + Vitamin K2 + Magnesium` | A readable copy for the shopper at checkout and on the order  |
+
+Web, the app and the portal build both on the server (or the Worker) from the
+codes. The theme builds them in the browser, so a shopper there could send a
+`Blend` label that doesn't match the codes. That's why the codes are the
+record: the warehouse packs from `_blend`, and the label is never read back.
 
 Shopify copies line properties to the order, and Recharge to the subscription
 (checked with order #1011). So each renewal is packed from the subscription's
@@ -79,8 +83,10 @@ range is hidden.
 - Theme: `snippets/blend-picker.liquid` and `assets/blend-picker.js`.
 - Portal ("Edit my blend"): `apps/api/src/blend.ts`.
 
-## Known gap
+## Checks at checkout
 
-The Storefront API is public, so someone could add a pack with properties that
-don't match its size, skipping our checks. The fix is a Cart Validation
-Function that rejects such a line at checkout.
+The Storefront API is public, so anyone can add a pack with properties our
+pickers would never send. The `cart-limits` Cart Validation Function
+(`apps/shopify-app/extensions/cart-limits`) blocks checkout unless a pack's
+`_blend` holds exactly as many valid, distinct codes as its size. It can't
+check the `Blend` label against the codes, so nothing relies on the label.

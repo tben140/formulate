@@ -6,17 +6,20 @@
  * on the cart line as two attributes, which Shopify copies to the order and
  * Recharge to the subscription (verified with order #1011, 29 Oct 2026):
  *
- * - `_blend`: the ingredient codes, e.g. `d3,k2,mg`. Hidden (leading `_`);
- *   what code reads, and what "Edit my blend" rewrites.
+ * - `_blend`: the ingredient codes, e.g. `d3,k2,mg`. Hidden (leading `_`).
+ *   The record: what the warehouse packs from, what code reads, and what
+ *   "Edit my blend" rewrites.
  * - `Blend`: the same as words, e.g. `Vitamin D3 + Vitamin K2 + Magnesium`.
- *   Shown at checkout, on the order and to the warehouse.
+ *   A readable copy for checkout and the order; never read back.
  *
  * The ingredients are `blend_ingredient` metaobjects, so the range changes in
  * Shopify admin with no deploy. Codes are permanent once sold: a subscription
  * keeps them for as long as it runs.
  *
- * ⚠️ The server builds both attributes from the codes. Never accept the
- * visible label from a browser: it's what the warehouse packs from.
+ * ⚠️ Web, the app and the portal build both attributes from the codes on the
+ * server; never accept the label from a browser. The theme can't (it builds
+ * them in the browser), which is why the codes, not the label, are the
+ * record. See docs/blend.md.
  */
 
 interface FieldValue {

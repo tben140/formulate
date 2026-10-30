@@ -14,10 +14,10 @@ import { Component } from "@theme/component";
  * packages/shopify/src/blend.ts: 2 to `max` ingredients, codes in the range's
  * order, the label built from the range's own names.
  *
- * Picking N checks the form's hidden "N ingredients" option radio and fires
- * its change event, so <product-form> picks the variant, price and purchase
- * options as for any product. Until the choice is complete the add buttons
- * stay disabled.
+ * Picking N sets `data-size` and `data-ready`, then fires `blend:change`.
+ * <product-form> picks the variant whose `blendSize` is N (never the option
+ * title, which a merchant can rename), and keeps the add buttons disabled,
+ * with `data-incomplete-label`, until the choice is complete.
  *
  * @extends {Component<Refs>}
  */
@@ -96,32 +96,10 @@ class BlendPicker extends Component {
         (count < this.#min ? `. Choose at least ${this.#min}.` : ".");
     }
 
-    // Select the matching pack through the form's own option radio.
-    const form = this.closest("form");
-    const size = Math.max(count, this.#min);
-    const radio = form?.querySelector(
-      `input[data-option-position="1"][value="${size} ingredients"]`,
-    );
-    if (radio instanceof HTMLInputElement && !radio.checked) {
-      radio.checked = true;
-      radio.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-
-    // After <product-form> has synced: block the add until the choice fits.
-    const ready = count >= this.#min && count <= this.#max;
-    this.dataset.ready = String(ready);
-    for (const button of form?.querySelectorAll(
-      'button[type="submit"], [ref="stickySubmit"]',
-    ) ?? []) {
-      if (!(button instanceof HTMLButtonElement)) continue;
-      if (!ready) {
-        button.disabled = true;
-        button.textContent = `Choose ${this.#min} to ${this.#max} ingredients`;
-      } else if (button.disabled && button.textContent?.startsWith("Choose ")) {
-        button.disabled = false;
-        button.textContent = button.dataset.addLabel ?? "Add to cart";
-      }
-    }
+    // Set before <product-form> hears of it: it reads both in its #sync.
+    this.dataset.size = String(Math.max(count, this.#min));
+    this.dataset.ready = String(count >= this.#min && count <= this.#max);
+    this.dispatchEvent(new Event("blend:change", { bubbles: true }));
   }
 }
 

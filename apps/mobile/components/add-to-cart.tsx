@@ -1,5 +1,11 @@
 import { findVariantByOptions, formatMoney, withOption } from "@formulate/shopify";
-import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from "react-native";
 
 import type { Product, Purchase } from "../lib/use-purchase";
 import { BlendPicker } from "./blend-picker";
@@ -37,6 +43,9 @@ export const AddToCart = ({
     add,
     isBlend,
     blendIngredients,
+    blendLoading,
+    blendError,
+    retryBlend,
     blendMax,
     picked,
     setPicked,
@@ -46,7 +55,22 @@ export const AddToCart = ({
     // No outer margin here: the product screen measures this view's top to
     // place the button, and a margin inside it would put that 8px out.
     <View className="gap-5">
-      {isBlend ? (
+      {isBlend && blendLoading ? (
+        <ActivityIndicator accessibilityLabel="Loading ingredients" />
+      ) : isBlend && blendError ? (
+        <View className="gap-2">
+          <Text role="alert" className="text-sm text-danger">
+            We couldn&apos;t load the ingredients.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={retryBlend}
+            className="self-start rounded-md border border-border px-3 py-2"
+          >
+            <Text className="text-sm text-foreground">Try again</Text>
+          </Pressable>
+        </View>
+      ) : isBlend ? (
         <BlendPicker
           ingredients={blendIngredients}
           picked={picked}

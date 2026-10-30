@@ -49,7 +49,8 @@ export const usePurchase = (product: Product) => {
    * variant (and so the price). See packages/shopify/src/blend.ts.
    */
   const isBlend = isBlendProduct(product);
-  const { data: blendIngredients = [] } = useBlendIngredients(isBlend);
+  const blendQuery = useBlendIngredients(isBlend);
+  const blendIngredients = blendQuery.data ?? [];
   const [picked, setPicked] = useState<string[]>([]);
   const blendMax = maxBlendSize(product.variants.nodes);
   const blendReady =
@@ -109,8 +110,7 @@ export const usePurchase = (product: Product) => {
 
   const add = (onAdded: () => void) => {
     if (!variant) return;
-    // The label is built from Shopify's range, never typed: the warehouse
-    // packs from it.
+    // The label is built from Shopify's range, never typed.
     const blend = isBlend
       ? checkBlend(picked, blendIngredients, blendSize(variant))
       : null;
@@ -144,6 +144,11 @@ export const usePurchase = (product: Product) => {
     add,
     isBlend,
     blendIngredients,
+    // The range is still loading, or failed: the picker shows that instead
+    // of an empty list.
+    blendLoading: isBlend && blendQuery.isPending,
+    blendError: isBlend && blendQuery.isError,
+    retryBlend: () => void blendQuery.refetch(),
     blendMax,
     picked,
     setPicked,

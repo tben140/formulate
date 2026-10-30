@@ -7,6 +7,8 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {number} id
  * @property {boolean} available
  * @property {string[]} options Option values, in the product's option order.
+ * @property {number | null} blendSize A daily pack's number of ingredients
+ *   (`double_helix.blend_size`); null for any other product.
  * @property {string} price Already formatted by Liquid's `money` filter.
  * @property {PlanData[]} [plans] App-owned selling plans only. See the filter
  *   in snippets/product-form.liquid.
@@ -80,6 +82,7 @@ class ProductForm extends Component {
     // anything by hand. See assets/component.js.
     this.addEventListener("change", this.#onChange, { signal: this.signal });
     this.addEventListener("submit", this.#onSubmit, { signal: this.signal });
+    this.addEventListener("blend:change", () => this.#sync(), { signal: this.signal });
 
     const checkedPlan = this.querySelector('input[name="selling_plan"]:checked');
     this.#planId = checkedPlan instanceof HTMLInputElement ? checkedPlan.value : "";
@@ -192,9 +195,22 @@ class ProductForm extends Component {
   /** Brings every dependent part of the form into step with the selection. */
   #sync() {
     const chosen = this.#chosen;
+    // A daily pack (assets/blend-picker.js): the variant is the one holding as
+    // many ingredients as are chosen, and nothing is added until the choice
+    // is complete.
+    const blend = this.querySelector("blend-picker");
+    const blendIncomplete =
+      blend instanceof HTMLElement && blend.dataset.ready !== "true";
     // A product with only Shopify's default variant renders no pills, so there
     // is nothing to resolve: its one variant is the match.
-    const match = this.#optionInputs.length ? this.#find(chosen) : this.#variants[0];
+    const match =
+      blend instanceof HTMLElement
+        ? this.#variants.find(
+            (variant) => variant.blendSize === Number(blend.dataset.size),
+          )
+        : this.#optionInputs.length
+          ? this.#find(chosen)
+          : this.#variants[0];
     const plans = match?.plans ?? [];
     const effectivePlan = plans.find((plan) => String(plan.id) === this.#planId);
 
@@ -206,18 +222,20 @@ class ProductForm extends Component {
     // (SHO-124). The per-option prices in the list were always right.
     if (price && match) price.textContent = effectivePlan?.price ?? match.price;
 
-    const label = !match
-      ? (submit?.dataset.unavailableLabel ?? "Unavailable")
-      : match.available
-        ? (submit?.dataset.addLabel ?? "Add to cart")
-        : (submit?.dataset.soldOutLabel ?? "Sold out");
+    const label = blendIncomplete
+      ? (blend.dataset.incompleteLabel ?? "Choose your ingredients")
+      : !match
+        ? (submit?.dataset.unavailableLabel ?? "Unavailable")
+        : match.available
+          ? (submit?.dataset.addLabel ?? "Add to cart")
+          : (submit?.dataset.soldOutLabel ?? "Sold out");
 
     if (submit) {
-      submit.disabled = !match || !match.available;
+      submit.disabled = !match || !match.available || blendIncomplete;
       submit.textContent = label;
     }
 
-    this.#syncSticky(match, effectivePlan, label);
+    this.#syncSticky(match, effectivePlan, label, blendIncomplete);
 
     if ((match?.id ?? null) !== this.#plansBuiltFor) {
       this.#buildPlans(match, plans, effectivePlan);
@@ -308,8 +326,9 @@ class ProductForm extends Component {
    * @param {VariantData | undefined} match
    * @param {PlanData | undefined} effectivePlan
    * @param {string} label
+   * @param {boolean} blocked - A daily pack whose ingredients aren't chosen yet.
    */
-  #syncSticky(match, effectivePlan, label) {
+  #syncSticky(match, effectivePlan, label, blocked) {
     const { stickyBar, stickyDetail, stickySubmit } = this.refs;
     if (!stickyBar) return;
 
@@ -325,7 +344,7 @@ class ProductForm extends Component {
       stickyDetail.textContent = [detail, priceText].filter(Boolean).join(" — ");
     }
     if (stickySubmit) {
-      stickySubmit.disabled = !match || !match.available;
+      stickySubmit.disabled = !match || !match.available || blocked;
       stickySubmit.textContent = label;
       stickySubmit.setAttribute(
         "aria-label",
@@ -346,7 +365,7 @@ class ProductForm extends Component {
     if (!variantId) return;
 
     // A custom blend that isn't complete yet (assets/blend-picker.js).
-    if (form.querySelector('blend-picker[data-ready="false"]')) return;
+    if (form.querySelector('blend-picker:not([data-ready="true"])')) return;
 
     /** @type {Record<string, string>} Line properties: `properties[Name]` fields. */
     const properties = {};

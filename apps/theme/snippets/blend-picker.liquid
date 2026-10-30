@@ -3,8 +3,9 @@
   components/blend-picker.tsx; the rules are packages/shopify/src/blend.ts.
 
   The ingredients are the store's `blend_ingredient` metaobjects. Picking N
-  selects the "N ingredients" variant through the form's own option radios,
-  so price and purchase options follow as for any product. The choice rides
+  sets `data-size`, and <product-form> picks the variant whose
+  `double_helix.blend_size` is N, so price and purchase options follow as for
+  any product. The choice rides
   on the line as `properties[_blend]` (codes) and `properties[Blend]` (words).
 
   Needs JavaScript: without it the form's button stays disabled, so a pack is
@@ -23,7 +24,14 @@
   endfor
 -%}
 
-<blend-picker class="blend-picker" data-max="{{ max }}" data-min="2">
+<blend-picker
+  class="blend-picker"
+  data-max="{{ max }}"
+  data-min="2"
+  data-size="2"
+  data-ready="false"
+  data-incomplete-label="{{ 'product.blend_incomplete' | t: min: 2, max: max | escape }}"
+>
   <fieldset>
     <legend class="product-form__legend">Choose your ingredients</legend>
     <p ref="count" class="blend-picker__count" aria-live="polite">0 of up to {{ max }} chosen. Choose at least 2.</p>
