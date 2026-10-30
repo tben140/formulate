@@ -26,7 +26,7 @@ export const NoImage: Story = { args: { product: FIXTURE_PRODUCTS.noImage } };
 
 export const LongTitle: Story = { args: { product: FIXTURE_PRODUCTS.focusSticks } };
 
-/** Three across, as on a collection page: the first card loads eagerly. */
+/** Three across, as on a collection page: the first card is the LCP image (`priority`). */
 export const Grid: Story = {
   decorators: [
     () => (
@@ -37,11 +37,7 @@ export const Grid: Story = {
           FIXTURE_PRODUCTS.vitaminD3,
         ].map((product, index) => (
           <li key={product.handle}>
-            <ProductCard
-              product={product}
-              sizes="300px"
-              loading={index === 0 ? "eager" : undefined}
-            />
+            <ProductCard product={product} sizes="300px" priority={index === 0} />
           </li>
         ))}
       </ul>
