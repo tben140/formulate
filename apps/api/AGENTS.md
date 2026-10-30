@@ -78,6 +78,9 @@ pnpm --filter @formulate/api deploy   # publish by hand
 
 A push to `main` that changes `apps/api` or `packages/analytics` deploys it
 from CI (`.github/workflows/deploy-api.yml`), after the Worker's tests pass.
+It needs both `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository
+secrets. Without them the run skips the tests and the deploy and still shows
+green, so check the run for the "API deploy skipped" notice.
 
 Secrets are per-environment and set from the CLI:
 
