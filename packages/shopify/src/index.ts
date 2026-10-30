@@ -1,7 +1,14 @@
 export { createStorefrontClient } from "./client";
 export type { StorefrontClient, StorefrontClientConfig } from "./client";
 
-export { createCartClient, isCartGone, isCartId, visitorConsentFor } from "./cart";
+export {
+  CAMPAIGN_ATTRIBUTE,
+  createCartClient,
+  isCartGone,
+  isCartId,
+  visitorConsentFor,
+  withAttribute,
+} from "./cart";
 export type {
   AddLinesOutcome,
   Cart,
@@ -49,6 +56,7 @@ export {
   CartLinesUpdateMutation,
   CampaignByHandleQuery,
   CampaignsQuery,
+  CartAttributesUpdateMutation,
   CartDiscountCodesUpdateMutation,
   CartQuery,
   CollectionCardsQuery,
@@ -121,6 +129,7 @@ export {
   campaignParagraphs,
   campaignPath,
   campaignStartsLabel,
+  campaignStartFor,
   campaignStatus,
   canSeeCampaign,
   isCampaignActive,

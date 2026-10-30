@@ -8,9 +8,11 @@ import {
   campaignNow,
   campaignParagraphs,
   campaignPath,
+  campaignStartFor,
   campaignStartsLabel,
   campaignHandleFromPath,
   campaignStatus,
+  isCampaignLive,
   safeRedirectPath,
   toCampaign,
   type CampaignNode,
@@ -51,9 +53,9 @@ describe("toCampaign", () => {
 describe("activeCampaign", () => {
   it("is live from the start up to, not including, the end", () => {
     expect(activeCampaign([blackFriday], { now: before })).toBeNull();
-    expect(activeCampaign([blackFriday], { now: new Date("2026-11-27T00:00:00Z") })?.handle).toBe(
-      "black-friday-2026",
-    );
+    expect(
+      activeCampaign([blackFriday], { now: new Date("2026-11-27T00:00:00Z") })?.handle,
+    ).toBe("black-friday-2026");
     expect(activeCampaign([blackFriday], { now: end })).toBeNull();
   });
 
@@ -63,7 +65,9 @@ describe("activeCampaign", () => {
       handle: "flash",
       endsAt: v("2026-11-29T00:00:00Z"),
     };
-    expect(activeCampaign([blackFriday, flash, null], { now: during })?.handle).toBe("flash");
+    expect(activeCampaign([blackFriday, flash, null], { now: during })?.handle).toBe(
+      "flash",
+    );
   });
 });
 
@@ -91,7 +95,9 @@ describe("campaignForVariant", () => {
 
 describe("campaignBadge", () => {
   it("badges a card only while the campaign is live", () => {
-    expect(campaignBadge({ reference: blackFriday }, { now: during })).toBe("Black Friday");
+    expect(campaignBadge({ reference: blackFriday }, { now: during })).toBe(
+      "Black Friday",
+    );
     expect(campaignBadge({ reference: blackFriday }, { now: before })).toBeNull();
     expect(campaignBadge(null, { now: during })).toBeNull();
   });
@@ -137,7 +143,11 @@ describe("helpers", () => {
 });
 
 describe("who sees a campaign", () => {
-  const emailOnly: CampaignNode = { ...blackFriday, handle: "vip", audience: v("email_link") };
+  const emailOnly: CampaignNode = {
+    ...blackFriday,
+    handle: "vip",
+    audience: v("email_link"),
+  };
 
   it("hides an email-link campaign from everyone without the link", () => {
     expect(activeCampaign([emailOnly], { now: during })).toBeNull();
@@ -176,5 +186,38 @@ describe("email links", () => {
     expect(campaignHandleFromPath("/pages/campaigns/vip")).toBe("vip");
     expect(campaignHandleFromPath("/pages/campaigns/vip?x=1")).toBe("vip");
     expect(campaignHandleFromPath("/products/vip")).toBeNull();
+  });
+});
+
+describe("early access", () => {
+  const early = toCampaign({
+    ...blackFriday,
+    earlyAccessStartsAt: v("2026-11-26T18:00:00Z"),
+  })!;
+  const evening = new Date("2026-11-26T20:00:00Z");
+
+  it("starts early only for people who came through the email link", () => {
+    expect(
+      isCampaignLive(early, { now: evening, access: new Set(["black-friday-2026"]) }),
+    ).toBe(true);
+    expect(isCampaignLive(early, { now: evening })).toBe(false);
+    expect(campaignStatus(early, { now: evening })).toBe("upcoming");
+  });
+
+  it("says when it starts for this visitor", () => {
+    const view = {
+      now: new Date("2026-11-20T00:00:00Z"),
+      access: new Set(["black-friday-2026"]),
+    };
+    expect(campaignStartsLabel(early, campaignStartFor(early, view))).toBe(
+      "Starts 18:00 Thu 26 Nov",
+    );
+  });
+
+  it("is ignored unless it's before the start", () => {
+    expect(
+      toCampaign({ ...blackFriday, earlyAccessStartsAt: v("2026-11-28T00:00:00Z") })!
+        .earlyAccessStartsAt,
+    ).toBeNull();
   });
 });

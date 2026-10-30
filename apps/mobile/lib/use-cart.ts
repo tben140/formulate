@@ -8,6 +8,7 @@ import {
 } from "@formulate/shopify";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { rememberCampaignSeen, seenCampaign } from "./campaign";
 import { clearCartId, readCartId, writeCartId } from "./cart-storage";
 import { readIdentifiedEmail } from "./klaviyo";
 import { storefront } from "./storefront";
@@ -75,6 +76,37 @@ export const useCart = () =>
     staleTime: 0,
   });
 
+/**
+ * Tags the cart with the campaign screen seen in the last week (`_campaign`,
+ * SHO-169), for `campaigns report`. As web's addToCart: a failure keeps the
+ * untagged cart, never costing an add.
+ */
+const tagSeenCampaign = async (cart: Cart): Promise<Cart> => {
+  const handle = await seenCampaign();
+  if (!handle) return cart;
+  const tagged = await cartClient.tagCampaign(cart, handle).catch(() => null);
+  return tagged?.ok ? tagged.data : cart;
+};
+
+/** A campaign screen was seen: remember it, and tag the cart now if there is one. */
+export const useMarkCampaignSeen = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (handle: string): Promise<Cart | null> => {
+      await rememberCampaignSeen(handle);
+      const cartId = await readCartId();
+      if (!cartId) return null;
+      const current = await cartClient.get(cartId);
+      if (!current.ok || !current.data) return null;
+      const tagged = await tagSeenCampaign(current.data);
+      return tagged === current.data ? null : tagged;
+    },
+    onSuccess: (cart) => {
+      if (cart) queryClient.setQueryData(CART_KEY, cart);
+    },
+  });
+};
+
 export const useAddToCart = () => {
   const queryClient = useQueryClient();
 
@@ -106,7 +138,7 @@ export const useAddToCart = () => {
       }
 
       await writeCartId(result.data.id);
-      return { cart: result.data, ...(notice ? { notice } : {}) };
+      return { cart: await tagSeenCampaign(result.data), ...(notice ? { notice } : {}) };
     },
     // Every mutation returns the complete cart, so the cache is seeded directly
     // rather than invalidated — no refetch, and no window where the badge and

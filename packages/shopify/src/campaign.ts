@@ -32,6 +32,7 @@ export interface CampaignNode {
   readonly terms?: FieldValue | null;
   readonly audience?: FieldValue | null;
   readonly offerRules?: FieldValue | null;
+  readonly earlyAccessStartsAt?: FieldValue | null;
   readonly image?: {
     readonly reference?: {
       readonly image?: CampaignImage | null;
@@ -69,6 +70,11 @@ export interface Campaign {
   readonly audience: "everyone" | "email_link";
   /** The offer as data, when set and valid: see campaign-offer.ts. */
   readonly rules: OfferRules | null;
+  /**
+   * An earlier start for people who came through the campaign's email link
+   * (`access`), or null. Only kept when it's before `startsAt`.
+   */
+  readonly earlyAccessStartsAt: Date | null;
 }
 
 /**
@@ -128,6 +134,10 @@ export const toCampaign = (node: CampaignNode | null | undefined): Campaign | nu
     collectionHandle: node.collection?.reference?.handle ?? null,
     audience: text(node.audience) === "email_link" ? "email_link" : "everyone",
     rules: parseOfferRules(text(node.offerRules)),
+    earlyAccessStartsAt: (() => {
+      const early = date(node.earlyAccessStartsAt);
+      return early && early < startsAt ? early : null;
+    })(),
   };
 };
 
@@ -141,10 +151,21 @@ export const canSeeCampaign = (campaign: Campaign, view: CampaignView): boolean 
   campaign.audience === "everyone" ||
   (view.access?.has(campaign.handle) ?? false);
 
+/**
+ * When the campaign starts for this visitor: its early-access start if they
+ * came through its email link, else its start.
+ */
+export const campaignStartFor = (campaign: Campaign, view: CampaignView): Date =>
+  campaign.earlyAccessStartsAt && view.access?.has(campaign.handle)
+    ? campaign.earlyAccessStartsAt
+    : campaign.startsAt;
+
 /** Shown as live to this visitor: previewed, or live and visible to them. */
 export const isCampaignLive = (campaign: Campaign, view: CampaignView): boolean =>
   view.preview === campaign.handle ||
-  (canSeeCampaign(campaign, view) && isCampaignActive(campaign, view.now));
+  (canSeeCampaign(campaign, view) &&
+    campaignStartFor(campaign, view) <= view.now &&
+    view.now < campaign.endsAt);
 
 /**
  * The campaign to show site-wide: a previewed one first, then the live one
@@ -270,8 +291,10 @@ export const campaignEndsLabel = (campaign: Campaign): string =>
   `Ends ${ukTime(new Date(campaign.endsAt.getTime() - 60_000))}`;
 
 /** "Starts 00:00 Fri 27 Nov". */
-export const campaignStartsLabel = (campaign: Campaign): string =>
-  `Starts ${ukTime(campaign.startsAt)}`;
+export const campaignStartsLabel = (
+  campaign: Campaign,
+  at: Date = campaign.startsAt,
+): string => `Starts ${ukTime(at)}`;
 
 /**
  * Where a campaign is for this visitor, for its landing page. `restricted`:
@@ -283,7 +306,7 @@ export const campaignStatus = (
 ): "upcoming" | "active" | "ended" | "restricted" => {
   if (view.preview === campaign.handle) return "active";
   if (!canSeeCampaign(campaign, view)) return "restricted";
-  return view.now < campaign.startsAt
+  return view.now < campaignStartFor(campaign, view)
     ? "upcoming"
     : view.now < campaign.endsAt
       ? "active"

@@ -46,6 +46,10 @@
 {% else %}
   <article class="campaign page-section" data-campaign-status="{{ status }}">
     {% render 'breadcrumbs', current: campaign.title.value %}
+    {%- if status == 'active' -%}
+      {%- comment -%} Tags the cart for the campaign report: assets/campaign-seen.js. {%- endcomment -%}
+      <campaign-seen data-handle="{{ campaign.system.handle | escape }}"></campaign-seen>
+    {%- endif -%}
 
     <header class="campaign__header">
       <div>

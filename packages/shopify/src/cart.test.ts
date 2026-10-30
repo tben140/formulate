@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createCartClient, isCartGone, isCartId, stockNotice } from "./cart";
+import {
+  createCartClient,
+  isCartGone,
+  isCartId,
+  stockNotice,
+  withAttribute,
+} from "./cart";
 import { describeForShopper } from "./errors";
 import {
   CartCreateMutation,
@@ -597,5 +603,25 @@ describe("visitor consent on every cart request", () => {
     }).get("gid://shopify/Cart/x?key=y");
     expect(result.ok).toBe(true);
     expect(consentOf(req)).toEqual(refused);
+  });
+});
+
+describe("withAttribute", () => {
+  it("sets one attribute and keeps the rest", () => {
+    expect(
+      withAttribute(
+        [
+          { key: "_surface", value: "web" },
+          { key: "_campaign", value: "summer" },
+          { key: "note", value: null },
+        ],
+        "_campaign",
+        "black-friday-2026",
+      ),
+    ).toEqual([
+      { key: "_surface", value: "web" },
+      { key: "note", value: "" },
+      { key: "_campaign", value: "black-friday-2026" },
+    ]);
   });
 });

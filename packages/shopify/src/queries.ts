@@ -482,6 +482,12 @@ export const CartFields = graphql(`
     buyerIdentity {
       countryCode
     }
+    # The campaign tag (_campaign) among them, so a tag merges rather than
+    # replacing the rest.
+    attributes {
+      key
+      value
+    }
     cost {
       subtotalAmount {
         amount
@@ -840,6 +846,10 @@ export const CampaignBadgeFields = graphql(`
     offerRules: field(key: "offer_rules") {
       value
     }
+    # Earlier start for people who came through the email link.
+    earlyAccessStartsAt: field(key: "early_access_starts_at") {
+      value
+    }
   }
 `);
 
@@ -879,6 +889,34 @@ export const CampaignFields = graphql(`
         ... on Collection {
           handle
         }
+      }
+    }
+  }
+`);
+
+/**
+ * Sets the cart's attributes. Pass them all: see `tagCampaign` in ./cart,
+ * which merges the campaign tag into what's there.
+ */
+export const CartAttributesUpdateMutation = graphql(`
+  mutation CartAttributesUpdate(
+    $cartId: ID!
+    $attributes: [AttributeInput!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
+    cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+      warnings {
+        code
+        message
+        target
       }
     }
   }

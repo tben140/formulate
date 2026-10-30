@@ -88,7 +88,11 @@ const scheduleNextChange = (nodes: readonly (CampaignNode | null | undefined)[])
     ...nodes
       .map(toCampaign)
       .flatMap((campaign) =>
-        campaign ? [campaign.startsAt.getTime(), campaign.endsAt.getTime()] : [],
+        campaign
+          ? [campaign.earlyAccessStartsAt, campaign.startsAt, campaign.endsAt].flatMap(
+              (at) => (at ? [at.getTime()] : []),
+            )
+          : [],
       )
       .filter((time) => time > now && time - now <= 24 * 60 * 60 * 1000),
   );
@@ -173,4 +177,26 @@ export const useCampaignEnds = (endsAt: Date, label: string): string => {
     return () => clearInterval(timer);
   }, [counting]);
   return text;
+};
+
+const SEEN_KEY = "doublehelix.campaign.seen";
+const SEEN_FOR = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Remembers a visit to a campaign's screen for a week (SHO-169), so the cart
+ * is tagged with it (`_campaign`) for `campaigns report`. As web's
+ * campaign_seen cookie.
+ */
+export const rememberCampaignSeen = async (handle: string): Promise<void> => {
+  if (!HANDLE.test(handle)) return;
+  await SecureStore.setItemAsync(SEEN_KEY, `${handle}.${Date.now()}`).catch(
+    () => undefined,
+  );
+};
+
+/** The campaign screen seen in the last week, if any. */
+export const seenCampaign = async (): Promise<string | null> => {
+  const value = await SecureStore.getItemAsync(SEEN_KEY).catch(() => null);
+  const [handle = "", at = "0"] = (value ?? "").split(".");
+  return HANDLE.test(handle) && Date.now() - Number(at) < SEEN_FOR ? handle : null;
 };
