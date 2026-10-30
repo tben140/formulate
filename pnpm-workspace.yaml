@@ -76,15 +76,16 @@ peerDependencyRules:
 #   SyntaxError: global.css: failed to deserialize;
 #   expected an object-like struct named Specifier, found ()
 #
-# The error surfaces only when bundling, never at install time. Do not bump
-# this until NativeWind v5 leaves preview and states a newer supported version.
+# The error surfaces only when bundling, never at install time. Still bundles
+# with react-native-css 3.1.0-rc.0 (Expo SDK 58); newer versions not re-tested.
+# Do not bump this until NativeWind v5 is stable and states a supported version.
 overrides:
   lightningcss: 1.30.1
-  # Expo SDK 57 expects exactly React 19.2.3. Pinning workspace-wide keeps a
+  # Expo SDK 58 expects exactly React 19.3.0. Pinning workspace-wide keeps a
   # single React copy under the hoisted node linker — two copies would break
   # hooks in the Expo app.
-  react: 19.2.3
-  react-dom: 19.2.3
+  react: 19.3.0
+  react-dom: 19.3.0
   # Security patches for transitive dependencies (October 2026 audit). Each
   # lifts only the vulnerable range to the first patched release that clears
   # minimumReleaseAge. Only @graphql-tools/utils crosses a major (11 to 12:
@@ -106,5 +107,5 @@ overrides:
   "compression@<1.8.2": 1.8.2 # memory-leak DoS (Expo dev server)
   "@fastify/busboy@<3.2.3": 3.2.3 # DoS, CRLF injection (GraphQL codegen)
   "@graphql-tools/utils@<12.0.2": 12.0.4 # prototype pollution (GraphQL codegen)
-  "@graphql-tools/executor-legacy-ws@<1.1.35": 1.1.35 # TLS validation disabled (GraphQL codegen)
+  "@graphql-tools/executor-legacy-ws@<1.1.36": 1.1.36 # GHSA-6fw5-9hq8-w87g (TLS validation disabled, fixed 1.1.35), GHSA-434m-5hcj-pxf3 (connection params leak, fixed 1.1.36) (GraphQL codegen)
   "zod@>=4.0.0 <4.6.6": 4.6.7 # memory exhaustion (Expo CLI, react-hooks lint)
