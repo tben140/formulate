@@ -27,7 +27,7 @@
   ],
   "lockFileMaintenance": {
     "enabled": false,
-    "description": "Off on purpose. Lock-file maintenance re-resolves every range in the lockfile and ignores the per-package rules below, so it would move react-native-css within ^3.0.7 (only 3.0.7 reads lightningcss 1.30.1's output, a failure that shows only at Metro bundle time) and @types/react within ^19.2.0. Re-enable only once those are pinned exactly."
+    "description": "Off on purpose. Lock-file maintenance re-resolves every range in the lockfile and ignores the per-package rules below, so it would move @types/react within ^19.3.0 and every other range at once, and its react-native-css and lightningcss pins exist because a wrong pair fails only at Metro bundle time (ADR 0004). Re-enable only once the remaining ranges are pinned exactly."
   },
   "packageRules": [
     {
