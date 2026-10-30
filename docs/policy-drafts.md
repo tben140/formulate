@@ -4,6 +4,32 @@ Drafts for Ben to read, change and paste into Shopify. Nothing here is live,
 and none of it is legal advice: have the terms checked before the store takes
 real orders.
 
+## What's live now (30 October 2026)
+
+The Terms of service and Shipping policy are live in Shopify, **with their
+placeholders still showing to shoppers**. Until they're filled in, the pages
+read `[business name]`, `[cut-off time]` and so on.
+
+| Live page        | Still to fill                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------- |
+| Terms of service | Business name, business address, company number, contact email (twice), date, and three `[Check: …]` notes |
+| Shipping policy  | Dispatch cut-off, delivery days, "not arrived" days, contact email, date                                   |
+| Subscription     | Still Shopify's generic template: replace it with the draft below                                          |
+| Refund policy    | Done. Not yet in the Legal menu                                                                            |
+
+**Suggested values, if you have no better ones:** dispatch cut-off 2pm;
+delivery 2 to 4 working days; "not arrived" after 7 working days.
+
+**The contact email:** the live Privacy and Refund policies already give your
+personal Gmail. A shop address (for example on the store's own domain, when it
+has one) would keep your personal inbox out of public pages.
+
+**If there's no company yet:** as a demo store, "Who we are" can say so plainly
+instead of giving a business name and company number, for example: _"Double
+Helix is a demo store, built as a portfolio project. Checkout runs in test
+mode: no payment is taken and nothing is shipped."_ It matches the demo
+notice already shown on all three surfaces.
+
 **Where each goes**
 
 - **Terms of service, Subscription policy and Shipping policy:** Shopify
@@ -93,7 +119,7 @@ full refund.
 ### 5. Subscriptions
 
 A subscription is a repeat order of a product at the interval you choose
-(every 30, 60 or 90 days).
+(every 30, 60 or 90 days; Your Daily Pack every 30 days).
 
 - **What you pay:** we charge your saved payment method on each renewal date,
   at the subscription price shown when you subscribed. Subscriptions ship
@@ -182,23 +208,22 @@ _Last updated: `[date]`_
 
 ## Subscription policy
 
-`[Check every line against how the plans are actually set up in Recharge
-before publishing. The discounts below are the catalogue's drafts.]`
+> Not part of the policy: checked against the store on 30 October 2026.
+> Every subscription product offers 30, 60 and 90 days at 15% off, except
+> Your Daily Pack (30 days only), and no prepaid plans are on sale.
 
 ### How subscriptions work
 
 A subscription sends the same product to you on a regular schedule, at a
 lower price than buying it once. You choose the plan on the product page:
 
-| Plan          | What you get                                     | Discount  |
-| ------------- | ------------------------------------------------ | --------- |
-| Every 30 days | A 30-day supply every 30 days, charged each time | `[10%]`   |
-| Every 60 days | A 60-day supply every 60 days, charged each time | `[Check]` |
-| Every 90 days | A 90-day supply every 90 days, charged each time | `[Check]` |
+| Plan          | What you get                                          | Discount |
+| ------------- | ----------------------------------------------------- | -------- |
+| Every 30 days | Your chosen products every 30 days, charged each time | 15%      |
+| Every 60 days | Your chosen products every 60 days, charged each time | 15%      |
+| Every 90 days | Your chosen products every 90 days, charged each time | 15%      |
 
-`[If the prepaid plans (several deliveries paid up front) stay on sale, add
-them here, with how cancelling one works: which deliveries are still sent,
-and what's refunded.]`
+Your Daily Pack is a month of sachets, so it's offered every 30 days only.
 
 Subscription deliveries are always free. The price you pay on each renewal
 is the subscription price shown when you subscribed, unless we tell you of a
