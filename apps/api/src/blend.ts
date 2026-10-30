@@ -29,15 +29,19 @@ const CODE = /^[a-z0-9]{1,12}$/;
 
 type Property = { name?: unknown; value?: unknown };
 
-/** The codes in a subscription's properties, or [] when it isn't a pack. */
+/**
+ * The codes in a subscription's properties, or [] when it isn't a pack. A
+ * stored blend with any malformed or repeated code counts as no blend, so it
+ * can't be edited: dropping the bad code would let a smaller blend through
+ * the size check on a subscription still priced for the larger one.
+ */
 export const blendCodesOf = (properties: unknown): string[] => {
   const list = Array.isArray(properties) ? (properties as Property[]) : [];
   const value = list.find((p) => p.name === BLEND_CODES_KEY)?.value;
-  return typeof value === "string"
-    ? value
-        .split(",")
-        .map((code) => code.trim())
-        .filter((code) => CODE.test(code))
+  if (typeof value !== "string") return [];
+  const codes = value.split(",").map((code) => code.trim());
+  return codes.every((code) => CODE.test(code)) && new Set(codes).size === codes.length
+    ? codes
     : [];
 };
 
@@ -87,21 +91,28 @@ export const blendRange = async (env: BlendEnv): Promise<BlendOption[] | null> =
   } | null;
   const nodes = body?.data?.metaobjects?.nodes;
   if (!Array.isArray(nodes)) return null;
-  return nodes
-    .flatMap((node) => {
-      const code = node.code?.value ?? "";
-      const name = node.name?.value?.trim() ?? "";
-      return CODE.test(code) && name
-        ? [
-            {
-              sort: Number(node.sort?.value ?? 0),
-              option: { code, name, shortName: name.replace(/\s*\(.*\)\s*$/, "") },
-            },
-          ]
-        : [];
-    })
-    .sort((a, b) => a.sort - b.sort)
-    .map(({ option }) => option);
+  return (
+    nodes
+      .flatMap((node) => {
+        const code = node.code?.value ?? "";
+        const name = node.name?.value?.trim() ?? "";
+        return CODE.test(code) && name
+          ? [
+              {
+                sort: Number(node.sort?.value ?? 0),
+                option: { code, name, shortName: name.replace(/\s*\(.*\)\s*$/, "") },
+              },
+            ]
+          : [];
+      })
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ option }) => option)
+      // One option per code. Shopify doesn't force the code field to be unique,
+      // and two entries sharing one would write two ingredients for one choice.
+      .filter(
+        (option, index, all) => all.findIndex((o) => o.code === option.code) === index,
+      )
+  );
 };
 
 /**

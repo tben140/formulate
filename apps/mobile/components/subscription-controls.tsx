@@ -164,7 +164,11 @@ export const SubscriptionControls = ({
   // A daily pack's ingredients: the unsaved choice, else the saved blend.
   const savedBlend = subscription.blend ?? [];
   const [chosenBlend, setChosenBlend] = useState<string[] | null>(null);
-  const blend = chosenBlend ?? [...savedBlend];
+  // Saved codes that have left the range have no checkbox to untick, so they
+  // start unticked: the shopper picks a replacement to fill the gap.
+  const blend =
+    chosenBlend ??
+    savedBlend.filter((code) => blendOptions.some((option) => option.code === code));
   const toggleBlend = (code: string) =>
     setChosenBlend(
       blend.includes(code) ? blend.filter((c) => c !== code) : [...blend, code],

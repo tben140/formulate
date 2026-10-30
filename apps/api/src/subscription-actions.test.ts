@@ -143,6 +143,8 @@ const stubUpstream = (
                   { code: v("d3"), name: v("Vitamin D3 (from lichen)"), sort: v("10") },
                   { code: v("k2"), name: v("Vitamin K2 (MK-7)"), sort: v("20") },
                   { code: v("zn"), name: v("Zinc"), sort: v("60") },
+                  // A merchant's duplicate: only the first (by sort) counts.
+                  { code: v("zn"), name: v("Zinc (picolinate)"), sort: v("70") },
                 ],
               },
             },
@@ -513,6 +515,17 @@ describe("editing a daily pack's blend", () => {
           codes: ["d3", "mg", "zn"],
         })
       ).status,
+    ).toBe(409);
+    expect(writes(calls)).toHaveLength(0);
+  });
+
+  it("won't edit a stored blend with a malformed code", async () => {
+    const calls = stubUpstream({
+      sub: subscription({ properties: [{ name: "_blend", value: "d3,k2,vit-c" }] }),
+    });
+    expect(
+      (await actBlend({ subscriptionId: SUB, action: "blend", codes: ["d3", "mg"] }))
+        .status,
     ).toBe(409);
     expect(writes(calls)).toHaveLength(0);
   });
