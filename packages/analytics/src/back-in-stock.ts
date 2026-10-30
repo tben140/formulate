@@ -32,20 +32,23 @@ export const backInStockUrl = (publicKey: string): string =>
  * Klaviyo's id for a Shopify variant in its catalogue:
  * `$shopify:::$default:::<numeric variant id>`.
  *
- * Accepts the Storefront API's gid or the bare number Liquid gives. Returns
- * null for anything else rather than sending an id that matches nothing:
- * Klaviyo would accept it with a 202 and no alert would ever fire.
+ * Accepts the Storefront API's ProductVariant gid or the bare number Liquid
+ * gives. Returns null for anything else, including a number too big to be
+ * exact, rather than sending an id that matches nothing: Klaviyo would accept
+ * it with a 202 and no alert would ever fire.
  */
 export const catalogVariantId = (variant: string | number): string | null => {
   const numeric =
     typeof variant === "number"
-      ? Number.isSafeInteger(variant) && variant > 0
-        ? variant
-        : 0
+      ? variant
       : /^\d+$/.test(variant)
         ? Number(variant)
-        : legacyIdFromGid(variant);
-  return numeric > 0 ? `$shopify:::$default:::${numeric}` : null;
+        : /^gid:\/\/shopify\/ProductVariant\/\d+$/.test(variant)
+          ? legacyIdFromGid(variant)
+          : 0;
+  return Number.isSafeInteger(numeric) && numeric > 0
+    ? `$shopify:::$default:::${numeric}`
+    : null;
 };
 
 /** The JSON:API document: email only, one channel, one variant. */
@@ -101,6 +104,9 @@ export const submitBackInStock = async ({
       },
       body: JSON.stringify(backInStockPayload({ email, variantId })),
     });
+    if (response.status === 429) {
+      return { ok: false, reason: "rate-limited", status: 429 };
+    }
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
       return { ok: false, reason: "rejected", status: response.status, detail };

@@ -40,11 +40,23 @@ class BackInStock extends Component {
     document.addEventListener("product-form:variant-change", this.#onVariantChange, {
       signal: this.signal,
     });
+
+    // The form may have synced before this connected, and its selection can
+    // differ from the one Liquid rendered (browsers restore fields on Back
+    // and reload), so catch up with what it last announced.
+    const form = /** @type {{ variantDetail?: unknown } | null} */ (
+      document.querySelector("product-form")
+    );
+    if (form && form.variantDetail !== undefined) this.#follow(form.variantDetail);
   }
 
   /** @param {Event} event */
   #onVariantChange = (event) => {
-    const detail = /** @type {CustomEvent} */ (event).detail;
+    this.#follow(/** @type {CustomEvent} */ (event).detail);
+  };
+
+  /** @param {any} detail */
+  #follow(detail) {
     const soldOut = Boolean(detail && !detail.available);
     this.hidden = !soldOut;
     if (!soldOut) return;
@@ -60,7 +72,7 @@ class BackInStock extends Component {
       hint.textContent = (this.dataset.hintTemplate ?? "").replace("%ITEM%", item);
     if (input) input.value = "";
     this.#clear();
-  };
+  }
 
   #clear = () => {
     const { message, input } = this.refs;
@@ -86,6 +98,10 @@ class BackInStock extends Component {
     if (!publicKey || !/^\d+$/.test(variantId)) {
       return this.#report(this.dataset.errorUnavailable ?? "", true);
     }
+
+    // The variant this request is for. If the shopper moves to another while
+    // it's in flight, its answer no longer describes the form they see.
+    const isCurrent = () => this.dataset.variantId === variantId;
 
     const originalLabel = submit?.textContent ?? "";
     if (submit) {
@@ -126,16 +142,17 @@ class BackInStock extends Component {
       if (!response.ok) {
         const detail = await response.text().catch(() => "");
         console.error(`[klaviyo] back-in-stock rejected (${response.status}):`, detail);
-        this.#report(this.dataset.errorFailed ?? "", true);
+        if (isCurrent()) this.#report(this.dataset.errorFailed ?? "", true);
         return;
       }
 
       // Klaviyo can't say whether this address was already waiting, so the
       // message claims only what's true either way.
+      if (!isCurrent()) return;
       this.#report(this.dataset.labelSuccess ?? "", false);
       input.value = "";
     } catch {
-      this.#report(this.dataset.errorNetwork ?? "", true);
+      if (isCurrent()) this.#report(this.dataset.errorNetwork ?? "", true);
     } finally {
       if (submit) {
         submit.disabled = false;
