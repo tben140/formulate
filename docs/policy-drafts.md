@@ -53,16 +53,22 @@ one; a PO box or virtual office is fine.
 
 If any of those change, these drafts need to change with them.
 
-**Two things to decide first**
+**Three things to decide before publishing**
 
 1. **Where you sell.** Shopify says the store ships to 28 countries, including
    the US, Japan and the EU. Supplement rules differ by country (ingredients,
-   labels, claims), so the drafts assume the UK only. Either narrow Shopify's
-   shipping zones to the UK, or tell me which countries to cover.
+   labels, claims), so the drafts assume the UK only. Don't publish them while
+   other countries are still enabled: either narrow Shopify's shipping zones to
+   the UK first, or tell me which countries to cover and I'll add their terms.
 2. **The Subscription policy.** The live one is Shopify's generic template. It
    describes pre-orders and "try before you buy", which this store doesn't
    offer, and it says to manage subscriptions from order emails rather than
    your account. A replacement is below, after the terms.
+3. **How shoppers change a subscription.** Nothing on the site lets them do it
+   yet: the account page will show subscriptions but not change them (#80), and
+   Recharge's own customer portal isn't linked anywhere. So the drafts say
+   "contact us", with a `[Check: …]` note at each place. Switch on Recharge's
+   portal and link it, and they can say "from your account" instead.
 
 ---
 
@@ -125,7 +131,9 @@ A subscription is a repeat order of a product at the interval you choose
   at the subscription price shown when you subscribed. Subscriptions ship
   free.
 - **Changing or stopping:** you can skip a delivery, change the interval,
-  pause, or cancel at any time from your account, with no fee. Cancel before
+  pause, or cancel at any time, with no fee, by contacting us at
+  `[contact email]`. `[Check: say "from your account" once Recharge's portal
+is linked.]` Cancel before
   your next renewal date and you won't be charged again.
 - **Reminders:** we'll email you before each renewal. `[Check: this needs
 Recharge's upcoming-charge email switched on; drop the line if it isn't.]`
@@ -225,18 +233,24 @@ lower price than buying it once. You choose the plan on the product page:
 
 Your Daily Pack is a month of sachets, so it's offered every 30 days only.
 
+Each product page shows the plans and discount it offers, and that's what applies
+when you subscribe.
+
 Subscription deliveries are always free. The price you pay on each renewal
 is the subscription price shown when you subscribed, unless we tell you of a
 change in advance (below).
 
 ### Changing or stopping your subscription
 
-From your account, at any time and with no fee, you can:
+At any time and with no fee, you can ask us at `[contact email]` to:
 
 - skip a delivery, or move it to another date;
 - pause, and restart when you're ready;
 - change how often it comes;
 - cancel.
+
+`[Check: once Recharge's customer portal is linked, change the first line to
+"From your account, at any time and with no fee, you can:".]`
 
 Make the change before your next renewal date and it applies to that
 renewal. There's no minimum number of deliveries.
@@ -301,7 +315,8 @@ when your order is on its way.
 ### Subscriptions
 
 Each renewal is dispatched on its renewal date. You can see and change the
-date, skip a delivery or pause from your account.
+date, skip a delivery or pause by contacting us at `[contact email]`.
+`[Check: "from your account" once Recharge's portal is linked.]`
 
 ### If something goes wrong
 
@@ -331,14 +346,15 @@ Accessibility Guidelines (WCAG) 2.2 at level AA.
 
 ### How we check
 
-- **Automated scans:** changes to the website are scanned against WCAG 2.2
-  AA with axe in our automated tests, on desktop and phone sizes. `[The
-theme's scans arrive with #59.]`
-- **Keyboard tests:** automated tests check that browsing, choosing options
-  and adding to the basket work with a keyboard alone.
-- **The app:** buttons, images and controls are labelled for screen readers.
-  `[Automated checks of the labels arrive with #69 and #137.]`
-- **By hand:** we test on real phones.
+- **Automated scans:** the website's main pages are scanned against WCAG 2.2
+  AA with axe in our automated tests, at desktop and phone sizes.
+- **Keyboard tests:** automated tests check that moving through the site,
+  choosing product options (with the focus visible) and adding to the basket
+  work with a keyboard alone.
+
+`[Not for publishing: add a line for each of these only once it's true. The
+theme's scans arrive with #59, and the app's label checks with #69 and #137.
+"We test on real phones" needs a real, repeated check, not occasional use.]`
 
 Automated checks can't catch everything, so we may still have issues we
 don't know about.
