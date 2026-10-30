@@ -95,14 +95,23 @@ jobs:
           THEME_E2E_THEME_ID: ${{ steps.push.outputs.theme_id }}
         run: pnpm test:e2e
 
+      # Found by this run's theme name rather than the push step's output: a
+      # push can create the theme and then fail before printing its id. Only
+      # an exact name match that isn't live is deleted.
       - name: Delete the temporary theme
-        if: always() && steps.push.outputs.theme_id != ''
+        if: always() && (steps.push.outcome == 'success' || steps.push.outcome == 'failure')
         working-directory: apps/theme
         env:
           SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
           SHOPIFY_CLI_NO_ANALYTICS: "1"
-          THEME_ID: ${{ steps.push.outputs.theme_id }}
-        run: pnpm exec shopify theme delete --store "$STORE_DOMAIN" --theme "$THEME_ID" --force
+        run: |
+          name="CI accessibility ${GITHUB_RUN_ID}"
+          ids=$(pnpm exec shopify theme list --store "$STORE_DOMAIN" --name "$name" --json \
+            | jq -r --arg name "$name" '.[] | select(.name == $name and .role != "live") | .id')
+          if [ -z "$ids" ]; then echo "No theme named $name to delete."; exit 0; fi
+          for id in $ids; do
+            pnpm exec shopify theme delete --store "$STORE_DOMAIN" --theme "$id" --force
+          done
 
       # The password is typed in global setup, which isn't traced, so the
       # reports don't contain it. Traces do carry the storefront session
