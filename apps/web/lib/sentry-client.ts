@@ -25,7 +25,12 @@ const load = (): Promise<SentryModule | undefined> => {
       for (const error of queued.splice(0)) module.captureException(error);
       return module;
     },
-    () => undefined,
+    () => {
+      // A failed chunk load (offline, a deploy mid-visit) mustn't be final:
+      // forget it, so the next report tries again.
+      loading = undefined;
+      return undefined;
+    },
   );
   return loading;
 };
@@ -57,7 +62,10 @@ export const startSentry = () => {
   window.addEventListener("error", early);
   window.addEventListener("unhandledrejection", early);
   const begin = () => {
-    void load().then(() => {
+    void load().then((module) => {
+      // Keep catching early errors until the SDK has actually loaded; after
+      // a failed load they're queued for the next attempt.
+      if (!module) return;
       window.removeEventListener("error", early);
       window.removeEventListener("unhandledrejection", early);
     });

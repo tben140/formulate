@@ -18,8 +18,50 @@ allowBuilds:
   # Ships a platform binary and needs its postinstall step to unpack it.
   workerd: true
 
-minimumReleaseAgeExclude:
-  - eslint@10.8.0
+# Supply-chain guard: a version must be 7 days old before pnpm will install it
+# (10080 minutes). Hijacked releases are usually caught and pulled within
+# hours to days, so this keeps them out without holding fixes back for long.
+# The policy, and the security fast track, is in AGENTS.md under
+# "Dependencies". pnpm's own default is only 1 day.
+minimumReleaseAge: 10080
+
+# Fast-tracked security fixes, one line each. Each needs a comment naming the
+# GitHub-reviewed advisory that lists this exact version as patched, and comes
+# out once the version is 7 days old. Empty for now.
+minimumReleaseAgeExclude: []
+
+# Refuse a version published with weaker trust than the package's earlier
+# releases: say, a package that published through CI with provenance, now
+# published from someone's laptop token. That is how this year's npm worms
+# spread. A package that trips this is a reason to stop and look, not to add
+# an exclusion.
+trustPolicy: no-downgrade
+
+# Exact versions checked by hand and allowed through (25 Oct 2026). Each is a
+# release on an older major line, published by the package's long-standing
+# maintainer without provenance, after the newer line had started publishing
+# with it. pnpm reads that as a downgrade. Only these exact versions; any
+# other release of these packages is still checked.
+trustPolicyExclude:
+  - semver@6.3.1 # npm CLI team (lukekarrys), 2023; the 6.x line under Babel
+  - ua-parser-js@1.0.41 # its author (faisalman), 2025; 1.x under Expo
+  - undici-types@6.21.0 # undici lead (matteo.collina), 2024; under @types/node 22
+  - eslint-import-resolver-typescript@3.10.1 # its maintainer (jounqin), 2025; 3.x under eslint-config-expo
+
+# Dependencies of dependencies must come from the registry, never from a git
+# URL or a tarball, where neither the age rule nor the trust policy applies.
+blockExoticSubdeps: true
+
+# Advisories `pnpm audit` skips, because no usable fix exists yet. Each is
+# listed with its reason in docs/security.md (Accepted findings) and has a
+# review date; CI's audit fails on anything not listed. Remove a line once the
+# parent package ships the fix.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-86w9-cpqp-85rv # high: node-forge 1.4.0 (Expo CLI code signing); no fix released. Review 2026-11-25
+    - GHSA-mrhx-c7xc-m3w5 # high: zod 3 (Expo CLI); fix is zod 4 only. Review 2026-11-25
+    - GHSA-w5hq-g745-h8pq # moderate: uuid 7 (Expo's xcode package); fix needs uuid 11. Review 2026-11-25
+    - GHSA-vcc3-ghjq-m6fr # moderate: decode-uri-component 0.2 (expo-router); no fix released. Review 2026-11-25
 
 # @shopify/hydrogen-react declares a hard (non-optional) peer dependency on
 # vite, because it is built for the Hydrogen/Vite stack. We only use its
@@ -38,12 +80,36 @@ peerDependencyRules:
 #   SyntaxError: global.css: failed to deserialize;
 #   expected an object-like struct named Specifier, found ()
 #
-# The error surfaces only when bundling, never at install time. Do not bump
-# this until NativeWind v5 leaves preview and states a newer supported version.
+# The error surfaces only when bundling, never at install time. Still bundles
+# with react-native-css 3.1.0-rc.0 (Expo SDK 58); newer versions not re-tested.
+# Do not bump this until NativeWind v5 is stable and states a supported version.
 overrides:
   lightningcss: 1.30.1
-  # Expo SDK 57 expects exactly React 19.2.3. Pinning workspace-wide keeps a
+  # Expo SDK 58 expects exactly React 19.3.0. Pinning workspace-wide keeps a
   # single React copy under the hoisted node linker — two copies would break
   # hooks in the Expo app.
-  react: 19.2.3
-  react-dom: 19.2.3
+  react: 19.3.0
+  react-dom: 19.3.0
+  # Security patches for transitive dependencies (October 2026 audit). Each
+  # lifts only the vulnerable range to the first patched release that clears
+  # minimumReleaseAge. Only @graphql-tools/utils crosses a major (11 to 12:
+  # 11.x has no fix); CI's codegen step covers it. Remove a line once the
+  # parent package ships the fix itself (`pnpm audit` shows it as clean
+  # without the override).
+  "shell-quote@<1.11.0": 1.12.0 # critical: quote() command injection (react-devtools-core, dev only)
+  "brace-expansion@<1.1.21": 1.1.21 # DoS (minimatch 3, ESLint)
+  "brace-expansion@>=4.0.0 <5.0.12": 5.0.12 # DoS (minimatch 10, ESLint)
+  "@xmldom/xmldom@>=0.7.0 <0.8.15": 0.8.15 # injection, ReDoS (Expo config plugins)
+  "@xmldom/xmldom@>=0.9.0 <0.9.12": 0.9.12 # injection, ReDoS (Expo config plugins)
+  "undici@>=7.0.0 <7.30.1": 7.30.1 # TLS validation bypass, DoS (Miniflare)
+  "sharp@<0.35.5": 0.35.5 # libheif and librsvg CVEs (Miniflare)
+  "js-yaml@>=4.0.0 <4.3.2": 4.3.2 # CPU exhaustion (Expo CLI)
+  "nanoid@<3.3.18": 3.3.18 # infinite loop (PostCSS)
+  "postcss@<8.5.23": 8.5.23 # incomplete fix of GHSA-6g55-p6wh-862q
+  "vite@>=8.0.0 <8.1.6": 8.1.6 # fs.allow bypass, launch-editor (Vitest)
+  "source-map-js@>=1.0.0 <1.2.2": 1.2.2 # DoS (PostCSS)
+  "compression@<1.8.2": 1.8.2 # memory-leak DoS (Expo dev server)
+  "@fastify/busboy@<3.2.3": 3.2.3 # DoS, CRLF injection (GraphQL codegen)
+  "@graphql-tools/utils@<12.0.2": 12.0.4 # prototype pollution (GraphQL codegen)
+  "@graphql-tools/executor-legacy-ws@<1.1.36": 1.1.36 # GHSA-6fw5-9hq8-w87g (TLS validation disabled, fixed 1.1.35), GHSA-434m-5hcj-pxf3 (connection params leak, fixed 1.1.36) (GraphQL codegen)
+  "zod@>=4.0.0 <4.6.6": 4.6.7 # memory exhaustion (Expo CLI, react-hooks lint)
