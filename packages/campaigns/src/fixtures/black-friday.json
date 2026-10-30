@@ -1,0 +1,113 @@
+{
+  "entry": {
+    "id": "gid://shopify/Metaobject/315656765752",
+    "handle": "black-friday-2026",
+    "published": true,
+    "imageAlt": null,
+    "fields": {
+      "title": "Black Friday 2026",
+      "starts_at": "2026-11-27T00:00:00Z",
+      "ends_at": "2026-12-01T00:00:00Z",
+      "badge": "Black Friday",
+      "headline": "Black Friday: 25% off one-time orders",
+      "banner_text": "Black Friday: 25% off one-time orders until Monday midnight",
+      "offer": "25% off one-time orders, taken at checkout",
+      "discount_code": null,
+      "subscriber_perk": "A free Double Helix shaker with your next delivery, instead of the sale price",
+      "image": null,
+      "body": "{\"type\": \"root\", \"children\": [{\"type\": \"paragraph\", \"children\": [{\"type\": \"text\", \"value\": \"Stock up on your routine for winter. Every supplement in the range is 25% off as a one-time order from Friday 27 November to the end of Monday 30 November. The discount is taken at checkout.\"}]}, {\"type\": \"paragraph\", \"children\": [{\"type\": \"text\", \"value\": \"Already subscribed? Your price is already 15% lower on every delivery, so instead of the sale you get a free shaker with your next delivery.\"}]}]}",
+      "terms": "25% off one-time purchases of the products on this page, from 00:00 on Friday 27 November to 23:59 on Monday 30 November 2026 (UK time). Taken automatically at checkout. Doesn't apply to subscriptions, and can't be combined with other discounts or codes, except free delivery. Subscriber shaker: one per active subscription, added to the next delivery after 30 November. This is a demo store: checkout is in test mode and nothing is charged or shipped.",
+      "collection": "gid://shopify/Collection/524187107640",
+      "audience": null,
+      "offer_rules": "{\"type\":\"percent\",\"percent\":25}"
+    }
+  },
+  "collection": {
+    "id": "gid://shopify/Collection/524187107640",
+    "handle": "black-friday",
+    "ruleMatchesCampaign": true,
+    "productsCount": 3
+  },
+  "products": [
+    {
+      "id": "gid://shopify/Product/10846318330168",
+      "title": "Vitamin D3",
+      "status": "ACTIVE",
+      "onOnlineStore": false,
+      "campaignId": "gid://shopify/Metaobject/315656765752",
+      "variants": [
+        {
+          "id": "gid://shopify/ProductVariant/52871791477048",
+          "price": "9.95",
+          "campaignId": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/52871791509816",
+          "price": "9.95",
+          "campaignId": null
+        }
+      ]
+    },
+    {
+      "id": "gid://shopify/Product/10846318231864",
+      "title": "Daily Multivitamin",
+      "status": "ACTIVE",
+      "onOnlineStore": false,
+      "campaignId": "gid://shopify/Metaobject/315656765752",
+      "variants": [
+        {
+          "id": "gid://shopify/ProductVariant/52871791378744",
+          "price": "15.95",
+          "campaignId": null
+        }
+      ]
+    },
+    {
+      "id": "gid://shopify/Product/10846317740344",
+      "title": "Magnesium Glycinate",
+      "status": "ACTIVE",
+      "onOnlineStore": false,
+      "campaignId": "gid://shopify/Metaobject/315656765752",
+      "variants": [
+        {
+          "id": "gid://shopify/ProductVariant/52871790756152",
+          "price": "17.95",
+          "campaignId": null
+        }
+      ]
+    }
+  ],
+  "discounts": [
+    {
+      "id": "gid://shopify/DiscountAutomaticNode/1787153514808",
+      "title": "Black Friday 2026: 25% off one-time orders",
+      "kind": "basic",
+      "method": "automatic",
+      "status": "SCHEDULED",
+      "startsAt": "2026-11-27T00:00:00Z",
+      "endsAt": "2026-12-01T00:00:00Z",
+      "percent": 25,
+      "appliesOnOneTimePurchase": true,
+      "appliesOnSubscription": false,
+      "collectionIds": ["gid://shopify/Collection/524187107640"],
+      "config": null,
+      "codes": []
+    },
+    {
+      "id": "gid://shopify/DiscountCodeNode/1704814707000",
+      "title": "CODE_DISCOUNT_BLACKFRIDAY",
+      "kind": "basic",
+      "method": "code",
+      "status": "SCHEDULED",
+      "startsAt": "2026-11-27T00:00:00Z",
+      "endsAt": "2026-11-28T00:00:00Z",
+      "percent": null,
+      "appliesOnOneTimePurchase": null,
+      "appliesOnSubscription": null,
+      "collectionIds": [],
+      "config": null,
+      "codes": ["CODE_DISCOUNT_BLACKFRIDAY"]
+    }
+  ],
+  "emails": null
+}

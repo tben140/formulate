@@ -1,0 +1,539 @@
+import type { Admin } from "./admin";
+import type { ReportOrder } from "./report";
+import type { CampaignEntry, CollectionInfo, DiscountInfo, ProductInfo } from "./types";
+
+/**
+ * The Admin API reads and writes behind the commands, kept apart from their
+ * logic so that's tested without a store. API version: see admin.ts.
+ */
+
+const ENTRY_FIELDS = `
+  id
+  handle
+  capabilities { publishable { status } }
+  fields { key value }
+  image: field(key: "image") {
+    reference { ... on MediaImage { image { altText } } }
+  }
+`;
+
+interface EntryNode {
+  id: string;
+  handle: string;
+  capabilities: { publishable: { status: string } | null };
+  fields: { key: string; value: string | null }[];
+  image: { reference: { image?: { altText: string | null } | null } | null } | null;
+}
+
+const toEntry = (node: EntryNode): CampaignEntry => ({
+  id: node.id,
+  handle: node.handle,
+  published: node.capabilities.publishable?.status === "ACTIVE",
+  fields: Object.fromEntries(node.fields.map((field) => [field.key, field.value])),
+  imageAlt: node.image?.reference?.image?.altText ?? null,
+});
+
+export const getEntry = async (
+  admin: Admin,
+  handle: string,
+): Promise<CampaignEntry | null> => {
+  const data = await admin.request<{ metaobjectByHandle: EntryNode | null }>(
+    `query Entry($handle: String!) {
+      metaobjectByHandle(handle: { type: "campaign", handle: $handle }) { ${ENTRY_FIELDS} }
+    }`,
+    { handle },
+  );
+  return data.metaobjectByHandle ? toEntry(data.metaobjectByHandle) : null;
+};
+
+export const getEntries = async (admin: Admin): Promise<CampaignEntry[]> => {
+  const data = await admin.request<{ metaobjects: { nodes: EntryNode[] } }>(
+    `query Entries { metaobjects(type: "campaign", first: 250) { nodes { ${ENTRY_FIELDS} } } }`,
+  );
+  return data.metaobjects.nodes.map(toEntry);
+};
+
+export const getCollection = async (
+  admin: Admin,
+  id: string,
+  entryId: string,
+): Promise<{ collection: CollectionInfo; products: ProductInfo[] } | null> => {
+  const data = await admin.request<{
+    collection: {
+      id: string;
+      handle: string;
+      productsCount: { count: number } | null;
+      ruleSet: {
+        rules: { column: string; relation: string; condition: string }[];
+      } | null;
+      products: {
+        nodes: {
+          id: string;
+          title: string;
+          status: string;
+          onlineStoreUrl: string | null;
+          campaign: { value: string } | null;
+          variants: {
+            nodes: { id: string; price: string; campaign: { value: string } | null }[];
+          };
+        }[];
+      };
+    } | null;
+  }>(
+    `query Collection($id: ID!) {
+      collection(id: $id) {
+        id
+        handle
+        productsCount { count }
+        ruleSet { rules { column relation condition } }
+        products(first: 250) {
+          nodes {
+            id
+            title
+            status
+            onlineStoreUrl
+            campaign: metafield(namespace: "double_helix", key: "campaign") { value }
+            variants(first: 50) {
+              nodes {
+                id
+                price
+                campaign: metafield(namespace: "double_helix", key: "campaign") { value }
+              }
+            }
+          }
+        }
+      }
+    }`,
+    { id },
+  );
+  const collection = data.collection;
+  if (!collection) return null;
+  const rules = collection.ruleSet?.rules ?? [];
+  return {
+    collection: {
+      id: collection.id,
+      handle: collection.handle,
+      productsCount: collection.productsCount?.count ?? 0,
+      ruleMatchesCampaign:
+        rules.length === 1 &&
+        rules[0]!.column === "PRODUCT_METAFIELD_DEFINITION" &&
+        rules[0]!.relation === "EQUALS" &&
+        rules[0]!.condition === entryId,
+    },
+    products: collection.products.nodes.map((product) => ({
+      id: product.id,
+      title: product.title,
+      status: product.status,
+      onOnlineStore: product.onlineStoreUrl !== null,
+      campaignId: product.campaign?.value ?? null,
+      variants: product.variants.nodes.map((variant) => ({
+        id: variant.id,
+        price: variant.price,
+        campaignId: variant.campaign?.value ?? null,
+      })),
+    })),
+  };
+};
+
+interface DiscountNode {
+  id: string;
+  config: { jsonValue: unknown } | null;
+  discount: {
+    __typename: string;
+    title: string;
+    status: string;
+    startsAt: string;
+    endsAt: string | null;
+    customerGets?: {
+      appliesOnOneTimePurchase: boolean;
+      appliesOnSubscription: boolean;
+      value: { percentage?: number };
+      items: { collections?: { nodes: { id: string }[] } };
+    };
+    codes?: { nodes: { code: string }[] };
+  };
+}
+
+/**
+ * Discounts, with what the checks compare: those running or scheduled, or
+ * every one with `includeExpired` (the report, after the campaign).
+ */
+export const getDiscounts = async (
+  admin: Admin,
+  { includeExpired = false }: { includeExpired?: boolean } = {},
+): Promise<DiscountInfo[]> => {
+  const basic = `
+    title status startsAt endsAt
+    customerGets {
+      appliesOnOneTimePurchase appliesOnSubscription
+      value { ... on DiscountPercentage { percentage } }
+      items { ... on DiscountCollections { collections(first: 10) { nodes { id } } } }
+    }`;
+  const data = await admin.request<{ discountNodes: { nodes: DiscountNode[] } }>(
+    `query Discounts($query: String) {
+      discountNodes(first: 100, query: $query) {
+        nodes {
+          id
+          config: metafield(namespace: "$app:campaign-discount", key: "config") { jsonValue }
+          discount {
+            __typename
+            ... on DiscountAutomaticBasic { ${basic} }
+            ... on DiscountCodeBasic { ${basic} codes(first: 10) { nodes { code } } }
+            ... on DiscountAutomaticApp { title status startsAt endsAt }
+            ... on DiscountCodeApp { title status startsAt endsAt codes(first: 10) { nodes { code } } }
+          }
+        }
+      }
+    }`,
+    { query: includeExpired ? null : "status:active OR status:scheduled" },
+  );
+  return data.discountNodes.nodes
+    .filter((node) => node.discount.title !== undefined)
+    .map((node) => {
+      const type = node.discount.__typename;
+      const gets = node.discount.customerGets;
+      return {
+        id: node.id,
+        title: node.discount.title,
+        kind: type.endsWith("Basic") ? "basic" : type.endsWith("App") ? "app" : "other",
+        method: type.startsWith("DiscountCode") ? "code" : "automatic",
+        status: node.discount.status,
+        startsAt: node.discount.startsAt,
+        endsAt: node.discount.endsAt,
+        percent:
+          gets?.value.percentage !== undefined
+            ? Math.round(gets.value.percentage * 100)
+            : null,
+        appliesOnOneTimePurchase: gets?.appliesOnOneTimePurchase ?? null,
+        appliesOnSubscription: gets?.appliesOnSubscription ?? null,
+        collectionIds: gets?.items.collections?.nodes.map((c) => c.id) ?? [],
+        config: node.config?.jsonValue ?? null,
+        codes: node.discount.codes?.nodes.map((c) => c.code) ?? [],
+      } satisfies DiscountInfo;
+    });
+};
+
+/** The Function's handle (apps/shopify-app/extensions/campaign-discount). */
+export const FUNCTION_HANDLE = "campaign-discount";
+
+const userErrors = (result: { userErrors?: { message: string }[] } | undefined) => {
+  const errors = result?.userErrors ?? [];
+  if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
+};
+
+/**
+ * Creates or updates the campaign's Function discount: its title, dates,
+ * config. A new one is deactivated straight away unless `activate`, so
+ * nothing changes at checkout until Ben switches it on.
+ */
+export const upsertFunctionDiscount = async (
+  admin: Admin,
+  input: {
+    existingId: string | null;
+    title: string;
+    code: string | null;
+    startsAt: string;
+    endsAt: string;
+    config: unknown;
+    activate: boolean;
+  },
+): Promise<string> => {
+  const metafields = [
+    {
+      namespace: "$app:campaign-discount",
+      key: "config",
+      type: "json",
+      value: JSON.stringify(input.config),
+    },
+  ];
+  const common = {
+    title: input.title,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    combinesWith: {
+      orderDiscounts: false,
+      productDiscounts: false,
+      shippingDiscounts: true,
+    },
+    metafields,
+  };
+  const kind = input.code ? "Code" : "Automatic";
+  const field = input.code ? "codeAppDiscount" : "automaticAppDiscount";
+  const nodeField = input.code ? "codeDiscountNode" : "automaticDiscountNode";
+
+  if (input.existingId) {
+    const data = await admin.request<
+      Record<string, { userErrors: { message: string }[] }>
+    >(
+      `mutation Update($id: ID!, $discount: Discount${kind}AppInput!) {
+        result: discount${kind}AppUpdate(id: $id, ${input.code ? "codeAppDiscount" : "automaticAppDiscount"}: $discount) {
+          userErrors { message }
+        }
+      }`,
+      {
+        id: input.existingId,
+        discount: { ...common, ...(input.code ? { code: input.code } : {}) },
+      },
+    );
+    userErrors(data.result);
+    return input.existingId;
+  }
+
+  const data = await admin.request<
+    Record<
+      string,
+      { userErrors: { message: string }[] } & Record<string, { id: string } | null>
+    >
+  >(
+    `mutation Create($discount: Discount${kind}AppInput!) {
+      result: discount${kind}AppCreate(${field}: $discount) {
+        ${nodeField}: ${input.code ? "codeAppDiscount" : "automaticAppDiscount"} { discountId }
+        userErrors { message }
+      }
+    }`,
+    {
+      discount: {
+        ...common,
+        functionHandle: FUNCTION_HANDLE,
+        discountClasses: ["PRODUCT"],
+        ...(input.code ? { code: input.code } : {}),
+      },
+    },
+  );
+  userErrors(data.result);
+  const id = (data.result?.[nodeField] as { discountId?: string } | null)?.discountId;
+  if (!id) throw new Error("Shopify didn't return the new discount");
+  if (!input.activate) {
+    const off = await admin.request<
+      Record<string, { userErrors: { message: string }[] }>
+    >(
+      `mutation Off($id: ID!) { result: discount${kind}Deactivate(id: $id) { userErrors { message } } }`,
+      { id },
+    );
+    userErrors(off.result);
+  }
+  return id;
+};
+
+/** The product field definition smart collections test ("Campaign equals …"). */
+export const getCampaignDefinitionIds = async (
+  admin: Admin,
+): Promise<{ productField: string; metaobjectDefinition: string }> => {
+  const data = await admin.request<{
+    metafieldDefinitions: { nodes: { id: string }[] };
+    metaobjectDefinitionByType: { id: string } | null;
+  }>(
+    `query Definitions {
+      metafieldDefinitions(first: 1, ownerType: PRODUCT, namespace: "double_helix", key: "campaign") { nodes { id } }
+      metaobjectDefinitionByType(type: "campaign") { id }
+    }`,
+  );
+  const productField = data.metafieldDefinitions.nodes[0]?.id;
+  const metaobjectDefinition = data.metaobjectDefinitionByType?.id;
+  if (!productField || !metaobjectDefinition)
+    throw new Error(
+      "The campaign definitions are missing: see docs/campaigns.md, The model",
+    );
+  return { productField, metaobjectDefinition };
+};
+
+/**
+ * A new campaign from a template: the entry as a draft, its smart collection
+ * ("Campaign equals this campaign", unpublished), and the entry pointing to
+ * it. Nothing shows anywhere until the entry is published.
+ */
+export const createCampaign = async (
+  admin: Admin,
+  input: { handle: string; fields: { key: string; value: string }[] },
+): Promise<{ entryId: string; collectionId: string }> => {
+  const { productField } = await getCampaignDefinitionIds(admin);
+  const created = await admin.request<{
+    metaobjectCreate: {
+      metaobject: { id: string } | null;
+      userErrors: { message: string }[];
+    };
+  }>(
+    `mutation Create($metaobject: MetaobjectCreateInput!) {
+      metaobjectCreate(metaobject: $metaobject) { metaobject { id } userErrors { message } }
+    }`,
+    {
+      metaobject: {
+        type: "campaign",
+        handle: input.handle,
+        capabilities: { publishable: { status: "DRAFT" } },
+        fields: input.fields,
+      },
+    },
+  );
+  userErrors(created.metaobjectCreate);
+  const entryId = created.metaobjectCreate.metaobject!.id;
+  const title =
+    input.fields.find((field) => field.key === "title")?.value ?? input.handle;
+
+  const collection = await admin.request<{
+    collectionCreate: {
+      collection: { id: string } | null;
+      userErrors: { message: string }[];
+    };
+  }>(
+    `mutation Collection($input: CollectionInput!) {
+      collectionCreate(input: $input) { collection { id } userErrors { message } }
+    }`,
+    {
+      input: {
+        title,
+        handle: input.handle,
+        ruleSet: {
+          appliedDisjunctively: false,
+          rules: [
+            {
+              column: "PRODUCT_METAFIELD_DEFINITION",
+              relation: "EQUALS",
+              condition: entryId,
+              conditionObjectId: productField,
+            },
+          ],
+        },
+      },
+    },
+  );
+  userErrors(collection.collectionCreate);
+  const collectionId = collection.collectionCreate.collection!.id;
+
+  const linked = await admin.request<{
+    metaobjectUpdate: { userErrors: { message: string }[] };
+  }>(
+    `mutation Link($id: ID!, $metaobject: MetaobjectUpdateInput!) {
+      metaobjectUpdate(id: $id, metaobject: $metaobject) { userErrors { message } }
+    }`,
+    { id: entryId, metaobject: { fields: [{ key: "collection", value: collectionId }] } },
+  );
+  userErrors(linked.metaobjectUpdate);
+  return { entryId, collectionId };
+};
+
+interface OrderNode {
+  name: string;
+  createdAt: string;
+  sourceName: string | null;
+  currentSubtotalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
+  customAttributes: { key: string; value: string | null }[];
+  customer: { numberOfOrders: string } | null;
+  customerJourneySummary: {
+    lastVisit: {
+      utmParameters: { source: string | null; campaign: string | null } | null;
+    } | null;
+  } | null;
+  discountApplications: {
+    nodes: { title?: string; code?: string }[];
+  };
+  lineItems: {
+    nodes: {
+      title: string;
+      quantity: number;
+      sellingPlan: { name: string } | null;
+      discountAllocations: {
+        allocatedAmountSet: { shopMoney: { amount: string } };
+        discountApplication: { title?: string; code?: string };
+      }[];
+    }[];
+  };
+}
+
+/**
+ * Orders from the campaign's start to a week after its end (late orders
+ * from the last email), as the report reads them. `campaignDiscounts`:
+ * titles or codes of the campaign's discounts, to cost them.
+ */
+export const getOrders = async (
+  admin: Admin,
+  startsAt: string,
+  endsAt: string,
+  campaignDiscounts: readonly string[],
+): Promise<ReportOrder[]> => {
+  const until = new Date(
+    new Date(endsAt).getTime() + 7 * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const orders: ReportOrder[] = [];
+  let after: string | null = null;
+  do {
+    const data: {
+      orders: {
+        nodes: OrderNode[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    } = await admin.request(
+      `query Orders($query: String!, $after: String) {
+        orders(first: 100, after: $after, query: $query) {
+          nodes {
+            name createdAt sourceName
+            currentSubtotalPriceSet { shopMoney { amount currencyCode } }
+            customAttributes { key value }
+            customer { numberOfOrders }
+            customerJourneySummary { lastVisit { utmParameters { source campaign } } }
+            discountApplications(first: 10) {
+              nodes {
+                ... on AutomaticDiscountApplication { title }
+                ... on DiscountCodeApplication { code }
+              }
+            }
+            lineItems(first: 50) {
+              nodes {
+                title quantity
+                sellingPlan { name }
+                discountAllocations {
+                  allocatedAmountSet { shopMoney { amount } }
+                  discountApplication {
+                    ... on AutomaticDiscountApplication { title }
+                    ... on DiscountCodeApplication { code }
+                  }
+                }
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`,
+      { query: `created_at:>='${startsAt}' AND created_at:<'${until}'`, after },
+    );
+    for (const node of data.orders.nodes) {
+      const label = (application: { title?: string; code?: string }) =>
+        application.title ?? application.code ?? "";
+      orders.push({
+        name: node.name,
+        createdAt: node.createdAt,
+        subtotal: Number(node.currentSubtotalPriceSet.shopMoney.amount),
+        currencyCode: node.currentSubtotalPriceSet.shopMoney.currencyCode,
+        discounts: node.discountApplications.nodes.map(label).filter(Boolean),
+        campaignDiscount: node.lineItems.nodes
+          .flatMap((line) => line.discountAllocations)
+          .filter((allocation) =>
+            campaignDiscounts.includes(label(allocation.discountApplication)),
+          )
+          .reduce(
+            (sum, allocation) =>
+              sum + Number(allocation.allocatedAmountSet.shopMoney.amount),
+            0,
+          ),
+        attributes: Object.fromEntries(
+          node.customAttributes.map((attribute) => [
+            attribute.key,
+            attribute.value ?? "",
+          ]),
+        ),
+        sourceName: node.sourceName,
+        utmSource: node.customerJourneySummary?.lastVisit?.utmParameters?.source ?? null,
+        utmCampaign:
+          node.customerJourneySummary?.lastVisit?.utmParameters?.campaign ?? null,
+        customerOrders: node.customer ? Number(node.customer.numberOfOrders) : null,
+        lines: node.lineItems.nodes.map((line) => ({
+          title: line.title,
+          quantity: line.quantity,
+          subscription: line.sellingPlan !== null,
+        })),
+      });
+    }
+    after = data.orders.pageInfo.hasNextPage ? data.orders.pageInfo.endCursor : null;
+  } while (after);
+  return orders;
+};

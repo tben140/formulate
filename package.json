@@ -15,7 +15,8 @@
     "codegen": "turbo run codegen",
     "web": "turbo run dev --filter=@formulate/web",
     "mobile": "turbo run dev --filter=@formulate/mobile",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "campaigns": "pnpm --silent --filter @formulate/campaigns campaigns"
   },
   "devDependencies": {
     "prettier": "^3.6.2",

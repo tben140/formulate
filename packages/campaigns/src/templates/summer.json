@@ -1,0 +1,10 @@
+{
+  "title": "Summer {{year}}",
+  "badge": "3 for 2",
+  "headline": "Summer: any 3 for the price of 2",
+  "banner_text": "Summer 3 for 2: the cheapest one's free",
+  "offer": "Any 3 for 2 on one-time orders: the cheapest is free",
+  "offer_rules": { "type": "bundle", "buy": 3, "free": 1 },
+  "subscriber_perk": "",
+  "terms": "Buy any 3 products on this page as one-time purchases and the cheapest is free; every further 3 the same. From {{starts}} to {{ends}} (UK time), taken automatically at checkout. Doesn't apply to subscriptions. This is a demo store: checkout is in test mode and nothing is charged or shipped."
+}
