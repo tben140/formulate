@@ -7,7 +7,7 @@ import { StorefrontErrorState } from "@/components/storefront-error";
 import { getCollectionCards, getFeaturedProducts } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
 
-export const metadata: Metadata = { title: "Formulate" };
+export const metadata: Metadata = { title: "Double Helix" };
 
 /** How many products the featured row shows before "View all". */
 const FEATURED_COUNT = 4;

@@ -26,6 +26,7 @@ export {
   freeShippingProgress,
 } from "./free-shipping";
 export type { FreeShippingProgress } from "./free-shipping";
+export { priorityIndex } from "./priority-image";
 export { RECOMMENDATION_LIMIT, selectCartSuggestions } from "./recommendations";
 export type { CartSuggestion } from "./recommendations";
 export type { MoneyLike } from "./format-money";
@@ -58,6 +59,7 @@ export {
   ShopNameQuery,
   SitemapCollectionsQuery,
   SitemapProductsQuery,
+  PaymentSettingsQuery,
   ShopPoliciesQuery,
 } from "./queries";
 
@@ -99,3 +101,8 @@ export {
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
 export type { ProductFilter } from "./generated/graphql";
+
+export { policyBlocks } from "./policy-text";
+export type { PolicyBlock } from "./policy-text";
+export { PLANNED_PAYMENT_ICON_IDS, paymentIconIds } from "./payment-icons";
+export type { PaymentIconId } from "./payment-icons";

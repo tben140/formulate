@@ -14,7 +14,7 @@
   "devDependencies": {
     "@formulate/tokens": "workspace:*",
     "@formulate/typescript-config": "workspace:*",
-    "@shopify/cli": "4.6.0",
+    "@shopify/cli": "4.9.4",
     "typescript": "~6.0.3"
   }
 }
