@@ -59,3 +59,5 @@ pnpm-debug.log*
 test-results/
 playwright-report/
 blob-report/
+# Playwright auth state (Vercel bypass cookie, e2e/global-setup.ts)
+apps/web/e2e/.auth/

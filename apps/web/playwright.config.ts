@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { VERCEL_AUTH_STATE } from "./e2e/global-setup";
+
 /**
  * End-to-end tests for apps/web, against the real store.
  *
@@ -17,8 +19,17 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = 3200;
 const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
+/**
+ * A protected Vercel preview: e2e/global-setup.ts gets the bypass cookie once
+ * and every test starts from it. See .github/workflows/e2e.yml.
+ */
+const behindVercelProtection = Boolean(
+  process.env.E2E_BASE_URL && process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
+);
+
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   // The store is shared and the tests are cheap: two at a time is plenty, and
   // keeps the Storefront API well inside its rate limits.
   workers: 2,
@@ -30,6 +41,20 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL,
+    ...(behindVercelProtection
+      ? {
+          storageState: VERCEL_AUTH_STATE,
+          /*
+           * Previews inject the Vercel Toolbar, which keeps a connection open,
+           * so `waitUntil: "networkidle"` never resolves and every test times
+           * out (the first CI run did exactly that). This header is Vercel's
+           * documented switch for automation. It isn't sensitive, so sending
+           * it everywhere is fine; the one side effect is that third-party
+           * XHRs (Klaviyo) need a CORS preflight, and no test depends on them.
+           */
+          extraHTTPHeaders: { "x-vercel-skip-toolbar": "1" },
+        }
+      : {}),
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
