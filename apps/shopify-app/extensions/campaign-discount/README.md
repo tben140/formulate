@@ -1,0 +1,53 @@
+# campaign-discount
+
+A campaign's offer, charged at checkout (SHO-169, "step two" in
+[docs/campaigns.md](../../../../docs/campaigns.md)). One Function serves every
+campaign: each campaign gets its own automatic (or code) discount using it, and
+that discount's config says what to give.
+
+## Config
+
+The discount's `$app:campaign-discount.config` metafield, written by
+`pnpm campaigns sync <handle>` from the campaign record:
+
+```json
+{
+  "collectionIds": ["gid://shopify/Collection/524187107640"],
+  "variantIds": [],
+  "message": "Black Friday",
+  "rules": { "type": "percent", "percent": 25 }
+}
+```
+
+- `collectionIds` are also the input query's variables: a line is in the
+  campaign when its product is in one of them.
+- `variantIds`, when not empty, narrows it to those variants (the campaign's
+  variant field).
+- `rules` are the campaign's `offer_rules`: `percent`, `tiered` or `bundle`,
+  one-time items only unless `"oneTimeOnly": false`.
+- Anything that doesn't parse gives no discount.
+
+The discount's own start and end dates decide when it runs, so they must
+match the campaign's; `campaigns check` compares them.
+
+## What it gives
+
+| Rules     | Discount                                                                |
+| --------- | ----------------------------------------------------------------------- |
+| `percent` | N% off each eligible line                                               |
+| `tiered`  | N% off each eligible line once they add up to a tier (before discounts) |
+| `bundle`  | 100% off the cheapest `free` of every `buy` eligible items              |
+
+Subscriptions are left out by default: they already save 15%.
+
+## Tests
+
+13 fixtures in `tests/fixtures`, built to WebAssembly and run through
+Shopify's function runner: `pnpm --filter @formulate/function-campaign-discount test`.
+
+## Going live (Ben)
+
+1. `shopify app deploy`.
+2. `pnpm campaigns sync black-friday-2026` creates the campaign's discount on
+   this Function, inactive, with the config and the campaign's dates.
+3. Swap: deactivate the plain 25% automatic discount, activate the Function's.
