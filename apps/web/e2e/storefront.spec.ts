@@ -14,6 +14,33 @@ test("a collection renders its products", async ({ page }) => {
   await expect(cards.first()).toContainText("£");
 });
 
+/**
+ * The first card's image is the Largest Contentful Paint at every column count,
+ * so it alone is eager and high priority. Every other card is lazy: React
+ * preloads each eager image in <head>, and several raced the LCP image on a
+ * phone (SHO-148). A hard-coded "first row" broke when the column count
+ * changed; this holds for any layout.
+ */
+for (const path of ["/collections/best-sellers", "/search?q=vitamin"]) {
+  test(`only the first card's image loads first on ${path}`, async ({ page }) => {
+    await page.goto(path);
+    const images = page.locator("main li img");
+    await expect(images.first()).toBeVisible();
+    expect(await images.count(), "a grid of several").toBeGreaterThan(1);
+    await expect(page.locator('main li img:not([loading="lazy"])')).toHaveCount(1);
+    await expect(page.locator('main li img[fetchpriority="high"]')).toHaveCount(1);
+    await expect(images.first()).toHaveAttribute("loading", "eager");
+    await expect(images.first()).toHaveAttribute("fetchpriority", "high");
+  });
+}
+
+test("a search with no results links back to the collections", async ({ page }) => {
+  await page.goto("/search?q=zzqxnomatch");
+  await expect(page.getByText("No products match “zzqxnomatch”")).toBeVisible();
+  await page.getByRole("link", { name: "browse the collections" }).click();
+  await expect(page).toHaveURL(/\/$/);
+});
+
 test("a product page renders title, price and a buyable button", async ({ page }) => {
   await openProduct(page, "whey-protein");
   await expect(
