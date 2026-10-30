@@ -20,6 +20,7 @@ vault to browse it as a graph; it is plain markdown either way.
 | [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
 | [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
 | [AI agents](agents.md)            | UCP, WebMCP tools, llms.txt and Markdown pages: how agents read and buy                        |
+| [Compliance](compliance.md)       | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open |
 
 ## Surfaces
 
