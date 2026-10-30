@@ -1,0 +1,11 @@
+{
+  "name": "@formulate/shopify-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "info": "shopify app info"
+  },
+  "devDependencies": {
+    "@shopify/cli": "4.9.4"
+  }
+}
