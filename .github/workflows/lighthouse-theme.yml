@@ -46,8 +46,10 @@ jobs:
       SHOP_PASSWORD: ${{ secrets.SHOP_PASSWORD }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
+          # No token left in .git/config for later steps to read.
+          persist-credentials: false
           # The PR's base commit too, to see whether the theme changed.
           fetch-depth: 0
 
@@ -84,7 +86,7 @@ jobs:
           SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
           SHOPIFY_CLI_NO_ANALYTICS: "1"
         run: >-
-          npx --yes @shopify/cli@4.6.0 theme list --store "$SHOP_STORE"
+          npx --yes @shopify/cli@4.9.4 theme list --store "$SHOP_STORE"
           --role development --json > "$RUNNER_TEMP/themes-before.json"
 
       # Pinned to the commit behind the v1 tag (2026-04-13). The action receives
@@ -120,7 +122,7 @@ jobs:
           SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
           SHOPIFY_CLI_NO_ANALYTICS: "1"
         run: |
-          cli() { npx --yes @shopify/cli@4.6.0 "$@" --store "$SHOP_STORE"; }
+          cli() { npx --yes @shopify/cli@4.9.4 "$@" --store "$SHOP_STORE"; }
           cli theme list --role development --json > "$RUNNER_TEMP/themes-after.json"
           ids=$(jq -r --slurpfile before "$RUNNER_TEMP/themes-before.json" '
             [.[] | select(.name | test("^Development \\([0-9a-f]+-[0-9a-f]{12}\\)$")) | .id]

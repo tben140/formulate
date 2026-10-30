@@ -17,7 +17,7 @@
     "@formulate/tokens": "workspace:*",
     "@formulate/typescript-config": "workspace:*",
     "@playwright/test": "1.63.0",
-    "@shopify/cli": "4.6.0",
+    "@shopify/cli": "4.9.4",
     "@types/node": "^22.19.0",
     "typescript": "~6.0.3"
   }
