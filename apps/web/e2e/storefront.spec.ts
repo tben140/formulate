@@ -26,9 +26,11 @@ test("a product page renders title, price and a buyable button", async ({ page }
 });
 
 /**
- * Relies on the demo store's stock plan: Magnesium Glycinate 200 mg is held at
- * zero (docs/demo-store.md). If this fails after a stock reset, check the plan
- * before the code.
+ * Relies on the demo store's stock plan: **Magnesium Glycinate 200 mg is held
+ * at 0 available** (inventory tracked, `inventoryPolicy: DENY`), while the
+ * product's other variant stays in stock. If this fails after a stock reset,
+ * set that variant back to 0 before suspecting the code. The full plan is in
+ * docs/demo-store.md (added with the demo-store notice, #26).
  */
 test("a sold-out option is marked and cannot be bought", async ({ page }) => {
   await openProduct(page, "magnesium-glycinate");
