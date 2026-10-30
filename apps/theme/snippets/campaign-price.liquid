@@ -1,0 +1,16 @@
+{% doc %}
+  A campaign price beside the normal one (SHO-169), as apps/web's OfferPrice.
+  The struck price is what the item sells for outside the campaign, so it's a
+  genuine comparison. Read as "Normally £24.95, Black Friday price £18.71".
+
+  @param {number} normal - The normal price, in pence.
+  @param {number} offer - The campaign price, in pence.
+  @param {string} badge - The campaign's badge, e.g. "Black Friday".
+{% enddoc %}
+<s class="campaign-price__normal"
+  ><span class="visually-hidden">{{ 'campaign.normally' | t }} </span>{{ normal | money }}</s
+>
+<span class="campaign-price__offer"
+  ><span class="visually-hidden">, {{ 'campaign.badge_price' | t: badge: badge }} </span
+  >{{- offer | money -}}</span
+>

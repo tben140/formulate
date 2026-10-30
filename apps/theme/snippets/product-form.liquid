@@ -34,7 +34,27 @@
   {% endif %}
 {% endfor %}
 
-<product-form class="product-form">
+{% comment %} The campaign price (SHO-169), when a live campaign with a single
+  price covers the shown variant: struck normal price and the offer, as on web
+  and the app. product-form.js keeps it in step from the JSON below. {% endcomment %}
+{%- liquid
+  assign offer_badge = product.metafields.double_helix.campaign.value.badge.value
+  capture covers
+    render 'campaign-covers', product: product, variant: current_variant
+  endcapture
+  assign one_time_offer = ''
+  if covers != blank
+    capture one_time_offer
+      render 'campaign-offer-cents', campaign: product.metafields.double_helix.campaign.value, price: current_variant.price
+    endcapture
+  endif
+-%}
+
+<product-form
+  class="product-form"
+  data-normally-label="{{ 'campaign.normally' | t | escape }}"
+  data-offer-label="{{ 'campaign.badge_price' | t: badge: offer_badge | escape }}"
+>
   <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data">
     <input ref="variantId" type="hidden" name="id" value="{{ current_variant.id }}">
     <input type="hidden" name="quantity" value="1">
@@ -151,7 +171,13 @@
               <input type="radio" name="selling_plan" value="" checked>
               {{ 'product.one_time' | t }}
             </span>
-            <span class="product-form__plan-price">{{ current_variant.price | money }}</span>
+            <span class="product-form__plan-price">
+              {%- if one_time_offer != blank -%}
+                {%- render 'campaign-price', normal: current_variant.price, offer: one_time_offer, badge: offer_badge -%}
+              {%- else -%}
+                {{ current_variant.price | money }}
+              {%- endif -%}
+            </span>
           </label>
 
           {% for allocation in current_variant.selling_plan_allocations %}
@@ -166,7 +192,21 @@
                   >
                   {{ allocation.selling_plan.name }}
                 </span>
-                <span class="product-form__plan-price">{{ allocation.price | money }}</span>
+                {%- liquid
+                  assign plan_offer = ''
+                  if covers != blank
+                    capture plan_offer
+                      render 'campaign-offer-cents', campaign: product.metafields.double_helix.campaign.value, price: allocation.price, subscription: true
+                    endcapture
+                  endif
+                -%}
+                <span class="product-form__plan-price">
+                  {%- if plan_offer != blank -%}
+                    {%- render 'campaign-price', normal: allocation.price, offer: plan_offer, badge: offer_badge -%}
+                  {%- else -%}
+                    {{ allocation.price | money }}
+                  {%- endif -%}
+                </span>
               </label>
             {% endif %}
           {% endfor %}
@@ -174,7 +214,13 @@
       </fieldset>
     {% endif %}
 
-    <p ref="price" class="product-form__price">{{ current_variant.price | money }}</p>
+    <p ref="price" class="product-form__price">
+      {%- if one_time_offer != blank -%}
+        {%- render 'campaign-price', normal: current_variant.price, offer: one_time_offer, badge: offer_badge -%}
+      {%- else -%}
+        {{ current_variant.price | money }}
+      {%- endif -%}
+    </p>
 
     {% comment %}
       The button's three states are passed as data attributes rather than
@@ -240,7 +286,7 @@
       <div class="product-form__sticky-info">
         <p class="product-form__sticky-title">{{ product.title }}</p>
         <p ref="stickyDetail" class="product-form__sticky-detail">
-          {%- if sticky_variant != '' %}{{ sticky_variant }} — {% endif %}{{ current_variant.price | money -}}
+          {%- if sticky_variant != '' %}{{ sticky_variant }} — {% endif %}{% if one_time_offer != blank %}{{ one_time_offer | plus: 0 | money }}{% else %}{{ current_variant.price | money }}{% endif -%}
         </p>
       </div>
       <button
@@ -267,6 +313,18 @@
         "available": {{ variant.available | json }},
         "options": {{ variant.options | json }},
         "price": {{ variant.price | money | json }},
+        {%- liquid
+          capture variant_covers
+            render 'campaign-covers', product: product, variant: variant
+          endcapture
+          assign variant_offer = ''
+          if variant_covers != blank
+            capture variant_offer
+              render 'campaign-offer-cents', campaign: product.metafields.double_helix.campaign.value, price: variant.price
+            endcapture
+          endif
+        -%}
+        "offerPrice": {% if variant_offer != blank %}{{ variant_offer | plus: 0 | money | json }}{% else %}null{% endif %},
         "plans": [
           {%- assign first_plan = true -%}
           {%- for allocation in variant.selling_plan_allocations -%}
@@ -277,7 +335,16 @@
               {
                 "id": {{ allocation.selling_plan.id | json }},
                 "name": {{ allocation.selling_plan.name | json }},
-                "price": {{ allocation.price | money | json }}
+                "price": {{ allocation.price | money | json }},
+                {%- liquid
+                  assign plan_offer = ''
+                  if variant_covers != blank
+                    capture plan_offer
+                      render 'campaign-offer-cents', campaign: product.metafields.double_helix.campaign.value, price: allocation.price, subscription: true
+                    endcapture
+                  endif
+                -%}
+                "offerPrice": {% if plan_offer != blank %}{{ plan_offer | plus: 0 | money | json }}{% else %}null{% endif %}
               }
             {%- endif -%}
           {%- endfor -%}

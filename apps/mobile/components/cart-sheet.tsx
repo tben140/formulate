@@ -13,6 +13,7 @@ import {
 import { useCheckout } from "../lib/checkout";
 import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
 
+import { CampaignCartHint } from "./campaign-cart-hint";
 import { FreeShippingBar } from "./free-shipping-bar";
 
 /**
@@ -142,6 +143,7 @@ export const CartSheet = ({
         <FreeShippingBar
           subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
         />
+        <CampaignCartHint lines={lines} />
 
         {isPending ? (
           <View className="flex-1 items-center justify-center">

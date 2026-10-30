@@ -2,11 +2,12 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-import { campaignEndsLabel, campaignPath } from "@formulate/shopify";
+import { campaignPath } from "@formulate/shopify";
 
 import { useActiveCampaign } from "../lib/campaign";
 import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
 import { CampaignBadge } from "./campaign-badge";
+import { CampaignEnds } from "./campaign-ends";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
 
@@ -57,9 +58,7 @@ export const HomeView = () => {
             <Text className="text-xl font-semibold text-foreground">
               {campaign.headline}
             </Text>
-            <Text className="text-sm text-foreground-muted">
-              {campaignEndsLabel(campaign)}
-            </Text>
+            <CampaignEnds campaign={campaign} className="text-sm text-foreground-muted" />
             <Text className="text-sm font-semibold text-foreground underline">
               See the offer
             </Text>

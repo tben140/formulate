@@ -1215,3 +1215,28 @@ a:hover {
   left: var(--spacing-2);
   z-index: 1;
 }
+
+/* A campaign price beside the struck normal one (SHO-169), as apps/web's
+   OfferPrice. The struck price inherits its colour: muted grey fails AA on
+   the selected purchase option. */
+.campaign-price__offer {
+  font-weight: 500;
+  color: var(--color-brand-700);
+}
+
+/* A tiered or bundle campaign in the cart drawer, as apps/web's
+   CampaignCartHint: border-b bg-brand-50 px-4 py-3 text-sm. */
+.campaign-cart-hint {
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--text-sm);
+  background: var(--color-brand-50);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.campaign-cart-hint p {
+  margin: 0;
+}
+
+.campaign-cart-hint__reached {
+  font-weight: 600;
+}

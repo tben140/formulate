@@ -78,7 +78,6 @@ const ProductScreen = () => {
 const ProductBody = ({ product }: { product: Product }) => {
   const { openCart } = useCartUi();
   const { bottom } = useSafeAreaInsets();
-  const purchase = usePurchase(product);
 
   // The campaign, if live for any variant; named variants when it's narrowed.
   const campaignView = useCampaignView();
@@ -94,6 +93,16 @@ const ProductBody = ({ product }: { product: Product }) => {
     covered.length < product.variants.nodes.length
       ? covered.map((variant) => variant.title)
       : null;
+  const purchase = usePurchase(
+    product,
+    campaign?.rules
+      ? {
+          badge: campaign.badge,
+          rules: campaign.rules,
+          variantIds: covered.map((variant) => variant.id),
+        }
+      : null,
+  );
 
   /*
    * Where the in-page Add to cart button is, in scroll-content coordinates,

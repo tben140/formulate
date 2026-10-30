@@ -1,6 +1,7 @@
 import {
   activeCampaign,
   CampaignByHandleQuery,
+  campaignCountdown,
   campaignNow,
   CampaignsQuery,
   type CampaignNode,
@@ -10,7 +11,7 @@ import {
 } from "@formulate/shopify";
 import { useQuery } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { storefront } from "./storefront";
 
@@ -156,3 +157,20 @@ export const useCampaign = (handle: string) =>
       unwrap(await storefront.request(CampaignByHandleQuery, { handle })),
     enabled: handle.length > 0,
   });
+
+/**
+ * The campaign's end for display (SHO-169): "Ends in 5h 12m" in its last day,
+ * else `label` ("Ends 23:59 Mon 30 Nov"). Ticks every 30 seconds only within
+ * the last day, by the campaign clock, so a preview time counts down too.
+ */
+export const useCampaignEnds = (endsAt: Date, label: string): string => {
+  const [, setTick] = useState(0);
+  const text = campaignCountdown(endsAt, campaignClock()) ?? label;
+  const counting = text !== label;
+  useEffect(() => {
+    if (!counting) return;
+    const timer = setInterval(() => setTick((tick) => tick + 1), 30_000);
+    return () => clearInterval(timer);
+  }, [counting]);
+  return text;
+};
