@@ -6,7 +6,7 @@ import type { ExpoConfig } from "expo/config";
  * JSON file cannot pick them up.
  */
 const config: ExpoConfig = {
-  name: "Formulate",
+  name: "Double Helix",
   slug: "formulate",
   scheme: "formulate",
   version: "0.1.0",
