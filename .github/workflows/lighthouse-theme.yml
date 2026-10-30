@@ -113,9 +113,22 @@ jobs:
         env:
           THEME_ID: ${{ steps.push.outputs.theme_id }}
           PUPPETEER_SKIP_DOWNLOAD: "1"
+        # One retry, 30 seconds later. Collect fails outright when a page
+        # doesn't load (ERRORED_DOCUMENT_REQUEST), which happens when many PRs
+        # hit the store at once (twice on 30 Oct 2026, both passing on re-run).
+        # Budgets are judged in "Assert budgets", so a retry can't hide a slow
+        # page: only one that didn't load.
         run: |
           export CHROME_PATH="$(command -v google-chrome)"
-          npx --yes -p @lhci/cli@0.15.1 -p puppeteer@25.12.0 lhci collect --config=apps/theme/lighthouserc.cjs
+          for attempt in 1 2; do
+            if npx --yes -p @lhci/cli@0.15.1 -p puppeteer@25.12.0 lhci collect --config=apps/theme/lighthouserc.cjs; then
+              exit 0
+            fi
+            if [ "$attempt" = 2 ]; then exit 1; fi
+            echo "::warning::Lighthouse couldn't load a page; retrying once in 30 seconds"
+            rm -rf .lighthouseci
+            sleep 30
+          done
 
       - name: Save reports
         if: always() && steps.gate.outputs.run == 'true'
