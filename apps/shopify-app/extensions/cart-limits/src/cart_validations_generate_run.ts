@@ -40,6 +40,11 @@ export const isValidBlend = (blend: string | null | undefined, size: number): bo
   );
 };
 
+/**
+ * The Function's entry point: one cart-level error per product over
+ * `MAX_PER_PRODUCT`, and one per daily pack whose `_blend` doesn't fit its
+ * `double_helix.blend_size`. An empty list lets the cart through.
+ */
 export function cartValidationsGenerateRun(
   input: CartValidationsGenerateRunInput,
 ): CartValidationsGenerateRunResult {
