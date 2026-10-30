@@ -38,13 +38,13 @@ jobs:
         if: env.SHOP_THEME_ACCESS_PASSWORD == '' || env.SHOP_STORE == '' || env.SHOP_PASSWORD == ''
         run: echo "::notice::Theme accessibility skipped - SHOP_STORE, SHOP_THEME_ACCESS_PASSWORD and SHOP_PASSWORD secrets are not all set."
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         if: env.SHOP_THEME_ACCESS_PASSWORD != '' && env.SHOP_STORE != '' && env.SHOP_PASSWORD != ''
         with:
           node-version: 22
@@ -104,7 +104,7 @@ jobs:
       # The password is typed in global setup, which isn't traced, so the
       # reports don't contain it. Traces do carry the storefront session
       # cookie for this development store; e2e/.auth itself isn't uploaded.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
           name: theme-accessibility-report
