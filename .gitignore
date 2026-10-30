@@ -6,6 +6,9 @@
 
 # Dependencies
 node_modules/
+# pnpm's package store, when it lands inside the clone (e.g. a drive where
+# the default location is unusable). Never committed.
+.pnpm-store/
 .pnp.*
 .yarn/*
 

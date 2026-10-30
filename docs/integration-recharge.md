@@ -62,9 +62,12 @@ different times — after checkout, the authoritative record of "when does this
 customer next get charged" lives in Recharge, not Shopify. Anything the
 storefront displays about a subscription's future is Recharge's answer.
 
-## Planned: read-only customer portal
+## Read-only customer portal (in review: #80)
 
-Scope is deliberately narrow — **read-only, web only**:
+> Since this was written the scope grew to web **and** the app, reading through
+> the Worker (#90). The reasoning below still stands.
+
+Scope is deliberately narrow — **read-only**:
 
 - Customer signs in.
 - List active subscriptions.
@@ -86,10 +89,11 @@ portal work is therefore also the thing that forces a decision on customer
 authentication generally — see the [domain model](domain-model.md#customer),
 which currently records that decision as deliberately open.
 
-## Planned: Recharge → Klaviyo
+## Recharge → Klaviyo (live)
 
-Subscription lifecycle events feeding Klaviyo flows: upcoming charge, charge
-failed, subscription cancelled.
+Subscription lifecycle events feed Klaviyo flows. Since 6 October 2026, eleven
+Recharge flows are live, among them subscription started, upcoming order,
+payment failed, paused, cancelled and expired.
 
 This is largely configuration in the Recharge admin rather than code, which makes
 it unusually high value per hour spent — real, cross-system behaviour for very
