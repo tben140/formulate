@@ -36,6 +36,12 @@ describe("checkCampaign on the live Black Friday campaign", () => {
     expect(findings.some((f) => f.message.includes("body"))).toBe(false);
   });
 
+  it("warns that the perk is promised but not set up", () => {
+    expect(warnings(findings)).toContain(
+      "The subscriber perk is described but has no perk_variant, so campaigns perks can't add it.",
+    );
+  });
+
   it("warns that the products aren't on the Online Store", () => {
     expect(warnings(findings)).toContain(
       "3 of 3 products aren't on the Online Store channel, so the theme won't show them: Vitamin D3, Daily Multivitamin, Magnesium Glycinate.",

@@ -537,3 +537,32 @@ export const getOrders = async (
   } while (after);
   return orders;
 };
+
+/** The perk's variant: its product, for Recharge, and a title for the box. */
+export const getPerkVariant = async (
+  admin: Admin,
+  id: string,
+): Promise<{ variantId: string; productId: string; title: string } | null> => {
+  const data = await admin.request<{
+    productVariant: {
+      id: string;
+      title: string;
+      product: { id: string; title: string };
+    } | null;
+  }>(
+    `query PerkVariant($id: ID!) {
+      productVariant(id: $id) { id title product { id title } }
+    }`,
+    { id },
+  );
+  const variant = data.productVariant;
+  if (!variant) return null;
+  return {
+    variantId: variant.id,
+    productId: variant.product.id,
+    title:
+      variant.title === "Default Title"
+        ? variant.product.title
+        : `${variant.product.title} (${variant.title})`,
+  };
+};
