@@ -20,6 +20,9 @@ export const percentsIn = (text: string): number[] =>
 
 const DAY = 24 * 60 * 60 * 1000;
 
+/** Units on hand under which a campaign variant gets a warning. */
+export const DEFAULT_MIN_STOCK = 10;
+
 /** Approving writes the record too, so its own save lands just after. */
 const APPROVAL_SLACK_MS = 2 * 60 * 1000;
 
@@ -32,7 +35,10 @@ const APPROVAL_SLACK_MS = 2 * 60 * 1000;
 export const checkCampaign = (
   snapshot: Snapshot,
   now: Date = new Date(),
-  { minMargin = DEFAULT_MIN_MARGIN }: { readonly minMargin?: number } = {},
+  {
+    minMargin = DEFAULT_MIN_MARGIN,
+    minStock = DEFAULT_MIN_STOCK,
+  }: { readonly minMargin?: number; readonly minStock?: number } = {},
 ): Finding[] => {
   const { entry, collection, products, discounts, emails } = snapshot;
   const findings: Finding[] = [];
@@ -185,6 +191,29 @@ export const checkCampaign = (
             : `${product.title}, ${variant.title}`,
       }));
     });
+  // Stock: a campaign shouldn't send people to something they can't buy.
+  const tracked = onSale.filter((variant) => variant.stock != null);
+  const soldOut = tracked.filter((variant) => variant.stock! <= 0);
+  const low = tracked.filter(
+    (variant) => variant.stock! > 0 && variant.stock! < minStock,
+  );
+  if (soldOut.length > 0)
+    warn(
+      `Sold out: ${listed(
+        5,
+        soldOut.map((v) => v.label),
+      )}. They show last on the campaign page.`,
+    );
+  if (low.length > 0)
+    warn(
+      `Under ${minStock} in stock: ${listed(
+        5,
+        low.map((v) => `${v.label} (${v.stock})`),
+      )}.`,
+    );
+  if (tracked.length > 0 && soldOut.length === 0 && low.length === 0)
+    ok(`Every tracked variant has at least ${minStock} in stock.`);
+
   if (rules && onSale.length > 0) {
     const raised: string[] = [];
     const unknown: string[] = [];

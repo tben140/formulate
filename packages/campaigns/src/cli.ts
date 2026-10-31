@@ -54,7 +54,7 @@ import type { Snapshot } from "./types";
 const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
 
   pnpm campaigns calendar                     every campaign, overlaps and housekeeping
-  pnpm campaigns check <handle> [--min-margin 30]
+  pnpm campaigns check <handle> [--min-margin 30] [--min-stock 10]
                                               everything that must agree before go-live,
                                               prices and margins included
   pnpm campaigns prices record [--apply]      today's price for every variant, into its
@@ -141,8 +141,10 @@ const main = async (args: string[]): Promise<number> => {
       const admin = await adminFromEnv();
       const data = await snapshot(admin, handle);
       const minMargin = flag(rest, "min-margin");
+      const minStock = flag(rest, "min-stock");
       const findings = checkCampaign(data, new Date(), {
         ...(minMargin !== undefined ? { minMargin: Number(minMargin) } : {}),
+        ...(minStock !== undefined ? { minStock: Number(minStock) } : {}),
       });
       const mark = { error: "✗", warning: "!", ok: "✓" } as const;
       for (const finding of findings)

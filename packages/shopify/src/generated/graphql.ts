@@ -1516,7 +1516,7 @@ export type ProductByHandleQuery = { product: { id: string, handle: string, titl
 
 export type FilterFieldsFragment = { id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> };
 
-export type ProductCardFieldsFragment = { id: string, handle: string, title: string, campaign: { reference:
+export type ProductCardFieldsFragment = { id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
       | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
       | Record<PropertyKey, never>
      | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
@@ -1534,7 +1534,7 @@ export type SearchProductsQueryVariables = Exact<{
 export type SearchProductsQuery = { search: { totalCount: number, productFilters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<
       | { __typename: 'Article' }
       | { __typename: 'Page' }
-      | { __typename: 'Product', id: string, handle: string, title: string, campaign: { reference:
+      | { __typename: 'Product', id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
             | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
             | Record<PropertyKey, never>
            | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
@@ -1549,7 +1549,7 @@ export type PredictiveSearchQueryVariables = Exact<{
 }>;
 
 
-export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text: string, styledText: string }>, products: Array<{ id: string, handle: string, title: string, campaign: { reference:
+export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text: string, styledText: string }>, products: Array<{ id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
           | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
           | Record<PropertyKey, never>
          | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
@@ -1562,7 +1562,7 @@ export type ComplementaryProductsQueryVariables = Exact<{
 }>;
 
 
-export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, campaign: { reference:
+export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
         | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
         | Record<PropertyKey, never>
        | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
@@ -1798,7 +1798,7 @@ export type CampaignByHandleQueryVariables = Exact<{
 
 
 export type CampaignByHandleQuery = { metaobject: { handle: string, products: { reference:
-        | { products: { nodes: Array<{ id: string, handle: string, title: string, campaign: { reference:
+        | { products: { nodes: Array<{ id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
                   | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
                   | Record<PropertyKey, never>
                  | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
@@ -1882,6 +1882,7 @@ export const ProductCardFieldsFragmentDoc = new TypedDocumentString(`
   id
   handle
   title
+  availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {
       ...CampaignBadgeFields
@@ -2412,6 +2413,7 @@ fragment ProductCardFields on Product {
   id
   handle
   title
+  availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {
       ...CampaignBadgeFields
@@ -2500,6 +2502,7 @@ export const PredictiveSearchDocument = new TypedDocumentString(`
   id
   handle
   title
+  availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {
       ...CampaignBadgeFields
@@ -2573,6 +2576,7 @@ export const ComplementaryProductsDocument = new TypedDocumentString(`
   id
   handle
   title
+  availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {
       ...CampaignBadgeFields
@@ -3644,6 +3648,7 @@ export const CampaignByHandleDocument = new TypedDocumentString(`
   id
   handle
   title
+  availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {
       ...CampaignBadgeFields

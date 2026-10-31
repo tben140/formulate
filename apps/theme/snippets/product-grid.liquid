@@ -7,6 +7,7 @@
   both sections would be a maintenance trap.
 
   @param {object} products - A product list (e.g. collection.products).
+  @param {boolean} [available_first] - Sold-out products last (a campaign's page).
   @param {number} [section_index] - The calling section's section.index. A snippet can't read `section` itself; nil when the position is unknown.
 {% enddoc %}
 
@@ -52,6 +53,13 @@
   else
     assign passes = 'campaign,rest'
   endif
+  comment
+    On a campaign's own page every product is in it, so the order that
+    matters there is buyable first, sold out after (availableFirst).
+  endcomment
+  if available_first
+    assign passes = 'available,sold_out'
+  endif
   assign passes = passes | split: ','
   assign position = 0
 -%}
@@ -68,6 +76,12 @@
           continue
         endif
         if pass == 'rest' and in_campaign
+          continue
+        endif
+        if pass == 'available' and product.available == false
+          continue
+        endif
+        if pass == 'sold_out' and product.available
           continue
         endif
         assign position = position | plus: 1

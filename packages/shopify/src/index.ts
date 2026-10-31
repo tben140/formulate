@@ -122,6 +122,7 @@ export {
   activeCampaign,
   campaignBadge,
   campaignCardPrice,
+  availableFirst,
   campaignFirst,
   campaignEndsLabel,
   campaignForVariant,
