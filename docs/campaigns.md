@@ -372,6 +372,13 @@ Dev Dashboard and stays on Ben's machine. The app's scopes are in
 `apps/shopify-app/shopify.app.toml`; `shopify app deploy` asks the store to
 grant them.
 
+**Dashboard.** `campaigns report <handle> --html results.html --watch 10`
+rewrites a one-page dashboard every 10 minutes through the campaign: orders,
+revenue, discount given, average order, first orders, subscriptions started,
+orders by UK hour, by surface, by source, and the top products. One file, no
+scripts or outside requests, store text escaped; keep it open, or publish it
+privately.
+
 **Attribution.** The report counts an order when the campaign's discount was
 applied or the cart was tagged `_campaign` by a visit to the campaign page. By
 surface it uses `_surface` when present (the PostHog stack adds it), else

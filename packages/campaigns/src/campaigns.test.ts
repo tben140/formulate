@@ -406,6 +406,7 @@ describe("campaignReport", () => {
         { title: "Whey Protein", quantity: 2 },
         { title: "Vitamin D3", quantity: 1 },
       ],
+      byHour: [{ hour: "2026-11-27 10", orders: 2 }],
     });
   });
 });

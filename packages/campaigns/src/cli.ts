@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -29,6 +29,7 @@ import {
   shopifyFlowMetrics,
   uploadCouponCodes,
 } from "./klaviyo";
+import { reportHtml } from "./dashboard";
 import { campaignReport, reportMarkdown } from "./report";
 import {
   addRedeemCodes,
@@ -65,7 +66,9 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
                                               drafts for KLAVIYO_PUSH_SEGMENT_ID
   pnpm campaigns flows <handle> [--create]    the last-day abandoned-checkout email, as a
                                               draft Klaviyo flow (switched on by hand)
-  pnpm campaigns report <handle>              results, as Markdown
+  pnpm campaigns report <handle> [--html <file> [--watch <minutes>]]
+                                              results, as Markdown, or a dashboard page,
+                                              rewritten every N minutes with --watch
   pnpm campaigns perks <handle> [--apply]     the subscriber perk on each next delivery after
                                               the campaign; plans unless --apply
   pnpm campaigns tag-buyers <handle> [--apply]
@@ -426,19 +429,30 @@ Next:
         ...d.codes,
       ]);
       if (campaign.discountCode) titles.push(campaign.discountCode);
-      const orders = await getOrders(
-        admin,
-        campaign.startsAt.toISOString(),
-        campaign.endsAt.toISOString(),
-        titles,
-      );
-      console.log(
-        reportMarkdown(
-          campaign.title,
-          campaignReport(orders, { handle, discountTitles: titles }),
-        ),
-      );
-      return 0;
+      const build = async () =>
+        campaignReport(
+          await getOrders(
+            admin,
+            campaign.startsAt.toISOString(),
+            campaign.endsAt.toISOString(),
+            titles,
+          ),
+          { handle, discountTitles: titles },
+        );
+      const file = flag(rest, "html");
+      if (!file) {
+        console.log(reportMarkdown(campaign.title, await build()));
+        return 0;
+      }
+      const minutes = Number(flag(rest, "watch") ?? 0);
+      if (!Number.isFinite(minutes) || minutes < 0 || minutes > 1440)
+        throw new Error("--watch is minutes between refreshes, 1 to 1440.");
+      for (;;) {
+        writeFileSync(file, reportHtml(campaign.title, await build(), new Date()));
+        console.log(`${new Date().toISOString()} wrote ${file}`);
+        if (!minutes) return 0;
+        await new Promise((resolve) => setTimeout(resolve, minutes * 60_000));
+      }
     }
 
     case "perks": {
