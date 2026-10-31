@@ -10,7 +10,9 @@ import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
 import { DemoNotice } from "@/components/demo-notice";
 import { EmailCapture } from "@/components/email-capture";
+import { PaymentIcons } from "@/components/payment-icons";
 import { SiteNav } from "@/components/site-nav";
+import { SocialLinks } from "@/components/social-links";
 import {
   CookiePreferencesButton,
   TrackingConsentProvider,
@@ -152,6 +154,10 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             <footer className="border-t border-border">
               <div className="mx-auto max-w-5xl px-4 py-6">
                 <EmailCapture />
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+                  <SocialLinks />
+                  <PaymentIcons />
+                </div>
                 {/*
                   The footer's links come from the Shopify menu "Legal"
                   (SHO-60), the same menu the theme's footer reads.
