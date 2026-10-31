@@ -333,7 +333,7 @@ describe("campaignReport", () => {
     sourceName: "web",
     utmSource: null,
     utmCampaign: null,
-    customerOrders: 3,
+    firstOrder: false,
     lines: [{ title: "Vitamin D3", quantity: 1, subscription: false }],
     ...overrides,
   });
@@ -356,7 +356,7 @@ describe("campaignReport", () => {
           name: "#2",
           attributes: { _campaign: "black-friday-2026", _surface: "app" },
           subtotal: 45,
-          customerOrders: 1,
+          firstOrder: true,
           lines: [{ title: "Whey Protein", quantity: 2, subscription: true }],
         }),
         order({ name: "#3", subtotal: 99 }),
