@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "test:e2e:campaign": "CAMPAIGN_PREVIEW_AT=2026-11-30T20:00:00Z playwright test campaign"
+    "test:e2e:campaign": "CAMPAIGN_PREVIEW_AT=2026-11-30T20:00:00Z playwright test campaign",
+    "test:e2e:campaign-states": "for at in 2026-11-20T12:00:00Z 2026-11-28T12:00:00Z 2026-11-30T20:00:00Z 2026-12-02T12:00:00Z; do CAMPAIGN_PREVIEW_AT=$at playwright test campaign-states --project=desktop || exit 1; done"
   },
   "dependencies": {
     "@formulate/analytics": "workspace:*",

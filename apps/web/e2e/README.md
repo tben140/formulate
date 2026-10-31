@@ -34,6 +34,16 @@ failing colour contrast, which the suite can't see while no campaign is live.
 A server you already have running on :3200 is reused, preview time or not, so
 stop it first.
 
+## The campaign's four states, as screenshots
+
+`campaign-states.spec.ts` screenshots the parts a campaign changes (banner,
+home hero, product page box, campaign page header) at four preview times:
+upcoming, live, last day and ended. `pnpm --filter @formulate/web
+test:e2e:campaign-states` runs all four; add `--update-snapshots` after a
+deliberate change. Baselines are in `e2e/campaign-states.spec.ts-snapshots/`
+(Linux Chromium, as CI). A part that's meant to be absent in a state (no
+banner before the start) is recorded as absent.
+
 ## Conventions
 
 - **Find things the way a person would**: by role and accessible name
