@@ -8,6 +8,7 @@ import { calendar, calendarMarkdown } from "./calendar";
 import { campaignOf } from "./campaign-node";
 import { checkCampaign } from "./check";
 import { generateCodes, isPersonalPool, PERSONAL_POOL } from "./codes";
+import { urgencyFlow, urgencySubject } from "./flows";
 import { plannedEmails, plannedPushes } from "./emails";
 import { perkKey, planPerks } from "./perks";
 import { recordPrice, ukDay } from "./price-history";
@@ -22,8 +23,10 @@ import {
 import {
   createCoupon,
   createDraft,
+  createFlow,
   createPushDraft,
   getEmails,
+  shopifyFlowMetrics,
   uploadCouponCodes,
 } from "./klaviyo";
 import { campaignReport, reportMarkdown } from "./report";
@@ -60,6 +63,8 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns emails <handle> [--create]   the planned emails; --create makes Klaviyo drafts
   pnpm campaigns pushes <handle> [--create]   launch and last-day pushes; --create makes Klaviyo
                                               drafts for KLAVIYO_PUSH_SEGMENT_ID
+  pnpm campaigns flows <handle> [--create]    the last-day abandoned-checkout email, as a
+                                              draft Klaviyo flow (switched on by hand)
   pnpm campaigns report <handle>              results, as Markdown
   pnpm campaigns perks <handle> [--apply]     the subscriber perk on each next delivery after
                                               the campaign; plans unless --apply
@@ -297,6 +302,28 @@ Next:
       }
       await tagCustomers(admin, buyers, tag);
       console.log("Tagged.");
+      return 0;
+    }
+
+    case "flows": {
+      if (!handle) break;
+      const admin = await adminFromEnv();
+      const data = await snapshot(admin, handle);
+      const campaign = campaignOf(data.entry);
+      const title = data.collection?.title;
+      if (!campaign || !title)
+        throw new Error("The campaign or its collection can't be read; run check.");
+      const key = process.env.KLAVIYO_PRIVATE_KEY;
+      if (!key) throw new Error("Set KLAVIYO_PRIVATE_KEY to plan or create the flow.");
+      const flow = urgencyFlow(campaign, title, await shopifyFlowMetrics(key));
+      console.log(
+        `${flow.name}: checkouts with "${title}" products, 1 hour, then "${urgencySubject(campaign)}". Switch it on for the last day, off after.`,
+      );
+      if (!rest.includes("--create")) {
+        console.log("Planned only. Run with --create to make it a Klaviyo draft.");
+        return 0;
+      }
+      console.log(`Draft flow ${await createFlow(key, flow)}.`);
       return 0;
     }
 

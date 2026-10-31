@@ -1,4 +1,5 @@
 import type { PlannedEmail, PlannedPush } from "./emails";
+import type { FlowMetrics } from "./flows";
 import type { EmailInfo } from "./types";
 
 /**
@@ -208,4 +209,42 @@ export const uploadCouponCodes = async (
     jobs++;
   }
   return jobs;
+};
+
+/** Shopify's checkout and order metrics in this Klaviyo account, by name. */
+export const shopifyFlowMetrics = async (key: string): Promise<FlowMetrics> => {
+  const response = await fetch(
+    `${BASE}/metrics?filter=${encodeURIComponent("equals(integration.category,'eCommerce')")}`,
+    { headers: headers(key) },
+  );
+  if (!response.ok) throw new Error(`Klaviyo: HTTP ${response.status} reading metrics`);
+  const { data } = (await response.json()) as {
+    data: { id: string; attributes: { name: string; integration?: { key?: string } } }[];
+  };
+  const find = (name: string) =>
+    data.find(
+      (m) => m.attributes.name === name && m.attributes.integration?.key === "shopify",
+    )?.id;
+  const checkoutStarted = find("Checkout Started");
+  const placedOrder = find("Placed Order");
+  if (!checkoutStarted || !placedOrder)
+    throw new Error(
+      "Klaviyo has no Shopify Checkout Started or Placed Order metric yet.",
+    );
+  return { checkoutStarted, placedOrder };
+};
+
+/** Creates a flow. Klaviyo creates flows as drafts; nothing sends until it's switched on. */
+export const createFlow = async (
+  key: string,
+  flow: { name: string; definition: unknown },
+): Promise<string> => {
+  const response = await fetch(`${BASE}/flows`, {
+    method: "POST",
+    headers: headers(key),
+    body: JSON.stringify({ data: { type: "flow", attributes: flow } }),
+  });
+  if (!response.ok)
+    throw new Error(`Klaviyo: HTTP ${response.status} creating "${flow.name}"`);
+  return ((await response.json()) as { data: { id: string } }).data.id;
 };
