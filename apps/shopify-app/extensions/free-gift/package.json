@@ -1,0 +1,38 @@
+{
+  "name": "@formulate/function-free-gift",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "typegen": "shopify app function typegen",
+    "function:build": "shopify app function build",
+    "typecheck": "shopify app function typegen && tsc --noEmit",
+    "test": "vitest run"
+  },
+  "codegen": {
+    "schema": "schema.graphql",
+    "documents": "src/*.graphql",
+    "generates": {
+      "./generated/api.ts": {
+        "plugins": [
+          "typescript",
+          "typescript-operations"
+        ]
+      }
+    },
+    "config": {
+      "omitOperationSuffix": true
+    }
+  },
+  "dependencies": {
+    "@shopify/shopify_function": "2.0.1"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "5.0.6",
+    "@shopify/cli": "4.6.0",
+    "@shopify/shopify-function-test-helpers": "1.1.0",
+    "vitest": "4.1.12",
+    "typescript": "~6.0.3"
+  }
+}

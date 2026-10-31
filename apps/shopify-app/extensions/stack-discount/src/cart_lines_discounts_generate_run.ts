@@ -30,8 +30,16 @@ export function cartLinesDiscountsGenerateRun(
 
   const products = new Set<string>();
   const subscriptionLines: string[] = [];
+  const nestedLines: string[] = [];
 
   for (const line of input.cart.lines) {
+    // Free gifts and other add-ons sit under the product they came with. They
+    // aren't a product the shopper chose, so they can't complete a stack, and
+    // they're never discounted again (free-gift makes a gift free).
+    if (line.parentRelationship) {
+      nestedLines.push(line.id);
+      continue;
+    }
     if (line.merchandise.__typename === "ProductVariant") {
       products.add(line.merchandise.product.id);
     }
@@ -42,7 +50,8 @@ export function cartLinesDiscountsGenerateRun(
     }
   }
 
-  const oneOffLines = input.cart.lines.length - subscriptionLines.length;
+  const oneOffLines =
+    input.cart.lines.length - subscriptionLines.length - nestedLines.length;
   if (products.size < STACK_SIZE || oneOffLines === 0) {
     return { operations: [] };
   }
@@ -54,7 +63,13 @@ export function cartLinesDiscountsGenerateRun(
           candidates: [
             {
               message: STACK_MESSAGE,
-              targets: [{ orderSubtotal: { excludedCartLineIds: subscriptionLines } }],
+              targets: [
+                {
+                  orderSubtotal: {
+                    excludedCartLineIds: [...subscriptionLines, ...nestedLines],
+                  },
+                },
+              ],
               value: { percentage: { value: STACK_PERCENT } },
             },
           ],

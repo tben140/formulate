@@ -195,6 +195,28 @@ importers:
         specifier: 4.1.12
         version: 4.1.12(@types/node@26.1.1)(vite@8.1.6(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
 
+  apps/shopify-app/extensions/free-gift:
+    dependencies:
+      '@shopify/shopify_function':
+        specifier: 2.0.1
+        version: 2.0.1(@types/node@26.1.1)(supports-color@10.2.2)
+    devDependencies:
+      '@graphql-codegen/cli':
+        specifier: 5.0.6
+        version: 5.0.6(@types/node@26.1.1)(graphql@16.14.2)(supports-color@10.2.2)(typescript@6.0.3)
+      '@shopify/cli':
+        specifier: 4.6.0
+        version: 4.6.0
+      '@shopify/shopify-function-test-helpers':
+        specifier: 1.1.0
+        version: 1.1.0
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 4.1.12
+        version: 4.1.12(@types/node@26.1.1)(vite@8.1.6(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
+
   apps/shopify-app/extensions/stack-discount:
     dependencies:
       '@shopify/shopify_function':
