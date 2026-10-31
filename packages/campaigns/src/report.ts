@@ -16,10 +16,10 @@ export interface ReportOrder {
   readonly utmSource: string | null;
   readonly utmCampaign: string | null;
   /**
-   * The customer's order count now; 1 (or 0: test orders don't count) means
-   * this was their first. Read late, a second order since makes it 2.
+   * Whether this was the customer's first order (their earliest, so a later
+   * order doesn't change it); null for a guest order.
    */
-  readonly customerOrders: number | null;
+  readonly firstOrder: boolean | null;
   readonly lines: readonly {
     readonly title: string;
     readonly quantity: number;
@@ -88,9 +88,7 @@ export const campaignReport = (
           : "direct or unknown",
       ),
     ),
-    firstOrders: ours.filter(
-      (order) => order.customerOrders !== null && order.customerOrders <= 1,
-    ).length,
+    firstOrders: ours.filter((order) => order.firstOrder === true).length,
     subscriptionsStarted: ours.reduce(
       (sum, order) => sum + order.lines.filter((line) => line.subscription).length,
       0,
