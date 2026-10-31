@@ -124,6 +124,7 @@ export type {
   RoutineProduct,
 } from "./routine-quiz";
 export { toRoutineGoals } from "./routine-quiz-data";
+export { AUTHORISED_CLAIMS, authorisedClaimFor } from "./routine-quiz-claims";
 export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";
 export { PLANNED_PAYMENT_ICON_IDS, paymentIconIds } from "./payment-icons";

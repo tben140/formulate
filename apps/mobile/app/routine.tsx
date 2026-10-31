@@ -1,4 +1,5 @@
 import {
+  authorisedClaimFor,
   BUDGETS,
   formatMoney,
   MAX_GOALS,
@@ -230,6 +231,9 @@ const Results = ({
   const currencyCode = routine.items[0]?.product.currencyCode ?? "GBP";
   const allSubscriptions = chosen.every((item) => item.product.sellingPlanId);
 
+  // The authorised claim for the goal that put it here (Article 10(3)).
+  const claimFor = (item: RoutineItem) =>
+    authorisedClaimFor(item.product.handle, item.forGoals);
   const goalLabel = (key: string) =>
     goals.find((goal) => goal.key === key)?.label.toLowerCase() ?? key;
   const forGoals = (item: RoutineItem) =>
@@ -287,10 +291,12 @@ const Results = ({
             onPress={() => toggle(product.id)}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: on }}
-            accessibilityLabel={`${product.title}. ${forGoals(item)}. ${formatMoney({
-              amount: String(product.monthlyPrice),
-              currencyCode,
-            })} ${product.sellingPlanId ? "a month" : "one-off"}.`}
+            accessibilityLabel={`${product.title}. ${forGoals(item)}. ${claimFor(item) ? `${claimFor(item)} ` : ""}${formatMoney(
+              {
+                amount: String(product.monthlyPrice),
+                currencyCode,
+              },
+            )} ${product.sellingPlanId ? "a month" : "one-off"}.`}
             className={`flex-row items-center gap-3 rounded-md border p-3 ${on ? "border-foreground" : "border-border opacity-60"}`}
           >
             <View
@@ -308,6 +314,9 @@ const Results = ({
             <View className="min-w-0 flex-1">
               <Text className="font-semibold text-foreground">{product.title}</Text>
               <Text className="text-sm text-foreground-muted">{forGoals(item)}</Text>
+              {claimFor(item) ? (
+                <Text className="text-sm text-foreground">{claimFor(item)}</Text>
+              ) : null}
             </View>
             <View className="items-end">
               <Text className="font-mono text-foreground">
