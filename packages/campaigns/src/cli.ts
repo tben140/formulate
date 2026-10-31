@@ -1,3 +1,4 @@
+import { parseOfferRules } from "@formulate/shopify";
 import { existsSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -31,6 +32,7 @@ import {
 } from "./klaviyo";
 import { reportHtml } from "./dashboard";
 import { campaignReport, reportMarkdown } from "./report";
+import { campaignTerms } from "./terms";
 import {
   addRedeemCodes,
   approveCampaign,
@@ -66,6 +68,7 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns emails <handle> [--create]   the planned emails; --create makes Klaviyo drafts
   pnpm campaigns pushes <handle> [--create]   launch and last-day pushes; --create makes Klaviyo
                                               drafts for KLAVIYO_PUSH_SEGMENT_ID
+  pnpm campaigns terms <handle>               the terms, written from the offer's rules
   pnpm campaigns tidy <handle> [--apply]      after it ends: off its products, collection
                                               deleted, record back to draft; plans unless --apply
   pnpm campaigns approve <handle> --by <name> sign-off: check fails until it's approved,
@@ -315,6 +318,24 @@ Next:
       }
       await tagCustomers(admin, buyers, tag);
       console.log("Tagged.");
+      return 0;
+    }
+
+    case "terms": {
+      if (!handle) break;
+      const admin = await adminFromEnv();
+      const entry = await getEntry(admin, handle);
+      const campaign = entry ? campaignOf(entry) : null;
+      const rules = parseOfferRules(entry?.fields.offer_rules);
+      if (!entry || !campaign || !rules)
+        throw new Error("The campaign or its offer_rules can't be read; run check.");
+      const terms = campaignTerms(campaign, rules);
+      console.log(terms);
+      console.log(
+        terms === entry.fields.terms
+          ? "\nMatches the saved terms."
+          : "\nDiffers from the saved terms: paste it into the record if it's right.",
+      );
       return 0;
     }
 
