@@ -132,6 +132,25 @@ const stubUpstream = (
           }),
         );
       }
+      if (url.endsWith("/graphql.json") && url.includes("myshopify.com")) {
+        const v = (value: string) => ({ value });
+        return Promise.resolve(
+          jsonResponse({
+            data: {
+              metaobjects: {
+                nodes: [
+                  { code: v("mg"), name: v("Magnesium (glycinate)"), sort: v("30") },
+                  { code: v("d3"), name: v("Vitamin D3 (from lichen)"), sort: v("10") },
+                  { code: v("k2"), name: v("Vitamin K2 (MK-7)"), sort: v("20") },
+                  { code: v("zn"), name: v("Zinc"), sort: v("60") },
+                  // A merchant's duplicate: only the first (by sort) counts.
+                  { code: v("zn"), name: v("Zinc (picolinate)"), sort: v("70") },
+                ],
+              },
+            },
+          }),
+        );
+      }
       throw new Error(`unexpected upstream call: ${method} ${url}`);
     }),
   );
@@ -433,5 +452,107 @@ describe("the rules", () => {
         JSON.stringify({ subscriptionId: 1, action: "skip", customer_id: 999 }),
       ),
     ).toEqual({ subscriptionId: 1, action: { action: "skip" } });
+  });
+});
+
+describe("editing a daily pack's blend", () => {
+  const blendEnv: ActionsEnv = {
+    ...env,
+    SHOPIFY_STORE_DOMAIN: "shop.myshopify.com",
+    SHOPIFY_STOREFRONT_TOKEN: "public-storefront-token",
+  };
+  const pack = subscription({
+    properties: [
+      { name: "_blend", value: "d3,k2,mg" },
+      { name: "Blend", value: "Vitamin D3 + Vitamin K2 + Magnesium" },
+      { name: "_routine", value: "r1" },
+    ],
+  });
+  const actBlend = (body: unknown, actEnv: ActionsEnv = blendEnv) =>
+    actOnSubscription(actEnv, request(), JSON.stringify(body), NOW);
+
+  it("swaps an ingredient, keeping the size, the order and every other property", async () => {
+    const calls = stubUpstream({ sub: pack });
+    const result = await actBlend({
+      subscriptionId: SUB,
+      action: "blend",
+      codes: ["zn", "d3", "mg"],
+    });
+    expect(result.status).toBe(200);
+    expect(writes(calls)[0]).toMatchObject({
+      method: "PUT",
+      body: {
+        properties: [
+          { name: "_routine", value: "r1" },
+          { name: "_blend", value: "d3,mg,zn" },
+          { name: "Blend", value: "Vitamin D3 + Magnesium + Zinc" },
+        ],
+      },
+    });
+  });
+
+  it("refuses a different size, an unknown code, or a subscription that isn't a pack", async () => {
+    stubUpstream({ sub: pack });
+    expect(
+      (await actBlend({ subscriptionId: SUB, action: "blend", codes: ["d3", "mg"] }))
+        .status,
+    ).toBe(409);
+    expect(
+      (
+        await actBlend({
+          subscriptionId: SUB,
+          action: "blend",
+          codes: ["d3", "mg", "xx"],
+        })
+      ).status,
+    ).toBe(400);
+    const calls = stubUpstream();
+    expect(
+      (
+        await actBlend({
+          subscriptionId: SUB,
+          action: "blend",
+          codes: ["d3", "mg", "zn"],
+        })
+      ).status,
+    ).toBe(409);
+    expect(writes(calls)).toHaveLength(0);
+  });
+
+  it("won't edit a stored blend with a malformed code", async () => {
+    const calls = stubUpstream({
+      sub: subscription({ properties: [{ name: "_blend", value: "d3,k2,vit-c" }] }),
+    });
+    expect(
+      (await actBlend({ subscriptionId: SUB, action: "blend", codes: ["d3", "mg"] }))
+        .status,
+    ).toBe(409);
+    expect(writes(calls)).toHaveLength(0);
+  });
+
+  it("rejects malformed codes before asking anyone", async () => {
+    const calls = stubUpstream({ sub: pack });
+    expect(
+      (
+        await actBlend({
+          subscriptionId: SUB,
+          action: "blend",
+          codes: ["d3", "d3", "mg"],
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (await actBlend({ subscriptionId: SUB, action: "blend", codes: "d3,mg" })).status,
+    ).toBe(400);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("answers not-configured without the Storefront token", async () => {
+    stubUpstream({ sub: pack });
+    const result = await actBlend(
+      { subscriptionId: SUB, action: "blend", codes: ["zn", "d3", "mg"] },
+      env,
+    );
+    expect(result).toMatchObject({ status: 503, body: { reason: "not-configured" } });
   });
 });

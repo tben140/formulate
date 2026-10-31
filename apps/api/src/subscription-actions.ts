@@ -1,4 +1,11 @@
 import {
+  blendCodesOf,
+  blendRange,
+  parseBlendCodes,
+  withBlend,
+  type BlendEnv,
+} from "./blend";
+import {
   recharge,
   rechargeCustomerId,
   rechargeList,
@@ -34,7 +41,7 @@ import {
  * has no paused state, and its own portal pauses the same way.
  */
 
-export type ActionsEnv = CustomerEnv & RechargeAdminEnv;
+export type ActionsEnv = CustomerEnv & RechargeAdminEnv & BlendEnv;
 
 /** As the cart limit (packages/shopify/src/cart-limit.ts): never more than 6. */
 const MAX_QUANTITY = 6;
@@ -66,7 +73,9 @@ export type PortalAction =
       readonly unit: "day" | "week" | "month";
     }
   | { readonly action: "cancel"; readonly reason: CancelReason; readonly comment: string }
-  | { readonly action: "reactivate" };
+  | { readonly action: "reactivate" }
+  /** A daily pack's ingredients, the same number as now (the price follows size). */
+  | { readonly action: "blend"; readonly codes: readonly string[] };
 
 export type ActionResult =
   | {
@@ -176,6 +185,10 @@ export const parseAction = (
             }
           : null;
       }
+      case "blend": {
+        const codes = parseBlendCodes(body.codes);
+        return codes ? { action: "blend", codes } : null;
+      }
       default:
         return null;
     }
@@ -192,6 +205,7 @@ type AdminSubscription = {
   order_interval_frequency?: unknown;
   charge_interval_frequency?: unknown;
   external_product_id?: { ecommerce?: unknown } | null;
+  properties?: unknown;
 };
 type AdminCharge = {
   id?: unknown;
@@ -393,6 +407,22 @@ export const actOnSubscription = async (
       const ok = await write(env, "POST", `/subscriptions/${id}/cancel`, {
         cancellation_reason: action.reason,
         ...(action.comment ? { cancellation_reason_comments: action.comment } : {}),
+      });
+      return ok ? { status: 200, body: { ok: true } } : fail(502, "unavailable");
+    }
+    case "blend": {
+      if (!isActive) return fail(409, "not-allowed");
+      // Only a pack has a blend, and an edit keeps its size: a different
+      // number of ingredients is a different variant and price.
+      const current = blendCodesOf(subscription.properties);
+      if (current.length === 0 || current.length !== action.codes.length)
+        return fail(409, "not-allowed");
+      const range = await blendRange(env);
+      if (!range) return fail(503, "not-configured");
+      if (!action.codes.every((code) => range.some((option) => option.code === code)))
+        return fail(400, "invalid");
+      const ok = await write(env, "PUT", `/subscriptions/${id}`, {
+        properties: withBlend(subscription.properties, action.codes, range),
       });
       return ok ? { status: 200, body: { ok: true } } : fail(502, "unavailable");
     }
