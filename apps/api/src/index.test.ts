@@ -296,3 +296,81 @@ describe("POST /back-in-stock (SHO-118)", () => {
     expect(text).not.toContain(BIS_KEY);
   });
 });
+
+describe("which limit applies", () => {
+  const recordingEnv = () => {
+    const seen: { key: string; max: number | undefined }[] = [];
+    let key = "";
+    return {
+      seen,
+      env: {
+        ...testEnv(),
+        RATE_LIMITER: {
+          idFromName: (name: string) => {
+            key = name;
+            return name;
+          },
+          get: () => ({
+            limit: (max?: number) => {
+              seen.push({ key, max });
+              return Promise.resolve({ success: false });
+            },
+          }),
+        },
+      },
+    };
+  };
+
+  it("signed-in routes get the looser per-IP backstop, under their own key", async () => {
+    const { seen, env } = recordingEnv();
+    const res = await run(
+      new Request("https://api.example/account/subscriptions", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "CF-Connecting-IP": "203.0.113.9",
+        },
+        body: "{}",
+      }),
+      env,
+    );
+    expect(res.status).toBe(429);
+    expect(seen).toEqual([{ key: "account:203.0.113.9", max: 120 }]);
+  });
+
+  it("an unknown /account/ path gets the strict limit and never reaches the newsletter", async () => {
+    const { seen, env } = recordingEnv();
+    await run(
+      new Request("https://api.example/account/anything", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "CF-Connecting-IP": "203.0.113.9",
+        },
+        body: JSON.stringify({ email: "victim@example.com" }),
+      }),
+      env,
+    );
+    expect(seen).toEqual([{ key: "203.0.113.9", max: 5 }]);
+
+    const allowed = { ...testEnv() };
+    const klaviyo = vi.fn();
+    vi.stubGlobal("fetch", klaviyo);
+    const res = await run(
+      new Request("https://api.example/account/anything", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: "victim@example.com" }),
+      }),
+      allowed,
+    );
+    expect(res.status).toBe(404);
+    expect(klaviyo).not.toHaveBeenCalled();
+  });
+
+  it("everything else keeps the strict per-IP limit", async () => {
+    const { seen, env } = recordingEnv();
+    await run(post({ email: "a@b.co" }, { "CF-Connecting-IP": "203.0.113.9" }), env);
+    expect(seen).toEqual([{ key: "203.0.113.9", max: 5 }]);
+  });
+});

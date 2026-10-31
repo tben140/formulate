@@ -1,8 +1,10 @@
+import { ACCOUNT_IP_LIMIT, LIMIT } from "./rate-limit-policy";
 import type { RateLimiter } from "./rate-limiter";
 
 export { RateLimiter } from "./rate-limiter";
 
 import { deleteAccount, previewDeletion, type DeletionEnv } from "./account-deletion";
+import { actOnSubscription } from "./subscription-actions";
 import { listSubscriptions } from "./subscriptions";
 
 import {
@@ -56,6 +58,18 @@ interface Env extends DeletionEnv {
  * Read before parsing, so a large body is rejected rather than buffered.
  */
 const MAX_BODY_BYTES = 1024;
+
+/**
+ * The signed-in routes, exactly. Only these get the looser per-IP backstop
+ * (they're called from web's server, one IP for every customer) and then a
+ * per-customer limit. Any other /account/ path is a 404.
+ */
+const ACCOUNT_ROUTES = new Set([
+  "/account/subscriptions",
+  "/account/subscriptions/action",
+  "/account/deletion/preview",
+  "/account/deletion",
+]);
 
 /**
  * The only outcomes a caller ever sees.
@@ -175,9 +189,13 @@ export default {
      * would make this control trivially bypassable.
      */
     const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+    // Signed-in routes come from web's server, one IP for every customer:
+    // a looser backstop here, and a per-customer limit once Shopify has said
+    // who's calling (see withinCustomerLimit in src/shopify-customer.ts).
+    const isAccount = ACCOUNT_ROUTES.has(new URL(request.url).pathname);
     const { success } = await env.RATE_LIMITER.get(
-      env.RATE_LIMITER.idFromName(ip),
-    ).limit();
+      env.RATE_LIMITER.idFromName(isAccount ? `account:${ip}` : ip),
+    ).limit(isAccount ? ACCOUNT_IP_LIMIT : LIMIT);
     if (!success) {
       return json({ ok: false, reason: "rate-limited" }, 429);
     }
@@ -206,9 +224,20 @@ export default {
       const { status, body } = await listSubscriptions(env, request);
       return respond(body, status);
     }
+    // Portal changes (SHO-73, SHO-74): the same token check, and the
+    // subscription named must be the caller's. See src/subscription-actions.ts.
+    if (pathname === "/account/subscriptions/action") {
+      const { status, body } = await actOnSubscription(env, request, raw);
+      return respond(body, status);
+    }
     if (pathname === "/account/deletion") {
       const { status, body } = await deleteAccount(env, request, raw);
       return respond(body, status);
+    }
+    // Never let an unknown /account/ path fall through to the newsletter
+    // route below: it would be under the looser account limit (#136 review).
+    if (pathname.startsWith("/account/")) {
+      return json({ ok: false, reason: "rejected" }, 404);
     }
 
     let email: unknown;

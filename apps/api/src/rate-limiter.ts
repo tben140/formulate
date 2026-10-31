@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 
-import { decide, type WindowState } from "./rate-limit-policy";
+import { decide, LIMIT, type WindowState } from "./rate-limit-policy";
 
 /**
  * A rate limiter that actually enforces.
@@ -27,9 +27,10 @@ import { decide, type WindowState } from "./rate-limit-policy";
  * ./rate-limit-policy so it can be tested without a runtime.
  */
 export class RateLimiter extends DurableObject {
-  async limit(): Promise<{ readonly success: boolean }> {
+  /** `max` per window; each key (IP or customer) uses one fixed max. */
+  async limit(max: number = LIMIT): Promise<{ readonly success: boolean }> {
     const state = (await this.ctx.storage.get<WindowState>("window")) ?? null;
-    const { allowed, next } = decide(state, Date.now());
+    const { allowed, next } = decide(state, Date.now(), max);
 
     if (next) await this.ctx.storage.put("window", next);
 

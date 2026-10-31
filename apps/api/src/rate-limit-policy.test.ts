@@ -64,3 +64,12 @@ describe("decide", () => {
     expect(decide(at(WINDOW_MS, 0), WINDOW_MS).allowed).toBe(true);
   });
 });
+
+describe("decide with another limit", () => {
+  it("uses the limit it's given", () => {
+    let state = decide(null, 0, 2).next ?? null;
+    state = decide(state, 1, 2).next ?? null;
+    expect(decide(state, 2, 2).allowed).toBe(false);
+    expect(decide(state, 2, 3).allowed).toBe(true);
+  });
+});
