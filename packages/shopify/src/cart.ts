@@ -12,6 +12,7 @@ import type {
 } from "./generated/graphql";
 
 import {
+  CartAttributesUpdateMutation,
   CartBuyerIdentityUpdateMutation,
   CartCreateMutation,
   CartDiscountCodesUpdateMutation,
@@ -214,7 +215,33 @@ export interface CartClient {
     cartId: string | null,
     code: string,
   ) => Promise<StorefrontResult<Cart>>;
+
+  /**
+   * Tags the cart with the campaign whose page the shopper last saw
+   * (`_campaign`, hidden at checkout), keeping its other attributes, so the
+   * order can be counted towards the campaign (campaigns report). Null when
+   * the cart already carries that tag: no request.
+   */
+  readonly tagCampaign: (
+    cart: Cart,
+    handle: string,
+  ) => Promise<StorefrontResult<Cart> | null>;
 }
+
+/** The cart attribute naming the campaign a shopper came from (SHO-169). */
+export const CAMPAIGN_ATTRIBUTE = "_campaign";
+
+/** `attributes` with `key` set to `value`, the rest unchanged and in order. */
+export const withAttribute = (
+  attributes: readonly { readonly key: string; readonly value?: string | null }[],
+  key: string,
+  value: string,
+): { key: string; value: string }[] => {
+  const rest = attributes
+    .filter((attribute) => attribute.key !== key)
+    .map((attribute) => ({ key: attribute.key, value: attribute.value ?? "" }));
+  return [...rest, { key, value }];
+};
 
 /**
  * Turns Shopify's stock warnings for the lines just requested into an outcome.
@@ -445,6 +472,17 @@ export const createCartClient = (
         },
       });
       return created.ok ? fromPayload(created.data.cartCreate) : created;
+    },
+
+    tagCampaign: async (cart, handle) => {
+      const current = cart.attributes.find((a) => a.key === CAMPAIGN_ATTRIBUTE)?.value;
+      if (current === handle) return null;
+      const result = await storefront.request(CartAttributesUpdateMutation, {
+        cartId: cart.id,
+        attributes: withAttribute(cart.attributes, CAMPAIGN_ATTRIBUTE, handle),
+        visitorConsent: await consent(),
+      });
+      return result.ok ? fromPayload(result.data.cartAttributesUpdate) : result;
     },
 
     setBuyerIdentity: async (cartId, buyerIdentity) => {

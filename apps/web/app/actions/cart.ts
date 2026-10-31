@@ -7,6 +7,7 @@ import {
   type CartLineInput,
 } from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import {
   cartClient,
@@ -16,6 +17,7 @@ import {
   writeBuyerEmail,
   writeCartId,
 } from "@/lib/cart";
+import { SEEN_COOKIE, cookieOptions, isCampaignHandle } from "@/lib/campaign";
 
 /**
  * Cart mutations, as Server Actions.
@@ -126,12 +128,13 @@ export const addToCart = async (
   }
 
   await writeCartId(result.data.id);
+  const cart = await tagSeenCampaign(result.data);
   revalidate();
 
   // The line Shopify actually created for this merchandise + selling plan
   // combination — not necessarily the last one, since adding to an existing
   // line increments it in place rather than appending.
-  const addedLine = result.data.lines.nodes.find(
+  const addedLine = cart.lines.nodes.find(
     (line) =>
       line.merchandise.id === merchandiseId &&
       (line.sellingPlanAllocation?.sellingPlan.id ?? "") === sellingPlanId,
@@ -141,9 +144,44 @@ export const addToCart = async (
     status: "success",
     ...(notice ? { message: notice } : {}),
     token: Date.now(),
-    cart: result.data,
+    cart,
     addedLineId: addedLine?.id,
   };
+};
+
+/**
+ * Tags the cart with the campaign whose page this browser last saw
+ * (`_campaign`, SHO-169), so `campaigns report` counts the order even
+ * without the campaign's discount, such as a tiered offer just missed. A
+ * failure keeps the untagged cart: attribution never costs an add.
+ */
+const tagSeenCampaign = async (cart: Cart): Promise<Cart> => {
+  const handle = (await cookies()).get(SEEN_COOKIE)?.value ?? "";
+  if (!isCampaignHandle(handle)) return cart;
+  const tagged = await cartClient.tagCampaign(cart, handle).catch((error: unknown) => {
+    console.error(`[cart] campaign tag failed: ${String(error)}`);
+    return null;
+  });
+  if (tagged && !tagged.ok)
+    console.error(`[cart] campaign tag failed: ${describeError(tagged.error)}`);
+  return tagged?.ok ? tagged.data : cart;
+};
+
+/**
+ * A campaign page was seen (SHO-169): remember it for a week, and tag the
+ * cart now if there is one. Called from the campaign page; see
+ * components/campaign-seen.tsx.
+ */
+export const markCampaignSeen = async (handle: string): Promise<void> => {
+  if (!isCampaignHandle(handle)) return;
+  (await cookies()).set(SEEN_COOKIE, handle, cookieOptions(7 * 24 * 60 * 60));
+  const cartId = await readCartId();
+  if (!cartId) return;
+  const current = await cartClient.get(cartId);
+  if (current.ok && current.data) {
+    const tagged = await tagSeenCampaign(current.data);
+    if (tagged !== current.data) revalidate();
+  }
 };
 
 export const updateCartLine = async (formData: FormData): Promise<void> => {

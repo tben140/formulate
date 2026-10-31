@@ -32,6 +32,8 @@ import { storefront } from "./storefront";
 
 export const PREVIEW_COOKIE = "campaign_preview";
 export const ACCESS_COOKIE = "campaign_access";
+/** The campaign page last seen, for tagging the cart (`_campaign`). */
+export const SEEN_COOKIE = "campaign_seen";
 
 /** A campaign handle as Shopify makes them; anything else in a cookie is ignored. */
 const HANDLE = /^[a-z0-9-]{1,64}$/;
@@ -130,7 +132,11 @@ export const getNextCampaignChange = cache(async (): Promise<number | null> => {
   const times = nodes
     .map(toCampaign)
     .flatMap((campaign) =>
-      campaign ? [campaign.startsAt.getTime(), campaign.endsAt.getTime()] : [],
+      campaign
+        ? [campaign.earlyAccessStartsAt, campaign.startsAt, campaign.endsAt].flatMap(
+            (at) => (at ? [at.getTime()] : []),
+          )
+        : [],
     )
     .filter((time) => time > now && time - now <= 24 * 60 * 60 * 1000);
   return times.length > 0 ? Math.min(...times) : null;
