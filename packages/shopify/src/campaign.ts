@@ -372,3 +372,15 @@ export const campaignFirst = <
   const inCampaign = (product: T) => product.campaign?.reference?.handle === handle;
   return [...products.filter(inCampaign), ...products.filter((p) => !inCampaign(p))];
 };
+
+/**
+ * Products that can be bought first, sold-out ones after, each group in its
+ * own order: a campaign's page shouldn't lead with something nobody can
+ * have. A product without the field counts as available.
+ */
+export const availableFirst = <T extends { readonly availableForSale?: boolean }>(
+  products: readonly T[],
+): T[] => [
+  ...products.filter((product) => product.availableForSale !== false),
+  ...products.filter((product) => product.availableForSale === false),
+];

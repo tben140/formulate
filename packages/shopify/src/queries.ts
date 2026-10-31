@@ -257,6 +257,8 @@ export const ProductCardFields = graphql(`
     id
     handle
     title
+    # Sold-out products go last on a campaign's page (availableFirst).
+    availableForSale
     # Campaign badge (SHO-169); the dates decide whether it shows.
     campaign: metafield(namespace: "double_helix", key: "campaign") {
       reference {

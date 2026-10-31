@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   activeCampaign,
+  availableFirst,
   campaignBadge,
   campaignEndsLabel,
   campaignFirst,
@@ -237,5 +238,17 @@ describe("campaignFirst", () => {
   it("leaves the order alone with no campaign", () => {
     const list = [p("a"), p("b", "bf")];
     expect(campaignFirst(list, null).map((x) => x.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("availableFirst", () => {
+  it("puts sold-out products last, keeping each group's order", () => {
+    const list = [
+      { id: "a", availableForSale: false },
+      { id: "b", availableForSale: true },
+      { id: "c" },
+      { id: "d", availableForSale: false },
+    ];
+    expect(availableFirst(list).map((x) => x.id)).toEqual(["b", "c", "a", "d"]);
   });
 });
