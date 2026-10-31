@@ -1,7 +1,12 @@
 import {
+  ONE_TIME,
   defaultSelectedOptions,
+  displayPrice as priceForSelection,
+  effectivePlanId as resolvePlanId,
   findVariantByOptions,
   purchasableAllocations,
+  purchaseOptions,
+  selectionStatus,
   type ProductByHandleResult,
   type SelectedOption,
 } from "@formulate/shopify";
@@ -11,8 +16,8 @@ import { useAddToCart } from "./use-cart";
 
 export type Product = NonNullable<ProductByHandleResult["product"]>;
 
-/** Sentinel for "buy it once". Not a plan id, so it is never sent. */
-export const ONE_TIME = "";
+/** "Buy it once", from the shared selection model. Re-exported for the screens. */
+export { ONE_TIME };
 
 /**
  * Everything the product screen's buy controls share: the selection, the
@@ -52,35 +57,22 @@ export const usePurchase = (product: Product) => {
       )
     : [];
 
-  // Derived rather than reset in an effect, so moving to a variant that does
-  // not offer the plan falls back to one-time without destroying the choice —
-  // moving back restores it.
-  const effectivePlanId = allocations.some((a) => a.sellingPlan.id === planId)
-    ? planId
-    : ONE_TIME;
-
-  const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
-  const displayPrice =
-    chosenAllocation?.priceAdjustments[0]?.price ?? variant?.price ?? null;
-
-  const soldOut = Boolean(variant && !variant.availableForSale);
-  const disabled = !variant || soldOut || addToCart.isPending;
-
-  const choices = [
-    { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
-    ...allocations.map((allocation) => ({
-      id: allocation.sellingPlan.id,
-      label: allocation.sellingPlan.name,
-      price: allocation.priceAdjustments[0]?.price,
-    })),
-  ];
+  // The selection rules are shared with web (packages/shopify, SHO-127): the
+  // plan in effect falls back to one-time on a variant without it, without
+  // destroying the choice, and the price is the plan's price now.
+  const effectivePlanId = resolvePlanId(allocations, planId);
+  const displayPrice = priceForSelection(variant, allocations, planId);
+  const choices = purchaseOptions(variant, allocations);
+  const status = selectionStatus(variant);
+  const soldOut = status === "soldOut";
+  const disabled = status !== "available" || addToCart.isPending;
 
   /** The button's words, identical in both controls. */
   const label = addToCart.isPending
     ? "Adding…"
-    : soldOut
+    : status === "soldOut"
       ? "Sold out"
-      : !variant
+      : status === "unavailable"
         ? "Unavailable in this combination"
         : "Add to cart";
 
