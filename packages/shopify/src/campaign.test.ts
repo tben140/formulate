@@ -53,6 +53,14 @@ describe("toCampaign", () => {
 });
 
 describe("activeCampaign", () => {
+  it("leads with the highest priority, then the one ending soonest", () => {
+    const flash = { ...blackFriday, handle: "flash", endsAt: v("2026-11-29T00:00:00Z") };
+    const lead = { ...blackFriday, handle: "lead", priority: v("5") };
+    expect(activeCampaign([flash, lead], { now: during })?.handle).toBe("lead");
+    expect(activeCampaign([flash, blackFriday], { now: during })?.handle).toBe("flash");
+    expect(toCampaign(blackFriday)?.priority).toBe(0);
+  });
+
   it("is live from the start up to, not including, the end", () => {
     expect(activeCampaign([blackFriday], { now: before })).toBeNull();
     expect(

@@ -31,6 +31,8 @@ export interface CampaignNode {
   readonly body?: FieldValue | null;
   readonly terms?: FieldValue | null;
   readonly audience?: FieldValue | null;
+  /** Higher wins the banner when campaigns overlap; absent is 0. */
+  readonly priority?: FieldValue | null;
   readonly offerRules?: FieldValue | null;
   readonly earlyAccessStartsAt?: FieldValue | null;
   readonly image?: {
@@ -68,6 +70,8 @@ export interface Campaign {
   readonly collectionHandle: string | null;
   /** `email_link`: only for people who arrived through an email link. */
   readonly audience: "everyone" | "email_link";
+  /** Which one shows site-wide when two run at once: higher first. */
+  readonly priority: number;
   /** The offer as data, when set and valid: see campaign-offer.ts. */
   readonly rules: OfferRules | null;
   /**
@@ -133,6 +137,7 @@ export const toCampaign = (node: CampaignNode | null | undefined): Campaign | nu
     image: node.image?.reference?.image ?? null,
     collectionHandle: node.collection?.reference?.handle ?? null,
     audience: text(node.audience) === "email_link" ? "email_link" : "everyone",
+    priority: Number.parseInt(text(node.priority) ?? "", 10) || 0,
     rules: parseOfferRules(text(node.offerRules)),
     earlyAccessStartsAt: (() => {
       const early = date(node.earlyAccessStartsAt);
@@ -181,7 +186,10 @@ export const activeCampaign = (
     .filter((campaign) => isCampaignLive(campaign, view));
   return (
     live.find((campaign) => campaign.handle === view.preview) ??
-    live.sort((a, b) => a.endsAt.getTime() - b.endsAt.getTime())[0] ??
+    // Highest priority, then the one ending soonest (docs/campaigns.md, Overlaps).
+    live.sort(
+      (a, b) => b.priority - a.priority || a.endsAt.getTime() - b.endsAt.getTime(),
+    )[0] ??
     null
   );
 };

@@ -126,7 +126,8 @@ export const fontSize = {
 export const fontFamily = {
   sans: {
     family: "DM Sans",
-    stack: '"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    stack:
+      '"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
   },
   mono: {
     family: "DM Mono",
@@ -146,12 +147,42 @@ export const fontFamily = {
  * download a face when text uses it, so the web app pays nothing for it.
  */
 export const fontFaces = [
-  { family: fontFamily.sans.family, weight: 400, style: "normal", file: "dm-sans-latin-400-normal.woff2" },
-  { family: fontFamily.sans.family, weight: 400, style: "italic", file: "dm-sans-latin-400-italic.woff2" },
-  { family: fontFamily.sans.family, weight: 500, style: "normal", file: "dm-sans-latin-500-normal.woff2" },
-  { family: fontFamily.sans.family, weight: 600, style: "normal", file: "dm-sans-latin-600-normal.woff2" },
-  { family: fontFamily.mono.family, weight: 400, style: "normal", file: "dm-mono-latin-400-normal.woff2" },
-  { family: fontFamily.mono.family, weight: 500, style: "normal", file: "dm-mono-latin-500-normal.woff2" },
+  {
+    family: fontFamily.sans.family,
+    weight: 400,
+    style: "normal",
+    file: "dm-sans-latin-400-normal.woff2",
+  },
+  {
+    family: fontFamily.sans.family,
+    weight: 400,
+    style: "italic",
+    file: "dm-sans-latin-400-italic.woff2",
+  },
+  {
+    family: fontFamily.sans.family,
+    weight: 500,
+    style: "normal",
+    file: "dm-sans-latin-500-normal.woff2",
+  },
+  {
+    family: fontFamily.sans.family,
+    weight: 600,
+    style: "normal",
+    file: "dm-sans-latin-600-normal.woff2",
+  },
+  {
+    family: fontFamily.mono.family,
+    weight: 400,
+    style: "normal",
+    file: "dm-mono-latin-400-normal.woff2",
+  },
+  {
+    family: fontFamily.mono.family,
+    weight: 500,
+    style: "normal",
+    file: "dm-mono-latin-500-normal.woff2",
+  },
 ] as const;
 
 export const tokens = { colours, spacing, radius, fontSize, fontFamily } as const;

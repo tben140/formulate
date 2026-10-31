@@ -25,6 +25,7 @@ export const toNode = (
     body: field("body"),
     terms: field("terms"),
     audience: field("audience"),
+    priority: field("priority"),
     offerRules: field("offer_rules"),
     collection: collectionHandle ? { reference: { handle: collectionHandle } } : null,
   };

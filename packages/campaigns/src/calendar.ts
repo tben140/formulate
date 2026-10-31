@@ -11,6 +11,7 @@ export interface CalendarRow {
   readonly startsAt: string | null;
   readonly endsAt: string | null;
   readonly audience: string;
+  readonly priority: number;
 }
 
 /**
@@ -39,6 +40,7 @@ export const calendar = (
       startsAt: campaign?.startsAt.toISOString() ?? null,
       endsAt: campaign?.endsAt.toISOString() ?? null,
       audience: campaign?.audience === "email_link" ? "email link" : "everyone",
+      priority: campaign?.priority ?? 0,
     };
   });
   rows.sort((a, b) => (a.startsAt ?? "~").localeCompare(b.startsAt ?? "~"));
@@ -51,7 +53,9 @@ export const calendar = (
       const b = dated[j]!;
       if (a.startsAt! < b.endsAt! && b.startsAt! < a.endsAt!)
         notes.push(
-          `${a.handle} and ${b.handle} overlap: only the one ending first gets the banner, and a product can be in one campaign only.`,
+          a.priority === b.priority
+            ? `${a.handle} and ${b.handle} overlap at the same priority: the one ending first gets the banner. Set priority on the one that should lead.`
+            : `${a.handle} and ${b.handle} overlap: ${a.priority > b.priority ? a.handle : b.handle} gets the banner (priority). A product can be in one campaign only.`,
         );
     }
   }

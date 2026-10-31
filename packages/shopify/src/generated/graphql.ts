@@ -1501,7 +1501,7 @@ export type ProductByHandleQueryVariables = Exact<{
 
 
 export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, vendor: string, campaign: { reference:
-        | { handle: string, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
+        | { handle: string, priority: { value: string | null } | null, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
               | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
               | Record<PropertyKey, never>
              | null } | null, collection: { reference:
@@ -1755,7 +1755,7 @@ export type PaymentSettingsQuery = { shop: { paymentSettings: { acceptedCardBran
 
 export type CampaignBadgeFieldsFragment = { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null };
 
-export type CampaignFieldsFragment = { handle: string, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
+export type CampaignFieldsFragment = { handle: string, priority: { value: string | null } | null, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
       | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
       | Record<PropertyKey, never>
      | null } | null, collection: { reference:
@@ -1784,7 +1784,7 @@ export type CartAttributesUpdateMutation = { cartAttributesUpdate: { cart: { id:
 export type CampaignsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type CampaignsQuery = { metaobjects: { nodes: Array<{ handle: string, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
+export type CampaignsQuery = { metaobjects: { nodes: Array<{ handle: string, priority: { value: string | null } | null, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
           | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
           | Record<PropertyKey, never>
          | null } | null, collection: { reference:
@@ -1806,7 +1806,7 @@ export type CampaignByHandleQuery = { metaobject: { handle: string, products: { 
                       | Record<PropertyKey, never>
                      | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } }
         | Record<PropertyKey, never>
-       | null } | null, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
+       | null } | null, priority: { value: string | null } | null, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
         | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
         | Record<PropertyKey, never>
        | null } | null, collection: { reference:
@@ -2032,6 +2032,9 @@ export const CartFieldsFragmentDoc = new TypedDocumentString(`
 export const CampaignFieldsFragmentDoc = new TypedDocumentString(`
     fragment CampaignFields on Metaobject {
   ...CampaignBadgeFields
+  priority: field(key: "priority") {
+    value
+  }
   headline: field(key: "headline") {
     value
   }
@@ -2348,6 +2351,9 @@ export const ProductByHandleDocument = new TypedDocumentString(`
 }
 fragment CampaignFields on Metaobject {
   ...CampaignBadgeFields
+  priority: field(key: "priority") {
+    value
+  }
   headline: field(key: "headline") {
     value
   }
@@ -3592,6 +3598,9 @@ export const CampaignsDocument = new TypedDocumentString(`
 }
 fragment CampaignFields on Metaobject {
   ...CampaignBadgeFields
+  priority: field(key: "priority") {
+    value
+  }
   headline: field(key: "headline") {
     value
   }
@@ -3714,6 +3723,9 @@ fragment CampaignBadgeFields on Metaobject {
 }
 fragment CampaignFields on Metaobject {
   ...CampaignBadgeFields
+  priority: field(key: "priority") {
+    value
+  }
   headline: field(key: "headline") {
     value
   }
