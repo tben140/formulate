@@ -1,4 +1,4 @@
-# Formulate
+# Double Helix
 
 One Shopify store rendered three ways, as a Turborepo monorepo: a Next.js web
 app, an Expo React Native app, and a Liquid theme — over a shared data layer and
@@ -9,7 +9,7 @@ one set of design tokens.
 ```
 apps/
   web/          Next.js 16 · App Router · Tailwind v4 · deploys to Vercel
-  mobile/       Expo SDK 57 · Expo Router · NativeWind v5 · builds via EAS
+  mobile/       Expo SDK 58 · Expo Router · NativeWind v5 · builds via EAS
   theme/        Liquid · web components · no build step · Shopify Online Store
 packages/
   shopify/      Storefront API client, query documents, generated types
@@ -54,6 +54,24 @@ is exactly what a public Storefront access token is designed for.
 
 ⚠️ The Admin API token must never appear in any package. Anything Admin-flavoured
 belongs behind a Next.js route handler.
+
+## The demo store's password
+
+The store is a Shopify development store, and those are always password
+protected until they move to a paid plan. How checkout meets that password
+depends on where the app runs:
+
+- **Expo Go and the app's web build** open the store's checkout in the system
+  browser, which asks for the storefront password the first time.
+- **Native builds** (TestFlight, the stores) show checkout in Checkout Sheet
+  Kit, which shows the store's password page first; after the password,
+  checkout opens (seen on TestFlight build 3, 27 October 2026). The kit also
+  defines a `storefront_password_required` error for when it can't get past
+  that page.
+
+Theme Access passwords can't remove this: they only let the Shopify CLI work
+on themes, and they must never ship in the app. See
+[`docs/demo-store.md`](docs/demo-store.md).
 
 ## Setup
 
@@ -108,14 +126,14 @@ These are load-bearing. Read the comments before changing them.
   fails at Metro bundle time — never at install time.
 - **TypeScript is pinned to `~6.0.3`, not 7.** No `typescript-eslint` release
   supports TypeScript 7 (all cap at `<6.1.0`), and its parser is what lets
-  ESLint read TypeScript at all. 6.0.3 is the sweet spot: inside that range and
-  exactly what Expo SDK 57 expects. Note TS 6 deprecates `baseUrl`, so the app
+  ESLint read TypeScript at all. 6.0.3 is the highest version inside that range,
+  and Expo SDK 58's version check accepts it. Note TS 6 deprecates `baseUrl`, so the app
   tsconfigs use `paths` alone.
-- **React is pinned to `19.2.3` workspace-wide** via a pnpm override, because
-  that is the version Expo SDK 57 expects. Under the hoisted node linker a
+- **React is pinned to `19.3.0` workspace-wide** via a pnpm override, because
+  that is the version Expo SDK 58 expects. Under the hoisted node linker a
   second React copy would break hooks in the Expo app.
 - **React version is declared explicitly** in `packages/eslint-config/react-native.js`.
   `eslint-plugin-react` 7.37.x crashes on ESLint 10 during version _detection_.
-- **NativeWind v5 is pre-release** (`5.0.0-preview.4`), chosen so both apps share
+- **NativeWind v5 is pre-release** (`5.0.0-rc.0`, a release candidate), chosen so both apps share
   one Tailwind v4 token file. The fallback is NativeWind v4 + Tailwind v3 in
   `apps/mobile` only.
