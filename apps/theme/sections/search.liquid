@@ -10,8 +10,38 @@
 {% endcomment %}
 
 {%- liquid
-  assign products = search.results | where: 'object_type', 'product'
+  # Shopify hands search.terms over HTML-escaped already (a quote arrives as
+  # &quot;), so it's unescaped once here, and every use escapes or encodes it
+  # for its own context: otherwise a resubmitted search, a filter or a clear
+  # link would search for the entity. &amp; goes last, so "&amp;quot;" stays
+  # "&quot;".
+  assign raw_terms = search.terms | replace: '&quot;', '"' | replace: '&#39;', "'" | replace: '&lt;', '<' | replace: '&gt;', '>' | replace: '&amp;', '&'
+  assign encoded_terms = raw_terms | url_encode
+  assign base = routes.search_url | append: '?type=product&q=' | append: encoded_terms
+  assign product_only = false
+  if search.types.size == 1 and search.types.first == 'product'
+    assign product_only = true
+  endif
 -%}
+
+{%- if search.performed and product_only == false -%}
+  {%- comment -%}
+    A URL without type=product (web's form, a shared link) searches pages and
+    articles too, so the count and the pages would include them. Ask again for
+    products only, keeping any filters.
+  {%- endcomment -%}
+  <script>
+    (() => {
+      const url = new URL(location.href);
+      // Never twice: if Shopify still reports other types, show what came.
+      if (url.searchParams.get("type") === "product") return;
+      url.searchParams.set("type", "product");
+      // Page 2 of mixed results isn't page 2 of products.
+      url.searchParams.delete("page");
+      location.replace(url);
+    })();
+  </script>
+{%- endif -%}
 
 <div class="container search-page">
   <h1 class="search-page__title">{{ 'search.title' | t }}</h1>
@@ -24,7 +54,7 @@
       class="search-page__input"
       type="search"
       name="q"
-      value="{{ search.terms | escape }}"
+      value="{{ raw_terms | escape }}"
       placeholder="{{ 'search.label' | t }}"
       autocomplete="off"
       enterkeyhint="search"
@@ -32,25 +62,36 @@
     <button class="search-page__submit" type="submit">{{ 'search.submit' | t }}</button>
   </form>
 
-  {%- if search.performed -%}
+  {%- if search.performed and product_only == false -%}
+    {%- comment -%}
+      Without JavaScript the reload above never happens, and these results
+      would mix in pages and articles: counted, paginated, then filtered out.
+      So nothing is listed; a link asks again for products only.
+    {%- endcomment -%}
+    <p class="search-page__empty">
+      <a href="{{ base | escape }}">{{ 'search.show_products' | t: terms: search.terms }}</a>
+    </p>
+  {%- elsif search.performed -%}
     <section class="search-page__results" aria-labelledby="search-results-{{ section.id }}">
       <h2 id="search-results-{{ section.id }}" class="visually-hidden">{{ 'search.results' | t }}</h2>
 
-      {%- liquid
-        assign base = routes.search_url | append: '?type=product&q=' | append: search.terms
-      -%}
       {% render 'collection-filters',
         filters: search.filters,
         action: routes.search_url,
         clear_url: base,
         count: search.results_count,
-        terms: search.terms
+        terms: raw_terms
       %}
 
-      {%- if products.size == 0 -%}
+      {%- if search.results_count == 0 -%}
         <p class="search-page__empty">{{ 'search.no_products' | t: terms: search.terms }}</p>
       {%- else -%}
         {% paginate search.results by 24 %}
+          {%- comment -%}
+            Read inside paginate: outside it, search.results is the whole list,
+            so every page would repeat the same products.
+          {%- endcomment -%}
+          {%- assign products = search.results | where: 'object_type', 'product' -%}
           {% render 'product-grid', products: products %}
           {{ paginate | default_pagination }}
         {% endpaginate %}

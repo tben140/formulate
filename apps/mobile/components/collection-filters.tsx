@@ -134,6 +134,9 @@ const FilterSheet = ({
 }) => {
   const { bottom } = useSafeAreaInsets();
   const params = new URLSearchParams(draft);
+  // The price fields are uncontrolled, so "Clear all" remounts them (a new key)
+  // to empty what they show along with the draft.
+  const [clears, setClears] = useState(0);
 
   return (
     <Modal
@@ -166,7 +169,7 @@ const FilterSheet = ({
           {filters.map((filter) =>
             filter.type === "PRICE_RANGE" ? (
               <PriceGroup
-                key={filter.id}
+                key={`${filter.id}-${clears}`}
                 filter={filter}
                 params={params}
                 setDraft={setDraft}
@@ -226,7 +229,10 @@ const FilterSheet = ({
           style={{ paddingBottom: Math.max(bottom, 12) }}
         >
           <Pressable
-            onPress={() => setDraft(withoutFilters(params).toString())}
+            onPress={() => {
+              setDraft(withoutFilters(params).toString());
+              setClears((count) => count + 1);
+            }}
             accessibilityRole="button"
             className="py-3"
           >
@@ -288,7 +294,11 @@ const PriceGroup = ({
             <Text className="text-sm text-foreground">{label}</Text>
             <TextInput
               defaultValue={value ?? ""}
-              onEndEditing={(event) => onChangeText(event.nativeEvent.text)}
+              // Into the draft on every keystroke, not on blur: "Show results"
+              // sits outside the scroll view and doesn't blur the field, and
+              // iOS's decimal pad has no return key, so a price typed and then
+              // applied would be lost. Uncontrolled, so "12." isn't rewritten.
+              onChangeText={onChangeText}
               keyboardType="decimal-pad"
               accessibilityLabel={`${filter.label} ${label.toLowerCase()}, pounds`}
               placeholder="£"

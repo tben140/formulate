@@ -14,12 +14,15 @@
 
     {% comment %}
       DM Sans and DM Mono (SHO-110): the same files apps/web serves, synced
-      from packages/tokens by `pnpm --filter @formulate/theme build`. The body
-      weight is preloaded because it paints most of the page; the other
-      weights load on demand through @font-face.
+      from packages/tokens by `pnpm --filter @formulate/theme build`. Every
+      weight loads on demand through @font-face, with font-display: swap.
+
+      No preload of the body weight: asset_url gives it a versioned URL
+      (?v=...), while fonts.css, generated and shared with apps/web, asks for
+      the same file by a relative URL without one. The browser can't match
+      them, so a preload downloaded the font twice.
     {% endcomment %}
     {{ 'fonts.css' | asset_url | stylesheet_tag }}
-    {{ 'dm-sans-latin-400-normal.woff2' | asset_url | preload_tag: as: 'font', type: 'font/woff2', crossorigin: 'anonymous' }}
 
     {% # Load and preload the critical CSS %}
     {{ 'critical.css' | asset_url | stylesheet_tag: preload: true }}
