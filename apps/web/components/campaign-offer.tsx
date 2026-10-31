@@ -29,7 +29,8 @@ export const CampaignOffer = ({
   >
     <div className="flex flex-wrap items-center gap-2">
       <CampaignBadge label={campaign.badge} />
-      <span className="text-foreground-muted">
+      {/* Not foreground-muted: on brand-50 that's 4.35:1, under AA's 4.5. */}
+      <span className="text-foreground">
         <CampaignEnds
           endsAt={campaign.endsAt.toISOString()}
           label={campaignEndsLabel(campaign)}
@@ -43,7 +44,7 @@ export const CampaignOffer = ({
       {variants ? ` (${variants.join(", ")} only)` : null}
     </p>
     {campaign.subscriberPerk ? (
-      <p className="mt-1 text-foreground-muted">{campaign.subscriberPerk}.</p>
+      <p className="mt-1 text-foreground">{campaign.subscriberPerk}.</p>
     ) : null}
     <Link
       href={campaignPath(campaign.handle)}
