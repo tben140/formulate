@@ -43,6 +43,7 @@ import {
   getPerkVariant,
   getVariantPrices,
   tagCustomers,
+  tidyCampaign,
   upsertFunctionDiscount,
   writePriceHistories,
 } from "./shopify-data";
@@ -65,6 +66,8 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns emails <handle> [--create]   the planned emails; --create makes Klaviyo drafts
   pnpm campaigns pushes <handle> [--create]   launch and last-day pushes; --create makes Klaviyo
                                               drafts for KLAVIYO_PUSH_SEGMENT_ID
+  pnpm campaigns tidy <handle> [--apply]      after it ends: off its products, collection
+                                              deleted, record back to draft; plans unless --apply
   pnpm campaigns approve <handle> --by <name> sign-off: check fails until it's approved,
                                               and again after any later edit
   pnpm campaigns history [<handle>]           the change log: every edit to a campaign
@@ -310,6 +313,37 @@ Next:
       }
       await tagCustomers(admin, buyers, tag);
       console.log("Tagged.");
+      return 0;
+    }
+
+    case "tidy": {
+      if (!handle) break;
+      const admin = await adminFromEnv();
+      const data = await snapshot(admin, handle, true);
+      const campaign = campaignOf(data.entry);
+      if (campaign && campaign.endsAt > new Date())
+        throw new Error(
+          `${handle} hasn't ended (${campaign.endsAt.toISOString()}): nothing tidied.`,
+        );
+      const owners = data.products.flatMap((product) => [
+        ...(product.campaignId === data.entry.id ? [product.id] : []),
+        ...product.variants
+          .filter((v) => v.campaignId === data.entry.id)
+          .map((v) => v.id),
+      ]);
+      console.log(
+        `${owners.length} products and variants to take off the campaign; collection ${data.collection?.handle ?? "(none)"} to delete; ${handle} back to draft. Discounts are left (expired).`,
+      );
+      if (!rest.includes("--apply")) {
+        console.log("Planned only. Run with --apply to tidy.");
+        return 0;
+      }
+      await tidyCampaign(admin, {
+        entryId: data.entry.id,
+        collectionId: data.collection?.id ?? null,
+        owners,
+      });
+      console.log("Tidied.");
       return 0;
     }
 

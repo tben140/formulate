@@ -117,6 +117,15 @@ const CampaignPage = async ({ params }: PageProps) => {
               Shop the range
             </Link>
           )}
+          {status === "ended" ? (
+            <p className="mt-4">
+              Want the next offer first?{" "}
+              <a href="#email-signup" className="underline underline-offset-4">
+                Sign up for our emails
+              </a>
+              .
+            </p>
+          ) : null}
           {(status === "upcoming" || status === "active") && campaign.subscriberPerk ? (
             <p className="mt-4 rounded-lg border border-border p-3 text-sm">
               <strong className="font-semibold">Subscribers:</strong>{" "}
