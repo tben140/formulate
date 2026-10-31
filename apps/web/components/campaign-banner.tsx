@@ -16,9 +16,11 @@ import { CampaignEnds } from "@/components/campaign-ends";
 export const CampaignBanner = ({
   campaign,
   now,
+  clockPreview,
 }: {
   readonly campaign: Campaign;
   readonly now: number;
+  readonly clockPreview: boolean;
 }) => (
   <div className="bg-brand-700 px-4 py-2 text-center text-sm text-surface">
     <p className="mx-auto max-w-5xl">
@@ -33,6 +35,7 @@ export const CampaignBanner = ({
         endsAt={campaign.endsAt.toISOString()}
         label={campaignEndsLabel(campaign)}
         now={now}
+        clockPreview={clockPreview}
       />
     </p>
   </div>

@@ -157,6 +157,7 @@ const ProductPage = async ({ params }: PageProps) => {
               campaign={campaign}
               variants={coveredNames}
               now={view.now.getTime()}
+              clockPreview={view.clockPreview}
             />
           ) : null}
 

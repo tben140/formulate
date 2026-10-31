@@ -106,7 +106,11 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
               <CampaignPreviewStrip campaign={campaign} />
             ) : null}
             {campaign ? (
-              <CampaignBanner campaign={campaign} now={view.now.getTime()} />
+              <CampaignBanner
+                campaign={campaign}
+                now={view.now.getTime()}
+                clockPreview={view.clockPreview}
+              />
             ) : null}
             {campaignChange ? <CampaignRefresh at={campaignChange} /> : null}
             <header className="border-b border-border">
