@@ -3,6 +3,7 @@ import { DEFAULT_COUNTRY_CODE } from "./config";
 import type { StorefrontClient } from "./client";
 import type { StorefrontError, StorefrontResult, UserErrorShape } from "./errors";
 import type {
+  VisitorConsent,
   CartBuyerIdentityInput,
   CartFieldsFragment,
   CartLineInput,
@@ -299,9 +300,60 @@ export const stockNotice = (available: number): string =>
     ? "Only 1 is available, and it's in your cart."
     : `Only ${available} are available, and all ${available} are in your cart.`;
 
-export const createCartClient = (storefront: StorefrontClient): CartClient => {
-  const requestCreate = (options: Parameters<CartClient["create"]>[0]) =>
+/**
+ * The shopper's answer to the tracking question, as each surface stores it.
+ * "unset" means they haven't answered yet.
+ */
+export type TrackingChoice = "granted" | "denied" | "unset";
+
+/**
+ * Shopify's four consent purposes for a choice. One opt-in covers all four
+ * (ADR 0008); not answering is refusing.
+ *
+ * ⚠️ **Why every cart request sends this.** Measured on 2026-10-17: a cart
+ * request that states no consent gets Shopify's regional default for the
+ * *server's* location, which allows tracking. Its `checkoutUrl` then carries
+ * visitor ids (`_s`, `_y`) and the response sets `_shopify_analytics` and
+ * `_shopify_marketing`, so a shopper who declined reached checkout tracked.
+ * Stated consent instead puts `_cs=3amps` (refused) or `_cs=3AMPS` (allowed)
+ * on the checkout URL, and checkout honours it. The cart query needs it too,
+ * because `checkoutUrl` is rebuilt on every read.
+ */
+export const visitorConsentFor = (choice: TrackingChoice): VisitorConsent => {
+  const allowed = choice === "granted";
+  return {
+    analytics: allowed,
+    marketing: allowed,
+    preferences: allowed,
+    saleOfData: allowed,
+  };
+};
+
+export interface CartClientOptions {
+  /**
+   * Reads the current shopper's choice, once per request. Without it every
+   * request states "refused", which is right until a surface asks.
+   */
+  readonly trackingChoice?: () => TrackingChoice | Promise<TrackingChoice>;
+}
+
+export const createCartClient = (
+  storefront: StorefrontClient,
+  { trackingChoice }: CartClientOptions = {},
+): CartClient => {
+  // A choice that can't be read counts as refused: the safe direction, and
+  // the cart request (and dead-cart recovery) still goes ahead.
+  const consent = async (): Promise<VisitorConsent> => {
+    try {
+      return visitorConsentFor((await trackingChoice?.()) ?? "unset");
+    } catch {
+      return visitorConsentFor("unset");
+    }
+  };
+
+  const requestCreate = async (options: Parameters<CartClient["create"]>[0]) =>
     storefront.request(CartCreateMutation, {
+      visitorConsent: await consent(),
       input: {
         lines: options?.lines ? [...options.lines] : undefined,
         buyerIdentity: {
@@ -312,12 +364,19 @@ export const createCartClient = (storefront: StorefrontClient): CartClient => {
       },
     });
 
-  const requestAdd = (cartId: string, lines: readonly CartLineInput[]) =>
-    storefront.request(CartLinesAddMutation, { cartId, lines: [...lines] });
+  const requestAdd = async (cartId: string, lines: readonly CartLineInput[]) =>
+    storefront.request(CartLinesAddMutation, {
+      cartId,
+      lines: [...lines],
+      visitorConsent: await consent(),
+    });
 
   const client: Omit<CartClient, "addLinesOrCreate"> = {
     get: async (cartId) => {
-      const result = await storefront.request(CartQuery, { id: cartId });
+      const result = await storefront.request(CartQuery, {
+        id: cartId,
+        visitorConsent: await consent(),
+      });
       return result.ok ? { ok: true, data: result.data.cart ?? null } : result;
     },
 
@@ -335,6 +394,7 @@ export const createCartClient = (storefront: StorefrontClient): CartClient => {
       const result = await storefront.request(CartLinesUpdateMutation, {
         cartId,
         lines: [...lines],
+        visitorConsent: await consent(),
       });
       return result.ok ? fromPayload(result.data.cartLinesUpdate) : result;
     },
@@ -343,6 +403,7 @@ export const createCartClient = (storefront: StorefrontClient): CartClient => {
       const result = await storefront.request(CartLinesRemoveMutation, {
         cartId,
         lineIds: [...lineIds],
+        visitorConsent: await consent(),
       });
       return result.ok ? fromPayload(result.data.cartLinesRemove) : result;
     },
@@ -351,6 +412,7 @@ export const createCartClient = (storefront: StorefrontClient): CartClient => {
       const result = await storefront.request(CartBuyerIdentityUpdateMutation, {
         cartId,
         buyerIdentity,
+        visitorConsent: await consent(),
       });
       return result.ok ? fromPayload(result.data.cartBuyerIdentityUpdate) : result;
     },
