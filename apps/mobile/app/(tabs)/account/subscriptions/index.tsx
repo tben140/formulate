@@ -12,6 +12,7 @@ import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 
 import { Text } from "../../../../components/text";
 import { isCustomerAccountAvailable } from "../../../../lib/customer-account";
+import { usePreviewingAccount } from "../../../../lib/account-preview";
 import { isRechargeConfigured } from "../../../../lib/recharge";
 import { useHasCustomerSession, usePortal } from "../../../../lib/use-customer";
 
@@ -29,10 +30,11 @@ const Message = ({ children, alert }: { children: string; alert?: boolean }) => 
  * /account/subscriptions: next deliveries, then each subscription.
  */
 const SubscriptionsScreen = () => {
+  const preview = usePreviewingAccount();
   const session = useHasCustomerSession();
   const portal = usePortal();
 
-  if (!isCustomerAccountAvailable || !isRechargeConfigured) {
+  if (!preview && (!isCustomerAccountAvailable || !isRechargeConfigured)) {
     return (
       <Message>Subscriptions can&apos;t be shown in this version of the app yet.</Message>
     );
