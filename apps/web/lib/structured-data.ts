@@ -31,6 +31,9 @@ export const productJsonLd = (product: Product) => {
   return {
     "@context": "https://schema.org",
     "@type": "Product",
+    // An id so the reviews section's AggregateRating (components/
+    // product-reviews.tsx) attaches to this product rather than a new one.
+    "@id": `${url}#product`,
     name: product.title,
     url,
     ...(product.description ? { description: plainText(product.description) } : {}),
