@@ -10,6 +10,9 @@
   capture shown_handle
     render 'campaign-live-handle'
   endcapture
+  # A rendered snippet's output starts with a newline: strip it, or the
+  # lookup below is for "\nblack-friday-2026" and finds nothing.
+  assign shown_handle = shown_handle | strip
   assign shown = nil
   if shown_handle != blank
     assign shown = shop.metaobjects.campaign[shown_handle]
