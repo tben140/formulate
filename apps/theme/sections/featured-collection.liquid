@@ -14,7 +14,8 @@
   already drifted once: the constant moved to `best-sellers` while this still
   said `automated-collection`, and because a stale handle resolves to an empty
   collection rather than an error, the homepage silently rendered the "no
-  collection selected" branch. Change both together.
+  collection selected" branch. packages/shopify/src/config.test.ts now fails
+  if the two differ.
 
   Uses the same snippet and styles as the collection template, so the two
   cannot drift.
