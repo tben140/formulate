@@ -122,7 +122,14 @@ export const campaignClock = (): Date =>
 
 /** Who's looking, for the shared campaign rules. */
 export const useCampaignView = (): CampaignView => {
-  const current = useSyncExternalStore(subscribe, () => state);
+  // The third snapshot is for the web build's static render, which throws
+  // without one ("Missing getServerSnapshot"). The same state: there's no
+  // access or preview on the server.
+  const current = useSyncExternalStore(
+    subscribe,
+    () => state,
+    () => state,
+  );
   return { now: campaignClock(), preview: current.preview, access: current.access };
 };
 
