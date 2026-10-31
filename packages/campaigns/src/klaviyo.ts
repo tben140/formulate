@@ -112,6 +112,25 @@ export const createDraft = async (
   return ((await response.json()) as { data: { id: string } }).data.id;
 };
 
+/** The names of push campaigns whose name contains `title`, from every page. */
+export const getPushNames = async (key: string, title: string): Promise<string[]> => {
+  const filter = `and(equals(messages.channel,'mobile_push'),contains(name,${JSON.stringify(title)}))`;
+  const names: string[] = [];
+  let url: string | null =
+    `${BASE}/campaigns?filter=${encodeURIComponent(filter)}&fields[campaign]=name`;
+  while (url) {
+    const response = await fetch(url, { headers: headers(key) });
+    if (!response.ok) throw new Error(`Klaviyo: HTTP ${response.status}`);
+    const body = (await response.json()) as {
+      data: { attributes: { name: string } }[];
+      links?: { next?: string | null };
+    };
+    names.push(...body.data.map((campaign) => campaign.attributes.name));
+    url = body.links?.next ?? null;
+  }
+  return names;
+};
+
 /**
  * A draft push campaign for a planned push, to `segmentId` (people who chose
  * offer notifications), opening the campaign screen. Never scheduled.

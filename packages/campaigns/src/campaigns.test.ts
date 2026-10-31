@@ -415,4 +415,13 @@ describe("plannedPushes", () => {
       },
     ]);
   });
+
+  it("plans none for an email-link offer", () => {
+    expect(
+      plannedPushes({
+        ...live.entry,
+        fields: { ...live.entry.fields, audience: "email_link" },
+      }),
+    ).toEqual([]);
+  });
 });

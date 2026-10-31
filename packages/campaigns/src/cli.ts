@@ -9,7 +9,7 @@ import { checkCampaign } from "./check";
 import { plannedEmails, plannedPushes } from "./emails";
 import { perkKey, planPerks } from "./perks";
 import { activeSubscriptions, addPerk, perkOnetimes } from "./recharge";
-import { createDraft, createPushDraft, getEmails } from "./klaviyo";
+import { createDraft, createPushDraft, getEmails, getPushNames } from "./klaviyo";
 import { campaignReport, reportMarkdown } from "./report";
 import {
   createCampaign,
@@ -192,11 +192,15 @@ Next:
         throw new Error(
           "--create needs KLAVIYO_PRIVATE_KEY and KLAVIYO_PUSH_SEGMENT_ID.",
         );
+      // Reruns don't duplicate: a push whose draft already exists is skipped.
+      const existing =
+        create && entry.fields.title ? await getPushNames(key!, entry.fields.title) : [];
       for (const push of plannedPushes(entry)) {
         console.log(
           `${push.sendAt}  ${push.name}  "${push.title}: ${push.body}"  → ${push.deepLink}`,
         );
-        if (create)
+        if (create && existing.includes(push.name)) console.log("  draft already exists");
+        else if (create)
           console.log(`  created draft ${await createPushDraft(key!, push, segment!)}`);
       }
       return 0;
