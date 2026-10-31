@@ -1,4 +1,4 @@
-{% comment %}
+{% doc %}
   The payment methods the store accepts, as icons, for the footer.
 
   The list is `shop.enabled_payment_types`. Until Shopify Payments is set up
@@ -7,7 +7,7 @@
   markup is Shopify's own icon set, the one `payment_type_svg_tag` draws,
   repeated from packages/tokens/src/payment.ts so the three surfaces match
   and the planned icons have something to draw before Payments exists.
-{% endcomment %}
+{% enddoc %}
 {%- assign order = 'visa master american_express apple_pay google_pay shopify_pay' | split: ' ' -%}
 {%- assign types = shop.enabled_payment_types -%}
 {%- if types == empty -%}
