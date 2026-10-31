@@ -219,9 +219,17 @@ export const getDiscounts = async (
       value { ... on DiscountPercentage { percentage } }
       items { ... on DiscountCollections { collections(first: 10) { nodes { id } } } }
     }`;
-  const data = await admin.request<{ discountNodes: { nodes: DiscountNode[] } }>(
-    `query Discounts($query: String) {
-      discountNodes(first: 100, query: $query) {
+  const nodes: DiscountNode[] = [];
+  let after: string | null = null;
+  do {
+    const data: {
+      discountNodes: {
+        nodes: DiscountNode[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    } = await admin.request(
+      `query Discounts($query: String, $after: String) {
+      discountNodes(first: 100, after: $after, query: $query) {
         nodes {
           id
           config: metafield(namespace: "$app:campaign-discount", key: "config") { jsonValue }
@@ -233,11 +241,17 @@ export const getDiscounts = async (
             ... on DiscountCodeApp { title status startsAt endsAt codes(first: 10) { nodes { code } } }
           }
         }
+        pageInfo { hasNextPage endCursor }
       }
     }`,
-    { query: includeExpired ? null : "status:active OR status:scheduled" },
-  );
-  return data.discountNodes.nodes
+      { query: includeExpired ? null : "status:active OR status:scheduled", after },
+    );
+    nodes.push(...data.discountNodes.nodes);
+    after = data.discountNodes.pageInfo.hasNextPage
+      ? data.discountNodes.pageInfo.endCursor
+      : null;
+  } while (after);
+  return nodes
     .filter((node) => node.discount.title !== undefined)
     .map((node) => {
       const type = node.discount.__typename;
@@ -417,48 +431,71 @@ export const createCampaign = async (
   );
   userErrors(created.metaobjectCreate);
   const entryId = created.metaobjectCreate.metaobject!.id;
-  const title =
-    input.fields.find((field) => field.key === "title")?.value ?? input.handle;
+  // A failure after this leaves no half-made campaign: the draft entry and
+  // any collection are deleted before the error is rethrown.
+  let collectionId: string | null = null;
+  try {
+    const title =
+      input.fields.find((field) => field.key === "title")?.value ?? input.handle;
 
-  const collection = await admin.request<{
-    collectionCreate: {
-      collection: { id: string } | null;
-      userErrors: { message: string }[];
-    };
-  }>(
-    `mutation Collection($input: CollectionInput!) {
-      collectionCreate(input: $input) { collection { id } userErrors { message } }
-    }`,
-    {
-      input: {
-        title,
-        handle: input.handle,
-        ruleSet: {
-          appliedDisjunctively: false,
-          rules: [
-            {
-              column: "PRODUCT_METAFIELD_DEFINITION",
-              relation: "EQUALS",
-              condition: entryId,
-              conditionObjectId: productField,
-            },
-          ],
+    const collection = await admin.request<{
+      collectionCreate: {
+        collection: { id: string } | null;
+        userErrors: { message: string }[];
+      };
+    }>(
+      `mutation Collection($input: CollectionInput!) {
+        collectionCreate(input: $input) { collection { id } userErrors { message } }
+      }`,
+      {
+        input: {
+          title,
+          handle: input.handle,
+          ruleSet: {
+            appliedDisjunctively: false,
+            rules: [
+              {
+                column: "PRODUCT_METAFIELD_DEFINITION",
+                relation: "EQUALS",
+                condition: entryId,
+                conditionObjectId: productField,
+              },
+            ],
+          },
         },
       },
-    },
-  );
-  userErrors(collection.collectionCreate);
-  const collectionId = collection.collectionCreate.collection!.id;
+    );
+    userErrors(collection.collectionCreate);
+    collectionId = collection.collectionCreate.collection!.id;
 
-  const linked = await admin.request<{
-    metaobjectUpdate: { userErrors: { message: string }[] };
-  }>(
-    `mutation Link($id: ID!, $metaobject: MetaobjectUpdateInput!) {
-      metaobjectUpdate(id: $id, metaobject: $metaobject) { userErrors { message } }
-    }`,
-    { id: entryId, metaobject: { fields: [{ key: "collection", value: collectionId }] } },
-  );
-  userErrors(linked.metaobjectUpdate);
+    const linked = await admin.request<{
+      metaobjectUpdate: { userErrors: { message: string }[] };
+    }>(
+      `mutation Link($id: ID!, $metaobject: MetaobjectUpdateInput!) {
+        metaobjectUpdate(id: $id, metaobject: $metaobject) { userErrors { message } }
+      }`,
+      {
+        id: entryId,
+        metaobject: { fields: [{ key: "collection", value: collectionId }] },
+      },
+    );
+    userErrors(linked.metaobjectUpdate);
+  } catch (error) {
+    if (collectionId)
+      await admin
+        .request(
+          `mutation DeleteCollection($id: ID!) { collectionDelete(input: { id: $id }) { userErrors { message } } }`,
+          { id: collectionId },
+        )
+        .catch(() => undefined);
+    await admin
+      .request(
+        `mutation DeleteEntry($id: ID!) { metaobjectDelete(id: $id) { userErrors { message } } }`,
+        { id: entryId },
+      )
+      .catch(() => undefined);
+    throw error;
+  }
   return { entryId, collectionId };
 };
 
@@ -468,7 +505,7 @@ interface OrderNode {
   sourceName: string | null;
   currentSubtotalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
   customAttributes: { key: string; value: string | null }[];
-  customer: { id: string; numberOfOrders: string } | null;
+  customer: { id: string; orders: { nodes: { name: string }[] } } | null;
   customerJourneySummary: {
     lastVisit: {
       utmParameters: { source: string | null; campaign: string | null } | null;
@@ -519,7 +556,7 @@ export const getOrders = async (
             name createdAt sourceName
             currentSubtotalPriceSet { shopMoney { amount currencyCode } }
             customAttributes { key value }
-            customer { id numberOfOrders }
+            customer { id orders(first: 1, sortKey: CREATED_AT) { nodes { name } } }
             customerJourneySummary { lastVisit { utmParameters { source campaign } } }
             discountApplications(first: 10) {
               nodes {
@@ -575,7 +612,9 @@ export const getOrders = async (
         utmSource: node.customerJourneySummary?.lastVisit?.utmParameters?.source ?? null,
         utmCampaign:
           node.customerJourneySummary?.lastVisit?.utmParameters?.campaign ?? null,
-        customerOrders: node.customer ? Number(node.customer.numberOfOrders) : null,
+        firstOrder: node.customer
+          ? node.customer.orders.nodes[0]?.name === node.name
+          : null,
         customerId: node.customer?.id ?? null,
         lines: node.lineItems.nodes.map((line) => ({
           title: line.title,
