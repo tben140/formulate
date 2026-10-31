@@ -24,7 +24,7 @@
 
   assign total = 0
   assign units = 0
-  if rules.type == 'tiered' or rules.type == 'bundle'
+  if rules.type == 'tiered' or rules.type == 'bundle' or rules.type == 'gift'
     capture applies_to
       render 'campaign-applies-to', rules: rules
     endcapture
@@ -35,6 +35,13 @@
           continue
         endif
         if applies_to == 'subscriptions' and item.selling_plan_allocation == blank
+          continue
+        endif
+        comment
+          A gift offer's own variant never counts towards its threshold.
+        endcomment
+        assign gift_id = rules.variantId | split: '/' | last | plus: 0
+        if rules.type == 'gift' and item.variant_id == gift_id
           continue
         endif
         assign total = total | plus: item.original_line_price
@@ -55,6 +62,18 @@
       if sets > 0
         assign free_units = sets | times: free
         assign reached = 'campaign.bundle_reached' | t: count: free_units
+      endif
+    endif
+  elsif units > 0 and rules.type == 'gift'
+    assign currency = rules.currencyCode | default: 'GBP'
+    if currency == cart.currency.iso_code
+      assign label = rules.giftLabel | default: 'gift'
+      assign min = rules.minSubtotal | times: 100 | round
+      if total >= min
+        assign reached = 'campaign.gift_reached' | t: gift: label
+      else
+        assign remaining = min | minus: total | money
+        assign next = 'campaign.gift_next' | t: amount: remaining, badge: badge, gift: label
       endif
     endif
   elsif units > 0 and rules.type == 'tiered'

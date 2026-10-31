@@ -49,3 +49,21 @@ describe("check against the generated terms", () => {
     expect(warnings(campaignTerms(campaign, rules))).not.toContain(message);
   });
 });
+
+describe("gift terms", () => {
+  it("say what to spend and that the gift is added by the shopper", () => {
+    const campaign = campaignOf(live.entry as CampaignEntry, "black-friday")!;
+    const terms = campaignTerms(
+      campaign,
+      parseOfferRules(
+        '{"type":"gift","minSubtotal":"40.00","variantId":"gid://shopify/ProductVariant/9","giftLabel":"shaker"}',
+      )!,
+    );
+    expect(terms).toContain(
+      "A free shaker when you spend £40.00 on one-time purchases of the products on this page",
+    );
+    expect(terms).toContain(
+      "Add the shaker to your basket to get it free; one per order.",
+    );
+  });
+});

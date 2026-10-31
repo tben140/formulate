@@ -425,4 +425,6 @@ const describe = (rules: NonNullable<ReturnType<typeof parseOfferRules>>): strin
     ? `${rules.percent}%`
     : rules.type === "tiered"
       ? rules.tiers.map((tier) => `${tier.percent}%`).join(" or ")
-      : `${rules.free} free in ${rules.buy}`;
+      : rules.type === "bundle"
+        ? `${rules.free} free in ${rules.buy}`
+        : `a free ${rules.giftLabel} over ${rules.minSubtotal.amount}`;

@@ -52,6 +52,8 @@ export const offerInWords = (rules: OfferRules): string => {
         .join(", or ");
     case "bundle":
       return `buy ${rules.buy}, get the cheapest ${rules.free === 1 ? "one" : rules.free} free`;
+    case "gift":
+      return `a free ${rules.giftLabel} when you spend ${formatMoney(rules.minSubtotal)} on`;
   }
 };
 
@@ -71,6 +73,9 @@ export const campaignTerms = (
   const lastMinute = new Date(campaign.endsAt.getTime() - 60_000);
   const sentences = [
     `${offerInWords(rules).replace(/^./, (c) => c.toUpperCase())} ${reach(rules)} of the products on this page, from ${ukLong(campaign.startsAt)} to ${ukLong(lastMinute)} (UK time).`,
+    rules.type === "gift"
+      ? `Add the ${rules.giftLabel} to your basket to get it free; one per order`
+      : null,
     campaign.discountCode
       ? `Enter the code ${campaign.discountCode} at checkout.`
       : "Taken automatically at checkout.",

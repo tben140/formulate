@@ -127,6 +127,8 @@
     "payment_methods": "Payment methods"
   },
   "campaign": {
+    "gift_next": "Spend {{ amount }} more on {{ badge }} items for a free {{ gift }}",
+    "gift_reached": "Your free {{ gift }} is unlocked: add it to your basket",
     "next_offer_html": "Want the next offer first? <a href=\"{{ url }}\">Sign up for our emails</a>.",
     "shop_offer": "Shop the {{ badge }} offer",
     "limit_units": "{{ badge }} price on up to {{ count }} of each product",
