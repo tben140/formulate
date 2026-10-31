@@ -53,6 +53,7 @@ match the campaign's; `campaigns check` compares them.
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `percent` | N% off each eligible line                                                                                                                                         |
 | `tiered`  | N% off each eligible line once they add up to a tier (before discounts). Thresholds are in the shop's currency, converted at checkout's `presentmentCurrencyRate` |
+| `gift`    | One unit of `variantId` free once the campaign's items (not the gift) reach `minSubtotal`, shop currency. The shopper adds the gift                               |
 | `bundle`  | 100% off the cheapest `free` of every `buy` eligible items                                                                                                        |
 
 Subscriptions are left out by default: they already save 15%. A capped line
@@ -60,7 +61,7 @@ is discounted for only part of its quantity.
 
 ## Tests
 
-25 fixtures in `tests/fixtures`, built to WebAssembly and run through
+28 fixtures in `tests/fixtures`, built to WebAssembly and run through
 Shopify's function runner: `pnpm --filter @formulate/function-campaign-discount test`.
 
 ## Going live (Ben)

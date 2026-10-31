@@ -43,6 +43,7 @@ type Rules = (
   | { type: "percent"; percent: number }
   | { type: "tiered"; tiers: { minSubtotal: string; percent: number }[] }
   | { type: "bundle"; buy: number; free: number }
+  | { type: "gift"; minSubtotal: string; variantId: string }
 ) & {
   appliesTo: AppliesTo;
   maxUnits: number | null;
@@ -83,7 +84,10 @@ export const parseConfig = (value: unknown): Config | null => {
   // is refused rather than read as "no restriction", which would widen it.
   if (
     raw.variantIds !== undefined &&
-    !(Array.isArray(raw.variantIds) && raw.variantIds.every((id) => typeof id === "string"))
+    !(
+      Array.isArray(raw.variantIds) &&
+      raw.variantIds.every((id) => typeof id === "string")
+    )
   )
     return null;
   const variantIds = (raw.variantIds as string[] | undefined) ?? [];
@@ -126,6 +130,25 @@ export const parseConfig = (value: unknown): Config | null => {
         }
       : null;
   }
+  // A free gift once the campaign's items reach a spend: one unit of
+  // variantId, which the shopper adds (the surfaces say so).
+  if (
+    rules.type === "gift" &&
+    typeof rules.minSubtotal === "string" &&
+    AMOUNT.test(rules.minSubtotal) &&
+    typeof rules.variantId === "string" &&
+    /^gid:\/\/shopify\/ProductVariant\/\d+$/.test(rules.variantId)
+  ) {
+    return {
+      rules: {
+        type: "gift",
+        minSubtotal: rules.minSubtotal,
+        variantId: rules.variantId,
+        ...limits,
+      },
+      ...config,
+    };
+  }
   if (rules.type === "tiered" && Array.isArray(rules.tiers) && rules.tiers.length > 0) {
     const tiers: { minSubtotal: string; percent: number }[] = [];
     for (const tier of rules.tiers as Record<string, unknown>[]) {
@@ -167,8 +190,11 @@ export function cartLinesDiscountsGenerateRun(
   if (rules.oncePerCustomer && customer?.usedCampaign) return { operations: [] };
   if (audienceTags.length > 0 && !customer?.inAudience) return { operations: [] };
 
+  const giftId = rules.type === "gift" ? rules.variantId : null;
   const eligible = input.cart.lines.filter((line) => {
     if (line.merchandise.__typename !== "ProductVariant") return false;
+    // The gift itself never counts towards its own threshold.
+    if (line.merchandise.id === giftId) return false;
     if (!line.merchandise.inCampaign) return false;
     if (variantIds.length > 0 && !variantIds.includes(line.merchandise.id)) return false;
     const subscription = Boolean(
@@ -194,7 +220,27 @@ export function cartLinesDiscountsGenerateRun(
 
   let candidates: ProductDiscountCandidate[] = [];
 
-  if (rules.type === "percent" || rules.type === "tiered") {
+  if (rules.type === "gift") {
+    const gift = input.cart.lines.find(
+      (line) =>
+        line.merchandise.__typename === "ProductVariant" &&
+        line.merchandise.id === rules.variantId,
+    );
+    const total = eligible.reduce(
+      (sum, line) => sum + pence(line.cost.amountPerQuantity.amount) * line.quantity,
+      0,
+    );
+    const rate = Number(input.presentmentCurrencyRate) || 1;
+    if (!gift || total < pence(Number(rules.minSubtotal) * rate))
+      return { operations: [] };
+    candidates = [
+      {
+        message,
+        targets: [{ cartLine: { id: gift.id, quantity: 1 } }],
+        value: { percentage: { value: 100 } },
+      },
+    ];
+  } else if (rules.type === "percent" || rules.type === "tiered") {
     let percent: number | undefined;
     if (rules.type === "percent") {
       percent = rules.percent;
