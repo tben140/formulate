@@ -966,3 +966,118 @@ export const deactivateAutomatic = async (admin: Admin, id: string): Promise<voi
   );
   userErrors(data.result);
 };
+
+/** Buyers' emails and referral codes, 100 at a time. Email needs protected customer data access. */
+export const getBuyerContacts = async (
+  admin: Admin,
+  customerIds: readonly string[],
+): Promise<{ customerId: string; email: string | null; code: string | null }[]> => {
+  const result: { customerId: string; email: string | null; code: string | null }[] = [];
+  for (let i = 0; i < customerIds.length; i += 100) {
+    const data = await admin.request<{
+      nodes: ({
+        id: string;
+        email: string | null;
+        referral: { value: string } | null;
+      } | null)[];
+    }>(
+      `query Buyers($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on Customer {
+            id
+            email
+            referral: metafield(namespace: "${PRICE_NAMESPACE}", key: "referral_code") { value }
+          }
+        }
+      }`,
+      { ids: customerIds.slice(i, i + 100) },
+    );
+    for (const node of data.nodes)
+      if (node?.id)
+        result.push({
+          customerId: node.id,
+          email: node.email ?? null,
+          code: node.referral?.value ?? null,
+        });
+  }
+  return result;
+};
+
+/**
+ * The campaign's referral discount: one code discount holding every
+ * referral code, the friend's percentage off, once per customer.
+ */
+export const createReferralDiscount = async (
+  admin: Admin,
+  input: {
+    title: string;
+    firstCode: string;
+    percent: number;
+    startsAt: string;
+    endsAt: string;
+  },
+): Promise<string> => {
+  const data = await admin.request<{
+    result: {
+      codeDiscountNode: { id: string } | null;
+      userErrors: { message: string }[];
+    };
+  }>(
+    `mutation Referral($discount: DiscountCodeBasicInput!) {
+      result: discountCodeBasicCreate(basicCodeDiscount: $discount) {
+        codeDiscountNode { id }
+        userErrors { message }
+      }
+    }`,
+    {
+      discount: {
+        title: input.title,
+        code: input.firstCode,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        context: { all: "ALL" },
+        customerGets: {
+          value: { percentage: input.percent / 100 },
+          items: { all: true },
+        },
+        appliesOncePerCustomer: true,
+        combinesWith: {
+          productDiscounts: false,
+          orderDiscounts: false,
+          shippingDiscounts: true,
+        },
+      },
+    },
+  );
+  userErrors(data.result);
+  const id = data.result.codeDiscountNode?.id;
+  if (!id) throw new Error("Shopify didn't return the referral discount");
+  return id;
+};
+
+/** Each buyer's referral code on their customer record. */
+export const saveReferralCodes = async (
+  admin: Admin,
+  codes: readonly { customerId: string; code: string }[],
+): Promise<void> => {
+  for (let i = 0; i < codes.length; i += 25) {
+    const data = await admin.request<{
+      metafieldsSet: { userErrors: { message: string }[] };
+    }>(
+      `mutation Codes($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) { userErrors { message } }
+      }`,
+      {
+        metafields: codes.slice(i, i + 25).map((c) => ({
+          ownerId: c.customerId,
+          namespace: PRICE_NAMESPACE,
+          key: "referral_code",
+          type: "single_line_text_field",
+          value: c.code,
+        })),
+      },
+    );
+    const errors = data.metafieldsSet.userErrors;
+    if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
+  }
+};

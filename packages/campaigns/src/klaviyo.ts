@@ -248,3 +248,21 @@ export const createFlow = async (
     throw new Error(`Klaviyo: HTTP ${response.status} creating "${flow.name}"`);
   return ((await response.json()) as { data: { id: string } }).data.id;
 };
+
+/** Sets a property on a profile, by email (profile-import upserts). Sends nothing. */
+export const setProfileProperty = async (
+  key: string,
+  email: string,
+  property: string,
+  value: string,
+): Promise<void> => {
+  const response = await fetch(`${BASE}/profile-import`, {
+    method: "POST",
+    headers: headers(key),
+    body: JSON.stringify({
+      data: { type: "profile", attributes: { email, properties: { [property]: value } } },
+    }),
+  });
+  if (!response.ok)
+    throw new Error(`Klaviyo: HTTP ${response.status} updating a profile`);
+};
