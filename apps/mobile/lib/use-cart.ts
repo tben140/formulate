@@ -101,8 +101,10 @@ export const useMarkCampaignSeen = () => {
       const tagged = await tagSeenCampaign(current.data);
       return tagged === current.data ? null : tagged;
     },
+    // Refetch rather than write the tagged snapshot: a newer cart (an add
+    // made meanwhile) must not be replaced by this older response.
     onSuccess: (cart) => {
-      if (cart) queryClient.setQueryData(CART_KEY, cart);
+      if (cart) void queryClient.invalidateQueries({ queryKey: CART_KEY });
     },
   });
 };
