@@ -16,10 +16,12 @@ export const CampaignOffer = ({
   campaign,
   variants,
   now,
+  clockPreview,
 }: {
   readonly campaign: Campaign;
   readonly variants: readonly string[] | null;
   readonly now: number;
+  readonly clockPreview: boolean;
 }) => (
   <aside
     aria-label={campaign.title}
@@ -32,6 +34,7 @@ export const CampaignOffer = ({
           endsAt={campaign.endsAt.toISOString()}
           label={campaignEndsLabel(campaign)}
           now={now}
+          clockPreview={clockPreview}
         />
       </span>
     </div>

@@ -118,8 +118,16 @@ export const startCampaignPreview = async (handle: string, token: string) => {
 
 export const stopCampaignPreview = () => set({ preview: null });
 
-export const campaignClock = (): Date =>
-  campaignNow(__DEV__ ? process.env.EXPO_PUBLIC_CAMPAIGN_PREVIEW_AT : null);
+/**
+ * How far a preview time (EXPO_PUBLIC_CAMPAIGN_PREVIEW_AT, development only)
+ * is from the real clock. The preview runs on from when the app started, so a
+ * countdown moves; with no preview (or an invalid one) it's 0.
+ */
+const previewOffset =
+  campaignNow(__DEV__ ? process.env.EXPO_PUBLIC_CAMPAIGN_PREVIEW_AT : null).getTime() -
+  Date.now();
+
+export const campaignClock = (): Date => new Date(Date.now() + previewOffset);
 
 /** Who's looking, for the shared campaign rules. */
 export const useCampaignView = (): CampaignView => {
@@ -174,10 +182,19 @@ export const useCampaignEnds = (endsAt: Date, label: string): string => {
   const [, setTick] = useState(0);
   const text = campaignCountdown(endsAt, campaignClock()) ?? label;
   const counting = text !== label;
+  const end = endsAt.getTime();
   useEffect(() => {
-    if (!counting) return;
-    const timer = setInterval(() => setTick((tick) => tick + 1), 30_000);
-    return () => clearInterval(timer);
-  }, [counting]);
+    const tick = () => setTick((n) => n + 1);
+    if (counting) {
+      const timer = setInterval(tick, 30_000);
+      return () => clearInterval(timer);
+    }
+    // Not yet the last day: wake at its start, so a screen left open starts
+    // counting down then rather than at its next render.
+    const untilLastDay = end - 24 * 60 * 60 * 1000 - campaignClock().getTime();
+    if (untilLastDay <= 0) return;
+    const timer = setTimeout(tick, Math.min(untilLastDay + 1000, 2_147_483_647));
+    return () => clearTimeout(timer);
+  }, [counting, end]);
   return text;
 };
