@@ -287,7 +287,7 @@ describe("calendar", () => {
       "january:upcoming",
     ]);
     expect(result.notes).toEqual([
-      "black-friday and cyber overlap: only the one ending first gets the banner, and a product can be in one campaign only.",
+      "black-friday and cyber overlap at the same priority: the one ending first gets the banner. Set priority on the one that should lead.",
       "Ended, to delete with their collections and discounts: summer.",
     ]);
   });
