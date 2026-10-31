@@ -51,9 +51,7 @@ export const cohort = (
     if (!order.customerId) continue;
     const known = buyers.get(order.customerId);
     buyers.set(order.customerId, {
-      first:
-        (known?.first ?? false) ||
-        (order.customerOrders !== null && order.customerOrders <= 1),
+      first: (known?.first ?? false) || order.firstOrder === true,
       subscribed:
         (known?.subscribed ?? false) || order.lines.some((line) => line.subscription),
     });
