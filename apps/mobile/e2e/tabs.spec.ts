@@ -3,14 +3,17 @@ import { expect, test } from "@playwright/test";
 import { openApp, productLinks, route, switchTab, tab } from "./helpers";
 
 /**
- * The bottom tab bar (SHO-151): Shop · Search · Cart. Shop and Search each
+ * The bottom tab bar (SHO-151): Shop · Search · Account · Cart. Shop and Search each
  * keep their own history; Cart opens the cart sheet rather than a screen.
  */
 
-test("the tab bar offers Shop, Search and Cart, starting on Shop", async ({ page }) => {
+test("the tab bar offers Shop, Search, Account and Cart, starting on Shop", async ({
+  page,
+}) => {
   await openApp(page);
   await expect(tab(page, "Shop")).toBeVisible();
   await expect(tab(page, "Search")).toBeVisible();
+  await expect(tab(page, "Account")).toBeVisible();
   // The cart's label says what its badge means.
   await expect(tab(page, "Cart")).toHaveAccessibleName("Cart, empty");
   await expect(tab(page, "Shop")).toHaveAttribute("aria-selected", "true");
@@ -83,3 +86,11 @@ test("Cart opens the cart sheet without leaving the current tab", async ({ page 
  * web can't create a cart at all. That belongs to the device tests (SHO-26);
  * the badge's empty state and label are covered above.
  */
+
+test("the Account tab explains that sign-in is in the native app", async ({ page }) => {
+  // The web build has no keychain (expo-secure-store has no web version), so
+  // the Account tab must say so, not offer a sign-in that can't keep a session.
+  await openApp(page);
+  await switchTab(page, "Account");
+  await expect(page.getByText("Accounts aren't available here")).toBeVisible();
+});

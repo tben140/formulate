@@ -20,6 +20,8 @@ export const paths = {
   search: (query?: string): string =>
     query ? `/search?${new URLSearchParams({ q: query })}` : "/search",
   policy: (handle: string): string => `/policies/${segment(handle)}`,
+  account: (): string => "/account",
+  order: (pathId: string): string => `/account/orders/${segment(pathId)}`,
 } as const;
 
 /** Route patterns, in Next.js / Expo Router file syntax, that both apps have. */
@@ -28,6 +30,10 @@ export const SHARED_ROUTES = [
   "/collections/[handle]",
   "/products/[handle]",
   "/search",
+  // Customer accounts (SHO-70). Not app links: signed-in pages open where the
+  // session is, and a link can't carry one across.
+  "/account",
+  "/account/orders/[id]",
   // The app has drawn the store's policies itself since #166.
   "/policies/[handle]",
 ] as const;
@@ -42,6 +48,10 @@ export const SURFACE_ONLY_ROUTES = {
     // Not a page: the Cart tab opens the cart sheet (app/(tabs)/_layout.tsx).
     // Web's cart is a drawer with no route either.
     "/cart": "the Cart tab's placeholder; the tab opens a sheet",
+    // Not a page: where Shopify's sign-in returns. The sign-in sheet reads the
+    // URL; this only stops Android's router showing "unmatched route" for it.
+    // Web's equivalent is a route handler (/account/authorize).
+    "/callback": "the sign-in return URL, redirecting to the account tab",
   },
 } as const;
 
