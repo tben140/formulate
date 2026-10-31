@@ -11,6 +11,7 @@ import {
 import { AddToCart } from "../../../../components/add-to-cart";
 import { useCartUi } from "../../../../components/cart-provider";
 import { PairsWellWith } from "../../../../components/pairs-well-with";
+import { ShareButton } from "../../../../components/share-button";
 import { SiteFooter } from "../../../../components/site-footer";
 import {
   STICKY_BAR_HEIGHT,
@@ -18,6 +19,7 @@ import {
 } from "../../../../components/sticky-add-to-cart";
 import { useProduct } from "../../../../lib/queries";
 import { usePurchase, type Product } from "../../../../lib/use-purchase";
+import { productWebUrl } from "../../../../lib/web-links";
 import { Text } from "../../../../components/text";
 import { ShopImage } from "../../../../components/shop-image";
 
@@ -156,7 +158,14 @@ const ProductBody = ({ product }: { product: Product }) => {
           setView((v) => ({ ...v, offset }));
         }}
       >
-        <Stack.Screen options={{ title: product.title }} />
+        <Stack.Screen
+          options={{
+            title: product.title,
+            headerRight: () => (
+              <ShareButton url={productWebUrl(product.handle)} title={product.title} />
+            ),
+          }}
+        />
 
         {/* Full width inside the screen's 16 pt padding, and square. */}
         <ShopImage
