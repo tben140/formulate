@@ -158,7 +158,10 @@ export const addToCart = async (
 const tagSeenCampaign = async (cart: Cart): Promise<Cart> => {
   const handle = (await cookies()).get(SEEN_COOKIE)?.value ?? "";
   if (!isCampaignHandle(handle)) return cart;
-  const tagged = await cartClient.tagCampaign(cart, handle);
+  const tagged = await cartClient.tagCampaign(cart, handle).catch((error: unknown) => {
+    console.error(`[cart] campaign tag failed: ${String(error)}`);
+    return null;
+  });
   if (tagged && !tagged.ok)
     console.error(`[cart] campaign tag failed: ${describeError(tagged.error)}`);
   return tagged?.ok ? tagged.data : cart;

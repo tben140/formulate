@@ -23,7 +23,7 @@ Campaign ◄──── product.double_helix.campaign        (one campaign per 
 | Key                      | Type              | Required | Notes                                                                                                   |
 | ------------------------ | ----------------- | -------- | ------------------------------------------------------------------------------------------------------- |
 | `title`                  | single line text  | yes      | Display name in admin                                                                                   |
-| `starts_at`              | date and time     | yes      | Surfaces show nothing before this                                                                       |
+| `starts_at`              | date and time     | yes      | Regular start; early access (email link) can begin sooner                                               |
 | `ends_at`                | date and time     | yes      | A real end time. Any countdown or "ends soon" copy must match it                                        |
 | `badge`                  | single line text  | yes      | The label on product cards, e.g. "Black Friday"                                                         |
 | `headline`               | single line text  |          | Landing page and app screen heading                                                                     |

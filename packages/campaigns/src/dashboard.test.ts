@@ -14,7 +14,7 @@ const order = (patch: Partial<ReportOrder>): ReportOrder => ({
   sourceName: "web",
   utmSource: null,
   utmCampaign: null,
-  customerOrders: 1,
+  firstOrder: true,
   lines: [{ title: "Vitamin D3", quantity: 3, subscription: false }],
   ...patch,
 });
