@@ -16,6 +16,24 @@ why this suite isn't part of `turbo test`.
 Two projects run every spec: `desktop` (1280px) and `phone` (iPhone 13 metrics
 in Chromium). Keyboard specs run on desktop only.
 
+## The campaign on the day
+
+`campaign.spec.ts` checks the Black Friday campaign as shoppers will see it
+(banner, countdown, campaign prices for one-time but not subscriptions, the
+campaign page). The server decides what's live from its clock, so the spec
+only runs with a preview time in the campaign's last day, on a server the
+suite starts itself; otherwise it skips:
+
+```bash
+pnpm --filter @formulate/web test:e2e:campaign     # CAMPAIGN_PREVIEW_AT=2026-11-30T20:00:00Z
+CAMPAIGN_PREVIEW_AT=2026-11-30T20:00:00Z pnpm --filter @formulate/web test:e2e   # every spec with the campaign live
+```
+
+Run the second before a campaign starts: it found the campaign box's text
+failing colour contrast, which the suite can't see while no campaign is live.
+A server you already have running on :3200 is reused, preview time or not, so
+stop it first.
+
 ## Conventions
 
 - **Find things the way a person would**: by role and accessible name
