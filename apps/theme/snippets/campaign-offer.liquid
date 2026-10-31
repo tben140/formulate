@@ -50,6 +50,27 @@
       {{ campaign.offer.value | escape -}}
       {%- if narrowed %} {{ 'campaign.only' | t: variants: covered_names  }}{% endif %}
     </p>
+    {%- liquid
+      comment
+        The limits, as offerLimits in packages/shopify/src/campaign-offer.ts says them.
+      endcomment
+      assign rules = campaign.offer_rules.value
+      assign max_units = rules.maxUnits | plus: 0
+      assign limits = ''
+      if max_units >= 1 and max_units <= 99
+        assign limits = 'campaign.limit_units' | t: badge: campaign.badge.value, count: max_units
+      endif
+      if rules.oncePerCustomer == true
+        if limits == ''
+          assign limits = 'campaign.limit_once_alone' | t
+        else
+          assign limits = limits | append: ', ' | append: 'campaign.limit_once' | t
+        endif
+      endif
+    -%}
+    {% if limits != '' %}
+      <p class="campaign-offer__perk">{{ limits }}.</p>
+    {% endif %}
     {% if campaign.subscriber_perk.value != blank %}
       <p class="campaign-offer__perk">{{ campaign.subscriber_perk.value | escape }}.</p>
     {% endif %}

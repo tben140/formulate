@@ -4,6 +4,7 @@ import {
   campaignCartProgress,
   campaignCountdown,
   campaignUnitPrice,
+  offerLimits,
   offerLines,
   offerPercents,
   parseOfferRules,
@@ -12,12 +13,83 @@ import {
 
 const gbp = (amount: string) => ({ amount, currencyCode: "GBP" });
 
+/** What every offer reaches unless it says otherwise. */
+const REACH = {
+  appliesTo: "one_time",
+  oneTimeOnly: true,
+  maxUnits: null,
+  oncePerCustomer: false,
+  audienceTags: [],
+};
+
+describe("parseOfferRules: reach and limits", () => {
+  it("reads appliesTo, and the older oneTimeOnly flag", () => {
+    expect(
+      parseOfferRules('{"type":"percent","percent":20,"appliesTo":"subscriptions"}'),
+    ).toMatchObject({
+      appliesTo: "subscriptions",
+      oneTimeOnly: false,
+    });
+    expect(
+      parseOfferRules('{"type":"percent","percent":20,"oneTimeOnly":false}')?.appliesTo,
+    ).toBe("all");
+    expect(
+      parseOfferRules('{"type":"percent","percent":20,"appliesTo":"sometimes"}'),
+    ).toBeNull();
+  });
+
+  it("reads limits and audience tags, refusing bad ones", () => {
+    expect(
+      parseOfferRules(
+        '{"type":"percent","percent":25,"maxUnits":2,"oncePerCustomer":true,"audienceTags":["lapsed-subscriber"]}',
+      ),
+    ).toMatchObject({
+      maxUnits: 2,
+      oncePerCustomer: true,
+      audienceTags: ["lapsed-subscriber"],
+    });
+    expect(parseOfferRules('{"type":"percent","percent":25,"maxUnits":0}')).toBeNull();
+    expect(
+      parseOfferRules('{"type":"percent","percent":25,"oncePerCustomer":"yes"}'),
+    ).toBeNull();
+    expect(
+      parseOfferRules('{"type":"percent","percent":25,"audienceTags":["<b>"]}'),
+    ).toBeNull();
+  });
+
+  it("prices a subscribe-first offer on subscriptions only", () => {
+    const first = parseOfferRules(
+      '{"type":"percent","percent":20,"appliesTo":"subscriptions"}',
+    );
+    expect(campaignUnitPrice(first, gbp("8.46"), { subscription: true })).toEqual(
+      gbp("6.77"),
+    );
+    expect(campaignUnitPrice(first, gbp("9.95"))).toBeNull();
+  });
+
+  it("says the limits as shoppers read them", () => {
+    expect(
+      offerLimits(parseOfferRules('{"type":"percent","percent":25}'), "Black Friday"),
+    ).toBeNull();
+    expect(
+      offerLimits(
+        parseOfferRules(
+          '{"type":"percent","percent":25,"maxUnits":2,"oncePerCustomer":true}',
+        ),
+        "Black Friday",
+      ),
+    ).toBe(
+      "Black Friday price on up to 2 of each product, once per customer (signed in)",
+    );
+  });
+});
+
 describe("parseOfferRules", () => {
   it("reads a percent offer, one-time only by default", () => {
     expect(parseOfferRules('{"type":"percent","percent":25}')).toEqual({
       type: "percent",
       percent: 25,
-      oneTimeOnly: true,
+      ...REACH,
     });
   });
 
@@ -33,7 +105,7 @@ describe("parseOfferRules", () => {
     );
     expect(rules).toEqual({
       type: "tiered",
-      oneTimeOnly: true,
+      ...REACH,
       tiers: [
         { minSubtotal: gbp("40"), percent: 15 },
         { minSubtotal: gbp("60.00"), percent: 25 },
@@ -46,7 +118,7 @@ describe("parseOfferRules", () => {
       type: "bundle",
       buy: 3,
       free: 1,
-      oneTimeOnly: true,
+      ...REACH,
     });
   });
 

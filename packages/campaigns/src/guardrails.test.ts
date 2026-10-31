@@ -238,3 +238,65 @@ describe("checkCampaign's prices and margins", () => {
     expect(relaxed.some((f) => f.message.startsWith("Under a"))).toBe(false);
   });
 });
+
+describe("checkCampaign's limits and audiences", () => {
+  const snapshot = live as unknown as Snapshot;
+  const withRules = (
+    offerRules: string,
+    fields: Record<string, string | null> = {},
+  ): Snapshot => ({
+    ...snapshot,
+    entry: {
+      ...snapshot.entry,
+      fields: { ...snapshot.entry.fields, offer_rules: offerRules, ...fields },
+    },
+  });
+  const levels = (s: Snapshot) => {
+    const findings = checkCampaign(s, BEFORE);
+    return {
+      errors: findings.filter((f) => f.level === "error").map((f) => f.message),
+      warnings: findings.filter((f) => f.level === "warning").map((f) => f.message),
+    };
+  };
+
+  it("needs an audience offer to be email-link only", () => {
+    const { errors } = levels(
+      withRules('{"type":"percent","percent":25,"audienceTags":["lapsed-subscriber"]}'),
+    );
+    expect(errors.some((e) => e.includes("must be email-link only"))).toBe(true);
+  });
+
+  it("wants the terms to state the limits", () => {
+    const { warnings } = levels(
+      withRules('{"type":"percent","percent":25,"maxUnits":2,"oncePerCustomer":true}', {
+        terms: "25% off one-time purchases. Ends Monday.",
+      }),
+    );
+    expect(warnings).toContain(
+      "The offer is once per customer, but the terms don't say so.",
+    );
+    expect(warnings).toContain(
+      "The offer covers up to 2 of each product, but the terms don't say so.",
+    );
+  });
+
+  it("says a plain discount can't enforce limits", () => {
+    const { errors } = levels(
+      withRules('{"type":"percent","percent":25,"maxUnits":2}', {
+        terms: "Up to 2 of each product at the sale price.",
+      }),
+    );
+    expect(
+      errors.some((e) => e.includes("can't apply the offer's limits or audience")),
+    ).toBe(true);
+  });
+
+  it("checks a plain discount against a subscribe-first offer", () => {
+    const { errors } = levels(
+      withRules('{"type":"percent","percent":25,"appliesTo":"subscriptions"}'),
+    );
+    // The live discount is one-time only: it leaves out subscriptions and includes one-time.
+    expect(errors.some((e) => e.includes("leaves out subscriptions"))).toBe(true);
+    expect(errors.some((e) => e.includes("includes one-time purchases"))).toBe(true);
+  });
+});

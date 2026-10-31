@@ -20,6 +20,8 @@ export interface ReportOrder {
    * order doesn't change it); null for a guest order.
    */
   readonly firstOrder: boolean | null;
+  /** The signed-in customer, for tagging who's had a campaign; null for a guest. */
+  readonly customerId?: string | null;
   readonly lines: readonly {
     readonly title: string;
     readonly quantity: number;

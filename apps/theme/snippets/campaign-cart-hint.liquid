@@ -25,13 +25,16 @@
   assign total = 0
   assign units = 0
   if rules.type == 'tiered' or rules.type == 'bundle'
-    assign one_time_only = true
-    if rules.oneTimeOnly == false
-      assign one_time_only = false
-    endif
+    capture applies_to
+      render 'campaign-applies-to', rules: rules
+    endcapture
+    assign applies_to = applies_to | strip
     for item in cart.items
       if item.product.metafields.double_helix.campaign.value.system.handle == handle
-        if one_time_only and item.selling_plan_allocation
+        if applies_to == 'one_time' and item.selling_plan_allocation
+          continue
+        endif
+        if applies_to == 'subscriptions' and item.selling_plan_allocation == blank
           continue
         endif
         assign total = total | plus: item.original_line_price

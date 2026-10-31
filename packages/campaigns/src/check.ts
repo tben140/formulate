@@ -92,6 +92,26 @@ export const checkCampaign = (
   )
     warn(`offer doesn't mention ${rules.percent}%.`);
 
+  // Limits and audiences: only the Function enforces them, and the terms must say them.
+  const terms = (entry.fields.terms ?? "").toLowerCase();
+  if (rules?.audienceTags.length && entry.fields.audience !== "email_link")
+    error(
+      `The offer is only for customers tagged ${rules.audienceTags.join(" or ")}, so it must be email-link only (audience email_link): otherwise everyone sees an offer most can't get.`,
+    );
+  if (rules?.oncePerCustomer && !/once|one per customer|per customer/.test(terms))
+    warn("The offer is once per customer, but the terms don't say so.");
+  if (
+    rules?.maxUnits != null &&
+    !new RegExp(`\\b${rules.maxUnits}\\b|up to|maximum|limit`).test(terms)
+  )
+    warn(
+      `The offer covers up to ${rules.maxUnits} of each product, but the terms don't say so.`,
+    );
+  if (rules?.oncePerCustomer || rules?.audienceTags.length)
+    ok(
+      "Signed-in customers only can be limited or targeted: guests can't be told apart at checkout.",
+    );
+
   // The products.
   if (!collection) {
     error(
@@ -252,9 +272,29 @@ export const checkCampaign = (
           );
         else if (discount.percent !== rules.percent)
           error(`${name} gives ${discount.percent}%, the offer ${rules.percent}%.`);
-        if (discount.appliesOnSubscription === rules.oneTimeOnly)
+        const wantsSubscriptions = rules.appliesTo !== "one_time";
+        const wantsOneTime = rules.appliesTo !== "subscriptions";
+        if (
+          discount.appliesOnSubscription !== null &&
+          discount.appliesOnSubscription !== wantsSubscriptions
+        )
           error(
-            `${name} ${rules.oneTimeOnly ? "includes" : "leaves out"} subscriptions; the offer doesn't.`,
+            `${name} ${wantsSubscriptions ? "leaves out" : "includes"} subscriptions; the offer doesn't.`,
+          );
+        if (
+          discount.appliesOnOneTimePurchase !== null &&
+          discount.appliesOnOneTimePurchase !== wantsOneTime
+        )
+          error(
+            `${name} ${wantsOneTime ? "leaves out" : "includes"} one-time purchases; the offer doesn't.`,
+          );
+        if (
+          rules.maxUnits !== null ||
+          rules.oncePerCustomer ||
+          rules.audienceTags.length > 0
+        )
+          error(
+            `${name} is a plain percentage discount, which can't apply the offer's limits or audience: use the campaign Function (campaigns sync).`,
           );
         if (collection && !discount.collectionIds.includes(collection.id))
           error(`${name} isn't on the campaign's collection.`);

@@ -505,7 +505,7 @@ interface OrderNode {
   sourceName: string | null;
   currentSubtotalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
   customAttributes: { key: string; value: string | null }[];
-  customer: { orders: { nodes: { name: string }[] } } | null;
+  customer: { id: string; orders: { nodes: { name: string }[] } } | null;
   customerJourneySummary: {
     lastVisit: {
       utmParameters: { source: string | null; campaign: string | null } | null;
@@ -556,7 +556,7 @@ export const getOrders = async (
             name createdAt sourceName
             currentSubtotalPriceSet { shopMoney { amount currencyCode } }
             customAttributes { key value }
-            customer { orders(first: 1, sortKey: CREATED_AT) { nodes { name } } }
+            customer { id orders(first: 1, sortKey: CREATED_AT) { nodes { name } } }
             customerJourneySummary { lastVisit { utmParameters { source campaign } } }
             discountApplications(first: 10) {
               nodes {
@@ -615,6 +615,7 @@ export const getOrders = async (
         firstOrder: node.customer
           ? node.customer.orders.nodes[0]?.name === node.name
           : null,
+        customerId: node.customer?.id ?? null,
         lines: node.lineItems.nodes.map((line) => ({
           title: line.title,
           quantity: line.quantity,
@@ -735,5 +736,26 @@ export const writePriceHistories = async (
       throw new Error(
         `Price history not saved: ${errors.map((e) => e.message).join("; ")}`,
       );
+  }
+};
+
+/** Adds a tag to customers, one call each (tagsAdd is idempotent). Needs write_customers. */
+export const tagCustomers = async (
+  admin: Admin,
+  customerIds: readonly string[],
+  tag: string,
+): Promise<void> => {
+  for (const id of customerIds) {
+    const data = await admin.request<{
+      tagsAdd: { userErrors: { message: string }[] };
+    }>(
+      `mutation Tag($id: ID!, $tags: [String!]!) {
+        tagsAdd(id: $id, tags: $tags) { userErrors { message } }
+      }`,
+      { id, tags: [tag] },
+    );
+    const errors = data.tagsAdd.userErrors;
+    if (errors.length > 0)
+      throw new Error(`Tagging ${id} failed: ${errors.map((e) => e.message).join("; ")}`);
   }
 };

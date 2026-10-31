@@ -1,4 +1,9 @@
-import { campaignEndsLabel, campaignPath, type Campaign } from "@formulate/shopify";
+import {
+  campaignEndsLabel,
+  campaignPath,
+  offerLimits,
+  type Campaign,
+} from "@formulate/shopify";
 import Link from "next/link";
 
 import { CampaignBadge } from "@/components/campaign-badge";
@@ -43,6 +48,11 @@ export const CampaignOffer = ({
       {campaign.offer}
       {variants ? ` (${variants.join(", ")} only)` : null}
     </p>
+    {offerLimits(campaign.rules, campaign.badge) ? (
+      <p className="mt-1 text-foreground">
+        {offerLimits(campaign.rules, campaign.badge)}.
+      </p>
+    ) : null}
     {campaign.subscriberPerk ? (
       <p className="mt-1 text-foreground">{campaign.subscriberPerk}.</p>
     ) : null}
