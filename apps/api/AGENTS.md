@@ -60,6 +60,30 @@ and it looks identical in code.
 - Rate limiting keys on `CF-Connecting-IP`, which the edge sets. Never
   `X-Forwarded-For`, which the caller controls.
 
+## Account deletion (SHO-90)
+
+`POST /account/deletion/preview` and `POST /account/deletion`, in
+`src/account-deletion.ts`. Unlike the Klaviyo routes, these act on a person, so
+they authenticate: the caller's Shopify Customer Account token in
+`Authorization`, verified with Shopify.
+
+- ⚠️ **The customer id comes only from Shopify's answer to that token.** Never
+  from the body. The Worker holds Admin tokens; an id from the request would let
+  any signed-in buyer cancel or erase another account. Tested.
+- Order is fixed and stops at the first failure: cancel Recharge subscriptions,
+  delete the Klaviyo profile, then request Shopify erasure. Every step is safe
+  to repeat, so a retry is correct.
+- Needs four secrets: `SHOPIFY_CLIENT_ID` and `SHOPIFY_CLIENT_SECRET` (the
+  Dev Dashboard app "Formulate Worker"), `RECHARGE_ADMIN_TOKEN`, and
+  `KLAVIYO_DELETION_KEY` (data-privacy:write only). Until all four exist the
+  routes answer 503 and delete nothing, because the confirmation screen
+  promises every step.
+- ⚠️ Dev Dashboard apps have no permanent Admin token. `src/shopify-admin.ts`
+  exchanges the Client ID and secret for a 24-hour token (the client
+  credentials grant), caches it, and renews it. That grant only works when the
+  app and the store are in the same Shopify organization (error
+  `shop_not_permitted` otherwise).
+
 ## The runtime is not Node
 
 No `fs`, no `Buffer`, no Node `crypto`, no `process.env` — environment arrives as
@@ -90,7 +114,7 @@ It is documented as "permissive, eventually consistent, and intentionally
 designed to not be used as an accurate accounting system". Do not reinstate it.
 
 A Durable Object replaces it: single-threaded and serialised, so the
-read-modify-write cannot interleave. The *rule* lives in
+read-modify-write cannot interleave. The _rule_ lives in
 `src/rate-limit-policy.ts` as a pure function so it can be tested without a
 runtime; the DO is a storage shell.
 
