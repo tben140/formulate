@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@formulate/analytics": "workspace:*",
+    "@formulate/recharge": "workspace:*",
     "@formulate/shopify": "workspace:*",
     "@formulate/tokens": "workspace:*",
     "@shopify/hydrogen-react": "^2026.4.3",

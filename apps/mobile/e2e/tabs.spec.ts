@@ -94,3 +94,12 @@ test("the Account tab explains that sign-in is in the native app", async ({ page
   await switchTab(page, "Account");
   await expect(page.getByText("Accounts aren't available here")).toBeVisible();
 });
+
+test("the subscriptions screen explains it isn't available in the web build", async ({
+  page,
+}) => {
+  await openApp(page, "/account/subscriptions");
+  await expect(
+    page.getByText("Subscriptions can't be shown in this version of the app yet."),
+  ).toBeVisible();
+});
