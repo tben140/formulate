@@ -127,6 +127,7 @@
     "payment_methods": "Payment methods"
   },
   "campaign": {
+    "shop_offer": "Shop the {{ badge }} offer",
     "limit_units": "{{ badge }} price on up to {{ count }} of each product",
     "limit_once": "once per customer (signed in)",
     "limit_once_alone": "Once per customer (signed in)",

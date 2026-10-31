@@ -3,9 +3,22 @@
   (SHO-61). The copy is editable in the theme editor. The button goes to the
   first collection in the Shop menu, as it does on web, unless the merchant
   sets a link.
+
+  While a campaign is live it shows the campaign instead (SHO-169
+  merchandising): badge, headline, offer, the real end time and a way in, as
+  apps/web's CampaignHero. It goes back by itself when the campaign ends.
 {% endcomment %}
 
 {% liquid
+  capture live_handle
+    render 'campaign-live-handle'
+  endcapture
+  assign live_handle = live_handle | strip
+  assign campaign = nil
+  if live_handle != blank
+    assign campaign = shop.metaobjects.campaign[live_handle]
+  endif
+
   assign first_link = nil
   for link in linklists.shop.links
     if link.type == 'collection_link'
@@ -25,6 +38,24 @@
 %}
 
 <div class="container">
+  {% if campaign %}
+  <section class="home-intro home-intro--campaign" aria-labelledby="home-intro-{{ section.id }}">
+    <div class="home-intro__body">
+      <span class="campaign-badge">{{ campaign.badge.value | escape }}</span>
+      <h1 id="home-intro-{{ section.id }}" class="home-intro__heading">{{ campaign.headline.value | escape }}</h1>
+      <p class="home-intro__text">{{ campaign.offer.value | escape }}</p>
+      <p class="home-intro__text">{% render 'campaign-ends', campaign: campaign %}</p>
+      <a class="home-intro__button" href="/pages/campaigns/{{ campaign.system.handle }}">
+        {{- 'campaign.shop_offer' | t: badge: campaign.badge.value -}}
+      </a>
+    </div>
+    {% if campaign.image.value %}
+      <div class="home-intro__media">
+        {{ campaign.image.value | image_url: width: 900 | image_tag: loading: 'eager', fetchpriority: 'high', sizes: '(min-width: 48rem) 45vw, 90vw', alt: campaign.image.value.alt }}
+      </div>
+    {% endif %}
+  </section>
+  {% else %}
   <section class="home-intro" aria-labelledby="home-intro-{{ section.id }}">
     <h1 id="home-intro-{{ section.id }}" class="home-intro__heading">{{ section.settings.heading }}</h1>
     {% if section.settings.text != blank %}
@@ -34,6 +65,7 @@
       <a class="home-intro__button" href="{{ button_url }}">{{ button_label }}</a>
     {% endif %}
   </section>
+  {% endif %}
 </div>
 
 {% stylesheet %}
@@ -80,6 +112,36 @@
 
   .home-intro__button:hover {
     background: var(--color-brand-700);
+  }
+
+  /* The campaign hero, matched to apps/web's CampaignHero (bg-brand-50, two
+     columns from md). Text stays foreground: muted is under AA on brand-50. */
+  .home-intro--campaign {
+    display: grid;
+    gap: var(--spacing-8);
+    align-items: center;
+    background: var(--color-brand-50);
+  }
+
+  .home-intro--campaign .home-intro__heading {
+    margin-block-start: var(--spacing-3);
+  }
+
+  .home-intro--campaign .home-intro__text + .home-intro__text {
+    margin-block-start: var(--spacing-2);
+  }
+
+  @media (min-width: 48rem) {
+    .home-intro--campaign {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .home-intro__media img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-lg);
   }
 {% endstylesheet %}
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { priorityIndex, withoutEmptyFilters } from "@formulate/shopify";
+import { campaignFirst, priorityIndex, withoutEmptyFilters } from "@formulate/shopify";
 import { notFound, redirect } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CollectionFilters } from "@/components/collection-filters";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { getActiveCampaign } from "@/lib/campaign";
 import { getCollection } from "@/lib/catalogue";
 import { toSearchParams } from "@/lib/search-params";
 import { baseOpenGraph } from "@/lib/site";
@@ -68,7 +69,13 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
 
   const collection = result.data.collection;
   if (!collection) notFound();
-  const firstWithImage = priorityIndex(collection.products.nodes);
+  // The live campaign's products lead (SHO-169 merchandising), in the
+  // merchant's order within each group.
+  const products = campaignFirst(
+    collection.products.nodes,
+    (await getActiveCampaign())?.handle,
+  );
+  const firstWithImage = priorityIndex(products);
 
   return (
     <>
@@ -102,7 +109,7 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
       ) : null}
 
       <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {collection.products.nodes.map((product, index) => (
+        {products.map((product, index) => (
           <li key={product.id}>
             <ProductCard
               product={product}

@@ -14,6 +14,8 @@ const summary = (violations: Awaited<ReturnType<typeof scan>>["violations"]) =>
   violations.flatMap((v) => v.nodes.map((n) => `${v.id}: ${n.target.join(" ")}`));
 
 for (const path of [
+  "/",
+  "/pages/campaigns/black-friday-2026",
   "/collections/best-sellers",
   "/products/whey-protein",
   "/products/magnesium-glycinate",
