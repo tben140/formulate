@@ -1,5 +1,18 @@
-query CartInput($collectionIds: [ID!]) {
+query CartInput(
+  $collectionIds: [ID!]
+  $usedTags: [String!] = []
+  $audienceTags: [String!] = []
+) {
   cart {
+    # Signed-in shoppers only: a guest has no customer. usedCampaign: the tag
+    # this campaign leaves on everyone who's had it (oncePerCustomer).
+    # inAudience: one of the tags the offer is for (audienceTags).
+    buyerIdentity {
+      customer {
+        usedCampaign: hasAnyTag(tags: $usedTags)
+        inAudience: hasAnyTag(tags: $audienceTags)
+      }
+    }
     lines {
       id
       quantity
@@ -19,6 +32,7 @@ query CartInput($collectionIds: [ID!]) {
         ... on ProductVariant {
           id
           product {
+            id
             inCampaign: inAnyCollection(ids: $collectionIds)
           }
         }

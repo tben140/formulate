@@ -4,6 +4,7 @@
     "target": "cart.lines.discounts.generate.run",
     "input": {
       "cart": {
+        "buyerIdentity": null,
         "lines": [
           {
             "id": "gid://shopify/CartLine/1",
@@ -18,6 +19,7 @@
               "__typename": "ProductVariant",
               "id": "gid://shopify/ProductVariant/1",
               "product": {
+                "id": "gid://shopify/Product/1",
                 "inCampaign": true
               }
             }
@@ -25,9 +27,7 @@
         ]
       },
       "discount": {
-        "discountClasses": [
-          "PRODUCT"
-        ],
+        "discountClasses": ["PRODUCT"],
         "config": null
       }
     },
