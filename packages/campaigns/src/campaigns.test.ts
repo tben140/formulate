@@ -183,8 +183,33 @@ describe("discountConfig", () => {
         collectionIds: ["gid://shopify/Collection/524187107640"],
         variantIds: [],
         message: "Black Friday",
-        rules: { type: "percent", percent: 25, oneTimeOnly: true },
+        rules: { type: "percent", percent: 25 },
+        usedTags: [],
+        audienceTags: [],
       },
+    });
+  });
+
+  it("carries reach, limits and tags into the config", () => {
+    const entry = {
+      ...live.entry,
+      fields: {
+        ...live.entry.fields,
+        offer_rules:
+          '{"type":"percent","percent":20,"appliesTo":"subscriptions","maxUnits":2,"oncePerCustomer":true,"audienceTags":["lapsed-subscriber"]}',
+      },
+    };
+    const result = discountConfig(entry, live.collection, live.products);
+    expect("config" in result && result.config).toMatchObject({
+      rules: {
+        type: "percent",
+        percent: 20,
+        appliesTo: "subscriptions",
+        maxUnits: 2,
+        oncePerCustomer: true,
+      },
+      usedTags: ["campaign:black-friday-2026"],
+      audienceTags: ["lapsed-subscriber"],
     });
   });
 
@@ -220,7 +245,6 @@ describe("discountConfig", () => {
     expect("config" in result && result.config.rules).toEqual({
       type: "tiered",
       tiers: [{ minSubtotal: "40", percent: 15 }],
-      oneTimeOnly: true,
     });
   });
 

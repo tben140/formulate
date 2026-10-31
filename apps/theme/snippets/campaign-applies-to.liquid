@@ -1,0 +1,22 @@
+{% doc %}
+  Outputs what a campaign's offer reaches (SHO-169): `one_time` (the
+  default), `all`, or `subscriptions` (a subscribe-first offer). Reads
+  `appliesTo`, or the older `oneTimeOnly: false` as `all`, the same as
+  `parseOfferRules` in packages/shopify/src/campaign-offer.ts. Capture it and
+  strip it: a rendered snippet's output starts with a newline.
+
+  @param {object} rules - A campaign's parsed `offer_rules`.
+
+  @example
+  {% capture applies_to %}{% render 'campaign-applies-to', rules: rules %}{% endcapture %}
+  {% assign applies_to = applies_to | strip %}
+{% enddoc %}
+{%- liquid
+  if rules.appliesTo == 'all' or rules.appliesTo == 'subscriptions' or rules.appliesTo == 'one_time'
+    echo rules.appliesTo
+  elsif rules.appliesTo == blank and rules.oneTimeOnly == false
+    echo 'all'
+  else
+    echo 'one_time'
+  endif
+-%}

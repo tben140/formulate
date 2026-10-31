@@ -1,3 +1,4 @@
+import type { CancelledSubscription } from "./audience";
 import { PERK_PROPERTY, type PerkOnetime, type PerkSubscription } from "./perks";
 
 /**
@@ -93,4 +94,49 @@ export const addPerk = async (
     }),
   });
   return (body.onetime as { id: number }).id;
+};
+
+/** Every cancelled subscription, for win-back audiences. */
+export const cancelledSubscriptions = async (
+  token: string,
+): Promise<CancelledSubscription[]> =>
+  (
+    await all<{ customer_id: number; cancelled_at: string | null }>(
+      token,
+      "/subscriptions?status=cancelled",
+      "subscriptions",
+    )
+  ).map((s) => ({ customerId: s.customer_id, cancelledAt: s.cancelled_at }));
+
+/** The Recharge customers with an active subscription. */
+export const activeCustomerIds = async (token: string): Promise<Set<number>> =>
+  new Set(
+    (
+      await all<{ customer_id: number }>(
+        token,
+        "/subscriptions?status=active",
+        "subscriptions",
+      )
+    ).map((s) => s.customer_id),
+  );
+
+/** Shopify customer GIDs for Recharge customer ids, 250 at a time. */
+export const shopifyCustomerIds = async (
+  token: string,
+  rechargeIds: readonly number[],
+): Promise<string[]> => {
+  const ids: string[] = [];
+  for (let i = 0; i < rechargeIds.length; i += 250) {
+    const batch = rechargeIds.slice(i, i + 250).join(",");
+    const customers = await all<{ external_customer_id?: { ecommerce?: string | null } }>(
+      token,
+      `/customers?ids=${batch}`,
+      "customers",
+    );
+    for (const customer of customers) {
+      const id = customer.external_customer_id?.ecommerce;
+      if (id && /^\d+$/.test(id)) ids.push(`gid://shopify/Customer/${id}`);
+    }
+  }
+  return ids;
 };

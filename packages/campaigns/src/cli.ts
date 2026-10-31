@@ -3,13 +3,21 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { adminFromEnv, type Admin } from "./admin";
+import { AUDIENCE_TAG, lapsedCustomers } from "./audience";
 import { calendar, calendarMarkdown } from "./calendar";
 import { campaignOf } from "./campaign-node";
 import { checkCampaign } from "./check";
 import { plannedEmails, plannedPushes } from "./emails";
 import { perkKey, planPerks } from "./perks";
 import { recordPrice, ukDay } from "./price-history";
-import { activeSubscriptions, addPerk, perkOnetimes } from "./recharge";
+import {
+  activeCustomerIds,
+  activeSubscriptions,
+  addPerk,
+  cancelledSubscriptions,
+  perkOnetimes,
+  shopifyCustomerIds,
+} from "./recharge";
 import { createDraft, createPushDraft, getEmails } from "./klaviyo";
 import { campaignReport, reportMarkdown } from "./report";
 import {
@@ -21,10 +29,11 @@ import {
   getOrders,
   getPerkVariant,
   getVariantPrices,
+  tagCustomers,
   upsertFunctionDiscount,
   writePriceHistories,
 } from "./shopify-data";
-import { campaignDiscounts, discountConfig } from "./sync";
+import { campaignDiscounts, discountConfig, usedTag } from "./sync";
 import { templateFields, TEMPLATES, type TemplateName } from "./templates";
 import type { Snapshot } from "./types";
 
@@ -46,6 +55,12 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns report <handle>              results, as Markdown
   pnpm campaigns perks <handle> [--apply]     the subscriber perk on each next delivery after
                                               the campaign; plans unless --apply
+  pnpm campaigns tag-buyers <handle> [--apply]
+                                              tags customers who've had the offer, for
+                                              oncePerCustomer; plans unless --apply
+  pnpm campaigns audience lapsed --tag <tag> [--within 180] [--apply]
+                                              tags lapsed subscribers (all cancelled, the
+                                              last within N days) for a win-back offer
 
 Reads SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET (and KLAVIYO_PRIVATE_KEY,
 optional) from the environment or ~/.config/formulate/shopify-app.env, and
@@ -232,6 +247,74 @@ Next:
         if (create)
           console.log(`  created draft ${await createPushDraft(key!, push, segment!)}`);
       }
+      return 0;
+    }
+
+    case "tag-buyers": {
+      if (!handle) break;
+      const admin = await adminFromEnv();
+      const data = await snapshot(admin, handle, true);
+      const campaign = campaignOf(data.entry);
+      if (!campaign) throw new Error("The campaign can't be read; run check for why.");
+      const titles = campaignDiscounts(data.entry, data.discounts).flatMap((d) => [
+        d.title,
+        ...d.codes,
+      ]);
+      if (campaign.discountCode) titles.push(campaign.discountCode);
+      const orders = await getOrders(
+        admin,
+        campaign.startsAt.toISOString(),
+        campaign.endsAt.toISOString(),
+        titles,
+      );
+      const buyers = [
+        ...new Set(
+          orders
+            .filter((order) => order.campaignDiscount > 0 && order.customerId)
+            .map((order) => order.customerId!),
+        ),
+      ];
+      const guests = orders.filter((o) => o.campaignDiscount > 0 && !o.customerId).length;
+      const tag = usedTag(handle);
+      console.log(
+        `${buyers.length} customers had the offer; tag "${tag}". ${guests} guest orders can't be tagged.`,
+      );
+      if (!rest.includes("--apply")) {
+        if (buyers.length) console.log("Planned only. Run with --apply to tag them.");
+        return 0;
+      }
+      await tagCustomers(admin, buyers, tag);
+      console.log("Tagged.");
+      return 0;
+    }
+
+    case "audience": {
+      const tag = flag(rest, "tag");
+      const within = Number(flag(rest, "within") ?? 180);
+      if (handle !== "lapsed" || !tag) break;
+      if (!AUDIENCE_TAG.test(tag))
+        throw new Error("Tags are letters, digits, spaces, _ : -.");
+      if (!Number.isInteger(within) || within < 1 || within > 730)
+        throw new Error("--within is a number of days, 1 to 730.");
+      const token = process.env.RECHARGE_API_TOKEN;
+      if (!token)
+        throw new Error("Set RECHARGE_API_TOKEN (~/.config/formulate/recharge.env).");
+      const since = new Date(Date.now() - within * 24 * 60 * 60 * 1000);
+      const lapsed = lapsedCustomers(
+        await cancelledSubscriptions(token),
+        await activeCustomerIds(token),
+        since,
+      );
+      const customers = await shopifyCustomerIds(token, lapsed);
+      console.log(
+        `${lapsed.length} lapsed subscribers since ${since.toISOString().slice(0, 10)}; ${customers.length} matched to Shopify customers, to tag "${tag}".`,
+      );
+      if (!rest.includes("--apply")) {
+        if (customers.length) console.log("Planned only. Run with --apply to tag them.");
+        return 0;
+      }
+      await tagCustomers(await adminFromEnv(), customers, tag);
+      console.log("Tagged.");
       return 0;
     }
 

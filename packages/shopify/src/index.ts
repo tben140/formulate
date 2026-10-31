@@ -149,8 +149,9 @@ export {
   campaignCartProgress,
   campaignCountdown,
   campaignUnitPrice,
+  offerLimits,
   offerLines,
   offerPercents,
   parseOfferRules,
 } from "./campaign-offer";
-export type { OfferLine, OfferRules } from "./campaign-offer";
+export type { AppliesTo, OfferLine, OfferRules } from "./campaign-offer";

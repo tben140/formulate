@@ -1,4 +1,4 @@
-import { campaignPath, type Campaign } from "@formulate/shopify";
+import { type Campaign, campaignPath, offerLimits } from "@formulate/shopify";
 import { Link } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
@@ -28,6 +28,11 @@ export const CampaignOffer = ({
       {campaign.offer}
       {variants ? ` (${variants.join(", ")} only)` : null}
     </Text>
+    {offerLimits(campaign.rules, campaign.badge) ? (
+      <Text className="mt-1 text-sm text-foreground">
+        {offerLimits(campaign.rules, campaign.badge)}.
+      </Text>
+    ) : null}
     {campaign.subscriberPerk ? (
       <Text className="mt-1 text-sm text-foreground">{campaign.subscriberPerk}.</Text>
     ) : null}
