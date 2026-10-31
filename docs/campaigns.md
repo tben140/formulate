@@ -20,23 +20,24 @@ Campaign ◄──── product.double_helix.campaign        (one campaign per 
 
 ### Campaign fields
 
-| Key                      | Type             | Required | Notes                                                                    |
-| ------------------------ | ---------------- | -------- | ------------------------------------------------------------------------ |
-| `title`                  | single line text | yes      | Display name in admin                                                    |
-| `starts_at`              | date and time    | yes      | Regular start; early access (email link) can begin sooner                |
-| `ends_at`                | date and time    | yes      | A real end time. Any countdown or "ends soon" copy must match it         |
-| `badge`                  | single line text | yes      | The label on product cards, e.g. "Black Friday"                          |
-| `headline`               | single line text |          | Landing page and app screen heading                                      |
-| `banner_text`            | single line text |          | The site-wide banner                                                     |
-| `offer`                  | single line text | yes      | What shoppers get, worded as shown, e.g. "25% off one-time orders"       |
-| `discount_code`          | single line text |          | Empty for an automatic discount                                          |
-| `subscriber_perk`        | single line text |          | What subscribers get instead of the sale discount                        |
-| `image`                  | image            |          | Banner and landing hero                                                  |
-| `body`                   | rich text        |          | Landing page copy                                                        |
-| `terms`                  | multi-line text  | yes      | Shown on the landing page                                                |
-| `collection`             | collection       |          | The products on the landing page                                         |
-| `offer_rules`            | JSON             |          | The offer as data: see [Offer rules](#offer-rules)                       |
-| `early_access_starts_at` | date and time    |          | Earlier start for email-link visitors: see [Early access](#early-access) |
+| Key                      | Type              | Required | Notes                                                                                                   |
+| ------------------------ | ----------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| `title`                  | single line text  | yes      | Display name in admin                                                                                   |
+| `starts_at`              | date and time     | yes      | Regular start; early access (email link) can begin sooner                                               |
+| `ends_at`                | date and time     | yes      | A real end time. Any countdown or "ends soon" copy must match it                                        |
+| `badge`                  | single line text  | yes      | The label on product cards, e.g. "Black Friday"                                                         |
+| `headline`               | single line text  |          | Landing page and app screen heading                                                                     |
+| `banner_text`            | single line text  |          | The site-wide banner                                                                                    |
+| `offer`                  | single line text  | yes      | What shoppers get, worded as shown, e.g. "25% off one-time orders"                                      |
+| `discount_code`          | single line text  |          | Empty for an automatic discount                                                                         |
+| `subscriber_perk`        | single line text  |          | What subscribers get instead of the sale discount                                                       |
+| `image`                  | image             |          | Banner and landing hero                                                                                 |
+| `body`                   | rich text         |          | Landing page copy                                                                                       |
+| `terms`                  | multi-line text   | yes      | Shown on the landing page                                                                               |
+| `collection`             | collection        |          | The products on the landing page                                                                        |
+| `offer_rules`            | JSON              |          | The offer as data: see [Offer rules](#offer-rules)                                                      |
+| `early_access_starts_at` | date and time     |          | Earlier start for email-link visitors: see [Early access](#early-access)                                |
+| `perk_variant`           | variant reference |          | The subscriber perk's product: see [Subscribers get a perk](#subscribers-get-a-perk-not-the-sale-price) |
 
 The definition is **publishable** (draft or active) and **readable by the
 Storefront API**. Online Store pages for it are off until the theme has a
@@ -139,8 +140,14 @@ and tempts them to cancel and rebuy at the sale price. So:
 - the discount applies to **one-time purchases only**;
 - subscribers get `subscriber_perk` instead, for example a free shaker with
   their next delivery;
-- the perk is fulfilled by adding it to their next Recharge order, which is a
-  later step. For the demo, the perk is described, not automated.
+- the perk is added to their next Recharge delivery after the campaign by
+  `pnpm campaigns perks <handle>`: one free item (`perk_variant`, £0.00) per
+  active subscription, dated its next charge so it ships in the same box.
+  Without `--apply` it only lists what it would add. Each is marked
+  `_campaign_perk = <campaign>:<subscription>`, so running it again (for
+  subscriptions whose next charge was still during the campaign) never adds
+  one twice. `check` warns when the perk is described but has no
+  `perk_variant`.
 
 ## On each surface
 

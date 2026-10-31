@@ -36,6 +36,12 @@ describe("checkCampaign on the live Black Friday campaign", () => {
     expect(findings.some((f) => f.message.includes("body"))).toBe(false);
   });
 
+  it("warns that the perk is promised but not set up", () => {
+    expect(warnings(findings)).toContain(
+      "The subscriber perk is described but has no perk_variant, so campaigns perks can't add it.",
+    );
+  });
+
   it("has no Online Store warning when every product is published there", () => {
     expect(warnings(findings).some((w) => w.includes("Online Store"))).toBe(false);
   });

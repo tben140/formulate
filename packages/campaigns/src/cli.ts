@@ -7,6 +7,8 @@ import { calendar, calendarMarkdown } from "./calendar";
 import { campaignOf } from "./campaign-node";
 import { checkCampaign } from "./check";
 import { plannedEmails } from "./emails";
+import { perkKey, planPerks } from "./perks";
+import { activeSubscriptions, addPerk, perkOnetimes } from "./recharge";
 import { createDraft, getEmails } from "./klaviyo";
 import { campaignReport, reportMarkdown } from "./report";
 import {
@@ -16,6 +18,7 @@ import {
   getEntries,
   getEntry,
   getOrders,
+  getPerkVariant,
   upsertFunctionDiscount,
 } from "./shopify-data";
 import { campaignDiscounts, discountConfig } from "./sync";
@@ -32,9 +35,12 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns sync <handle> [--activate]   the Function discount, from the record
   pnpm campaigns emails <handle> [--create]   the planned emails; --create makes Klaviyo drafts
   pnpm campaigns report <handle>              results, as Markdown
+  pnpm campaigns perks <handle> [--apply]     the subscriber perk on each next delivery after
+                                              the campaign; plans unless --apply
 
 Reads SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET (and KLAVIYO_PRIVATE_KEY,
-optional) from the environment or ~/.config/formulate/shopify-app.env.`;
+optional) from the environment or ~/.config/formulate/shopify-app.env, and
+RECHARGE_API_TOKEN (perks only) from ~/.config/formulate/recharge.env.`;
 
 const flag = (args: string[], name: string) => {
   const index = args.indexOf(`--${name}`);
@@ -65,6 +71,9 @@ const main = async (args: string[]): Promise<number> => {
   const envFile =
     process.env.CAMPAIGNS_ENV ?? join(homedir(), ".config/formulate/shopify-app.env");
   if (existsSync(envFile)) process.loadEnvFile(envFile);
+  const rechargeEnv = join(homedir(), ".config/formulate/recharge.env");
+  if (!process.env.RECHARGE_API_TOKEN && existsSync(rechargeEnv))
+    process.loadEnvFile(rechargeEnv);
   const [command, ...rest] = args;
   const handle = rest[0];
 
@@ -192,6 +201,51 @@ Next:
           campaignReport(orders, { handle, discountTitles: titles }),
         ),
       );
+      return 0;
+    }
+
+    case "perks": {
+      if (!handle) break;
+      const token = process.env.RECHARGE_API_TOKEN;
+      if (!token) throw new Error("perks needs RECHARGE_API_TOKEN.");
+      const admin = await adminFromEnv();
+      const entry = await getEntry(admin, handle);
+      const campaign = entry ? campaignOf(entry) : null;
+      if (!entry || !campaign)
+        throw new Error(`No campaign "${handle}" that can be read.`);
+      const variantId = entry.fields.perk_variant;
+      if (!variantId)
+        throw new Error("The campaign has no perk_variant: nothing to add.");
+      const variant = await getPerkVariant(admin, variantId);
+      if (!variant) throw new Error(`perk_variant ${variantId} doesn't exist.`);
+      const plan = planPerks(
+        handle,
+        campaign.endsAt,
+        await activeSubscriptions(token),
+        await perkOnetimes(token),
+      );
+      const apply = rest.includes("--apply");
+      console.log(
+        `${variant.title}, free, with the next delivery after ${campaign.endsAt.toISOString()}:`,
+      );
+      for (const item of plan.add) {
+        const line = `  subscription ${item.subscriptionId}: address ${item.addressId}, charge ${item.date}`;
+        if (!apply) {
+          console.log(`${line} (would add)`);
+          continue;
+        }
+        const id = await addPerk(token, {
+          ...variant,
+          addressId: item.addressId,
+          date: item.date,
+          key: perkKey(handle, item.subscriptionId),
+        });
+        console.log(`${line}: added one-time ${id}`);
+      }
+      for (const item of plan.skip)
+        console.log(`  subscription ${item.subscriptionId}: skipped, ${item.reason}`);
+      if (!apply && plan.add.length > 0)
+        console.log("Nothing changed. Run again with --apply to add them.");
       return 0;
     }
   }
