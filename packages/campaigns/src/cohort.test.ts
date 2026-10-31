@@ -24,7 +24,7 @@ const order = (
   sourceName: "web",
   utmSource: null,
   utmCampaign: null,
-  customerOrders: 3,
+  firstOrder: false,
   customerId,
   lines: [{ title: "Vitamin D3", quantity: 1, subscription: false }],
   ...patch,
@@ -33,7 +33,7 @@ const bf = { discounts: ["BF (campaign)"] };
 
 describe("cohort", () => {
   const orders = [
-    order("a", "2026-11-28T10:00:00Z", { ...bf, customerOrders: 1 }),
+    order("a", "2026-11-28T10:00:00Z", { ...bf, firstOrder: true }),
     order("b", "2026-11-29T10:00:00Z", bf),
     order("c", "2026-11-29T11:00:00Z", {
       ...bf,
