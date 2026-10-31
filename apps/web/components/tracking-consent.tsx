@@ -4,6 +4,7 @@ import Script from "next/script";
 import { createContext, useContext, useId, useState, type ReactNode } from "react";
 
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
+import { analytics, forgetProductAnalytics, POSTHOG_KEY } from "@/lib/product-analytics";
 import {
   discardQueuedEvents,
   KLAVIYO_PUBLIC_KEY,
@@ -28,6 +29,8 @@ import {
 
 interface ConsentContextValue {
   readonly reopen: () => void;
+  /** The current choice, for anything that waits for consent (SHO-172). */
+  readonly consent: TrackingConsent;
 }
 
 const ConsentContext = createContext<ConsentContextValue | null>(null);
@@ -111,6 +114,7 @@ export const TrackingConsentProvider = ({
        */
       if (consent === "granted") {
         forgetKlaviyo();
+        forgetProductAnalytics();
         window.location.reload();
         return;
       }
@@ -118,12 +122,17 @@ export const TrackingConsentProvider = ({
 
     setConsent(next);
     setReopened(false);
+
+    // Events before Accept were dropped, not queued (lib/product-analytics.ts),
+    // so the page the shopper accepted on is counted from here.
+    if (next === "granted") analytics()?.pageview();
   };
 
-  const showBanner = Boolean(KLAVIYO_PUBLIC_KEY) && (consent === "unset" || reopened);
+  const showBanner =
+    Boolean(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY) && (consent === "unset" || reopened);
 
   return (
-    <ConsentContext.Provider value={{ reopen: () => setReopened(true) }}>
+    <ConsentContext.Provider value={{ reopen: () => setReopened(true), consent }}>
       {children}
 
       {showBanner ? (
@@ -186,8 +195,9 @@ const ConsentBanner = ({
           </h2>
           <p className="mt-1 text-foreground-muted">
             With your permission, Klaviyo remembers what you browse and add to your basket
-            so we can email you reminders. Nothing is tracked unless you accept. You can
-            change your mind from the footer at any time.
+            so we can email you reminders, and PostHog measures how the shop is used so we
+            can improve it. Nothing is tracked unless you accept. You can change your mind
+            from the footer at any time.
           </p>
         </div>
 
@@ -210,7 +220,9 @@ const ConsentBanner = ({
  */
 export const CookiePreferencesButton = () => {
   const context = useContext(ConsentContext);
-  if (!context || !KLAVIYO_PUBLIC_KEY) return null;
+  // The same condition as the banner: withdrawal must be reachable whenever
+  // there was anything to accept (ADR 0008).
+  if (!context || !(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY)) return null;
 
   return (
     <button
@@ -222,3 +234,7 @@ export const CookiePreferencesButton = () => {
     </button>
   );
 };
+
+/** The shopper's tracking choice, or "unset" outside the provider. */
+export const useTrackingConsent = (): TrackingConsent =>
+  useContext(ConsentContext)?.consent ?? "unset";
