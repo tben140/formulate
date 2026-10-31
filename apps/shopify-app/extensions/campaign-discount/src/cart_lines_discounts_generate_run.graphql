@@ -1,4 +1,10 @@
-query CartInput($collectionIds: [ID!]) {
+# $collectionIds defaults to empty: with no config (or none of the key)
+# Shopify supplies nothing, and inAnyCollection then answers false rather
+# than the query failing.
+query CartInput($collectionIds: [ID!] = []) {
+  # Tier thresholds are in the shop's currency; this converts them to the
+  # checkout's when the shopper pays in another.
+  presentmentCurrencyRate
   cart {
     lines {
       id
@@ -18,9 +24,9 @@ query CartInput($collectionIds: [ID!]) {
         __typename
         ... on ProductVariant {
           id
-          product {
-            inCampaign: inAnyCollection(ids: $collectionIds)
-          }
+          # On the variant, not the product: a collection can hold single
+          # variants, and the variant's answer covers its product's too.
+          inCampaign: inAnyCollection(ids: $collectionIds)
         }
       }
     }

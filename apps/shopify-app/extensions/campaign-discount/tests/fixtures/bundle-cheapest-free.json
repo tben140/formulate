@@ -3,6 +3,7 @@
     "export": "cart-lines-discounts-generate-run",
     "target": "cart.lines.discounts.generate.run",
     "input": {
+      "presentmentCurrencyRate": "1.0",
       "cart": {
         "lines": [
           {
@@ -17,9 +18,7 @@
             "merchandise": {
               "__typename": "ProductVariant",
               "id": "gid://shopify/ProductVariant/1",
-              "product": {
-                "inCampaign": true
-              }
+              "inCampaign": true
             }
           },
           {
@@ -34,22 +33,16 @@
             "merchandise": {
               "__typename": "ProductVariant",
               "id": "gid://shopify/ProductVariant/2",
-              "product": {
-                "inCampaign": true
-              }
+              "inCampaign": true
             }
           }
         ]
       },
       "discount": {
-        "discountClasses": [
-          "PRODUCT"
-        ],
+        "discountClasses": ["PRODUCT"],
         "config": {
           "jsonValue": {
-            "collectionIds": [
-              "gid://shopify/Collection/524187107640"
-            ],
+            "collectionIds": ["gid://shopify/Collection/524187107640"],
             "message": "Black Friday",
             "rules": {
               "type": "bundle",
