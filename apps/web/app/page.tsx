@@ -1,12 +1,11 @@
-import { CollectionCardsQuery, CollectionProductsQuery } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { getCollectionCards, getFeaturedProducts } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
-import { storefront } from "@/lib/storefront";
 
 export const metadata: Metadata = { title: "Double Helix" };
 
@@ -22,10 +21,10 @@ const FEATURED_COUNT = 4;
  * its **first** collection is the featured one. Reordering that menu changes
  * this page, with no deploy.
  */
-const HomePage = async () => {
+const HomeContent = async () => {
   const [navLinks, cardsResult] = await Promise.all([
     getNavLinks(),
-    storefront.request(CollectionCardsQuery, {}),
+    getCollectionCards(),
   ]);
 
   if (!cardsResult.ok) return <StorefrontErrorState error={cardsResult.error} />;
@@ -39,10 +38,7 @@ const HomePage = async () => {
 
   const featuredLink = menuCollections[0];
   const featuredResult = featuredLink
-    ? await storefront.request(CollectionProductsQuery, {
-        handle: featuredLink.handle,
-        first: FEATURED_COUNT,
-      })
+    ? await getFeaturedProducts(featuredLink.handle, FEATURED_COUNT)
     : null;
   const featured = featuredResult?.ok ? featuredResult.data.collection : null;
 
@@ -142,5 +138,8 @@ const HomePage = async () => {
     </>
   );
 };
+
+/** Every Shopify read here is cached (lib/catalogue.ts, lib/nav.ts), so the whole page is static until an Event clears a tag. */
+const HomePage = HomeContent;
 
 export { HomePage as default };

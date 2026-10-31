@@ -17,8 +17,26 @@ import { useEffect, useRef } from "react";
  * merchant adds. The right edge fades out as a cue that there's more, and the
  * current collection is scrolled into view, since it may be past the edge.
  */
-export const SiteNav = ({ links }: { links: readonly NavLink[] }) => {
-  const pathname = usePathname();
+/**
+ * SHO-150 spike: the same list without the current-page mark, as the static
+ * shell's fallback while the pathname (request data on a dynamic route)
+ * streams in. Identical markup, so nothing shifts when the mark appears.
+ */
+export const SiteNavFallback = ({ links }: { links: readonly NavLink[] }) => (
+  <SiteNavList links={links} pathname={null} />
+);
+
+export const SiteNav = ({ links }: { links: readonly NavLink[] }) => (
+  <SiteNavList links={links} pathname={usePathname()} />
+);
+
+const SiteNavList = ({
+  links,
+  pathname,
+}: {
+  links: readonly NavLink[];
+  pathname: string | null;
+}) => {
   const list = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
