@@ -1,5 +1,4 @@
 import { formatMoney } from "@formulate/shopify";
-import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, TextInput, View } from "react-native";
@@ -8,6 +7,7 @@ import { CollectionFilters } from "../../../components/collection-filters";
 import { useSearch } from "../../../lib/queries";
 import { Text } from "../../../components/text";
 import { fontFor } from "../../../lib/fonts";
+import { ShopImage } from "../../../components/shop-image";
 
 /** How long typing must pause before a search runs. */
 const DEBOUNCE_MS = 300;
@@ -97,12 +97,11 @@ const SearchScreen = () => {
             accessibilityLabel={`${item.title}, ${formatMoney(item.priceRange.minVariantPrice)}`}
             className="flex-row items-center gap-3 rounded-lg border border-border p-3"
           >
-            <Image
-              source={item.featuredImage?.url}
-              contentFit="cover"
-              transition={150}
+            <ShopImage
+              url={item.featuredImage?.url}
+              width={64}
+              height={64}
               style={{ width: 64, height: 64, borderRadius: 8 }}
-              accessibilityIgnoresInvertColors
             />
             <View className="flex-1">
               <Text className="text-base font-medium text-foreground">{item.title}</Text>
