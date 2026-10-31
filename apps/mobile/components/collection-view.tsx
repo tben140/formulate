@@ -2,6 +2,9 @@ import { Stack } from "expo-router";
 import { useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
+import { campaignFirst } from "@formulate/shopify";
+
+import { useActiveCampaign } from "../lib/campaign";
 import { useCollection } from "../lib/queries";
 import { CollectionFilters } from "./collection-filters";
 import { CollectionNav } from "./collection-nav";
@@ -27,6 +30,8 @@ export const CollectionView = ({
 }) => {
   // The same filter query string web and the theme keep in the URL.
   const [filterQuery, setFilterQuery] = useState("");
+  // The live campaign's products lead (SHO-169 merchandising), as on web.
+  const campaign = useActiveCampaign();
   const { data, isPending, isError, error, isPlaceholderData } = useCollection(handle, {
     filterQuery,
   });
@@ -76,7 +81,7 @@ export const CollectionView = ({
   return (
     <FlatList
       ref={list}
-      data={collection.products.nodes}
+      data={campaignFirst(collection.products.nodes, campaign?.handle)}
       keyExtractor={(product) => product.id}
       contentContainerClassName="p-4 gap-3"
       /*

@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-import { campaignPath } from "@formulate/shopify";
+import { campaignFirst, campaignPath } from "@formulate/shopify";
 
 import { useActiveCampaign } from "../lib/campaign";
 import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
@@ -49,47 +49,71 @@ export const HomeView = () => {
       keyboardDismissMode="on-drag"
     >
       {campaign ? (
-        <Link href={campaignPath(campaign.handle)} asChild>
-          <Pressable
-            accessibilityRole="link"
-            className="gap-2 rounded-xl border border-brand-300 bg-brand-50 p-5"
+        // The hero while a campaign is live (SHO-169 merchandising), in place
+        // of the everyday introduction, as on web and the theme. Text is
+        // foreground, not foreground-muted: on brand-50 muted is 4.35:1.
+        <View className="gap-3 rounded-xl border border-brand-300 bg-brand-50 p-6">
+          {campaign.image ? (
+            <Image
+              source={{ uri: campaign.image.url }}
+              accessibilityLabel={campaign.image.altText ?? ""}
+              style={{
+                width: "100%",
+                aspectRatio:
+                  campaign.image.width && campaign.image.height
+                    ? campaign.image.width / campaign.image.height
+                    : 16 / 9,
+                borderRadius: 8,
+              }}
+              contentFit="cover"
+            />
+          ) : null}
+          <CampaignBadge label={campaign.badge} />
+          <Text
+            accessibilityRole="header"
+            className="text-3xl font-semibold text-foreground"
           >
-            <CampaignBadge label={campaign.badge} />
-            <Text className="text-xl font-semibold text-foreground">
-              {campaign.headline}
-            </Text>
-            <CampaignEnds campaign={campaign} className="text-sm text-foreground-muted" />
-            <Text className="text-sm font-semibold text-foreground underline">
-              See the offer
-            </Text>
-          </Pressable>
-        </Link>
-      ) : null}
-
-      <View className="rounded-xl bg-surface-muted p-6">
-        <Text
-          accessibilityRole="header"
-          className="text-3xl font-semibold text-foreground"
-        >
-          Everyday supplements, delivered on your schedule
-        </Text>
-        <Text className="mt-3 text-base text-foreground">
-          Buy once or subscribe. Subscriptions can be skipped, paused or cancelled at any
-          time.
-        </Text>
-        {featuredLink ? (
-          <Link href={featuredLink.path} asChild>
+            {campaign.headline}
+          </Text>
+          <Text className="text-base text-foreground">{campaign.offer}</Text>
+          <CampaignEnds campaign={campaign} className="text-sm text-foreground" />
+          <Link href={campaignPath(campaign.handle)} asChild>
             <Pressable
               accessibilityRole="link"
-              className="mt-6 self-start rounded-md bg-brand-600 px-5 py-3"
+              className="mt-3 self-start rounded-md bg-brand-600 px-5 py-3"
             >
               <Text className="font-semibold text-surface">
-                Shop {featuredLink.title}
+                Shop the {campaign.badge} offer
               </Text>
             </Pressable>
           </Link>
-        ) : null}
-      </View>
+        </View>
+      ) : (
+        <View className="rounded-xl bg-surface-muted p-6">
+          <Text
+            accessibilityRole="header"
+            className="text-3xl font-semibold text-foreground"
+          >
+            Everyday supplements, delivered on your schedule
+          </Text>
+          <Text className="mt-3 text-base text-foreground">
+            Buy once or subscribe. Subscriptions can be skipped, paused or cancelled at
+            any time.
+          </Text>
+          {featuredLink ? (
+            <Link href={featuredLink.path} asChild>
+              <Pressable
+                accessibilityRole="link"
+                className="mt-6 self-start rounded-md bg-brand-600 px-5 py-3"
+              >
+                <Text className="font-semibold text-surface">
+                  Shop {featuredLink.title}
+                </Text>
+              </Pressable>
+            </Link>
+          ) : null}
+        </View>
+      )}
 
       {categories.length > 0 ? (
         <View>
@@ -151,9 +175,11 @@ export const HomeView = () => {
               </Pressable>
             </Link>
           </View>
-          {featured.products.nodes.slice(0, FEATURED_COUNT).map((product) => (
-            <ProductRow key={product.id} product={product} />
-          ))}
+          {campaignFirst(featured.products.nodes, campaign?.handle)
+            .slice(0, FEATURED_COUNT)
+            .map((product) => (
+              <ProductRow key={product.id} product={product} />
+            ))}
         </View>
       ) : null}
 
