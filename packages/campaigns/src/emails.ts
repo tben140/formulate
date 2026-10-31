@@ -75,7 +75,8 @@ export const APP_SCHEME = "formulate";
  */
 export const plannedPushes = (entry: CampaignEntry): PlannedPush[] => {
   const campaign = campaignOf(entry);
-  if (!campaign) return [];
+  // An email-link offer isn't for the whole offers segment.
+  if (!campaign || campaign.audience === "email_link") return [];
   const deepLink = `${APP_SCHEME}://${campaignPath(campaign.handle).slice(1)}`;
   const pushes: PlannedPush[] = [
     {
