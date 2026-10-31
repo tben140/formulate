@@ -1,0 +1,61 @@
+name: Price history
+
+# Records every variant's price once a day, so `campaigns check` can prove a
+# campaign's "Normally £x" was the real price for the 28 days before it
+# (packages/campaigns/src/price-history.ts, docs/campaigns.md). Shopify keeps
+# no price history of its own. Only a change is written; most days write
+# nothing.
+#
+# Signs in as the Double Helix app (client credentials). Needs two repository
+# secrets, SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET; without them
+# the run skips with a notice. The secret reaches only the recording step.
+on:
+  schedule:
+    # 02:17 UTC: after midnight UK time all year, away from the hour.
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: price-history
+  cancel-in-progress: false
+
+jobs:
+  record:
+    name: Record prices
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HAS_SECRETS: ${{ secrets.SHOPIFY_STORE_DOMAIN != '' && secrets.SHOPIFY_APP_CLIENT_SECRET != '' }}
+    steps:
+      - name: Skip without the app's credentials
+        if: env.HAS_SECRETS != 'true'
+        run: echo "::notice::Price history skipped - SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET secrets are not both set."
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        if: env.HAS_SECRETS == 'true'
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        if: env.HAS_SECRETS == 'true'
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        if: env.HAS_SECRETS == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - if: env.HAS_SECRETS == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Record today's prices
+        if: env.HAS_SECRETS == 'true'
+        env:
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_APP_CLIENT_SECRET: ${{ secrets.SHOPIFY_APP_CLIENT_SECRET }}
+          # No ~/.config file in CI: the environment is the only source.
+          CAMPAIGNS_ENV: /dev/null
+        run: pnpm campaigns prices record --apply
