@@ -44,6 +44,7 @@ import {
   getOrders,
   getPerkVariant,
   getVariantPrices,
+  setCampaignField,
   tagCustomers,
   tidyCampaign,
   upsertFunctionDiscount,
@@ -68,7 +69,8 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns emails <handle> [--create]   the planned emails; --create makes Klaviyo drafts
   pnpm campaigns pushes <handle> [--create]   launch and last-day pushes; --create makes Klaviyo
                                               drafts for KLAVIYO_PUSH_SEGMENT_ID
-  pnpm campaigns terms <handle>               the terms, written from the offer's rules
+  pnpm campaigns terms <handle> [--apply]     the terms, written from the offer's rules;
+                                              --apply saves them to the record
   pnpm campaigns tidy <handle> [--apply]      after it ends: off its products, collection
                                               deleted, record back to draft; plans unless --apply
   pnpm campaigns approve <handle> --by <name> sign-off: check fails until it's approved,
@@ -331,6 +333,13 @@ Next:
         throw new Error("The campaign or its offer_rules can't be read; run check.");
       const terms = campaignTerms(campaign, rules);
       console.log(terms);
+      if (rest.includes("--apply") && terms !== entry.fields.terms) {
+        await setCampaignField(admin, entry.id, "terms", terms);
+        console.log(
+          "\nSaved to the record. It needs approving again (campaigns approve).",
+        );
+        return 0;
+      }
       console.log(
         terms === entry.fields.terms
           ? "\nMatches the saved terms."

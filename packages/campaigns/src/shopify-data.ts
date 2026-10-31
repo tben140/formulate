@@ -853,3 +853,22 @@ export const tidyCampaign = async (
   const errors = data.metaobjectUpdate.userErrors;
   if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
 };
+
+/** Writes one field of a campaign record. */
+export const setCampaignField = async (
+  admin: Admin,
+  id: string,
+  key: string,
+  value: string,
+): Promise<void> => {
+  const data = await admin.request<{
+    metaobjectUpdate: { userErrors: { message: string }[] };
+  }>(
+    `mutation Field($id: ID!, $fields: [MetaobjectFieldInput!]!) {
+      metaobjectUpdate(id: $id, metaobject: { fields: $fields }) { userErrors { message } }
+    }`,
+    { id, fields: [{ key, value }] },
+  );
+  const errors = data.metaobjectUpdate.userErrors;
+  if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
+};

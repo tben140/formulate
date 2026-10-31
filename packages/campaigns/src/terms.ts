@@ -31,6 +31,13 @@ const ukLong = (at: Date): string => {
   return `${parts.hour}:${parts.minute} on ${parts.weekday} ${parts.day} ${parts.month} ${parts.year}`;
 };
 
+const ukDate = (at: Date): string =>
+  new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    day: "numeric",
+    month: "long",
+  }).format(at);
+
 /** The offer in words, as a shopper reads it. */
 export const offerInWords = (rules: OfferRules): string => {
   switch (rules.type) {
@@ -77,7 +84,10 @@ export const campaignTerms = (
     rules.oncePerCustomer ? "Once per customer, signed in to their account" : null,
     rules.appliesTo === "one_time" ? "Doesn't apply to subscriptions" : null,
     "Can't be combined with other discounts or codes, except free delivery",
-    campaign.subscriberPerk ? `Subscribers: ${campaign.subscriberPerk}` : null,
+    // How campaigns perks gives it: one per active subscription, next delivery after the end.
+    campaign.subscriberPerk
+      ? `Subscribers: ${campaign.subscriberPerk.replace(/[.,]\s*$/, "")}; one per active subscription, added to the next delivery after ${ukDate(lastMinute)}`
+      : null,
     demo ? DEMO_NOTE : null,
   ];
   return sentences
