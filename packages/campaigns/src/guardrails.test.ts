@@ -300,3 +300,40 @@ describe("checkCampaign's limits and audiences", () => {
     expect(errors.some((e) => e.includes("includes one-time purchases"))).toBe(true);
   });
 });
+
+describe("checkCampaign's sign-off", () => {
+  const snapshot = live as unknown as Snapshot;
+  const at = (patch: { fields?: Record<string, string | null>; updatedAt?: string }) =>
+    checkCampaign(
+      {
+        ...snapshot,
+        entry: {
+          ...snapshot.entry,
+          ...(patch.updatedAt ? { updatedAt: patch.updatedAt } : {}),
+          fields: { ...snapshot.entry.fields, ...patch.fields },
+        },
+      },
+      BEFORE,
+    )
+      .filter((f) => f.level === "error")
+      .map((f) => f.message);
+
+  it("fails until someone approves it", () => {
+    expect(at({ fields: { approved_by: null, approved_at: null } })).toContain(
+      "Not signed off: run campaigns approve <handle> --by <name> once it's right.",
+    );
+  });
+
+  it("allows approval's own save, but not a later edit", () => {
+    expect(
+      at({ updatedAt: "2026-10-30T12:01:00Z" }).some((e) =>
+        e.startsWith("Changed since"),
+      ),
+    ).toBe(false);
+    expect(
+      at({ updatedAt: "2026-10-31T09:00:00Z" }).some((e) =>
+        e.startsWith("Changed since Ben approved"),
+      ),
+    ).toBe(true);
+  });
+});

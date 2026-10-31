@@ -72,3 +72,6 @@ apps/web/e2e/.auth/
 
 # Lighthouse CI output (apps/web/lighthouserc.cjs)
 .lighthouseci/
+
+# wrangler dev's local state (Durable Object databases, traces): never committed.
+.wrangler/

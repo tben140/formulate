@@ -20,6 +20,9 @@ export const percentsIn = (text: string): number[] =>
 
 const DAY = 24 * 60 * 60 * 1000;
 
+/** Approving writes the record too, so its own save lands just after. */
+const APPROVAL_SLACK_MS = 2 * 60 * 1000;
+
 /**
  * Everything that must agree before a campaign goes live, from one snapshot
  * of the store (and Klaviyo, when there's a key). Errors are what would show
@@ -55,6 +58,24 @@ export const checkCampaign = (
     warn(
       "The subscriber perk is described but has no perk_variant, so campaigns perks can't add it.",
     );
+  // Sign-off: someone approved it, and nothing has changed since.
+  const approvedAt = entry.fields.approved_at ? new Date(entry.fields.approved_at) : null;
+  if (
+    !approvedAt ||
+    Number.isNaN(approvedAt.getTime()) ||
+    !entry.fields.approved_by?.trim()
+  ) {
+    error("Not signed off: run campaigns approve <handle> --by <name> once it's right.");
+  } else if (
+    entry.updatedAt &&
+    new Date(entry.updatedAt).getTime() > approvedAt.getTime() + APPROVAL_SLACK_MS
+  ) {
+    error(
+      `Changed since ${entry.fields.approved_by} approved it (${approvedAt.toISOString()}; changed ${entry.updatedAt}): see campaigns history, then approve again.`,
+    );
+  } else {
+    ok(`Signed off by ${entry.fields.approved_by}, ${approvedAt.toISOString()}.`);
+  }
   if (entry.fields.early_access_starts_at && !campaign.earlyAccessStartsAt)
     error("early_access_starts_at isn't before starts_at, so it's ignored.");
 
