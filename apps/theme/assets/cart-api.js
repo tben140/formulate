@@ -93,7 +93,10 @@ export const changeItem = (lineKey, quantity) =>
  * @param {string} handle
  */
 export const tagCampaign = async (handle) => {
-  await fetch("/cart/update.js", {
+  const root =
+    /** @type {{ Shopify?: { routes?: { root?: string } } }} */ (window).Shopify?.routes
+      ?.root ?? "/";
+  await fetch(`${root}cart/update.js`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ attributes: { _campaign: handle } }),
