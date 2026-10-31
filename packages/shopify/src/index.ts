@@ -102,6 +102,12 @@ export {
 export type { FilterLike, FilterValueLike } from "./filters";
 export type { ProductFilter } from "./generated/graphql";
 
+export {
+  limitMessage,
+  MAX_PER_PRODUCT,
+  maxQuantityForLine,
+  quantityOfProduct,
+} from "./cart-limit";
 export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";
 export { PLANNED_PAYMENT_ICON_IDS, paymentIconIds } from "./payment-icons";
