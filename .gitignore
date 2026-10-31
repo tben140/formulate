@@ -72,3 +72,8 @@ apps/web/e2e/.auth/
 
 # Lighthouse CI output (apps/web/lighthouserc.cjs)
 .lighthouseci/
+
+# Apple Pay certificate files (apps/mobile/scripts/apple-pay-certificate.sh)
+.apple-pay-certificate-id
+*.csr
+*.cer
