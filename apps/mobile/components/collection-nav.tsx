@@ -1,8 +1,9 @@
 import { Link } from "expo-router";
 import { Fragment, useRef } from "react";
-import { Pressable, ScrollView, Text, type ScrollViewInstance } from "react-native";
+import { Pressable, ScrollView, type ScrollViewInstance } from "react-native";
 
 import { useNavLinks } from "../lib/queries";
+import { Text } from "./text";
 
 /**
  * The collection links from the Shopify menu (SHO-60), as a row of chips

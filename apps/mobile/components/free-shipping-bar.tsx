@@ -4,7 +4,8 @@ import {
   type MoneyLike,
 } from "@formulate/shopify";
 import { useEffect, useRef } from "react";
-import { AccessibilityInfo, Platform, Text, View } from "react-native";
+import { AccessibilityInfo, Platform, View } from "react-native";
+import { Text } from "./text";
 
 /**
  * How far the cart is from free standard delivery. The counterpart of apps/web's

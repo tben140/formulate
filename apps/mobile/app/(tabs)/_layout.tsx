@@ -4,6 +4,7 @@ import type { ColorValue } from "react-native";
 
 import { useCartUi } from "../../components/cart-provider";
 import { useCart } from "../../lib/use-cart";
+import { fontFor } from "../../lib/fonts";
 
 /**
  * React Native 0.88's ColorValue also allows numbers and null, which the icon
@@ -41,6 +42,8 @@ const TabsLayout = () => {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: ACTIVE,
+        // The face carries the weight (lib/fonts.ts), so the default 500 goes.
+        tabBarLabelStyle: { fontFamily: fontFor("font-medium"), fontWeight: "normal" },
         tabBarInactiveTintColor: INACTIVE,
       }}
     >
