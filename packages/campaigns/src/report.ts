@@ -39,7 +39,26 @@ export interface CampaignReport {
   readonly firstOrders: number;
   readonly subscriptionsStarted: number;
   readonly topProducts: readonly { readonly title: string; readonly quantity: number }[];
+  /** Orders per UK hour ("2026-11-27 09"), oldest first, for the dashboard. */
+  readonly byHour: readonly { readonly hour: string; readonly orders: number }[];
 }
+
+/** "2026-11-27 09": the order's hour in UK time. */
+const ukHour = (iso: string): string => {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(new Date(iso))
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}`;
+};
 
 /**
  * Whether an order belongs to the campaign: its discount was applied, or the
@@ -99,6 +118,9 @@ export const campaignReport = (
       .map(([title, quantity]) => ({ title, quantity }))
       .sort((a, b) => b.quantity - a.quantity || a.title.localeCompare(b.title))
       .slice(0, 5),
+    byHour: Object.entries(tally(ours.map((order) => ukHour(order.createdAt))))
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([hour, orders]) => ({ hour, orders })),
   };
 };
 
