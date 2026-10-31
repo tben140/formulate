@@ -1,7 +1,10 @@
 import {
+  campaignUnitPrice,
   defaultSelectedOptions,
   findVariantByOptions,
   purchasableAllocations,
+  type MoneyLike,
+  type OfferRules,
   type ProductByHandleResult,
   type SelectedOption,
 } from "@formulate/shopify";
@@ -28,7 +31,19 @@ export const ONE_TIME = "";
  * rendering differs, which is the whole point of keeping them as pure
  * functions over plain data.
  */
-export const usePurchase = (product: Product) => {
+export const usePurchase = (
+  product: Product,
+  /**
+   * A live campaign with a single price (SHO-169): its rules and the variants
+   * it covers. Both controls show that price beside the normal one; Shopify
+   * charges it at checkout.
+   */
+  campaign: {
+    readonly badge: string;
+    readonly rules: OfferRules;
+    readonly variantIds: readonly string[];
+  } | null = null,
+) => {
   const addToCart = useAddToCart();
 
   const [selected, setSelected] = useState<readonly SelectedOption[]>(() =>
@@ -66,12 +81,28 @@ export const usePurchase = (product: Product) => {
   const soldOut = Boolean(variant && !variant.availableForSale);
   const disabled = !variant || soldOut || addToCart.isPending;
 
+  /** The campaign's price for a purchase option, when it has one. */
+  const offerPrice = (price: MoneyLike | null | undefined, id: string) =>
+    campaign && price && variant && campaign.variantIds.includes(variant.id)
+      ? campaignUnitPrice(campaign.rules, price, { subscription: id !== ONE_TIME })
+      : null;
+  const displayOfferPrice = offerPrice(displayPrice, effectivePlanId);
+
   const choices = [
-    { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
+    {
+      id: ONE_TIME,
+      label: "One-time purchase",
+      price: variant?.price,
+      offerPrice: offerPrice(variant?.price, ONE_TIME),
+    },
     ...allocations.map((allocation) => ({
       id: allocation.sellingPlan.id,
       label: allocation.sellingPlan.name,
       price: allocation.priceAdjustments[0]?.price,
+      offerPrice: offerPrice(
+        allocation.priceAdjustments[0]?.price,
+        allocation.sellingPlan.id,
+      ),
     })),
   ];
 
@@ -105,6 +136,8 @@ export const usePurchase = (product: Product) => {
     allocations,
     effectivePlanId,
     displayPrice,
+    displayOfferPrice,
+    offerBadge: campaign?.badge ?? null,
     soldOut,
     disabled,
     choices,

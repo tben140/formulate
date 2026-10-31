@@ -105,7 +105,13 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             {campaign && view.preview === campaign.handle ? (
               <CampaignPreviewStrip campaign={campaign} />
             ) : null}
-            {campaign ? <CampaignBanner campaign={campaign} /> : null}
+            {campaign ? (
+              <CampaignBanner
+                campaign={campaign}
+                now={view.now.getTime()}
+                clockPreview={view.clockPreview}
+              />
+            ) : null}
             {campaignChange ? <CampaignRefresh at={campaignChange} /> : null}
             <header className="border-b border-border">
               {/*
@@ -198,7 +204,19 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
               </div>
             </footer>
 
-            <CartDrawer cart={cart} suggestions={suggestions} />
+            <CartDrawer
+              cart={cart}
+              suggestions={suggestions}
+              campaign={
+                campaign
+                  ? {
+                      handle: campaign.handle,
+                      badge: campaign.badge,
+                      rules: campaign.rules,
+                    }
+                  : null
+              }
+            />
           </CartProvider>
         </TrackingConsentProvider>
 

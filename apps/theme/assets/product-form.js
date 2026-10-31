@@ -8,6 +8,8 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {boolean} available
  * @property {string[]} options Option values, in the product's option order.
  * @property {string} price Already formatted by Liquid's `money` filter.
+ * @property {string | null} [offerPrice] The live campaign's price (SHO-169),
+ *   formatted, when it covers this variant; else null.
  * @property {PlanData[]} [plans] App-owned selling plans only. See the filter
  *   in snippets/product-form.liquid.
  */
@@ -17,6 +19,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {number} id
  * @property {string} name
  * @property {string} price Already formatted by Liquid's `money` filter.
+ * @property {string | null} [offerPrice] As on VariantData.
  */
 
 /**
@@ -95,7 +98,9 @@ class ProductForm extends Component {
     // different variant. Trusting it skipped the rebuild, and an add could
     // send one variant's selling plan with another variant's id.
     const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
-    this.#plansBuiltFor = rendered ? Number(this.refs.planList?.dataset.builtFor) || null : null;
+    this.#plansBuiltFor = rendered
+      ? Number(this.refs.planList?.dataset.builtFor) || null
+      : null;
     this.#sync();
     this.#observeMainButton();
   }
@@ -202,7 +207,10 @@ class ProductForm extends Component {
 
     // The headline price follows the purchase option, as on web and mobile
     // (SHO-124). The per-option prices in the list were always right.
-    if (price && match) price.textContent = effectivePlan?.price ?? match.price;
+    if (price && match) {
+      const priced = effectivePlan ?? match;
+      this.#showPrice(price, priced.price, priced.offerPrice);
+    }
 
     const label = !match
       ? (submit?.dataset.unavailableLabel ?? "Unavailable")
@@ -244,8 +252,9 @@ class ProductForm extends Component {
      * @param {string} value
      * @param {string} name
      * @param {string} priceText
+     * @param {string | null | undefined} offerText
      */
-    const option = (value, name, priceText) => {
+    const option = (value, name, priceText, offerText) => {
       const label = document.createElement("label");
       label.className = "product-form__plan";
 
@@ -259,7 +268,7 @@ class ProductForm extends Component {
 
       const cost = document.createElement("span");
       cost.className = "product-form__plan-price";
-      cost.textContent = priceText;
+      this.#showPrice(cost, priceText, offerText);
 
       label.append(text, cost);
       return label;
@@ -270,10 +279,43 @@ class ProductForm extends Component {
         "",
         planList.dataset.oneTimeLabel ?? "One-time purchase",
         match?.price ?? "",
+        match?.offerPrice,
       ),
-      ...plans.map((plan) => option(String(plan.id), plan.name, plan.price)),
+      ...plans.map((plan) =>
+        option(String(plan.id), plan.name, plan.price, plan.offerPrice),
+      ),
     );
     fieldset.hidden = plans.length === 0;
+  }
+
+  /**
+   * A price, or a campaign price beside the struck normal one (SHO-169), the
+   * same markup as snippets/campaign-price.liquid. Text nodes only: the
+   * labels are merchant data.
+   *
+   * @param {HTMLElement} element
+   * @param {string} normal
+   * @param {string | null | undefined} offer
+   */
+  #showPrice(element, normal, offer) {
+    if (!offer) {
+      element.textContent = normal;
+      return;
+    }
+    /** @param {string} text */
+    const hidden = (text) => {
+      const span = document.createElement("span");
+      span.className = "visually-hidden";
+      span.textContent = text;
+      return span;
+    };
+    const struck = document.createElement("s");
+    struck.className = "campaign-price__normal";
+    struck.append(hidden(`${this.dataset.normallyLabel ?? ""} `), normal);
+    const now = document.createElement("span");
+    now.className = "campaign-price__offer";
+    now.append(hidden(`, ${this.dataset.offerLabel ?? ""} `), offer);
+    element.replaceChildren(struck, " ", now);
   }
 
   /**
@@ -317,7 +359,8 @@ class ProductForm extends Component {
         ? match.options.join(" / ")
         : "";
     const detail = [variantTitle, effectivePlan?.name].filter(Boolean).join(" · ");
-    const priceText = match ? (effectivePlan?.price ?? match.price) : "";
+    const priced = effectivePlan ?? match;
+    const priceText = priced ? (priced.offerPrice ?? priced.price) : "";
 
     if (stickyDetail) {
       stickyDetail.textContent = [detail, priceText].filter(Boolean).join(" — ");
@@ -379,7 +422,8 @@ class ProductForm extends Component {
     } catch (error) {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
-      const message = error instanceof Error ? error.message : "Could not update your cart.";
+      const message =
+        error instanceof Error ? error.message : "Could not update your cart.";
       if (status) status.textContent = message;
       // The status line sits by the main button, off screen whenever the bar
       // is up, so the bar shows the message too. Not a live region: the

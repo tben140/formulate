@@ -1,8 +1,9 @@
-import { campaignEndsLabel, campaignPath, type Campaign } from "@formulate/shopify";
+import { campaignPath, type Campaign } from "@formulate/shopify";
 import { Link } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
 import { CampaignBadge } from "./campaign-badge";
+import { CampaignEnds } from "./campaign-ends";
 
 /**
  * The campaign on a product screen (SHO-169). Matches apps/web's
@@ -16,19 +17,19 @@ export const CampaignOffer = ({
   readonly campaign: Campaign;
   readonly variants: readonly string[] | null;
 }) => (
+  // Text in here is foreground, not foreground-muted: on brand-50 muted is
+  // 4.35:1, under AA's 4.5.
   <View className="rounded-lg border border-brand-300 bg-brand-50 p-4">
     <View className="flex-row flex-wrap items-center gap-2">
       <CampaignBadge label={campaign.badge} />
-      <Text className="text-sm text-foreground-muted">{campaignEndsLabel(campaign)}</Text>
+      <CampaignEnds campaign={campaign} className="text-sm text-foreground" />
     </View>
     <Text className="mt-2 text-sm font-semibold text-foreground">
       {campaign.offer}
       {variants ? ` (${variants.join(", ")} only)` : null}
     </Text>
     {campaign.subscriberPerk ? (
-      <Text className="mt-1 text-sm text-foreground-muted">
-        {campaign.subscriberPerk}.
-      </Text>
+      <Text className="mt-1 text-sm text-foreground">{campaign.subscriberPerk}.</Text>
     ) : null}
     <Link href={campaignPath(campaign.handle)} asChild>
       <Pressable accessibilityRole="link" className="mt-2 self-start">

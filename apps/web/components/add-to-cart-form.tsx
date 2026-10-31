@@ -2,10 +2,13 @@
 
 import { EVENTS, addedToCart } from "@formulate/analytics";
 import {
+  campaignUnitPrice,
   defaultSelectedOptions,
   findVariantByOptions,
   formatMoney,
   purchasableAllocations,
+  type MoneyLike,
+  type OfferRules,
   withOption,
   type ProductByHandleResult,
   type SelectedOption,
@@ -16,6 +19,7 @@ import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 
 import { useCartUi } from "./cart-provider";
+import { OfferPrice } from "./offer-price";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
 
@@ -35,7 +39,22 @@ const IDLE: CartActionState = { status: "idle" };
  * The selection rules live in `packages/shopify` and are shared with mobile;
  * only the rendering is here. See docs/adr/0005-parity-means-design-not-data.md.
  */
-export const AddToCartForm = ({ product }: { product: Product }) => {
+export const AddToCartForm = ({
+  product,
+  campaign = null,
+}: {
+  product: Product;
+  /**
+   * A live campaign with a single price (SHO-169): its rules and the variants
+   * it covers. The page shows that price before checkout, beside the normal
+   * one; Shopify charges it at checkout.
+   */
+  campaign?: {
+    readonly badge: string;
+    readonly rules: OfferRules;
+    readonly variantIds: readonly string[];
+  } | null;
+}) => {
   const { openCart, storeDomain } = useCartUi();
   const [state, formAction, pending] = useActionState(addToCart, IDLE);
 
@@ -99,6 +118,13 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
   const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
   const displayPrice =
     chosenAllocation?.priceAdjustments[0]?.price ?? variant?.price ?? null;
+
+  /** The campaign's price for a purchase option, when it has one. */
+  const offerPrice = (price: MoneyLike | null | undefined, planId: string) =>
+    campaign && price && variant && campaign.variantIds.includes(variant.id)
+      ? campaignUnitPrice(campaign.rules, price, { subscription: planId !== ONE_TIME })
+      : null;
+  const displayOfferPrice = offerPrice(displayPrice, effectivePlanId);
 
   const soldOut = Boolean(variant && !variant.availableForSale);
 
@@ -237,7 +263,15 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       label computes as "One-time purchase£24.95", which is
                       what a screen reader would announce.
                     */}
-                    {` ${formatMoney(choice.price)}`}
+                    {offerPrice(choice.price, choice.id) ? (
+                      <OfferPrice
+                        normal={choice.price}
+                        offer={offerPrice(choice.price, choice.id)!}
+                        badge={campaign!.badge}
+                      />
+                    ) : (
+                      ` ${formatMoney(choice.price)}`
+                    )}
                   </span>
                 ) : null}
               </label>
@@ -248,7 +282,17 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
 
       {displayPrice ? (
         // DM Mono ships in 400 and 500 only; semibold would be synthesised.
-        <p className="mb-4 font-mono text-2xl font-medium">{formatMoney(displayPrice)}</p>
+        <p className="mb-4 font-mono text-2xl font-medium">
+          {displayOfferPrice && campaign ? (
+            <OfferPrice
+              normal={displayPrice}
+              offer={displayOfferPrice}
+              badge={campaign.badge}
+            />
+          ) : (
+            formatMoney(displayPrice)
+          )}
+        </p>
       ) : null}
 
       {/*
@@ -286,7 +330,13 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         title={product.title}
         variantTitle={variant && variant.title !== "Default Title" ? variant.title : null}
         planName={chosenAllocation?.sellingPlan.name ?? null}
-        price={displayPrice ? formatMoney(displayPrice) : null}
+        price={
+          displayOfferPrice
+            ? formatMoney(displayOfferPrice)
+            : displayPrice
+              ? formatMoney(displayPrice)
+              : null
+        }
         buttonLabel={buttonLabel}
         unavailable={unavailable}
         busy={pending}

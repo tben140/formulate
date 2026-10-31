@@ -67,7 +67,39 @@
         </div>
 
         <h2 class="product-card__title">{{ product.title | escape }}</h2>
-        <p class="product-card__price">{{ product.price | money }}</p>
+        {%- comment -%}
+          The campaign price (SHO-169) of the cheapest variant the live campaign
+          covers, as campaignCardPrice in packages/shopify: a campaign that
+          covers only some variants doesn't price the others.
+        {%- endcomment -%}
+        {%- liquid
+          assign card_normal = nil
+          assign card_offer = ''
+          if product.metafields.double_helix.campaign.value != blank
+            for variant in product.variants
+              capture covers
+                render 'campaign-covers', product: product, variant: variant
+              endcapture
+              if covers != blank
+                if card_normal == nil or variant.price < card_normal
+                  assign card_normal = variant.price
+                endif
+              endif
+            endfor
+            if card_normal != nil
+              capture card_offer
+                render 'campaign-offer-cents', campaign: product.metafields.double_helix.campaign.value, price: card_normal
+              endcapture
+            endif
+          endif
+        -%}
+        <p class="product-card__price">
+          {%- if card_offer != blank -%}
+            {%- render 'campaign-price', normal: card_normal, offer: card_offer, badge: product.metafields.double_helix.campaign.value.badge.value -%}
+          {%- else -%}
+            {{ product.price | money }}
+          {%- endif -%}
+        </p>
       </a>
     </li>
   {% endfor %}

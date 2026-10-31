@@ -1,13 +1,19 @@
 "use client";
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
-import { formatMoney, type Cart, type CartSuggestion } from "@formulate/shopify";
+import {
+  formatMoney,
+  type Cart,
+  type CartSuggestion,
+  type OfferRules,
+} from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 
 import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
+import { CampaignCartHint } from "./campaign-cart-hint";
 import { FreeShippingBar } from "./free-shipping-bar";
 import { CartSuggestions } from "./cart-suggestions";
 /**
@@ -28,9 +34,16 @@ import { CartSuggestions } from "./cart-suggestions";
 export const CartDrawer = ({
   cart,
   suggestions = [],
+  campaign = null,
 }: {
   cart: Cart | null;
   suggestions?: readonly CartSuggestion[];
+  /** The live campaign, for a tiered or bundle offer's hint (SHO-169). */
+  campaign?: {
+    readonly handle: string;
+    readonly badge: string;
+    readonly rules: OfferRules | null;
+  } | null;
 }) => {
   const { open, closeCart, storeDomain } = useCartUi();
   const ref = useRef<HTMLDialogElement>(null);
@@ -94,6 +107,7 @@ export const CartDrawer = ({
         <FreeShippingBar
           subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
         />
+        {campaign ? <CampaignCartHint campaign={campaign} lines={lines} /> : null}
 
         {lines.length === 0 ? (
           <p className="flex-1 px-4 py-8 text-sm text-foreground-muted">

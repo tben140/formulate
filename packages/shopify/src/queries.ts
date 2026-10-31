@@ -39,6 +39,23 @@ export const CollectionProductsQuery = graphql(`
               ...CampaignBadgeFields
             }
           }
+          # Each variant's price and campaign: the card's campaign price, for
+          # the variants the campaign covers (campaignCardPrice).
+          cardVariants: variants(first: 10) {
+            nodes {
+              price {
+                amount
+                currencyCode
+              }
+              campaign: metafield(namespace: "double_helix", key: "campaign") {
+                reference {
+                  ... on Metaobject {
+                    handle
+                  }
+                }
+              }
+            }
+          }
           featuredImage {
             url
             altText
@@ -244,6 +261,23 @@ export const ProductCardFields = graphql(`
     campaign: metafield(namespace: "double_helix", key: "campaign") {
       reference {
         ...CampaignBadgeFields
+      }
+    }
+    # Each variant's price and campaign: the card's campaign price, for
+    # the variants the campaign covers (campaignCardPrice).
+    cardVariants: variants(first: 10) {
+      nodes {
+        price {
+          amount
+          currencyCode
+        }
+        campaign: metafield(namespace: "double_helix", key: "campaign") {
+          reference {
+            ... on Metaobject {
+              handle
+            }
+          }
+        }
       }
     }
     featuredImage {
@@ -497,6 +531,14 @@ export const CartFields = graphql(`
               id
               handle
               title
+              # Its campaign (SHO-169), for the cart's tiered or bundle hint.
+              campaign: metafield(namespace: "double_helix", key: "campaign") {
+                reference {
+                  ... on Metaobject {
+                    handle
+                  }
+                }
+              }
             }
           }
         }
@@ -792,6 +834,10 @@ export const CampaignBadgeFields = graphql(`
       value
     }
     audience: field(key: "audience") {
+      value
+    }
+    # The offer as data (campaign-offer.ts): the card's campaign price.
+    offerRules: field(key: "offer_rules") {
       value
     }
   }

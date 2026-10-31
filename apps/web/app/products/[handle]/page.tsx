@@ -153,7 +153,12 @@ const ProductPage = async ({ params }: PageProps) => {
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
 
           {campaign ? (
-            <CampaignOffer campaign={campaign} variants={coveredNames} />
+            <CampaignOffer
+              campaign={campaign}
+              variants={coveredNames}
+              now={view.now.getTime()}
+              clockPreview={view.clockPreview}
+            />
           ) : null}
 
           {product.description ? (
@@ -166,7 +171,18 @@ const ProductPage = async ({ params }: PageProps) => {
           showing the product's `minVariantPrice` alongside it would contradict
           whatever the shopper had chosen.
         */}
-          <AddToCartForm product={product} />
+          <AddToCartForm
+            product={product}
+            campaign={
+              campaign?.rules
+                ? {
+                    badge: campaign.badge,
+                    rules: campaign.rules,
+                    variantIds: covered.map((variant) => variant.id),
+                  }
+                : null
+            }
+          />
 
           {/* No fallback: nothing at all is better than a loading box here. */}
           <Suspense fallback={null}>

@@ -48,13 +48,13 @@
     </div>
     <p class="campaign-offer__offer">
       {{ campaign.offer.value | escape -}}
-      {%- if narrowed %} {{ 'campaign.only' | t: variants: covered_names | escape }}{% endif %}
+      {%- if narrowed %} {{ 'campaign.only' | t: variants: covered_names  }}{% endif %}
     </p>
     {% if campaign.subscriber_perk.value != blank %}
       <p class="campaign-offer__perk">{{ campaign.subscriber_perk.value | escape }}.</p>
     {% endif %}
     <a href="/pages/campaigns/{{ campaign.system.handle }}">
-      {{- 'campaign.see_offer' | t: badge: campaign.badge.value | escape -}}
+      {{- 'campaign.see_offer' | t: badge: campaign.badge.value  -}}
     </a>
   </aside>
 {%- endif -%}

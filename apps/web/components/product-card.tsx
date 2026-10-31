@@ -1,5 +1,6 @@
 import {
   campaignBadge,
+  campaignCardPrice,
   formatMoney,
   type CampaignRef,
   type MoneyLike,
@@ -8,6 +9,7 @@ import { Image } from "@shopify/hydrogen-react";
 import Link from "next/link";
 
 import { CampaignBadge } from "@/components/campaign-badge";
+import { OfferPrice } from "@/components/offer-price";
 import { campaignView } from "@/lib/campaign";
 
 type CardImage = {
@@ -24,6 +26,13 @@ export type ProductCardData = {
   readonly priceRange: { readonly minVariantPrice: MoneyLike };
   /** Its campaign (SHO-169): badged only while live. */
   readonly campaign?: CampaignRef | null;
+  /** For the campaign price: only the variants it covers get it. */
+  readonly cardVariants?: {
+    readonly nodes: readonly {
+      readonly price: MoneyLike;
+      readonly campaign?: CampaignRef | null;
+    }[];
+  };
 };
 
 /**
@@ -48,7 +57,13 @@ export const ProductCard = async ({
   readonly priority?: boolean;
 }) => {
   const Heading = headingLevel;
-  const badge = campaignBadge(product.campaign, await campaignView());
+  const view = await campaignView();
+  const badge = campaignBadge(product.campaign, view);
+  const offer = campaignCardPrice(
+    product.campaign,
+    product.cardVariants?.nodes ?? [],
+    view,
+  );
   return (
     <Link
       href={`/products/${product.handle}`}
@@ -82,7 +97,11 @@ export const ProductCard = async ({
         {product.title}
       </Heading>
       <p className="mt-1 font-mono text-sm text-foreground-muted">
-        {formatMoney(product.priceRange.minVariantPrice)}
+        {offer ? (
+          <OfferPrice normal={offer.normal} offer={offer.offer} badge={offer.badge} />
+        ) : (
+          formatMoney(product.priceRange.minVariantPrice)
+        )}
       </p>
     </Link>
   );
