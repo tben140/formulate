@@ -47,6 +47,9 @@ export {
   CartLinesAddMutation,
   CartLinesRemoveMutation,
   CartLinesUpdateMutation,
+  CampaignByHandleQuery,
+  CampaignsQuery,
+  CartDiscountCodesUpdateMutation,
   CartQuery,
   CollectionCardsQuery,
   CollectionProductsQuery,
@@ -106,3 +109,28 @@ export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";
 export { PLANNED_PAYMENT_ICON_IDS, paymentIconIds } from "./payment-icons";
 export type { PaymentIconId } from "./payment-icons";
+
+export {
+  activeCampaign,
+  campaignBadge,
+  campaignEndsLabel,
+  campaignForVariant,
+  campaignHandleFromPath,
+  campaignNow,
+  campaignParagraphs,
+  campaignPath,
+  campaignStartsLabel,
+  campaignStatus,
+  canSeeCampaign,
+  isCampaignActive,
+  isCampaignLive,
+  safeRedirectPath,
+  toCampaign,
+} from "./campaign";
+export type {
+  Campaign,
+  CampaignImage,
+  CampaignNode,
+  CampaignRef,
+  CampaignView,
+} from "./campaign";

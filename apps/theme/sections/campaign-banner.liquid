@@ -1,0 +1,79 @@
+{% comment %}
+  The live campaign, under the demo notice on every page (SHO-169).
+
+  Reads every `campaign` metaobject and shows the live one ending soonest, as
+  apps/web's components/campaign-banner.tsx does. The end time is the real one:
+  no countdown, so nothing can drift from it.
+{% endcomment %}
+
+{%- liquid
+  assign shown = nil
+  assign shown_end = 0
+  comment
+    Shopify gives the first 50 campaigns here. Fine while old campaigns are
+    deleted after they end (docs/campaigns.md, "Housekeeping").
+  endcomment
+  for campaign in shop.metaobjects.campaign.values
+    capture status
+      render 'campaign-status', campaign: campaign
+    endcapture
+    assign status = status | strip
+    if status == 'active'
+      assign end_s = campaign.ends_at.value | date: '%s' | plus: 0
+      if shown == nil or end_s < shown_end
+        assign shown = campaign
+        assign shown_end = end_s
+      endif
+    endif
+  endfor
+-%}
+
+{% if shown %}
+  <div class="campaign-banner full-width">
+    <p class="campaign-banner__text">
+      {%- liquid
+        assign banner = shown.banner_text.value
+        if banner == blank
+          assign banner = shown.offer.value
+        endif
+      -%}
+      <a href="/pages/campaigns/{{ shown.system.handle }}">{{ banner | escape }}</a>
+      <span class="campaign-banner__ends">· {% render 'campaign-ends', campaign: shown %}</span>
+    </p>
+  </div>
+{% endif %}
+
+{% stylesheet %}
+  /* Matched to apps/web: bg-brand-700 text-surface px-4 py-2 text-sm. */
+  .campaign-banner {
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: var(--text-sm);
+    text-align: center;
+    color: var(--color-surface);
+    background: var(--color-brand-700);
+  }
+
+  .campaign-banner__text {
+    max-width: 64rem;
+    margin: 0 auto;
+  }
+
+  .campaign-banner a {
+    font-weight: 600;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .campaign-banner__ends {
+    white-space: nowrap;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Campaign banner",
+  "enabled_on": { "groups": ["header"] },
+  "settings": []
+}
+{% endschema %}
