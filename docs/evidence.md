@@ -75,7 +75,7 @@ Device-only checks (VoiceOver order, gestures, Dynamic Type) are still manual.
 
 ## Tests
 
-Unit coverage at `de630ca` (26 Oct 2026), from
+Unit coverage at `6c3ade3` (26 Oct 2026), from
 `pnpm --filter <package> test:coverage`. Vitest measures only the files a test
 loads, so a file no test imports is missing from the figures, not counted as
 0%. What each package leaves out:
@@ -83,20 +83,21 @@ loads, so a file no test imports is missing from the figures, not counted as
 - `packages/shopify`: generated code (`src/generated/**`), the codegen config
   and the barrel `src/index.ts`.
 - `packages/analytics`: the barrel `src/index.ts`.
-- `apps/api`: nothing. Its `src/index.ts` is the Worker itself, and it's
-  measured.
+- `apps/api`: nothing in `src/`. Every source file is counted whether a test
+  loads it or not; the stand-in for Cloudflare's runtime (`test/`) isn't.
 
 | Package                 | Tests | Lines | Branches | Functions |
 | ----------------------- | ----- | ----- | -------- | --------- |
-| `packages/shopify`      | 101   | 96.3% | 86.6%    | 96.3%     |
+| `packages/shopify`      | 113   | 96.2% | 87.0%    | 95.4%     |
 | `packages/analytics`    | 50    | 96.6% | 85.7%    | 95.5%     |
-| `apps/api` (the Worker) | 20    | 83.8% | 84.6%    | 60.0%     |
+| `apps/api` (the Worker) | 23    | 100%  | 100%     | 100%      |
 
 **Gaps:**
 
-- **`packages/shopify/src/client.ts` isn't in the figures.** No unit test
-  imports it, so Vitest doesn't measure it. It's exercised by the smoke test
-  and every end-to-end suite, but not in isolation.
+- **The Worker runs on a stand-in for Cloudflare's runtime.** Its Durable
+  Object is tested against in-memory storage, not the real thing; the
+  deployed Worker is where the wiring was checked. Cloudflare's own test pool
+  (`@cloudflare/vitest-pool-workers`) would close that.
 - **There's no enforced coverage threshold.** The "elevated shared-package bar"
   SHO-43 describes doesn't exist yet; these are measurements, not a gate.
 

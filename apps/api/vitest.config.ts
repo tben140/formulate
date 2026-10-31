@@ -17,6 +17,10 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   resolve: {
-    alias: { "cloudflare:workers": new URL("./test/workers-stub.ts", import.meta.url).pathname },
+    alias: {
+      "cloudflare:workers": new URL("./test/workers-stub.ts", import.meta.url).pathname,
+    },
   },
+  // Every source file, loaded by a test or not, and not the test stub.
+  test: { coverage: { include: ["src/**/*.ts"], exclude: ["src/**/*.test.ts"] } },
 });
