@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@formulate/tokens";
 import { Link } from "expo-router";
 import { Text, View } from "react-native";
 
@@ -66,7 +67,7 @@ export const SiteFooter = () => {
       ) : null}
 
       <Text className="mt-4 text-sm text-foreground-muted">
-        &copy; {new Date().getFullYear()} Double Helix
+        &copy; {new Date().getFullYear()} {BRAND_NAME}
       </Text>
     </View>
   );

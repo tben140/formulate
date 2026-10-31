@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      // The build also runs scripts/check-brand.ts, which reads the theme's
+      // settings. Without this, a change to that file alone would hit the
+      // cache and skip the check.
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/theme/config/settings_schema.json"]
+    }
+  }
+}

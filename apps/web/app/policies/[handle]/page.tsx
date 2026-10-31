@@ -10,6 +10,7 @@ interface PageProps {
   readonly params: Promise<{ handle: string }>;
 }
 
+// The root layout's title template adds " — <brand>".
 export const metadata: Metadata = { title: "Policy" };
 
 /**
