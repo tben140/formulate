@@ -225,6 +225,43 @@ Set the campaign's **Audience** to `email_link`. Then:
 Shopify decides whether a code is valid, at checkout. A wrong code still
 opens the page; the cart simply shows no discount.
 
+## The campaigns CLI
+
+`pnpm campaigns <command>` (packages/campaigns) runs a campaign from the record:
+
+| Command                                               | What it does                                                                                                                        |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `calendar`                                            | Every campaign by date: upcoming, live, ended, draft. Flags overlaps, ended ones to delete, and the theme's 50 limit                |
+| `check <handle>`                                      | Everything that must agree before go-live (below). Exits 1 on an error                                                              |
+| `new <template> <handle> --starts <ISO> --ends <ISO>` | A draft campaign from `black-friday`, `january-reset` (tiered) or `summer` (3 for 2), with its smart collection                     |
+| `sync <handle> [--activate]`                          | Creates or updates the campaign's discount on the campaign Function, with the record's dates and rules. New ones start switched off |
+| `emails <handle> [--create]`                          | The launch and last-day emails, timed from the dates; `--create` makes them Klaviyo drafts (never scheduled)                        |
+| `report <handle>`                                     | Orders, revenue, discount cost, first orders, subscriptions started, by surface and email source, top products                      |
+
+**What `check` compares:** the record parses as the surfaces read it; every
+percentage in the copy is one the offer gives (or the 15% subscribe and save);
+the collection is the "Campaign equals" smart collection and has products,
+active and on the Online Store; variant narrowing only with a percent offer;
+exactly one discount, starting and ending with the campaign, at the offer's
+percentage, one-time only if the offer is, on the collection, a code for
+email-link campaigns, or a Function config in step with the record; and,
+with a Klaviyo key, the emails send before the end and say the right
+percentage.
+
+**Signing in.** The CLI signs in as the Double Helix app (client credentials,
+a token for the run, never stored or printed), because only the app can make
+discounts on its Function. It reads `SHOPIFY_STORE_DOMAIN`,
+`SHOPIFY_APP_CLIENT_SECRET` and optionally `KLAVIYO_PRIVATE_KEY` from the
+environment or `~/.config/formulate/shopify-app.env`. The secret comes from the
+Dev Dashboard and stays on Ben's machine. The app's scopes are in
+`apps/shopify-app/shopify.app.toml`; `shopify app deploy` asks the store to
+grant them.
+
+**Attribution.** The report counts an order when the campaign's discount was
+applied or the cart was tagged `_campaign` by a visit to the campaign page. By
+surface it uses `_surface` when present (the PostHog stack adds it), else
+Shopify's source.
+
 ## Housekeeping
 
 Delete a campaign's entry (and its collection and discount) once it has
