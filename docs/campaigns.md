@@ -20,23 +20,23 @@ Campaign ◄──── product.double_helix.campaign        (one campaign per 
 
 ### Campaign fields
 
-| Key                      | Type             | Required | Notes                                                                    |
-| ------------------------ | ---------------- | -------- | ------------------------------------------------------------------------ |
-| `title`                  | single line text | yes      | Display name in admin                                                    |
-| `starts_at`              | date and time    | yes      | Surfaces show nothing before this                                        |
-| `ends_at`                | date and time    | yes      | A real end time. Any countdown or "ends soon" copy must match it         |
-| `badge`                  | single line text | yes      | The label on product cards, e.g. "Black Friday"                          |
-| `headline`               | single line text |          | Landing page and app screen heading                                      |
-| `banner_text`            | single line text |          | The site-wide banner                                                     |
-| `offer`                  | single line text | yes      | What shoppers get, worded as shown, e.g. "25% off one-time orders"       |
-| `discount_code`          | single line text |          | Empty for an automatic discount                                          |
-| `subscriber_perk`        | single line text |          | What subscribers get instead of the sale discount                        |
-| `image`                  | image            |          | Banner and landing hero                                                  |
-| `body`                   | rich text        |          | Landing page copy                                                        |
-| `terms`                  | multi-line text  | yes      | Shown on the landing page                                                |
-| `collection`             | collection       |          | The products on the landing page                                         |
-| `offer_rules`            | JSON             |          | The offer as data: see [Offer rules](#offer-rules)                       |
-| `early_access_starts_at` | date and time    |          | Earlier start for email-link visitors: see [Early access](#early-access) |
+| Key                      | Type             | Required | Notes                                                                                                              |
+| ------------------------ | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `title`                  | single line text | yes      | Display name in admin                                                                                              |
+| `starts_at`              | date and time    | yes      | The regular start: nothing shows before it, except early access for email-link visitors (`early_access_starts_at`) |
+| `ends_at`                | date and time    | yes      | A real end time. Any countdown or "ends soon" copy must match it                                                   |
+| `badge`                  | single line text | yes      | The label on product cards, e.g. "Black Friday"                                                                    |
+| `headline`               | single line text |          | Landing page and app screen heading                                                                                |
+| `banner_text`            | single line text |          | The site-wide banner                                                                                               |
+| `offer`                  | single line text | yes      | What shoppers get, worded as shown, e.g. "25% off one-time orders"                                                 |
+| `discount_code`          | single line text |          | Empty for an automatic discount                                                                                    |
+| `subscriber_perk`        | single line text |          | What subscribers get instead of the sale discount                                                                  |
+| `image`                  | image            |          | Banner and landing hero                                                                                            |
+| `body`                   | rich text        |          | Landing page copy                                                                                                  |
+| `terms`                  | multi-line text  | yes      | Shown on the landing page                                                                                          |
+| `collection`             | collection       |          | The products on the landing page                                                                                   |
+| `offer_rules`            | JSON             |          | The offer as data: see [Offer rules](#offer-rules)                                                                 |
+| `early_access_starts_at` | date and time    |          | Earlier start for email-link visitors: see [Early access](#early-access)                                           |
 
 The definition is **publishable** (draft or active) and **readable by the
 Storefront API**. Online Store pages for it are off until the theme has a
