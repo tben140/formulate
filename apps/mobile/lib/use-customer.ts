@@ -8,7 +8,12 @@ import {
   type CustomerOrderResult,
   type CustomerOrdersResult,
 } from "@formulate/shopify";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { clearCartId, readCartId } from "./cart-storage";
 import {
@@ -69,14 +74,35 @@ const queryAsCustomer = async <TData>(
   throw loadError();
 };
 
+const ORDERS_KEY = [...CUSTOMER_KEY, "orders"] as const;
+
 /** The buyer and their latest orders, or null when signed out. */
-export const useCustomerOrders = () =>
-  useQuery({
-    queryKey: [...CUSTOMER_KEY, "orders"],
-    queryFn: () =>
-      queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, { first: 20 }),
+export const useCustomerOrders = () => {
+  const queryClient = useQueryClient();
+  return useInfiniteQuery({
+    queryKey: ORDERS_KEY,
+    queryFn: async ({ pageParam }) => {
+      const page = await queryAsCustomer<CustomerOrdersResult>(CUSTOMER_ORDERS_QUERY, {
+        first: 20,
+        after: pageParam,
+      });
+      // A later page that finds the session gone (a 401 cleared the tokens)
+      // mustn't leave the earlier pages, and the last buyer's orders, on
+      // screen: start the query over, which now resolves to signed out.
+      if (page === null && pageParam !== undefined) {
+        queueMicrotask(() => void queryClient.resetQueries({ queryKey: ORDERS_KEY }));
+      }
+      return page;
+    },
+    initialPageParam: undefined as string | undefined,
+    // Older orders, one cursor page at a time ("Load more" on the Account tab).
+    getNextPageParam: (last) =>
+      last?.customer.orders.pageInfo.hasNextPage
+        ? (last.customer.orders.pageInfo.endCursor ?? undefined)
+        : undefined,
     enabled: isCustomerAccountAvailable,
   });
+};
 
 /** One order. Another buyer's id comes back as `order: null`, the API's own scoping. */
 export const useCustomerOrder = (pathId: string) =>

@@ -83,7 +83,9 @@ const AccountScreen = () => {
     );
   }
 
-  if (orders.isError) {
+  // Only when nothing has loaded: a failed "older orders" page keeps the
+  // orders already on screen, and says so by its button instead.
+  if (orders.isError && !orders.data) {
     return (
       <View className="gap-4 p-4">
         <Text accessibilityRole="alert" className="text-foreground">
@@ -94,7 +96,10 @@ const AccountScreen = () => {
     );
   }
 
-  if (!orders.data) {
+  // Any page coming back null means the session ended part-way: signed out.
+  const pages = orders.data?.pages ?? [];
+  const firstPage = pages.every((page) => page !== null) ? (pages[0] ?? null) : null;
+  if (!firstPage) {
     const failed = signIn.data?.kind === "failed";
     return (
       <View className="gap-4 p-4">
@@ -135,9 +140,9 @@ const AccountScreen = () => {
     );
   }
 
-  const { customer } = orders.data;
+  const { customer } = firstPage;
   const email = customer.emailAddress?.emailAddress;
-  const list = customer.orders.nodes;
+  const list = orders.data.pages.flatMap((page) => page?.customer.orders.nodes ?? []);
 
   return (
     <ScrollView contentContainerClassName="gap-6 p-4">
@@ -221,6 +226,30 @@ const AccountScreen = () => {
             })}
           </View>
         )}
+        {orders.hasNextPage ? (
+          <View className="mt-3 gap-2">
+            {orders.isFetchNextPageError ? (
+              <Text accessibilityRole="alert" className="text-sm text-danger">
+                Older orders didn&apos;t load. Please try again.
+              </Text>
+            ) : null}
+            <Button
+              label={orders.isFetchingNextPage ? "Loading…" : "Load older orders"}
+              variant="secondary"
+              busy={orders.isFetchingNextPage}
+              onPress={() =>
+                void orders.fetchNextPage().then((result) => {
+                  // The alert role announces on Android only.
+                  if (result.isFetchNextPageError) {
+                    AccessibilityInfo.announceForAccessibility(
+                      "Older orders didn't load. Please try again.",
+                    );
+                  }
+                })
+              }
+            />
+          </View>
+        ) : null}
       </View>
 
       <Button
