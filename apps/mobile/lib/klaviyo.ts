@@ -217,3 +217,37 @@ export const subscribe = async (email: string): Promise<SubscribeResult> => {
   identify(trimmed);
   return { ok: true };
 };
+
+/**
+ * Asks Klaviyo to email `email` once when `variantId` (a Storefront gid) is
+ * back in stock (SHO-118). Through the Worker's /back-in-stock route, since
+ * Klaviyo's client endpoints aren't reachable from the app (ADR 0007).
+ *
+ * Not a marketing subscription, so no `identify` follows: a restock alert
+ * isn't consent to tracking either.
+ */
+export const notifyWhenBackInStock = async (
+  email: string,
+  variantId: string,
+): Promise<SubscribeResult> => {
+  const trimmed = email.trim();
+  if (trimmed === "") return { ok: false, reason: "empty" };
+  if (!isPlausibleEmail(trimmed)) return { ok: false, reason: "invalid-email" };
+  if (!API_BASE_URL) return { ok: false, reason: "not-configured" };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/back-in-stock`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: trimmed, variant: variantId }),
+    });
+    if (response.ok) return { ok: true };
+    if (response.status === 429) return { ok: false, reason: "rate-limited" };
+    // The Worker answers 503 until its back-in-stock key is set.
+    if (response.status === 503) return { ok: false, reason: "not-configured" };
+    console.error("[klaviyo] back-in-stock rejected", response.status);
+    return { ok: false, reason: "rejected", status: response.status };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+};
