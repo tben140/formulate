@@ -1,6 +1,7 @@
 import { campaignParagraphs, offerPercents, parseOfferRules } from "@formulate/shopify";
 
 import { campaignOf } from "./campaign-node";
+import { isPersonalPool, PERSONAL_POOL } from "./codes";
 import { DEFAULT_MIN_MARGIN, marginRows } from "./margins";
 import { checkReferencePrice, REFERENCE_DAYS } from "./price-history";
 import { campaignDiscounts, discountConfig, sameConfig } from "./sync";
@@ -262,6 +263,7 @@ export const checkCampaign = (
       if (
         entry.fields.discount_code &&
         discount.method === "code" &&
+        !isPersonalPool(discount.config) &&
         !discount.codes.includes(entry.fields.discount_code)
       )
         error(`${name} doesn't have the code ${entry.fields.discount_code}.`);
@@ -302,7 +304,14 @@ export const checkCampaign = (
       if (discount.kind === "app") {
         const expected = discountConfig(entry, collection, products);
         if ("error" in expected) error(`${name}: ${expected.error}.`);
-        else if (!sameConfig(discount.config, expected.config))
+        else if (
+          !sameConfig(
+            discount.config,
+            isPersonalPool(discount.config)
+              ? { ...expected.config, pool: PERSONAL_POOL }
+              : expected.config,
+          )
+        )
           error(`${name}'s config is out of date: run campaigns sync ${entry.handle}.`);
       }
       // An early-access code is meant to be on from early_access_starts_at.

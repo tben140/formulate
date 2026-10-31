@@ -300,6 +300,9 @@ export const upsertFunctionDiscount = async (
     endsAt: string;
     config: unknown;
     activate: boolean;
+    /** Personal codes: uses per code, and once per customer. */
+    usageLimit?: number;
+    appliesOncePerCustomer?: boolean;
   },
 ): Promise<string> => {
   const metafields = [
@@ -320,6 +323,12 @@ export const upsertFunctionDiscount = async (
       shippingDiscounts: true,
     },
     metafields,
+    ...(input.code && input.usageLimit !== undefined
+      ? { usageLimit: input.usageLimit }
+      : {}),
+    ...(input.code && input.appliesOncePerCustomer !== undefined
+      ? { appliesOncePerCustomer: input.appliesOncePerCustomer }
+      : {}),
   };
   const kind = input.code ? "Code" : "Automatic";
   const field = input.code ? "codeAppDiscount" : "automaticAppDiscount";
@@ -758,4 +767,38 @@ export const tagCustomers = async (
     if (errors.length > 0)
       throw new Error(`Tagging ${id} failed: ${errors.map((e) => e.message).join("; ")}`);
   }
+};
+
+/**
+ * Adds codes to a code discount, 250 at a time (the mutation's limit). Shopify
+ * imports them in the background; the result is how many it accepted.
+ */
+export const addRedeemCodes = async (
+  admin: Admin,
+  discountId: string,
+  codes: readonly string[],
+): Promise<number> => {
+  let accepted = 0;
+  for (let i = 0; i < codes.length; i += 250) {
+    const batch = codes.slice(i, i + 250);
+    const data = await admin.request<{
+      discountRedeemCodeBulkAdd: {
+        bulkCreation: { codesCount: number } | null;
+        userErrors: { message: string }[];
+      };
+    }>(
+      `mutation Codes($discountId: ID!, $codes: [DiscountRedeemCodeInput!]!) {
+        discountRedeemCodeBulkAdd(discountId: $discountId, codes: $codes) {
+          bulkCreation { codesCount }
+          userErrors { message }
+        }
+      }`,
+      { discountId, codes: batch.map((code) => ({ code })) },
+    );
+    const errors = data.discountRedeemCodeBulkAdd.userErrors;
+    if (errors.length > 0)
+      throw new Error(`Codes not added: ${errors.map((e) => e.message).join("; ")}`);
+    accepted += data.discountRedeemCodeBulkAdd.bulkCreation?.codesCount ?? 0;
+  }
+  return accepted;
 };

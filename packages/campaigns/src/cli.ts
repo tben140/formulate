@@ -7,6 +7,7 @@ import { AUDIENCE_TAG, lapsedCustomers } from "./audience";
 import { calendar, calendarMarkdown } from "./calendar";
 import { campaignOf } from "./campaign-node";
 import { checkCampaign } from "./check";
+import { generateCodes, isPersonalPool, PERSONAL_POOL } from "./codes";
 import { plannedEmails, plannedPushes } from "./emails";
 import { perkKey, planPerks } from "./perks";
 import { recordPrice, ukDay } from "./price-history";
@@ -18,9 +19,17 @@ import {
   perkOnetimes,
   shopifyCustomerIds,
 } from "./recharge";
-import { createDraft, createPushDraft, getEmails, getPushNames } from "./klaviyo";
+import {
+  createCoupon,
+  createDraft,
+  createPushDraft,
+  getEmails,
+  getPushNames,
+  uploadCouponCodes,
+} from "./klaviyo";
 import { campaignReport, reportMarkdown } from "./report";
 import {
+  addRedeemCodes,
   createCampaign,
   getCollection,
   getDiscounts,
@@ -58,6 +67,10 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns tag-buyers <handle> [--apply]
                                               tags customers who've had the offer, for
                                               oncePerCustomer; plans unless --apply
+  pnpm campaigns codes <handle> --count <n> [--prefix BF] [--apply]
+                                              personal single-use codes: a code discount on
+                                              the Function and a Klaviyo coupon with the same
+                                              codes; plans unless --apply
   pnpm campaigns audience lapsed --tag <tag> [--within 180] [--apply]
                                               tags lapsed subscribers (all cancelled, the
                                               last within N days) for a win-back offer
@@ -188,7 +201,7 @@ Next:
       const result = discountConfig(data.entry, data.collection, data.products);
       if ("error" in result) throw new Error(`Can't sync: ${result.error}.`);
       const existing = campaignDiscounts(data.entry, data.discounts).find(
-        (d) => d.kind === "app",
+        (d) => d.kind === "app" && !isPersonalPool(d.config),
       );
       const id = await upsertFunctionDiscount(admin, {
         existingId: existing?.id ?? null,
@@ -290,6 +303,64 @@ Next:
       }
       await tagCustomers(admin, buyers, tag);
       console.log("Tagged.");
+      return 0;
+    }
+
+    case "codes": {
+      if (!handle) break;
+      const count = Number(flag(rest, "count"));
+      const prefix = (flag(rest, "prefix") ?? handle.split("-")[0] ?? "DH").toUpperCase();
+      const codes = generateCodes(count, prefix);
+      const admin = await adminFromEnv();
+      const data = await snapshot(admin, handle);
+      const campaign = campaignOf(data.entry);
+      if (!campaign) throw new Error("The campaign can't be read; run check for why.");
+      const result = discountConfig(data.entry, data.collection, data.products);
+      if ("error" in result) throw new Error(`No config: ${result.error}.`);
+      const couponId = handle.toUpperCase().replaceAll("-", "_");
+      const key = process.env.KLAVIYO_PRIVATE_KEY;
+      console.log(
+        `${codes.length} codes like ${codes[0]}, single use, for "${campaign.title} (personal codes)", ${campaign.startsAt.toISOString()} to ${campaign.endsAt.toISOString()}.`,
+      );
+      console.log(
+        key
+          ? `Klaviyo coupon ${couponId}: emails insert one per person with {% coupon_code '${couponId}' %}.`
+          : "No KLAVIYO_PRIVATE_KEY: the codes would go to Shopify only.",
+      );
+      if (!rest.includes("--apply")) {
+        console.log(
+          "Planned only. Run with --apply to create them (the discount starts switched off).",
+        );
+        return 0;
+      }
+      const existing = campaignDiscounts(data.entry, data.discounts).find((d) =>
+        isPersonalPool(d.config),
+      );
+      const id = await upsertFunctionDiscount(admin, {
+        existingId: existing?.id ?? null,
+        title: `${campaign.title} (personal codes)`,
+        code: codes[0]!,
+        startsAt: (campaign.earlyAccessStartsAt ?? campaign.startsAt).toISOString(),
+        endsAt: campaign.endsAt.toISOString(),
+        config: { ...result.config, pool: PERSONAL_POOL },
+        activate: false,
+        usageLimit: 1,
+        appliesOncePerCustomer: true,
+      });
+      const added = await addRedeemCodes(admin, id, existing ? codes : codes.slice(1));
+      console.log(
+        `Discount ${id}: ${added + (existing ? 0 : 1)} codes queued in Shopify.`,
+      );
+      if (key) {
+        await createCoupon(key, couponId, `${campaign.title}: personal codes`);
+        const jobs = await uploadCouponCodes(
+          key,
+          couponId,
+          codes,
+          campaign.endsAt.toISOString(),
+        );
+        console.log(`Klaviyo coupon ${couponId}: ${jobs} upload job(s) queued.`);
+      }
       return 0;
     }
 
