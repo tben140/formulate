@@ -1,0 +1,53 @@
+{
+  "payload": {
+    "export": "cart-validations-generate-run",
+    "target": "cart.validations.generate.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "quantity": 1,
+            "blend": {
+              "value": "d3,k2,mg"
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "blendSize": {
+                "value": "3"
+              },
+              "product": {
+                "id": "gid://shopify/Product/10",
+                "title": "Your Daily Pack"
+              }
+            }
+          },
+          {
+            "quantity": 1,
+            "blend": {
+              "value": "d3,k2"
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "blendSize": {
+                "value": "2"
+              },
+              "product": {
+                "id": "gid://shopify/Product/10",
+                "title": "Your Daily Pack"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "output": {
+      "operations": [
+        {
+          "validationAdd": {
+            "errors": []
+          }
+        }
+      ]
+    }
+  }
+}

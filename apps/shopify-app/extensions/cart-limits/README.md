@@ -12,6 +12,19 @@ up to 6 of Magnesium Glycinate in one order."
 
 The limit is `MAX_PER_PRODUCT` in `src/cart_validations_generate_run.ts`.
 
+## Your Daily Pack
+
+A pack line must carry exactly as many ingredients as its size: the
+`_blend` property's codes against the variant's `double_helix.blend_size`,
+each code well formed and none twice (`isValidBlend`). Web, the app and the
+theme check this before adding, but the Storefront API is public, so a cart
+built by hand could skip them; this catches it at checkout. The message:
+"Your Daily Pack (3 ingredients) doesn't have its ingredients chosen. Remove
+it and build it again."
+
+Whether each code is in the range isn't checked: the ingredients are
+metaobjects, which a Function's input can't read. See `docs/blend.md`.
+
 ## Commands
 
 |                       |                                                                                                 |

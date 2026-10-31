@@ -7,8 +7,10 @@
         "lines": [
           {
             "quantity": 6,
+            "blend": null,
             "merchandise": {
               "__typename": "ProductVariant",
+              "blendSize": null,
               "product": {
                 "id": "gid://shopify/Product/1",
                 "title": "Magnesium Glycinate"
