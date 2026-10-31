@@ -167,6 +167,16 @@ describe("checkCampaign catches", () => {
   });
 });
 
+describe("checkCampaign's early access", () => {
+  it("reads early_access_starts_at, and errors only when it isn't before the start", () => {
+    const message = "early_access_starts_at isn't before starts_at, so it's ignored.";
+    const early = withFields({ early_access_starts_at: "2026-11-26T18:00:00Z" });
+    expect(errors(checkCampaign(early, BEFORE))).not.toContain(message);
+    const late = withFields({ early_access_starts_at: "2026-11-28T00:00:00Z" });
+    expect(errors(checkCampaign(late, BEFORE))).toContain(message);
+  });
+});
+
 describe("percentsIn", () => {
   it("finds percentages, with or without a space", () => {
     expect(percentsIn("Save 25% now, or 15 % on subscriptions; 100%")).toEqual([
@@ -339,7 +349,7 @@ describe("campaignReport", () => {
     sourceName: "web",
     utmSource: null,
     utmCampaign: null,
-    customerOrders: 3,
+    firstOrder: false,
     lines: [{ title: "Vitamin D3", quantity: 1, subscription: false }],
     ...overrides,
   });
@@ -362,7 +372,7 @@ describe("campaignReport", () => {
           name: "#2",
           attributes: { _campaign: "black-friday-2026", _surface: "app" },
           subtotal: 45,
-          customerOrders: 1,
+          firstOrder: true,
           lines: [{ title: "Whey Protein", quantity: 2, subscription: true }],
         }),
         order({ name: "#3", subtotal: 99 }),
