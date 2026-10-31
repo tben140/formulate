@@ -52,8 +52,8 @@
 
 <product-form
   class="product-form"
-  data-normally-label="{{ 'campaign.normally' | t | escape }}"
-  data-offer-label="{{ 'campaign.badge_price' | t: badge: offer_badge | escape }}"
+  data-normally-label="{{ 'campaign.normally' | t }}"
+  data-offer-label="{{ 'campaign.badge_price' | t: badge: offer_badge }}"
 >
   <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data">
     <input ref="variantId" type="hidden" name="id" value="{{ current_variant.id }}">

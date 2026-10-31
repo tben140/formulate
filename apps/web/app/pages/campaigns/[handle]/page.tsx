@@ -93,6 +93,7 @@ const CampaignPage = async ({ params }: PageProps) => {
                 endsAt={campaign.endsAt.toISOString()}
                 label={campaignEndsLabel(campaign)}
                 now={view.now.getTime()}
+                clockPreview={view.clockPreview}
               />
             ) : status === "restricted" ? (
               "This offer is for our email subscribers. Open it from the link in your email."
