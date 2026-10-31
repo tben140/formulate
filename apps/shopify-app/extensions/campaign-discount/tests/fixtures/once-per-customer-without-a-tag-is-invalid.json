@@ -1,0 +1,54 @@
+{
+  "payload": {
+    "export": "cart-lines-discounts-generate-run",
+    "target": "cart.lines.discounts.generate.run",
+    "input": {
+      "presentmentCurrencyRate": "1.0",
+      "cart": {
+        "buyerIdentity": {
+          "customer": {
+            "usedCampaign": false,
+            "inAudience": false
+          }
+        },
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1",
+            "quantity": 1,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "9.95"
+              }
+            },
+            "sellingPlanAllocation": null,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "inCampaign": true,
+              "product": {
+                "id": "gid://shopify/Product/10"
+              }
+            }
+          }
+        ]
+      },
+      "discount": {
+        "discountClasses": ["PRODUCT"],
+        "config": {
+          "jsonValue": {
+            "collectionIds": ["gid://shopify/Collection/1"],
+            "message": "Black Friday",
+            "rules": {
+              "type": "percent",
+              "percent": 25,
+              "oncePerCustomer": true
+            }
+          }
+        }
+      }
+    },
+    "output": {
+      "operations": []
+    }
+  }
+}

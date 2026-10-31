@@ -1,11 +1,24 @@
 # $collectionIds defaults to empty: with no config (or none of the key)
 # Shopify supplies nothing, and inAnyCollection then answers false rather
 # than the query failing.
-query CartInput($collectionIds: [ID!] = []) {
+query CartInput(
+  $collectionIds: [ID!] = []
+  $usedTags: [String!] = []
+  $audienceTags: [String!] = []
+) {
   # Tier thresholds are in the shop's currency; this converts them to the
   # checkout's when the shopper pays in another.
   presentmentCurrencyRate
   cart {
+    # Signed-in shoppers only: a guest has no customer. usedCampaign: the tag
+    # this campaign leaves on everyone who's had it (oncePerCustomer).
+    # inAudience: one of the tags the offer is for (audienceTags).
+    buyerIdentity {
+      customer {
+        usedCampaign: hasAnyTag(tags: $usedTags)
+        inAudience: hasAnyTag(tags: $audienceTags)
+      }
+    }
     lines {
       id
       quantity
@@ -27,6 +40,9 @@ query CartInput($collectionIds: [ID!] = []) {
           # On the variant, not the product: a collection can hold single
           # variants, and the variant's answer covers its product's too.
           inCampaign: inAnyCollection(ids: $collectionIds)
+          product {
+            id
+          }
         }
       }
     }

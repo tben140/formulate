@@ -5,6 +5,7 @@
     "input": {
       "presentmentCurrencyRate": "1.0",
       "cart": {
+        "buyerIdentity": null,
         "lines": [
           {
             "id": "gid://shopify/CartLine/1",
@@ -18,7 +19,10 @@
             "merchandise": {
               "__typename": "ProductVariant",
               "id": "gid://shopify/ProductVariant/1",
-              "inCampaign": true
+              "inCampaign": true,
+              "product": {
+                "id": "gid://shopify/Product/1"
+              }
             }
           },
           {
@@ -37,7 +41,10 @@
             "merchandise": {
               "__typename": "ProductVariant",
               "id": "gid://shopify/ProductVariant/2",
-              "inCampaign": true
+              "inCampaign": true,
+              "product": {
+                "id": "gid://shopify/Product/2"
+              }
             }
           }
         ]

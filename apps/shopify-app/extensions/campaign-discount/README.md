@@ -15,7 +15,9 @@ The discount's `$app:campaign-discount.config` metafield, written by
   "collectionIds": ["gid://shopify/Collection/524187107640"],
   "variantIds": [],
   "message": "Black Friday",
-  "rules": { "type": "percent", "percent": 25 }
+  "rules": { "type": "percent", "percent": 25 },
+  "usedTags": [],
+  "audienceTags": []
 }
 ```
 
@@ -26,7 +28,20 @@ The discount's `$app:campaign-discount.config` metafield, written by
   variant field). Anything but a list of ids gives no discount, never a wider
   one.
 - `rules` are the campaign's `offer_rules`: `percent`, `tiered` or `bundle`,
-  one-time items only unless `"oneTimeOnly": false`.
+  plus:
+  - `appliesTo`: `"one_time"` (the default), `"all"`, or `"subscriptions"`
+    for a subscribe-first offer. The older `"oneTimeOnly": false` still means
+    `"all"`. Recharge's renewals don't pass through checkout, so a
+    subscriptions offer is the first delivery only;
+  - `maxUnits`: at most this many units of each product at the campaign
+    price per order (percent and tiered);
+  - `oncePerCustomer`: no discount for a customer tagged with one of
+    `usedTags` (needs at least one).
+- `usedTags` and `audienceTags` are input query variables too, checked
+  against the signed-in customer's tags. With `audienceTags`, only customers
+  with one of them get the offer (a win-back offer to lapsed subscribers, for
+  example). A guest has no customer: they're never limited by `usedTags` and
+  never in an audience.
 - Anything that doesn't parse gives no discount.
 
 The discount's own start and end dates decide when it runs, so they must
@@ -40,11 +55,12 @@ match the campaign's; `campaigns check` compares them.
 | `tiered`  | N% off each eligible line once they add up to a tier (before discounts). Thresholds are in the shop's currency, converted at checkout's `presentmentCurrencyRate` |
 | `bundle`  | 100% off the cheapest `free` of every `buy` eligible items                                                                                                        |
 
-Subscriptions are left out by default: they already save 15%.
+Subscriptions are left out by default: they already save 15%. A capped line
+is discounted for only part of its quantity.
 
 ## Tests
 
-16 fixtures in `tests/fixtures`, built to WebAssembly and run through
+25 fixtures in `tests/fixtures`, built to WebAssembly and run through
 Shopify's function runner: `pnpm --filter @formulate/function-campaign-discount test`.
 
 ## Going live (Ben)
