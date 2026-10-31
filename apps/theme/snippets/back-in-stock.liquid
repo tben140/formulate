@@ -1,0 +1,86 @@
+{% comment %}
+  "Email me when it's back", below the product form (SHO-118), the counterpart
+  of apps/web's <BackInStockForm />. Klaviyo's live "Back in stock" flow sends
+  the email when Shopify restocks the variant.
+
+  Rendered when the product has any sold-out variant, and shown while the
+  selected one is sold out: back-in-stock.js follows the selection through
+  product-form's `product-form:variant-change` event. Outside the add-to-cart
+  form because forms can't nest.
+
+  Styles live in assets/critical.css: a snippet can't own a stylesheet. The
+  element stays hidden until back-in-stock.js defines it, because without
+  JavaScript the form would submit by GET and put the email in the URL.
+
+  ⚠️ A one-off alert, not a marketing subscription: no list and no consent,
+  and the hint says so.
+
+  Accepts:
+  - product: the product
+  - variant: the variant selected on load
+{% endcomment %}
+{%- liquid
+  assign any_sold_out = false
+  for v in product.variants
+    unless v.available
+      assign any_sold_out = true
+      break
+    endunless
+  endfor
+
+  if variant.title == 'Default Title'
+    assign item = product.title
+  else
+    assign item = product.title | append: ', ' | append: variant.title
+  endif
+-%}
+{% if settings.klaviyo_public_key != blank and any_sold_out %}
+  <back-in-stock
+    class="back-in-stock"
+    data-public-key="{{ settings.klaviyo_public_key }}"
+    data-variant-id="{{ variant.id }}"
+    data-product-title="{{ product.title | escape }}"
+    data-hint-template="{{ 'back_in_stock.hint' | t: item: '%ITEM%' }}"
+    data-label-pending="{{ 'back_in_stock.pending' | t }}"
+    data-label-success="{{ 'back_in_stock.success' | t }}"
+    data-error-empty="{{ 'newsletter.error_empty' | t }}"
+    data-error-invalid="{{ 'newsletter.error_invalid' | t }}"
+    data-error-unavailable="{{ 'back_in_stock.error_unavailable' | t }}"
+    data-error-failed="{{ 'newsletter.error_failed' | t }}"
+    data-error-network="{{ 'newsletter.error_network' | t }}"
+    {% if variant.available %}hidden{% endif %}
+  >
+    {% comment %} novalidate: the messages are ours, as in the footer form. {% endcomment %}
+    <form class="back-in-stock__form" novalidate>
+      <label class="back-in-stock__label" for="back-in-stock-email">
+        {{ 'back_in_stock.heading' | t }}
+      </label>
+      <p ref="hint" id="back-in-stock-hint" class="back-in-stock__hint">
+        {{ 'back_in_stock.hint' | t: item: item }}
+      </p>
+      <div class="back-in-stock__row">
+        <input
+          ref="input"
+          id="back-in-stock-email"
+          class="back-in-stock__input"
+          type="email"
+          name="email"
+          autocomplete="email"
+          required
+          placeholder="{{ 'newsletter.placeholder' | t }}"
+          aria-describedby="back-in-stock-hint back-in-stock-message"
+        >
+        <button ref="submit" class="back-in-stock__submit" type="submit">
+          {{ 'back_in_stock.submit' | t }}
+        </button>
+      </div>
+      <p
+        ref="message"
+        id="back-in-stock-message"
+        class="back-in-stock__message"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </form>
+  </back-in-stock>
+{% endif %}

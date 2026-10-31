@@ -1195,3 +1195,88 @@ a:hover {
 .cart-drawer__subtotal-value {
   font-family: var(--font-mono);
 }
+
+/* Back in stock (snippets/back-in-stock.liquid, SHO-118) */
+/*
+  Matched against apps/web's <BackInStockForm />: a bordered box (border,
+  rounded-md, p-4) under the buy button, with the footer form's controls.
+*/
+.back-in-stock {
+  display: block;
+  margin-block-start: var(--spacing-4);
+  padding: var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.back-in-stock[hidden],
+back-in-stock:not(:defined) {
+  display: none;
+}
+
+.back-in-stock__label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.back-in-stock__hint {
+  margin-block-start: var(--spacing-1);
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
+
+.back-in-stock__row {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-block-start: var(--spacing-3);
+}
+
+.back-in-stock__input {
+  min-width: 0;
+  flex: 1;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--text-sm);
+  color: var(--color-foreground);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.back-in-stock__input:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-color: var(--color-brand-600);
+}
+
+.back-in-stock__submit {
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-surface);
+  background: var(--color-brand-600);
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.back-in-stock__submit:hover {
+  background: var(--color-brand-700);
+}
+
+.back-in-stock__submit:disabled {
+  background: var(--color-ink-300);
+  cursor: not-allowed;
+}
+
+.back-in-stock__message {
+  min-height: 1.25rem;
+  margin-block-start: var(--spacing-2);
+  font-size: var(--text-sm);
+  color: var(--color-success);
+}
+
+.back-in-stock__message--error {
+  color: var(--color-danger);
+}

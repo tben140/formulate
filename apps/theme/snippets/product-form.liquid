@@ -256,6 +256,8 @@
   </form>
 </product-form>
 
+{% render 'back-in-stock', product: product, variant: current_variant %}
+
 {% comment %} Variant data for product-form.js. A script tag of JSON rather
   than data attributes: the shape is nested, and JSON.parse of one element
   beats reading a dozen attributes. {% endcomment %}
@@ -264,6 +266,7 @@
     {%- for variant in product.variants -%}
       {
         "id": {{ variant.id | json }},
+        "title": {{ variant.title | json }},
         "available": {{ variant.available | json }},
         "options": {{ variant.options | json }},
         "price": {{ variant.price | money | json }},
