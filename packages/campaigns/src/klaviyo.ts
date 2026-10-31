@@ -153,3 +153,59 @@ export const createPushDraft = async (
     throw new Error(`Klaviyo: HTTP ${response.status} creating "${push.name}"`);
   return ((await response.json()) as { data: { id: string } }).data.id;
 };
+
+/**
+ * A Klaviyo coupon holding a campaign's personal codes, so an email inserts
+ * one per recipient: {% coupon_code '<id>' %}. The id is our own (Klaviyo's
+ * external_id), e.g. "BLACK_FRIDAY_2026". Creating it sends nothing.
+ */
+export const createCoupon = async (
+  key: string,
+  id: string,
+  description: string,
+): Promise<void> => {
+  const response = await fetch(`${BASE}/coupons`, {
+    method: "POST",
+    headers: headers(key),
+    body: JSON.stringify({
+      data: { type: "coupon", attributes: { external_id: id, description } },
+    }),
+  });
+  // 409: it exists already, from an earlier run; the codes still go in.
+  if (!response.ok && response.status !== 409)
+    throw new Error(`Klaviyo: HTTP ${response.status} creating coupon ${id}`);
+};
+
+/** Uploads codes to a coupon, 1,000 per job (Klaviyo's limit), expiring with the campaign. */
+export const uploadCouponCodes = async (
+  key: string,
+  couponId: string,
+  codes: readonly string[],
+  expiresAt: string,
+): Promise<number> => {
+  let jobs = 0;
+  for (let i = 0; i < codes.length; i += 1000) {
+    const response = await fetch(`${BASE}/coupon-code-bulk-create-jobs`, {
+      method: "POST",
+      headers: headers(key),
+      body: JSON.stringify({
+        data: {
+          type: "coupon-code-bulk-create-job",
+          attributes: {
+            "coupon-codes": {
+              data: codes.slice(i, i + 1000).map((code) => ({
+                type: "coupon-code",
+                attributes: { unique_code: code, expires_at: expiresAt },
+                relationships: { coupon: { data: { type: "coupon", id: couponId } } },
+              })),
+            },
+          },
+        },
+      }),
+    });
+    if (!response.ok)
+      throw new Error(`Klaviyo: HTTP ${response.status} uploading codes to ${couponId}`);
+    jobs++;
+  }
+  return jobs;
+};
