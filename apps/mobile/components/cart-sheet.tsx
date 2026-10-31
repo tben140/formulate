@@ -139,9 +139,7 @@ export const CartSheet = ({
         </View>
 
         {/* Above the lines, so VoiceOver reaches it before the list. */}
-        <FreeShippingBar
-          subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
-        />
+        <FreeShippingBar lines={lines} />
 
         {isPending ? (
           <View className="flex-1 items-center justify-center">

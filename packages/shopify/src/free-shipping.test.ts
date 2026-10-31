@@ -4,6 +4,8 @@ import {
   FREE_SHIPPING_THRESHOLD,
   freeShippingMessage,
   freeShippingProgress,
+  cartFreeShippingMessage,
+  freeShippingForCart,
 } from "./free-shipping";
 
 const gbp = (amount: string) => ({ amount, currencyCode: "GBP" });
@@ -53,7 +55,9 @@ describe("freeShippingProgress", () => {
 
   it("respects a currency with no minor units", () => {
     const threshold = { amount: "5000", currencyCode: "JPY" };
-    expect(freeShippingProgress({ amount: "3200", currencyCode: "JPY" }, threshold)).toEqual({
+    expect(
+      freeShippingProgress({ amount: "3200", currencyCode: "JPY" }, threshold),
+    ).toEqual({
       kind: "away",
       remaining: { amount: "1800", currencyCode: "JPY" },
       fraction: 0.64,
@@ -78,5 +82,63 @@ describe("freeShippingMessage", () => {
     expect(progress && freeShippingMessage(progress)).toBe(
       "You've unlocked free standard delivery",
     );
+  });
+});
+
+describe("freeShippingForCart (SHO-99)", () => {
+  const line = (amount: string, subscription = false) => ({
+    cost: { totalAmount: { amount, currencyCode: "GBP" } },
+    sellingPlanAllocation: subscription ? { sellingPlan: { id: "plan" } } : null,
+  });
+
+  it("is free already when the cart is only subscriptions", () => {
+    const status = freeShippingForCart([line("13.56", true)]);
+    expect(status).toEqual({ kind: "subscriptions-only", fraction: 1 });
+    expect(status && cartFreeShippingMessage(status)).toBe(
+      "Subscriptions always ship free",
+    );
+  });
+
+  it("counts only one-time items towards the threshold", () => {
+    // £45 of subscriptions doesn't make £10 of one-time items free.
+    const status = freeShippingForCart([line("45.00", true), line("10.00")]);
+    expect(status).toMatchObject({
+      kind: "away",
+      remaining: { amount: "30.00", currencyCode: "GBP" },
+      hasSubscriptions: true,
+    });
+    expect(status && cartFreeShippingMessage(status)).toBe(
+      "Your subscriptions ship free. You're £30.00 away from free standard delivery on the rest",
+    );
+  });
+
+  it("says everything ships free once the one-time items reach it", () => {
+    const status = freeShippingForCart([
+      line("13.56", true),
+      line("20.00"),
+      line("20.00"),
+    ]);
+    expect(status && cartFreeShippingMessage(status)).toBe(
+      "Free standard delivery on everything",
+    );
+  });
+
+  it("reads as before when there are no subscriptions", () => {
+    const status = freeShippingForCart([line("39.99")]);
+    expect(status && cartFreeShippingMessage(status)).toBe(
+      "You're £0.01 away from free standard delivery",
+    );
+  });
+
+  it("shows nothing for an empty cart or a line in another currency", () => {
+    expect(freeShippingForCart([])).toBeNull();
+    expect(
+      freeShippingForCart([
+        {
+          cost: { totalAmount: { amount: "5.00", currencyCode: "EUR" } },
+          sellingPlanAllocation: null,
+        },
+      ]),
+    ).toBeNull();
   });
 });

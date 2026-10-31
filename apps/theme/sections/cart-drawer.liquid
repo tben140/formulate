@@ -36,16 +36,21 @@
 
     {% comment %}
       Free standard delivery progress. The theme's copy of apps/web's
-      <FreeShippingBar />; the logic is packages/shopify's freeShippingProgress,
+      <FreeShippingBar />; the logic is packages/shopify's freeShippingForCart,
       which Liquid cannot import, so it is restated here.
+
+      Subscription items always ship free on their own delivery profile
+      (SHO-99), and Shopify prices the threshold on one-time items alone, so
+      only those count towards it.
 
       It has to be inside this section: the section is what the Section
       Rendering API re-renders, so anything outside it would render once and
       then silently stop updating.
 
       The same rules as the headless surfaces:
-        - measured against the items subtotal (after line discounts, before
-          cart-level codes), never the total, which includes delivery
+        - measured against the one-time items' line prices (after line
+          discounts, before cart-level codes), never the total, which
+          includes delivery
         - compared only in the threshold's own currency, and hidden otherwise
         - the sentence carries the meaning; the bar is aria-hidden decoration
 
@@ -56,7 +61,17 @@
     {% endcomment %}
     {%- liquid
       assign free_shipping_threshold = section.settings.free_shipping_threshold | times: 100 | round
-      assign free_shipping_subtotal = cart.items_subtotal_price
+      assign free_shipping_subtotal = 0
+      assign free_shipping_one_time = 0
+      assign free_shipping_subscriptions = 0
+      for item in cart.items
+        if item.selling_plan_allocation
+          assign free_shipping_subscriptions = free_shipping_subscriptions | plus: 1
+        else
+          assign free_shipping_one_time = free_shipping_one_time | plus: 1
+          assign free_shipping_subtotal = free_shipping_subtotal | plus: item.final_line_price
+        endif
+      endfor
       assign show_free_shipping = false
       if cart.item_count > 0 and free_shipping_threshold > 0
         if cart.currency.iso_code == section.settings.free_shipping_currency
@@ -66,7 +81,7 @@
     -%}
     {% if show_free_shipping %}
       {%- liquid
-        if free_shipping_subtotal >= free_shipping_threshold
+        if free_shipping_one_time == 0 or free_shipping_subtotal >= free_shipping_threshold
           assign free_shipping_percent = 100
         else
           assign free_shipping_percent = free_shipping_subtotal | times: 100 | divided_by: free_shipping_threshold
@@ -74,11 +89,21 @@
       -%}
       <div class="free-shipping">
         <p class="free-shipping__message" data-free-shipping-message>
-          {%- if free_shipping_subtotal >= free_shipping_threshold -%}
-            {{- 'cart.free_shipping.unlocked' | t -}}
+          {%- if free_shipping_one_time == 0 -%}
+            {{- 'cart.free_shipping.subscriptions_only' | t -}}
+          {%- elsif free_shipping_subtotal >= free_shipping_threshold -%}
+            {%- if free_shipping_subscriptions > 0 -%}
+              {{- 'cart.free_shipping.everything' | t -}}
+            {%- else -%}
+              {{- 'cart.free_shipping.unlocked' | t -}}
+            {%- endif -%}
           {%- else -%}
             {%- assign free_shipping_remaining = free_shipping_threshold | minus: free_shipping_subtotal | money -%}
-            {{- 'cart.free_shipping.away' | t: amount: free_shipping_remaining -}}
+            {%- if free_shipping_subscriptions > 0 -%}
+              {{- 'cart.free_shipping.away_with_subscriptions' | t: amount: free_shipping_remaining -}}
+            {%- else -%}
+              {{- 'cart.free_shipping.away' | t: amount: free_shipping_remaining -}}
+            {%- endif -%}
           {%- endif -%}
         </p>
         <div class="free-shipping__track" aria-hidden="true">

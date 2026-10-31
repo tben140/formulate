@@ -35,7 +35,10 @@
     "remove_for": "{{ title }} from cart",
     "free_shipping": {
       "away": "You're {{ amount }} away from free standard delivery",
-      "unlocked": "You've unlocked free standard delivery"
+      "unlocked": "You've unlocked free standard delivery",
+      "subscriptions_only": "Subscriptions always ship free",
+      "everything": "Free standard delivery on everything",
+      "away_with_subscriptions": "Your subscriptions ship free. You're {{ amount }} away from free standard delivery on the rest"
     },
     "suggestions": {
       "title": "You might also like",
