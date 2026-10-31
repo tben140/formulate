@@ -14,13 +14,15 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SHOPIFY_API_VERSION": "2026-04"
+        "EXPO_PUBLIC_SHOPIFY_API_VERSION": "2026-04",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://582083fdfee8eff812089a42327b4ede@o4512227983753216.ingest.de.sentry.io/4512238419378256"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_SHOPIFY_API_VERSION": "2026-04"
+        "EXPO_PUBLIC_SHOPIFY_API_VERSION": "2026-04",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://582083fdfee8eff812089a42327b4ede@o4512227983753216.ingest.de.sentry.io/4512238419378256"
       }
     }
   },
