@@ -421,6 +421,13 @@ orders by UK hour, by surface, by source, and the top products. One file, no
 scripts or outside requests, store text escaped; keep it open, or publish it
 privately.
 
+**Did buyers come back?** `campaigns cohort <handle>` follows the campaign's
+signed-in buyers for 30, 60 and 90 days after it ended: how many ordered
+again (a Recharge renewal is an order, so it counts), how many have a
+subscription, and how many haven't been back; windows not over yet say "so
+far". Guest orders can't be followed and are counted apart. Run it in
+January for Black Friday, and again in March.
+
 **Attribution.** The report counts an order when the campaign's discount was
 applied or the cart was tagged `_campaign` by a visit to the campaign page. By
 surface it uses `_surface` when present (the PostHog stack adds it), else
