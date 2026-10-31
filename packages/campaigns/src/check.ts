@@ -375,7 +375,11 @@ export const checkCampaign = (
         )
           error(`${name}'s config is out of date: run campaigns sync ${entry.handle}.`);
       }
-      if (discount.status === "ACTIVE" && now < campaign.startsAt)
+      // An early-access code is meant to be on from early_access_starts_at.
+      if (
+        discount.status === "ACTIVE" &&
+        now < (startsEarly ? campaign.earlyAccessStartsAt! : campaign.startsAt)
+      )
         error(`${name} is already active, before the campaign starts.`);
     }
     if (campaign.earlyAccessStartsAt) {

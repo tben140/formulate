@@ -27,6 +27,7 @@ import {
   createFlow,
   createPushDraft,
   getEmails,
+  getPushNames,
   shopifyFlowMetrics,
   uploadCouponCodes,
 } from "./klaviyo";
@@ -187,7 +188,8 @@ const main = async (args: string[]): Promise<number> => {
       const starts = flag(rest, "starts");
       const ends = flag(rest, "ends");
       if (!template || !newHandle || !starts || !ends) break;
-      if (!(template in TEMPLATES)) throw new Error(`No template "${template}".`);
+      if (!Object.hasOwn(TEMPLATES, template))
+        throw new Error(`No template "${template}".`);
       if (!/^[a-z0-9-]{1,64}$/.test(newHandle))
         throw new Error("Handles are lowercase letters, digits and hyphens.");
       const startsAt = new Date(starts);
@@ -235,7 +237,7 @@ Next:
       });
       console.log(
         existing
-          ? `Updated ${id}.`
+          ? `Updated ${id}.${rest.includes("--activate") ? " Updating doesn't switch it on: activate it in the admin." : ""}`
           : `Created ${id}${rest.includes("--activate") ? "" : ", switched off: activate it in the admin, and switch off any plain discount it replaces"}.`,
       );
       return 0;
@@ -275,11 +277,15 @@ Next:
         throw new Error(
           "--create needs KLAVIYO_PRIVATE_KEY and KLAVIYO_PUSH_SEGMENT_ID.",
         );
+      // Reruns don't duplicate: a push whose draft already exists is skipped.
+      const existing =
+        create && entry.fields.title ? await getPushNames(key!, entry.fields.title) : [];
       for (const push of plannedPushes(entry)) {
         console.log(
           `${push.sendAt}  ${push.name}  "${push.title}: ${push.body}"  → ${push.deepLink}`,
         );
-        if (create)
+        if (create && existing.includes(push.name)) console.log("  draft already exists");
+        else if (create)
           console.log(`  created draft ${await createPushDraft(key!, push, segment!)}`);
       }
       return 0;
