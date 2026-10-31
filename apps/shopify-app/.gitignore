@@ -1,2 +1,7 @@
 # Shopify CLI's local state (dev store links, generated tunnels).
 .shopify/
+
+# Build output from `shopify app build`.
+extensions/*/dist/
+extensions/*/generated/
+extensions/*/manifest.json

@@ -1,0 +1,15 @@
+api_version = "2026-07"
+
+[[extensions]]
+name = "t:name"
+description = "t:description"
+handle = "stack-discount-settings"
+uid = "1e174f45-4960-70c7-ae7d-3774c0426f8ade54313f"
+type = "ui_extension"
+
+# The panel Shopify's Discounts page shows for "Build your stack", so the
+# discount is created in the admin like any other. Without it, Shopify sends
+# the merchant to the app's home address instead.
+[[extensions.targeting]]
+module = "./src/StackDiscountSettings.tsx"
+target = "admin.discount-details.function-settings.render"

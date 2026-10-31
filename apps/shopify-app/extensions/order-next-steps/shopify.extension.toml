@@ -1,0 +1,28 @@
+api_version = "2026-07"
+
+[[extensions]]
+name = "What happens next"
+handle = "order-next-steps"
+uid = "1890d6dc-4a3f-ceb0-1fc7-46196f1e18f499bdb8d6"
+type = "ui_extension"
+
+# The thank-you page, on every plan.
+[[extensions.targeting]]
+module = "./src/OrderNextSteps.tsx"
+target = "purchase.thank-you.block.render"
+
+[extensions.capabilities]
+api_access = true
+
+[extensions.settings]
+[[extensions.settings.fields]]
+key = "dispatch_text"
+type = "single_line_text_field"
+name = "Dispatch promise"
+description = "One sentence, such as \"We dispatch orders within 2 working days.\" Leave empty to leave it out."
+
+[[extensions.settings.fields]]
+key = "manage_url"
+type = "single_line_text_field"
+name = "Where shoppers manage subscriptions"
+description = "A full https:// link, such as the Recharge customer portal."

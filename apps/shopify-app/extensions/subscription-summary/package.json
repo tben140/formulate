@@ -1,0 +1,20 @@
+{
+  "name": "@formulate/checkout-subscription-summary",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@preact/signals": "2.11.3",
+    "@shopify/ui-extensions": "2026.7.4",
+    "preact": "10.29.8"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "4.1.12"
+  }
+}
