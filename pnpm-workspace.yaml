@@ -6,6 +6,10 @@ packages:
 # eslint-config-expo). It ships a Rust binary and needs its postinstall step.
 allowBuilds:
   # Bundler used by @shopify/cli; ships prebuilt platform binaries.
+  # File watcher pulled in by jest-expo 58 and graphql-codegen. Its install
+  # script only compiles when no prebuilt binary fits, and both use it for
+  # watch mode alone, which CI never runs: not allowed to run scripts.
+  "@parcel/watcher": false
   esbuild: true
   # Image processing used by Next.js and Expo tooling; ships prebuilt binaries.
   sharp: true
