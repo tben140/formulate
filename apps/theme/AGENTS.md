@@ -42,7 +42,8 @@ Without it the CLI walks up to the monorepo root looking for a theme. Theme chec
 then inspects 183 files and reports existing assets as missing. Every script in
 `package.json` already carries the flag; keep it on anything new.
 
-`@shopify/cli` is a **devDependency**, pinned to 4.6.0. Do not rely on a global
+`@shopify/cli` is a **devDependency**, pinned to 4.9.4. 5.0 changed the theme commands
+(SHO-196 covers whether to move). Do not rely on a global
 Homebrew install — a clean CI runner has none, and that turned CI red once
 already. `pnpm` places the local `node_modules/.bin` first on `PATH`, so scripts
 resolve the pinned binary.
