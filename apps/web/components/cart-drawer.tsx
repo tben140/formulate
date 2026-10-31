@@ -1,7 +1,14 @@
 "use client";
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
-import { formatMoney, type Cart, type CartSuggestion } from "@formulate/shopify";
+import {
+  formatMoney,
+  stackMessage,
+  stackProgress,
+  subscribeOffer,
+  type Cart,
+  type CartSuggestion,
+} from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
@@ -9,6 +16,7 @@ import { track } from "@/lib/klaviyo";
 
 import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
 import { FreeShippingBar } from "./free-shipping-bar";
+import { SubscribeLineForm } from "./subscribe-line-form";
 import { CartSuggestions } from "./cart-suggestions";
 /**
  * The slide-in cart.
@@ -92,6 +100,16 @@ export const CartDrawer = ({
 
         {/* Above the lines, so it is read before the list rather than after it. */}
         <FreeShippingBar lines={lines} />
+        {/* Always rendered, so a change is announced: a live region that
+            appears already filled in often isn't. */}
+        <p
+          role="status"
+          className={
+            stackProgress(lines) ? "border-b border-border px-4 py-2 text-sm" : "sr-only"
+          }
+        >
+          {stackProgress(lines) ? stackMessage(stackProgress(lines)!) : ""}
+        </p>
 
         {lines.length === 0 ? (
           <p className="flex-1 px-4 py-8 text-sm text-foreground-muted">
@@ -141,6 +159,16 @@ export const CartDrawer = ({
                         <p className="mt-0.5 text-xs font-medium text-brand-600">
                           {line.sellingPlanAllocation.sellingPlan.name}
                         </p>
+                      ) : null}
+                      {subscribeOffer(line) ? (
+                        // The one nudge that matters most for a subscription
+                        // shop: the shopper who skipped the choice on the
+                        // product page (cart-offers.ts).
+                        <SubscribeLineForm
+                          lineId={line.id}
+                          productTitle={variant.product.title}
+                          offer={subscribeOffer(line)!}
+                        />
                       ) : null}
 
                       <div className="mt-2 flex items-center justify-between gap-2">
