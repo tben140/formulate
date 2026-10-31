@@ -72,10 +72,10 @@
 {%- if next != blank or reached != blank -%}
   <div class="campaign-cart-hint">
     {%- if reached != blank -%}
-      <p class="campaign-cart-hint__reached">{{ reached | escape }}</p>
+      <p class="campaign-cart-hint__reached">{{ reached }}</p>
     {%- endif -%}
     {%- if next != blank -%}
-      <p>{{ next | escape }}</p>
+      <p>{{ next }}</p>
     {%- endif -%}
   </div>
 {%- endif -%}
