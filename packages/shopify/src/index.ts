@@ -120,6 +120,18 @@ export {
 export type { ProductFilter } from "./generated/graphql";
 export { descriptionBlocks } from "./description";
 export type { DescriptionBlock } from "./description";
+export {
+  RENEWAL_SHORT,
+  SUBSCRIPTION_BENEFITS,
+  SUPPLY_DAYS,
+  deliveryPromise,
+  isIntroductoryPlan,
+  pricePerDay,
+  renewalTerms,
+  savingMessage,
+  subscriptionSaving,
+} from "./subscribe-and-save";
+export type { SubscriptionSaving } from "./subscribe-and-save";
 
 export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";

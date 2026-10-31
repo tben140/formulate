@@ -8,6 +8,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {boolean} available
  * @property {string[]} options Option values, in the product's option order.
  * @property {string} price Already formatted by Liquid's `money` filter.
+ * @property {number} cents The same price in minor units, for the price per day.
  * @property {PlanData[]} [plans] App-owned selling plans only. See the filter
  *   in snippets/product-form.liquid.
  */
@@ -17,12 +18,17 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {number} id
  * @property {string} name
  * @property {string} price Already formatted by Liquid's `money` filter.
+ * @property {number} cents
+ * @property {string | null} saving "Save £2.39 a delivery (15%) · …", built in
+ *   Liquid from the locale, or null when subscribing saves nothing.
  */
 
 /**
  * @typedef {Object} ProductFormRefs
  * @property {HTMLInputElement} [variantId]
  * @property {HTMLElement} [price]
+ * @property {HTMLElement} [perDay]
+ * @property {HTMLElement} [renewal]
  * @property {HTMLButtonElement} [submit]
  * @property {HTMLElement} [status]
  * @property {HTMLInputElement | HTMLInputElement[]} [optionInput]
@@ -33,6 +39,21 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLButtonElement} [stickySubmit]
  * @property {HTMLElement} [stickyError]
  */
+
+/**
+ * The price per day of a 30-day supply, as Liquid renders it in
+ * snippets/product-form.liquid and packages/shopify's pricePerDay: "45p a
+ * day", or "£1.20 a day". The theme sells in pounds only.
+ *
+ * @param {number} cents
+ * @param {string} suffix "a day", from the locale (product.per_day).
+ */
+const perDayText = (cents, suffix) => {
+  const perDay = Math.round(cents / 30);
+  return perDay < 100
+    ? `${perDay}p ${suffix} ·`
+    : `${new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(perDay / 100)} ${suffix} ·`;
+};
 
 /**
  * Add to cart, progressively enhanced.
@@ -203,6 +224,18 @@ class ProductForm extends Component {
     // The headline price follows the purchase option, as on web and mobile
     // (SHO-124). The per-option prices in the list were always right.
     if (price && match) price.textContent = effectivePlan?.price ?? match.price;
+    const { perDay, renewal } = this.refs;
+    if (perDay) {
+      perDay.hidden = !match;
+      if (match) {
+        perDay.textContent = perDayText(
+          effectivePlan?.cents ?? match.cents,
+          perDay.dataset.perDaySuffix ?? "a day",
+        );
+      }
+    }
+    // The renewal terms only while a subscription is selected.
+    if (renewal) renewal.hidden = !effectivePlan;
 
     const label = !match
       ? (submit?.dataset.unavailableLabel ?? "Unavailable")
@@ -244,8 +277,10 @@ class ProductForm extends Component {
      * @param {string} value
      * @param {string} name
      * @param {string} priceText
+     * @param {string | null} [saving] Set for a subscription that saves money:
+     *   the one-time price is struck through beside it, a real comparison.
      */
-    const option = (value, name, priceText) => {
+    const option = (value, name, priceText, saving = null) => {
       const label = document.createElement("label");
       label.className = "product-form__plan";
 
@@ -256,10 +291,28 @@ class ProductForm extends Component {
       input.value = value;
       input.checked = value === (effectivePlan ? String(effectivePlan.id) : "");
       text.append(input, " ", name);
+      if (saving) {
+        const note = document.createElement("span");
+        note.className = "product-form__plan-saving";
+        note.textContent = saving;
+        text.append(note);
+      }
 
       const cost = document.createElement("span");
       cost.className = "product-form__plan-price";
-      cost.textContent = priceText;
+      if (saving && match) {
+        const was = document.createElement("s");
+        was.className = "product-form__plan-was";
+        const wasLabel = document.createElement("span");
+        wasLabel.className = "visually-hidden";
+        wasLabel.textContent = `${planList.dataset.oneTimePriceLabel ?? "One-time price"} `;
+        was.append(wasLabel, match.price);
+        const nowLabel = document.createElement("span");
+        nowLabel.className = "visually-hidden";
+        nowLabel.textContent = ` ${planList.dataset.subscriptionPriceLabel ?? "Subscription price"}`;
+        cost.append(was, nowLabel, " ");
+      }
+      cost.append(priceText);
 
       label.append(text, cost);
       return label;
@@ -271,7 +324,7 @@ class ProductForm extends Component {
         planList.dataset.oneTimeLabel ?? "One-time purchase",
         match?.price ?? "",
       ),
-      ...plans.map((plan) => option(String(plan.id), plan.name, plan.price)),
+      ...plans.map((plan) => option(String(plan.id), plan.name, plan.price, plan.saving)),
     );
     fieldset.hidden = plans.length === 0;
   }
