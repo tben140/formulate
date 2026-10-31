@@ -30,6 +30,7 @@ import {
   shopifyFlowMetrics,
   uploadCouponCodes,
 } from "./klaviyo";
+import { cohort, cohortMarkdown } from "./cohort";
 import { reportHtml } from "./dashboard";
 import { campaignReport, reportMarkdown } from "./report";
 import { campaignTerms } from "./terms";
@@ -71,6 +72,8 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
                                               drafts for KLAVIYO_PUSH_SEGMENT_ID
   pnpm campaigns terms <handle> [--apply]     the terms, written from the offer's rules;
                                               --apply saves them to the record
+  pnpm campaigns cohort <handle>              did its buyers come back: orders again and
+                                              subscriptions 30, 60 and 90 days after the end
   pnpm campaigns tidy <handle> [--apply]      after it ends: off its products, collection
                                               deleted, record back to draft; plans unless --apply
   pnpm campaigns approve <handle> --by <name> sign-off: check fails until it's approved,
@@ -344,6 +347,42 @@ Next:
         terms === entry.fields.terms
           ? "\nMatches the saved terms."
           : "\nDiffers from the saved terms: paste it into the record if it's right.",
+      );
+      return 0;
+    }
+
+    case "cohort": {
+      if (!handle) break;
+      const admin = await adminFromEnv();
+      const data = await snapshot(admin, handle, true);
+      const campaign = campaignOf(data.entry);
+      if (!campaign) throw new Error("The campaign can't be read; run check for why.");
+      const titles = campaignDiscounts(data.entry, data.discounts).flatMap((d) => [
+        d.title,
+        ...d.codes,
+      ]);
+      if (campaign.discountCode) titles.push(campaign.discountCode);
+      const until = new Date(campaign.endsAt.getTime() + 90 * 24 * 60 * 60 * 1000);
+      const orders = await getOrders(
+        admin,
+        campaign.startsAt.toISOString(),
+        until.toISOString(),
+        titles,
+      );
+      console.log(
+        cohortMarkdown(
+          campaign.title,
+          cohort(
+            orders,
+            {
+              handle,
+              discountTitles: titles,
+              startsAt: campaign.startsAt,
+              endsAt: campaign.endsAt,
+            },
+            new Date(),
+          ),
+        ),
       );
       return 0;
     }
