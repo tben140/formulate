@@ -1,0 +1,89 @@
+{
+  "payload": {
+    "export": "cart-lines-discounts-generate-run",
+    "target": "cart.lines.discounts.generate.run",
+    "input": {
+      "presentmentCurrencyRate": "1.0",
+      "cart": {
+        "buyerIdentity": null,
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1",
+            "quantity": 1,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "9.95"
+              }
+            },
+            "sellingPlanAllocation": null,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "inCampaign": true,
+              "product": {
+                "id": "gid://shopify/Product/1"
+              }
+            }
+          },
+          {
+            "id": "gid://shopify/CartLine/2",
+            "quantity": 1,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "15.95"
+              }
+            },
+            "sellingPlanAllocation": {
+              "sellingPlan": {
+                "recurringDeliveries": true
+              }
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/2",
+              "inCampaign": true,
+              "product": {
+                "id": "gid://shopify/Product/2"
+              }
+            }
+          },
+          {
+            "id": "gid://shopify/CartLine/3",
+            "quantity": 1,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "20.00"
+              }
+            },
+            "sellingPlanAllocation": null,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/3",
+              "inCampaign": false,
+              "product": {
+                "id": "gid://shopify/Product/3"
+              }
+            }
+          }
+        ]
+      },
+      "discount": {
+        "discountClasses": ["PRODUCT"],
+        "config": {
+          "jsonValue": {
+            "collectionIds": ["gid://shopify/Collection/524187107640"],
+            "message": "Black Friday",
+            "rules": {
+              "type": "percent",
+              "percent": 25
+            },
+            "variantIds": "gid://shopify/ProductVariant/1"
+          }
+        }
+      }
+    },
+    "output": {
+      "operations": []
+    }
+  }
+}

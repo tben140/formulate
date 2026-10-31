@@ -22,9 +22,11 @@ The discount's `$app:campaign-discount.config` metafield, written by
 ```
 
 - `collectionIds` are also the input query's variables: a line is in the
-  campaign when its product is in one of them.
+  campaign when its variant (or its product) is in one of them. With no
+  config, the variable defaults to an empty list, so nothing is in it.
 - `variantIds`, when not empty, narrows it to those variants (the campaign's
-  variant field).
+  variant field). Anything but a list of ids gives no discount, never a wider
+  one.
 - `rules` are the campaign's `offer_rules`: `percent`, `tiered` or `bundle`,
   plus:
   - `appliesTo`: `"one_time"` (the default), `"all"`, or `"subscriptions"`
@@ -47,18 +49,18 @@ match the campaign's; `campaigns check` compares them.
 
 ## What it gives
 
-| Rules     | Discount                                                                |
-| --------- | ----------------------------------------------------------------------- |
-| `percent` | N% off each eligible line                                               |
-| `tiered`  | N% off each eligible line once they add up to a tier (before discounts) |
-| `bundle`  | 100% off the cheapest `free` of every `buy` eligible items              |
+| Rules     | Discount                                                                                                                                                          |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `percent` | N% off each eligible line                                                                                                                                         |
+| `tiered`  | N% off each eligible line once they add up to a tier (before discounts). Thresholds are in the shop's currency, converted at checkout's `presentmentCurrencyRate` |
+| `bundle`  | 100% off the cheapest `free` of every `buy` eligible items                                                                                                        |
 
 Subscriptions are left out by default: they already save 15%. A capped line
 is discounted for only part of its quantity.
 
 ## Tests
 
-22 fixtures in `tests/fixtures`, built to WebAssembly and run through
+25 fixtures in `tests/fixtures`, built to WebAssembly and run through
 Shopify's function runner: `pnpm --filter @formulate/function-campaign-discount test`.
 
 ## Going live (Ben)

@@ -3,6 +3,7 @@
     "export": "cart-lines-discounts-generate-run",
     "target": "cart.lines.discounts.generate.run",
     "input": {
+      "presentmentCurrencyRate": "1.0",
       "cart": {
         "buyerIdentity": null,
         "lines": [
@@ -18,9 +19,9 @@
             "merchandise": {
               "__typename": "ProductVariant",
               "id": "gid://shopify/ProductVariant/90",
+              "inCampaign": true,
               "product": {
-                "id": "gid://shopify/Product/90",
-                "inCampaign": true
+                "id": "gid://shopify/Product/90"
               }
             }
           },
@@ -36,9 +37,9 @@
             "merchandise": {
               "__typename": "ProductVariant",
               "id": "gid://shopify/ProductVariant/30",
+              "inCampaign": true,
               "product": {
-                "id": "gid://shopify/Product/30",
-                "inCampaign": true
+                "id": "gid://shopify/Product/30"
               }
             }
           }

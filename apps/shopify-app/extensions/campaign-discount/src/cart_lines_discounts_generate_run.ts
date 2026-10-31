@@ -79,9 +79,14 @@ export const parseConfig = (value: unknown): Config | null => {
   const raw = value as Record<string, unknown>;
   const rules = raw.rules as Record<string, unknown> | undefined;
   const message = typeof raw.message === "string" ? raw.message.trim() : "";
-  const variantIds = Array.isArray(raw.variantIds)
-    ? raw.variantIds.filter((id): id is string => typeof id === "string")
-    : [];
+  // Absent means every variant; present must be a list of ids. Anything else
+  // is refused rather than read as "no restriction", which would widen it.
+  if (
+    raw.variantIds !== undefined &&
+    !(Array.isArray(raw.variantIds) && raw.variantIds.every((id) => typeof id === "string"))
+  )
+    return null;
+  const variantIds = (raw.variantIds as string[] | undefined) ?? [];
   const usedTags = strings(raw.usedTags);
   const audienceTags = strings(raw.audienceTags);
   if (!rules || !message || !usedTags || !audienceTags) return null;
@@ -164,7 +169,7 @@ export function cartLinesDiscountsGenerateRun(
 
   const eligible = input.cart.lines.filter((line) => {
     if (line.merchandise.__typename !== "ProductVariant") return false;
-    if (!line.merchandise.product.inCampaign) return false;
+    if (!line.merchandise.inCampaign) return false;
     if (variantIds.length > 0 && !variantIds.includes(line.merchandise.id)) return false;
     const subscription = Boolean(
       line.sellingPlanAllocation?.sellingPlan.recurringDeliveries,
@@ -198,8 +203,10 @@ export function cartLinesDiscountsGenerateRun(
         (sum, line) => sum + pence(line.cost.amountPerQuantity.amount) * line.quantity,
         0,
       );
+      // Thresholds are in the shop's currency; the cart may be in another.
+      const rate = Number(input.presentmentCurrencyRate) || 1;
       percent = rules.tiers
-        .filter((tier) => pence(tier.minSubtotal) <= total)
+        .filter((tier) => pence(Number(tier.minSubtotal) * rate) <= total)
         .at(-1)?.percent;
     }
     if (percent === undefined) return { operations: [] };

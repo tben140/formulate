@@ -3,6 +3,7 @@
     "export": "cart-lines-discounts-generate-run",
     "target": "cart.lines.discounts.generate.run",
     "input": {
+      "presentmentCurrencyRate": "1.0",
       "cart": {
         "buyerIdentity": null,
         "lines": [
@@ -18,9 +19,9 @@
             "merchandise": {
               "__typename": "ProductVariant",
               "id": "gid://shopify/ProductVariant/1",
+              "inCampaign": true,
               "product": {
-                "id": "gid://shopify/Product/1",
-                "inCampaign": true
+                "id": "gid://shopify/Product/1"
               }
             }
           }
