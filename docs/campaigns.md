@@ -296,6 +296,7 @@ campaign even without its discount, for example a tiered offer just missed.
 | `sync <handle> [--activate]`                          | Creates or updates the campaign's discount on the campaign Function, with the record's dates and rules. New ones start switched off                 |
 | `emails <handle> [--create]`                          | The launch and last-day emails, timed from the dates; `--create` makes them Klaviyo drafts (never scheduled)                                        |
 | `pushes <handle> [--create]`                          | Launch and last-day pushes, opening the campaign screen; `--create` makes Klaviyo drafts for `KLAVIYO_PUSH_SEGMENT_ID` (needs push set up: SHO-165) |
+| `flows <handle> [--create]`                           | The last-day abandoned-checkout email as a draft Klaviyo flow (below)                                                                               |
 | `report <handle>`                                     | Orders, revenue, discount cost, first orders, subscriptions started, by surface and email source, top products                                      |
 | `codes <handle> --count <n> [--prefix BF] [--apply]`  | Personal single-use codes: a code discount on the campaign Function and a Klaviyo coupon with the same codes (below)                                |
 | `prices record [--apply]`                             | Today's price for every variant into its price history (below). Run daily by `.github/workflows/price-history.yml`                                  |
@@ -309,6 +310,18 @@ percentage, one-time only if the offer is, on the collection, a code for
 email-link campaigns, or a Function config in step with the record; and,
 with a Klaviyo key, the emails send before the end and say the right
 percentage. And the prices, below.
+
+### Ends tonight: the abandoned checkout
+
+`campaigns flows <handle> --create` makes a Klaviyo flow of its own, as a
+draft: anyone who starts a checkout holding the campaign's products (Shopify's
+"Checkout Started", filtered on its `Collections`) and hasn't ordered an hour
+later gets "Your Black Friday basket is saved: the offer ends at midnight",
+once. A flow of its own rather than a branch of the live abandoned-cart flow,
+so nothing live changes. **Switch it on at the start of the last day and off
+at the end**; it has no dates of its own. Add the email's body in Klaviyo
+(the last-day campaign's template fits) and it sends from the account's
+default sender. Black Friday 2026's is `VwNnXJ` (draft).
 
 ### Personal codes
 
