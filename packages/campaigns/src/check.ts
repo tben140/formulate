@@ -4,6 +4,7 @@ import { campaignOf } from "./campaign-node";
 import { isPersonalPool, PERSONAL_POOL } from "./codes";
 import { DEFAULT_MIN_MARGIN, marginRows } from "./margins";
 import { checkReferencePrice, REFERENCE_DAYS } from "./price-history";
+import { campaignTerms } from "./terms";
 import { campaignDiscounts, discountConfig, sameConfig } from "./sync";
 import type { Finding, Snapshot } from "./types";
 
@@ -119,6 +120,16 @@ export const checkCampaign = (
     !percentsIn(entry.fields.offer ?? "").includes(rules.percent)
   )
     warn(`offer doesn't mention ${rules.percent}%.`);
+
+  // The terms as the rules would write them: a difference is worth a look.
+  if (
+    rules &&
+    entry.fields.terms &&
+    campaignTerms(campaign, rules) !== entry.fields.terms
+  )
+    warn(
+      "terms differ from what the offer's rules write: run campaigns terms <handle> to compare.",
+    );
 
   // Limits and audiences: only the Function enforces them, and the terms must say them.
   const terms = (entry.fields.terms ?? "").toLowerCase();
