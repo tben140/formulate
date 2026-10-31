@@ -31,9 +31,9 @@
     {% if now_s != '' %}
       data-now="{{ now_s }}"
     {% endif %}
-    data-hm="{{ 'campaign.ends_in_hm' | t: hours: '[h]', minutes: '[m]' | escape }}"
-    data-m="{{ 'campaign.ends_in_m' | t: minutes: '[m]' | escape }}"
-    data-soon="{{ 'campaign.ends_soon' | t | escape }}"
+    data-hm="{{ 'campaign.ends_in_hm' | t: hours: '[h]', minutes: '[m]'  }}"
+    data-m="{{ 'campaign.ends_in_m' | t: minutes: '[m]'  }}"
+    data-soon="{{ 'campaign.ends_soon' | t }}"
   >
     {{- 'campaign.ends' | t: time: time -}}
   </campaign-ends>
