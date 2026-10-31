@@ -127,14 +127,49 @@ onboarding PR rather than merging it.
   Actions, verified creators and the ones listed (pnpm/action-setup,
   shopify/lighthouse-ci-action), and tick "Require actions to be pinned to a
   full-length commit SHA".
-- **Environments for CI secrets.** The e2e and Lighthouse workflows read
-  repository-wide secrets (zizmor's `secrets-outside-env`). Moving them into a
-  GitHub environment limited to `main` and PR branches means a workflow on any
-  other branch can't read them.
+- **Environments for CI secrets.** The three jobs that read secrets (e2e,
+  Lighthouse web, Lighthouse theme) name a `ci` environment, so the secrets
+  can move out of the repository, where any workflow on any branch could read
+  them. Until they move, the jobs still read the repository secrets.
+  1. Settings → Environments → `ci` (the first run creates it; otherwise
+     "New environment").
+  2. Add the four secrets to `ci` as **environment secrets**:
+     `VERCEL_AUTOMATION_BYPASS_SECRET` (Vercel → Deployment Protection),
+     `SHOP_STORE` (the `.myshopify.com` domain), `SHOP_PASSWORD` (Online Store
+     → Preferences) and `SHOP_THEME_ACCESS_PASSWORD`. GitHub never shows a
+     saved secret again, and Theme Access shows a password only once, so
+     that one may mean a new password from the Theme Access app.
+  3. Run E2E and Lighthouse (theme) from the Actions tab, on this PR's
+     branch, and check both pass. Lighthouse (web) reads the bypass secret
+     too: re-run its latest run on a preview from the PR's checks, and check
+     it passes.
+  4. Under "Deployment branches and tags", choose "Selected branches and
+     tags" and add `main`, `integration/*`, `tben140/*` and `renovate/*`. A
+     workflow pushed to any other branch name, as GhostAction did, then gets
+     no secrets. Check the next preview's E2E run still passes: Vercel's
+     deployment events carry a commit rather than a branch, and if GitHub
+     refuses them ("not allowed to deploy to ci"), remove the branch rule
+     and keep the rest.
+  5. **Only once the batch is on `main`:** delete the four **repository**
+     secrets (Settings → Secrets and variables → Actions). Until then,
+     `main`'s workflows and any branch without this change still read them,
+     and would fail without them.
+
+  Each run will show as a "deployment to ci" on the PR; that's GitHub's
+  record of the environment being used, not a release.
+
+- **Forked PRs.** Vercel deploys a fork's PR too, and E2E and Lighthouse
+  (web) run on every deployment. A secret-free `trusted` job runs first and
+  lets them continue only if the deployed commit is the head of a branch in
+  this repository, which a fork's never is. Also confirm Vercel → Settings →
+  Git → **Git Fork Protection** is on (the default), so a fork's deployment
+  waits for approval in the first place.
+
 - **Tokens.** Review personal access tokens on GitHub, npm and Expo and remove
   any that aren't needed. GhostAction spread through long-lived classic tokens.
 - **Tailscale** to 1.104.2 or later on every device (forged certificates from
-  the distrusted eMudhra intermediates). The droplet runs 1.102.4.
+  the distrusted eMudhra intermediates). Done 26 October 2026, droplet
+  included.
 
 **Off on purpose:** "Require review from Code Owners". The owner is the only
 maintainer, and GitHub doesn't let authors approve their own PRs, so it would
