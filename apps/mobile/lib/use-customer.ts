@@ -26,12 +26,7 @@ import {
   signIn,
   signOut,
 } from "./customer-account";
-import {
-  clearRechargeSession,
-  isRechargeConfigured,
-  loadPortal,
-  loadSubscription,
-} from "./recharge";
+import { isRechargeConfigured, loadPortal, loadSubscription } from "./recharge";
 import { storefront } from "./storefront";
 
 /**
@@ -157,7 +152,6 @@ export const useSignOut = () => {
   return useMutation({
     mutationFn: async () => {
       await signOut();
-      clearRechargeSession();
       // ⚠️ The cart goes too: it was attached to this buyer at sign-in, so the
       // next person to use the phone would otherwise check out as them.
       await clearCartId();
@@ -173,8 +167,9 @@ export const useSignOut = () => {
 };
 
 /**
- * The subscription portal (SHO-72). Disabled until a Recharge Storefront token
- * is configured; the screens say so rather than showing an empty list.
+ * The subscription portal (SHO-72), read through the Worker. Disabled until
+ * the Worker's URL is configured; the screens say so rather than showing an
+ * empty list.
  */
 export const usePortal = () =>
   useQuery({
@@ -201,7 +196,7 @@ export const useDeletionPreview = () =>
 
 /**
  * Deletes the account through the Worker. On success, everything sign-out
- * forgets is forgotten here too: tokens, Recharge session and the cart. No
+ * forgets is forgotten here too: tokens and the cart. No
  * Shopify logout request: the account it would end is being erased.
  */
 export const useDeleteAccount = () => {
@@ -213,11 +208,7 @@ export const useDeleteAccount = () => {
       // The account is gone whatever happens next, so that result stands.
       // Every cleanup step is tried even if one fails (SecureStore can reject),
       // and a failure is reported alongside, never instead.
-      const steps = await Promise.allSettled([
-        clearCustomerTokens(),
-        Promise.resolve().then(clearRechargeSession),
-        clearCartId(),
-      ]);
+      const steps = await Promise.allSettled([clearCustomerTokens(), clearCartId()]);
       const cleanupFailed = steps.some((step) => step.status === "rejected");
       if (cleanupFailed && __DEV__) console.warn("deletion cleanup failed", steps);
       return { result, cleanupFailed };
