@@ -7,9 +7,9 @@
  * and an empty collection resolves without an error, so a stale handle
  * produces a blank landing page rather than a failure anyone notices.
  *
- * ⚠️ Two copies cannot import this and must be changed with it:
- * `apps/theme/sections/featured-collection.liquid` (Liquid) and
- * `scripts/smoke-test.mjs` (plain Node, no TypeScript).
+ * ⚠️ Files that can't import this (the theme's Liquid, the plain-Node smoke
+ * test, the Lighthouse and e2e configs) hold copies. `config.test.ts` fails if
+ * any of them differs, so change them together.
  */
 export const DEFAULT_COLLECTION_HANDLE = "best-sellers";
 
