@@ -8,6 +8,7 @@ import {
   KLAVIYO_REVISION,
   SERVER_SUBSCRIBE_URL,
   isPlausibleEmail,
+  scrubTransaction,
   serverSubscriptionPayload,
 } from "@formulate/analytics";
 
@@ -191,12 +192,23 @@ const handler = {
 
 /**
  * Uncaught errors go to Sentry (EU region, project `worker`), plus the
- * Klaviyo failure above. Errors only, no tracing.
+ * Klaviyo failure above.
  *
- * ⚠️ No personal data. sendDefaultPii is off, and beforeSend drops the
- * request entirely, so headers (including CF-Connecting-IP), cookies, the
- * body and the query string never leave the Worker. The body is where the
- * email address is.
+ * Traces too. A request from the app arrives with the app's trace headers, so
+ * the Worker's spans (the Klaviyo call) join the app's trace
+ * and inherit its sampling decision. A request without them is sampled at
+ * 10%.
+ *
+ * ⚠️ No personal data:
+ * - sendDefaultPii is off;
+ * - the request body (where the email address is) is never read into Sentry:
+ *   body capture is off at source, not just dropped later;
+ * - beforeSend drops the request from errors, so headers (including
+ *   CF-Connecting-IP), cookies and the query string never leave the Worker;
+ * - scrubTransaction does the same for traces, including span attributes.
+ *
+ * tracePropagationTargets is empty, so no trace headers are added to the
+ * Klaviyo call. Klaviyo isn't ours to send them to.
  */
 export default Sentry.withSentry<Env, unknown, unknown, typeof handler>(
   (env: Env) => ({
@@ -204,11 +216,15 @@ export default Sentry.withSentry<Env, unknown, unknown, typeof handler>(
     enabled: Boolean(env.SENTRY_DSN),
     environment: "production",
     sendDefaultPii: false,
+    tracesSampleRate: 0.1,
+    tracePropagationTargets: [],
+    integrations: [Sentry.httpServerIntegration({ maxRequestBodySize: "none" })],
     beforeSend: (event) => {
       delete event.request;
       delete event.user;
       return event;
     },
+    beforeSendTransaction: (event) => scrubTransaction(event),
   }),
   handler,
 );

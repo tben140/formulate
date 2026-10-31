@@ -105,14 +105,22 @@ discovered.
 
 ## Error monitoring
 
-**Sentry** (EU region, project `app`) receives JavaScript errors.
+**Sentry** (EU region, project `app`) receives JavaScript errors and traces.
 `lib/sentry.ts` starts it at module scope in `app/_layout.tsx`, beside
 Klaviyo, so errors during the first render are caught. It's off without
 `EXPO_PUBLIC_SENTRY_DSN`, which `eas.json` sets for preview and production
 builds (a DSN is public by design: it can only submit events). Local runs
-stay off unless you put it in `.env.local`. There's no tracing and no replay. `beforeSend`
+stay off unless you put it in `.env.local`. There's no replay. `beforeSend`
 removes the user and any request details, and breadcrumbs keep URLs
 without their query strings.
+
+Traces cover app start, screen changes (named by route, such as
+`products/[handle]`, never with their params) and network requests.
+`EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` sets the share of sessions traced:
+`eas.json` uses 1 for preview builds and 0.1 for production. Calls to the
+Worker carry trace headers, so the Worker's spans join the same trace. No
+other host gets them. `beforeSendTransaction` runs `scrubTransaction` from
+`@formulate/analytics`, which applies the same rules to traces.
 
 Native crashes need the native layer, so they're only reported from a
 development or store build. Expo Go reports JavaScript errors only. The
