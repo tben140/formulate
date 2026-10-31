@@ -122,5 +122,9 @@
     "shop_collection": "Shop {{ title }}",
     "search_link": "Search",
     "skip_to_content": "Skip to content"
+  },
+  "footer": {
+    "social": "Social media",
+    "payment_methods": "Payment methods"
   }
 }
