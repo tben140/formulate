@@ -17,8 +17,13 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @typedef {Object} PlanData
  * @property {number} id
  * @property {string} name
- * @property {string} price Already formatted by Liquid's `money` filter.
- * @property {number} cents
+ * @property {string} price One delivery, for all its units, formatted by Liquid.
+ * @property {number} cents The same in minor units.
+ * @property {number} units 30-day supplies per delivery (2 for a 60-day plan):
+ *   the quantity added.
+ * @property {string} was The same units bought once, formatted.
+ * @property {string | null} supply "90-day supply (3 × 30-day packs) …", or
+ *   null for one supply.
  * @property {string | null} saving "Save £2.39 a delivery (15%) · …", built in
  *   Liquid from the locale, or null when subscribing saves nothing.
  */
@@ -26,6 +31,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
 /**
  * @typedef {Object} ProductFormRefs
  * @property {HTMLInputElement} [variantId]
+ * @property {HTMLInputElement} [quantity]
  * @property {HTMLElement} [price]
  * @property {HTMLElement} [perDay]
  * @property {HTMLElement} [renewal]
@@ -47,9 +53,10 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  *
  * @param {number} cents
  * @param {string} suffix "a day", from the locale (product.per_day).
+ * @param {number} [days] What the price buys: 90 for a 90-day plan's delivery.
  */
-const perDayText = (cents, suffix) => {
-  const perDay = Math.round(cents / 30);
+const perDayText = (cents, suffix, days = 30) => {
+  const perDay = Math.round(cents / days);
   return perDay < 100
     ? `${perDay}p ${suffix} ·`
     : `${new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(perDay / 100)} ${suffix} ·`;
@@ -116,7 +123,9 @@ class ProductForm extends Component {
     // different variant. Trusting it skipped the rebuild, and an add could
     // send one variant's selling plan with another variant's id.
     const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
-    this.#plansBuiltFor = rendered ? Number(this.refs.planList?.dataset.builtFor) || null : null;
+    this.#plansBuiltFor = rendered
+      ? Number(this.refs.planList?.dataset.builtFor) || null
+      : null;
     this.#sync();
     this.#observeMainButton();
   }
@@ -220,6 +229,8 @@ class ProductForm extends Component {
     const { variantId, price, submit } = this.refs;
 
     if (variantId) variantId.value = match ? String(match.id) : "";
+    // The plan sets the quantity: its supply (deliveryQuote in packages/shopify).
+    if (this.refs.quantity) this.refs.quantity.value = String(effectivePlan?.units ?? 1);
 
     // The headline price follows the purchase option, as on web and mobile
     // (SHO-124). The per-option prices in the list were always right.
@@ -231,6 +242,7 @@ class ProductForm extends Component {
         perDay.textContent = perDayText(
           effectivePlan?.cents ?? match.cents,
           perDay.dataset.perDaySuffix ?? "a day",
+          (effectivePlan?.units ?? 1) * 30,
         );
       }
     }
@@ -279,8 +291,17 @@ class ProductForm extends Component {
      * @param {string} priceText
      * @param {string | null} [saving] Set for a subscription that saves money:
      *   the one-time price is struck through beside it, a real comparison.
+     * @param {string | null} [supply] What a multi-supply delivery holds.
+     * @param {string} [wasText] The one-time price of the same units.
      */
-    const option = (value, name, priceText, saving = null) => {
+    const option = (
+      value,
+      name,
+      priceText,
+      saving = null,
+      supply = null,
+      wasText = "",
+    ) => {
       const label = document.createElement("label");
       label.className = "product-form__plan";
 
@@ -291,6 +312,12 @@ class ProductForm extends Component {
       input.value = value;
       input.checked = value === (effectivePlan ? String(effectivePlan.id) : "");
       text.append(input, " ", name);
+      if (supply) {
+        const note = document.createElement("span");
+        note.className = "product-form__plan-saving";
+        note.textContent = supply;
+        text.append(note);
+      }
       if (saving) {
         const note = document.createElement("span");
         note.className = "product-form__plan-saving";
@@ -306,7 +333,7 @@ class ProductForm extends Component {
         const wasLabel = document.createElement("span");
         wasLabel.className = "visually-hidden";
         wasLabel.textContent = `${planList.dataset.oneTimePriceLabel ?? "One-time price"} `;
-        was.append(wasLabel, match.price);
+        was.append(wasLabel, wasText || match.price);
         const nowLabel = document.createElement("span");
         nowLabel.className = "visually-hidden";
         nowLabel.textContent = ` ${planList.dataset.subscriptionPriceLabel ?? "Subscription price"}`;
@@ -324,7 +351,16 @@ class ProductForm extends Component {
         planList.dataset.oneTimeLabel ?? "One-time purchase",
         match?.price ?? "",
       ),
-      ...plans.map((plan) => option(String(plan.id), plan.name, plan.price, plan.saving)),
+      ...plans.map((plan) =>
+        option(
+          String(plan.id),
+          plan.name,
+          plan.price,
+          plan.saving,
+          plan.supply,
+          plan.was,
+        ),
+      ),
     );
     fieldset.hidden = plans.length === 0;
   }
@@ -432,7 +468,8 @@ class ProductForm extends Component {
     } catch (error) {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
-      const message = error instanceof Error ? error.message : "Could not update your cart.";
+      const message =
+        error instanceof Error ? error.message : "Could not update your cart.";
       if (status) status.textContent = message;
       // The status line sits by the main button, off screen whenever the bar
       // is up, so the bar shows the message too. Not a live region: the

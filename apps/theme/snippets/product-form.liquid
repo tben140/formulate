@@ -37,7 +37,12 @@
 <product-form class="product-form">
   <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data">
     <input ref="variantId" type="hidden" name="id" value="{{ current_variant.id }}">
-    <input type="hidden" name="quantity" value="1">
+    {%- comment -%}
+      product-form.js sets this to the chosen plan's supply (2 for a 60-day
+      plan, 3 for 90). Without JavaScript it stays 1: the plan radios can't
+      change it then.
+    {%- endcomment -%}
+    <input ref="quantity" type="hidden" name="quantity" value="1">
 
     {% comment %} Option pills, matching apps/web. {% endcomment %}
     {% if product.has_only_default_variant == false %}
@@ -167,11 +172,26 @@
                     value="{{ allocation.selling_plan.id }}"
                   >
                   {{ allocation.selling_plan.name }}
-                  {%- assign plan_saving = current_variant.price | minus: allocation.per_delivery_price -%}
+                  {%- comment -%}
+                    A 60- or 90-day plan ships two or three 30-day supplies, at
+                    that many times the price (deliveryQuote in
+                    packages/shopify). The plan sets the quantity.
+                  {%- endcomment -%}
+                  {%- capture plan_units -%}{% render 'plan-supply-units', selling_plan: allocation.selling_plan %}{%- endcapture -%}
+                  {%- assign plan_units = plan_units | plus: 0 -%}
+                  {%- assign plan_total = allocation.per_delivery_price | times: plan_units -%}
+                  {%- assign one_time_total = current_variant.price | times: plan_units -%}
+                  {%- if plan_units > 1 -%}
+                    {%- assign plan_days = plan_units | times: 30 -%}
+                    <span class="product-form__plan-saving">
+                      {{- 'product.supply' | t: days: plan_days, units: plan_units -}}
+                    </span>
+                  {%- endif -%}
+                  {%- assign plan_saving = one_time_total | minus: plan_total -%}
                   {%- comment -%} No saving claim for a plan whose price rises after an introductory period (isIntroductoryPlan). {%- endcomment -%}
                   {%- if allocation.price_adjustments.size > 1 -%}{%- assign plan_saving = 0 -%}{%- endif -%}
                   {%- if plan_saving > 0 -%}
-                    {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: current_variant.price | round -%}
+                    {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: one_time_total | round -%}
                     {%- assign plan_saving_money = plan_saving | money -%}
                     <span class="product-form__plan-saving">
                       {{- 'product.subscription_saving' | t: amount: plan_saving_money, percent: plan_percent -}}
@@ -185,10 +205,10 @@
                       real comparison, not a "was" price
                       (packages/shopify/src/subscribe-and-save.ts).
                     {%- endcomment -%}
-                    <s class="product-form__plan-was"><span class="visually-hidden">{{ 'product.one_time_price' | t }} </span>{{ current_variant.price | money }}</s>
+                    <s class="product-form__plan-was"><span class="visually-hidden">{{ 'product.one_time_price' | t }} </span>{{ one_time_total | money }}</s>
                     <span class="visually-hidden"> {{ 'product.subscription_price' | t }}</span>
                   {% endif -%}
-                  {{ allocation.price | money }}
+                  {{ plan_total | money }}
                 </span>
               </label>
             {% endif %}
@@ -336,12 +356,25 @@
               {
                 "id": {{ allocation.selling_plan.id | json }},
                 "name": {{ allocation.selling_plan.name | json }},
-                "price": {{ allocation.price | money | json }},
-                "cents": {{ allocation.per_delivery_price | json }},
-                {%- assign plan_saving = variant.price | minus: allocation.per_delivery_price -%}
+                {%- capture plan_units -%}{% render 'plan-supply-units', selling_plan: allocation.selling_plan %}{%- endcapture -%}
+                {%- assign plan_units = plan_units | plus: 0 -%}
+                {%- assign plan_total = allocation.per_delivery_price | times: plan_units -%}
+                {%- assign one_time_total = variant.price | times: plan_units -%}
+                {%- assign plan_days = plan_units | times: 30 -%}
+                "units": {{ plan_units | json }},
+                "price": {{ plan_total | money | json }},
+                "cents": {{ plan_total | json }},
+                "was": {{ one_time_total | money | json }},
+                {%- if plan_units > 1 -%}
+                  {%- assign plan_supply_text = 'product.supply' | t: days: plan_days, units: plan_units -%}
+                  "supply": {{ plan_supply_text | json }},
+                {%- else -%}
+                  "supply": null,
+                {%- endif -%}
+                {%- assign plan_saving = one_time_total | minus: plan_total -%}
                 {%- if allocation.price_adjustments.size > 1 -%}{%- assign plan_saving = 0 -%}{%- endif -%}
                 {%- if plan_saving > 0 -%}
-                  {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: variant.price | round -%}
+                  {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: one_time_total | round -%}
                   {%- assign plan_saving_money = plan_saving | money -%}
                   {%- assign plan_saving_text = 'product.subscription_saving' | t: amount: plan_saving_money, percent: plan_percent -%}
                   "saving": {{ plan_saving_text | json }}

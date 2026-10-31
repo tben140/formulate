@@ -1229,3 +1229,10 @@ a:hover {
   margin-top: var(--spacing-2);
   font-size: var(--text-xs);
 }
+
+/* A 60- or 90-day plan's line: its supply instead of a quantity box. */
+.cart-line__supply {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-foreground-muted);
+}
