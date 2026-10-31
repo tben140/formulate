@@ -1,0 +1,4 @@
+{
+  "name": "Campaign discount",
+  "description": "A campaign's offer (percent, tiered or bundle), from its campaign record"
+}
