@@ -27,10 +27,12 @@ import {
   createFlow,
   createPushDraft,
   getEmails,
+  setProfileProperty,
   shopifyFlowMetrics,
   uploadCouponCodes,
 } from "./klaviyo";
 import { cohort, cohortMarkdown } from "./cohort";
+import { earnedRewards, planReferralCodes, REFERRAL_PREFIX } from "./referrals";
 import { reportHtml } from "./dashboard";
 import { campaignReport, reportMarkdown } from "./report";
 import { campaignTerms } from "./terms";
@@ -38,6 +40,9 @@ import {
   addRedeemCodes,
   approveCampaign,
   createCampaign,
+  createReferralDiscount,
+  getBuyerContacts,
+  saveReferralCodes,
   getCollection,
   getDiscounts,
   getEntries,
@@ -74,6 +79,9 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
                                               drafts for KLAVIYO_PUSH_SEGMENT_ID
   pnpm campaigns terms <handle> [--apply]     the terms, written from the offer's rules;
                                               --apply saves them to the record
+  pnpm campaigns referrals <handle> [--friend 15] [--apply] | --rewards
+                                              a refer-a-friend code for each campaign buyer;
+                                              --rewards lists who has earned a reward
   pnpm campaigns cohort <handle>              did its buyers come back: orders again and
                                               subscriptions 30, 60 and 90 days after the end
   pnpm campaigns tidy <handle> [--apply]      after it ends: off its products, collection
@@ -370,6 +378,108 @@ Next:
         terms === entry.fields.terms
           ? "\nMatches the saved terms."
           : "\nDiffers from the saved terms: paste it into the record if it's right.",
+      );
+      return 0;
+    }
+
+    case "referrals": {
+      if (!handle) break;
+      const admin = await adminFromEnv();
+      const data = await snapshot(admin, handle, true);
+      const campaign = campaignOf(data.entry);
+      if (!campaign) throw new Error("The campaign can't be read; run check for why.");
+      const titles = campaignDiscounts(data.entry, data.discounts)
+        .filter((d) => !d.title.endsWith("(referral)"))
+        .flatMap((d) => [d.title, ...d.codes]);
+      if (campaign.discountCode) titles.push(campaign.discountCode);
+      const until = new Date(campaign.endsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const orders = await getOrders(
+        admin,
+        campaign.startsAt.toISOString(),
+        until.toISOString(),
+        titles,
+      );
+      const buyerIds = [
+        ...new Set(
+          orders
+            .filter(
+              (o) =>
+                o.customerId &&
+                new Date(o.createdAt) < campaign.endsAt &&
+                o.campaignDiscount > 0,
+            )
+            .map((o) => o.customerId!),
+        ),
+      ];
+      const contacts = await getBuyerContacts(admin, buyerIds);
+
+      if (rest.includes("--rewards")) {
+        const owners = new Map(
+          contacts
+            .filter((c) => c.code)
+            .map((c) => [c.code!.toUpperCase(), c.customerId]),
+        );
+        const uses = orders.flatMap((o) =>
+          o.discounts
+            .filter((d) => d.toUpperCase().startsWith(`${REFERRAL_PREFIX}-`))
+            .map((code) => ({
+              order: o.name,
+              code,
+              friendCustomerId: o.customerId ?? null,
+            })),
+        );
+        const rewards = earnedRewards(uses, owners);
+        const email = new Map(
+          contacts.map((c) => [c.customerId, c.email ?? c.customerId]),
+        );
+        for (const r of rewards)
+          console.log(`${email.get(r.referrer)}: ${r.orders.join(", ")}`);
+        console.log(
+          rewards.length
+            ? `${rewards.length} referrers have earned a reward. Issuing it is your call.`
+            : "No referral orders yet.",
+        );
+        return 0;
+      }
+
+      const friend = Number(flag(rest, "friend") ?? 15);
+      if (!Number.isInteger(friend) || friend < 1 || friend > 50)
+        throw new Error("--friend is a whole percentage, 1 to 50.");
+      const plan = planReferralCodes(contacts);
+      console.log(
+        `${contacts.length} buyers; ${plan.length} new codes (a friend gets ${friend}% off, once per customer, until ${until.toISOString().slice(0, 10)}).`,
+      );
+      if (!rest.includes("--apply")) {
+        if (plan.length)
+          console.log("Planned only. Run with --apply to create and record them.");
+        return 0;
+      }
+      if (plan.length === 0) return 0;
+      const title = `${campaign.title} (referral)`;
+      const existing = data.discounts.find(
+        (d) => d.title === title && d.method === "code",
+      );
+      const id =
+        existing?.id ??
+        (await createReferralDiscount(admin, {
+          title,
+          firstCode: plan[0]!.code,
+          percent: friend,
+          startsAt: new Date().toISOString(),
+          endsAt: until.toISOString(),
+        }));
+      await addRedeemCodes(
+        admin,
+        id,
+        (existing ? plan : plan.slice(1)).map((p) => p.code),
+      );
+      await saveReferralCodes(admin, plan);
+      const key = process.env.KLAVIYO_PRIVATE_KEY;
+      if (key)
+        for (const p of plan)
+          if (p.email) await setProfileProperty(key, p.email, "referral_code", p.code);
+      console.log(
+        `Created ${plan.length} codes on ${id}${key ? ", and on their Klaviyo profiles" : ""}.`,
       );
       return 0;
     }

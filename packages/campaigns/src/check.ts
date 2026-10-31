@@ -288,7 +288,10 @@ export const checkCampaign = (
   // The discount that charges it.
   const errorsBefore = findings.filter((finding) => finding.level === "error").length;
   const mine = campaignDiscounts(entry, discounts);
-  const own = mine.filter((discount) => discount.kind !== "shipping");
+  // Neither free delivery nor the referral codes (campaigns referrals) are the offer itself.
+  const own = mine.filter(
+    (discount) => discount.kind !== "shipping" && !discount.title.endsWith("(referral)"),
+  );
   const shipping = mine.filter(
     (discount) => discount.kind === "shipping" && discount.status !== "EXPIRED",
   );
