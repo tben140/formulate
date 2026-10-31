@@ -1,4 +1,8 @@
-import { formatMoney } from "@formulate/shopify";
+import {
+  campaignShippingThreshold,
+  formatMoney,
+  FREE_SHIPPING_THRESHOLD,
+} from "@formulate/shopify";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
@@ -10,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { useActiveCampaign } from "../lib/campaign";
 import { useCheckout } from "../lib/checkout";
 import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
 
@@ -42,6 +47,8 @@ export const CartSheet = ({
   readonly onClose: () => void;
 }) => {
   const { data: cart, isPending } = useCart();
+  // A live campaign's free-delivery offer lowers the bar's threshold.
+  const campaign = useActiveCampaign();
   const updateLine = useUpdateCartLine();
   const clearCart = useClearCart();
   const checkout = useCheckout();
@@ -142,6 +149,11 @@ export const CartSheet = ({
         {/* Above the lines, so VoiceOver reaches it before the list. */}
         <FreeShippingBar
           subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
+          threshold={
+            campaign
+              ? campaignShippingThreshold(campaign.rules, FREE_SHIPPING_THRESHOLD)
+              : null
+          }
         />
         <CampaignCartHint lines={lines} />
 

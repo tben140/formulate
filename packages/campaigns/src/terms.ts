@@ -89,6 +89,9 @@ export const campaignTerms = (
     rules.oncePerCustomer ? "Once per customer, signed in to their account" : null,
     rules.appliesTo === "one_time" ? "Doesn't apply to subscriptions" : null,
     "Can't be combined with other discounts or codes, except free delivery",
+    rules.shipping
+      ? `Free delivery ${Number(rules.shipping.minSubtotal.amount) > 0 ? `on orders over ${formatMoney(rules.shipping.minSubtotal)}` : "on every order"} during the offer${rules.shipping.maxRate ? `, on delivery options up to ${formatMoney(rules.shipping.maxRate)}` : ""}`
+      : null,
     // How campaigns perks gives it: one per active subscription, next delivery after the end.
     campaign.subscriberPerk
       ? `Subscribers: ${campaign.subscriberPerk.replace(/[.,]\s*$/, "")}; one per active subscription, added to the next delivery after ${ukDate(lastMinute)}`

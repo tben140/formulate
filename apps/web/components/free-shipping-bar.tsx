@@ -15,8 +15,17 @@ import {
  * The bar is decoration and hidden from assistive tech. The sentence carries
  * the information, so nothing depends on seeing the colour or the width.
  */
-export const FreeShippingBar = ({ subtotal }: { subtotal: MoneyLike | null }) => {
-  const progress = subtotal ? freeShippingProgress(subtotal) : null;
+export const FreeShippingBar = ({
+  subtotal,
+  threshold = null,
+}: {
+  subtotal: MoneyLike | null;
+  /** A live campaign's lower threshold (campaignShippingThreshold), else the everyday one. */
+  threshold?: MoneyLike | null;
+}) => {
+  const progress = subtotal
+    ? freeShippingProgress(subtotal, ...(threshold ? [threshold] : []))
+    : null;
 
   return (
     <div className={progress ? "border-b border-border px-4 py-3" : undefined}>

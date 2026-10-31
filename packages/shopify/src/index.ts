@@ -149,6 +149,7 @@ export type {
 
 export {
   campaignCartProgress,
+  campaignShippingThreshold,
   campaignCountdown,
   campaignUnitPrice,
   offerLimits,
