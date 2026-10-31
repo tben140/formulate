@@ -170,7 +170,10 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             */}
             <footer className="border-t border-border">
               <div className="mx-auto max-w-5xl px-4 py-6">
-                <EmailCapture />
+                {/* An ended campaign's page links here: "hear about the next one". */}
+                <div id="email-signup">
+                  <EmailCapture />
+                </div>
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                   <SocialLinks />
                   <PaymentIcons />

@@ -834,3 +834,55 @@ export const approveCampaign = async (
   if (errors.length > 0)
     throw new Error(`Not approved: ${errors.map((e) => e.message).join("; ")}`);
 };
+
+/**
+ * After a campaign (docs/campaigns.md, Housekeeping): takes the campaign off
+ * its products and variants, deletes its smart collection, and sets the
+ * record back to draft, kept for the report but shown nowhere. Expired
+ * discounts are left: they do nothing, and the report reads them.
+ */
+export const tidyCampaign = async (
+  admin: Admin,
+  input: { entryId: string; collectionId: string | null; owners: readonly string[] },
+): Promise<void> => {
+  for (let i = 0; i < input.owners.length; i += 25) {
+    const data = await admin.request<{
+      metafieldsDelete: { userErrors: { message: string }[] };
+    }>(
+      `mutation Untag($metafields: [MetafieldIdentifierInput!]!) {
+        metafieldsDelete(metafields: $metafields) { userErrors { message } }
+      }`,
+      {
+        metafields: input.owners
+          .slice(i, i + 25)
+          .map((ownerId) => ({ ownerId, namespace: "double_helix", key: "campaign" })),
+      },
+    );
+    const errors = data.metafieldsDelete.userErrors;
+    if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  if (input.collectionId) {
+    const data = await admin.request<{
+      collectionDelete: { userErrors: { message: string }[] };
+    }>(
+      `mutation Drop($input: CollectionDeleteInput!) {
+        collectionDelete(input: $input) { userErrors { message } }
+      }`,
+      { input: { id: input.collectionId } },
+    );
+    const errors = data.collectionDelete.userErrors;
+    if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  const data = await admin.request<{
+    metaobjectUpdate: { userErrors: { message: string }[] };
+  }>(
+    `mutation Draft($id: ID!) {
+      metaobjectUpdate(id: $id, metaobject: { capabilities: { publishable: { status: DRAFT } } }) {
+        userErrors { message }
+      }
+    }`,
+    { id: input.entryId },
+  );
+  const errors = data.metaobjectUpdate.userErrors;
+  if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
+};
