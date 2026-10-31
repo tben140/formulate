@@ -1,0 +1,84 @@
+{% doc %}
+  Choosing a daily pack's ingredients (custom blend). Matches apps/web's
+  components/blend-picker.tsx; the rules are packages/shopify/src/blend.ts.
+
+  The ingredients are the store's `blend_ingredient` metaobjects. Picking N
+  sets `data-size`, and <product-form> picks the variant whose
+  `double_helix.blend_size` is N, so price and purchase options follow as for
+  any product. The choice rides
+  on the line as `properties[_blend]` (codes) and `properties[Blend]` (words).
+
+  Needs JavaScript: without it the form's button stays disabled, so a pack is
+  never added without its ingredients.
+
+  @param {object} product - The pack product.
+{% enddoc %}
+
+{%- liquid
+  assign max = 0
+  for variant in product.variants
+    assign size = variant.metafields.double_helix.blend_size.value | plus: 0
+    if size > max
+      assign max = size
+    endif
+  endfor
+-%}
+
+<blend-picker
+  class="blend-picker"
+  data-max="{{ max }}"
+  data-min="2"
+  data-size="2"
+  data-ready="false"
+  data-incomplete-label="{{ 'product.blend_incomplete' | t: min: 2, max: max | escape }}"
+>
+  <fieldset>
+    <legend class="product-form__legend">Choose your ingredients</legend>
+    <p ref="count" class="blend-picker__count" aria-live="polite">0 of up to {{ max }} chosen. Choose at least 2.</p>
+
+    {%- comment -%} Kept in step with BLEND_PRESETS in packages/shopify/src/blend.ts. {%- endcomment -%}
+    <div class="blend-picker__presets">
+      <span class="blend-picker__presets-label">Or start from</span>
+      <button type="button" ref="preset" data-codes="d3,dha,b12,i">Vegan essentials</button>
+      <button type="button" ref="preset" data-codes="d3,c,zn,se">Immunity</button>
+      <button type="button" ref="preset" data-codes="d3,k2,mg">Bones</button>
+      <button type="button" ref="preset" data-codes="mg,b12,fol">Energy</button>
+    </div>
+
+    <ul class="blend-picker__list" role="list">
+      {%- for ingredient in shop.metaobjects.blend_ingredient.values -%}
+        {%- liquid
+          assign short_name = ingredient.name.value | split: ' (' | first
+        -%}
+        <li>
+          <label class="blend-picker__item">
+            <input
+              ref="ingredient"
+              type="checkbox"
+              value="{{ ingredient.code.value | escape }}"
+              data-short-name="{{ short_name | escape }}"
+            >
+            <span>
+              <strong>{{ ingredient.name.value | escape }}</strong>
+              <span class="blend-picker__amount">
+                {{- ingredient.amount.value | escape -}}
+                {%- if ingredient.nrv.value != blank %} · {{ ingredient.nrv.value | escape }} NRV{% endif -%}
+              </span>
+              <span class="blend-picker__claim">{{ ingredient.claim.value | escape }}</span>
+              {%- if ingredient.caution.value != blank -%}
+                <span class="blend-picker__caution">{{ ingredient.caution.value | escape }}</span>
+              {%- endif -%}
+            </span>
+          </label>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </fieldset>
+
+  <input ref="codes" type="hidden" name="properties[_blend]" value="">
+  <input ref="label" type="hidden" name="properties[Blend]" value="">
+</blend-picker>
+
+<noscript>
+  <p class="blend-picker__count">Choosing your ingredients needs JavaScript switched on.</p>
+</noscript>

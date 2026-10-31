@@ -24,6 +24,14 @@
 
 {% assign current_variant = product.selected_or_first_available_variant %}
 
+{%- comment -%} A custom-blend pack: any variant has a size (packages/shopify/src/blend.ts). {%- endcomment -%}
+{% assign is_blend = false %}
+{% for variant in product.variants %}
+  {% if variant.metafields.double_helix.blend_size.value %}
+    {% assign is_blend = true %}
+  {% endif %}
+{% endfor %}
+
 {% comment %} Group ids owned by an installed app. `app_id` is nil for the
   seed groups Shopify creates, which is exactly the discriminator the headless
   surfaces use via `appName`. {% endcomment %}
@@ -39,9 +47,14 @@
     <input ref="variantId" type="hidden" name="id" value="{{ current_variant.id }}">
     <input type="hidden" name="quantity" value="1">
 
-    {% comment %} Option pills, matching apps/web. {% endcomment %}
+    {% if is_blend %}
+      {% render 'blend-picker', product: product %}
+    {% endif %}
+
+    {% comment %} Option pills, matching apps/web. A pack's size pills stay in
+      the form, hidden: the blend picker checks them. {% endcomment %}
     {% if product.has_only_default_variant == false %}
-      <div ref="options" class="product-form__options">
+      <div ref="options" class="product-form__options"{% if is_blend %} hidden{% endif %}>
         {% for option in product.options_with_values %}
           <fieldset class="product-form__option">
             <legend class="product-form__legend">{{ option.name }}</legend>
@@ -188,7 +201,7 @@
       data-add-label="{{ 'product.add_to_cart' | t | escape }}"
       data-sold-out-label="{{ 'product.sold_out' | t | escape }}"
       data-unavailable-label="{{ 'product.unavailable' | t | escape }}"
-      {% unless current_variant.available %}disabled{% endunless %}
+      {% if current_variant.available == false or is_blend %}disabled{% endif %}
     >
       {% if current_variant.available %}
         {{ 'product.add_to_cart' | t }}
@@ -266,6 +279,7 @@
         "id": {{ variant.id | json }},
         "available": {{ variant.available | json }},
         "options": {{ variant.options | json }},
+        "blendSize": {{ variant.metafields.double_helix.blend_size.value | json }},
         "price": {{ variant.price | money | json }},
         "plans": [
           {%- assign first_plan = true -%}
