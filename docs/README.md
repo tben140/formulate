@@ -20,6 +20,7 @@ vault to browse it as a graph; it is plain markdown either way.
 | [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
 | [Runbook](runbook.md)             | What's monitored, what to do when it breaks, rolling back each surface, rotating credentials   |
 | [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
+| [Compliance](compliance.md)       | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open |
 
 ## Surfaces
 
