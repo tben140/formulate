@@ -40,18 +40,25 @@ interface MessageResource {
 
 /** Email campaigns whose name contains `title`, with subject and preview text. */
 export const getEmails = async (key: string, title: string): Promise<EmailInfo[]> => {
-  const filter = `and(equals(messages.channel,'email'),contains(name,${JSON.stringify(title).replaceAll('"', "'")}))`;
-  const response = await fetch(
-    `${BASE}/campaigns?filter=${encodeURIComponent(filter)}&include=campaign-messages`,
-    { headers: headers(key) },
-  );
-  if (!response.ok) throw new Error(`Klaviyo: HTTP ${response.status}`);
-  const body = (await response.json()) as {
-    data: CampaignResource[];
-    included?: MessageResource[];
-  };
-  const messages = new Map((body.included ?? []).map((message) => [message.id, message]));
-  return body.data.map((campaign) => ({
+  // Double quotes, so a title with an apostrophe (Father's Day) stays one literal.
+  const filter = `and(equals(messages.channel,'email'),contains(name,${JSON.stringify(title)}))`;
+  const campaigns: CampaignResource[] = [];
+  const messages = new Map<string, MessageResource>();
+  let url: string | null =
+    `${BASE}/campaigns?filter=${encodeURIComponent(filter)}&include=campaign-messages`;
+  while (url) {
+    const response = await fetch(url, { headers: headers(key) });
+    if (!response.ok) throw new Error(`Klaviyo: HTTP ${response.status}`);
+    const body = (await response.json()) as {
+      data: CampaignResource[];
+      included?: MessageResource[];
+      links?: { next?: string | null };
+    };
+    campaigns.push(...body.data);
+    for (const message of body.included ?? []) messages.set(message.id, message);
+    url = body.links?.next ?? null;
+  }
+  return campaigns.map((campaign) => ({
     id: campaign.id,
     name: campaign.attributes.name,
     status: campaign.attributes.status,
@@ -104,6 +111,25 @@ export const createDraft = async (
   if (!response.ok)
     throw new Error(`Klaviyo: HTTP ${response.status} creating "${email.name}"`);
   return ((await response.json()) as { data: { id: string } }).data.id;
+};
+
+/** The names of push campaigns whose name contains `title`, from every page. */
+export const getPushNames = async (key: string, title: string): Promise<string[]> => {
+  const filter = `and(equals(messages.channel,'mobile_push'),contains(name,${JSON.stringify(title)}))`;
+  const names: string[] = [];
+  let url: string | null =
+    `${BASE}/campaigns?filter=${encodeURIComponent(filter)}&fields[campaign]=name`;
+  while (url) {
+    const response = await fetch(url, { headers: headers(key) });
+    if (!response.ok) throw new Error(`Klaviyo: HTTP ${response.status}`);
+    const body = (await response.json()) as {
+      data: { attributes: { name: string } }[];
+      links?: { next?: string | null };
+    };
+    names.push(...body.data.map((campaign) => campaign.attributes.name));
+    url = body.links?.next ?? null;
+  }
+  return names;
 };
 
 /**

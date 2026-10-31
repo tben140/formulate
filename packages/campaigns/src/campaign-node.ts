@@ -15,6 +15,7 @@ export const toNode = (
     handle: entry.handle,
     title: field("title"),
     startsAt: field("starts_at"),
+    earlyAccessStartsAt: field("early_access_starts_at"),
     endsAt: field("ends_at"),
     badge: field("badge"),
     headline: field("headline"),
