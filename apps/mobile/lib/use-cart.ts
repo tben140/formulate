@@ -79,7 +79,10 @@ export const useAddToCart = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (line: CartLineInput): Promise<AddToCartResult> => {
+    // One line from a product screen, or several at once from the routine quiz.
+    mutationFn: async (
+      line: CartLineInput | readonly CartLineInput[],
+    ): Promise<AddToCartResult> => {
       /*
        * A cart created for a shopper we already know carries their email from
        * the start, which is what lets Shopify record an *attributable*
@@ -96,7 +99,7 @@ export const useAddToCart = () => {
        */
       const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
         cartId: await readCartId(),
-        lines: [line],
+        lines: Array.isArray(line) ? line : [line],
         email: readIdentifiedEmail,
       });
 

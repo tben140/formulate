@@ -6,6 +6,7 @@ import { useCollection } from "../lib/queries";
 import { CollectionFilters } from "./collection-filters";
 import { CollectionNav } from "./collection-nav";
 import { ProductRow } from "./product-row";
+import { RoutinePrompt } from "./routine-prompt";
 import { SiteFooter } from "./site-footer";
 
 /**
@@ -113,7 +114,12 @@ export const CollectionView = ({
           No products match these filters.
         </Text>
       }
-      ListFooterComponent={<SiteFooter />}
+      ListFooterComponent={
+        <>
+          <RoutinePrompt />
+          <SiteFooter />
+        </>
+      }
       renderItem={({ item }) => (
         <View className={isPlaceholderData ? "opacity-50" : undefined}>
           <ProductRow product={item} />

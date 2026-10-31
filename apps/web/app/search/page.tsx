@@ -9,6 +9,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CollectionFilters } from "@/components/collection-filters";
+import { RoutinePrompt } from "@/components/routine-prompt";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { toSearchParams } from "@/lib/search-params";
@@ -100,14 +101,17 @@ const SearchPage = async ({ searchParams }: PageProps) => {
           ) : null}
 
           {result.data.search.nodes.length === 0 ? (
-            <p className="py-12 text-center text-foreground-muted">
-              No products match “{term}”. Try a different word, or{" "}
-              {/* The home page lists the collections; there's no index route. */}
-              <Link href="/" className="text-brand-600 underline underline-offset-4">
-                browse the collections
-              </Link>
-              .
-            </p>
+            <>
+              <p className="py-12 text-center text-foreground-muted">
+                No products match “{term}”. Try a different word, or{" "}
+                {/* The home page lists the collections; there's no index route. */}
+                <Link href="/" className="text-brand-600 underline underline-offset-4">
+                  browse the collections
+                </Link>
+                .
+              </p>
+              <RoutinePrompt />
+            </>
           ) : (
             <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {result.data.search.nodes.map((product, index) =>

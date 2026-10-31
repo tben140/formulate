@@ -19,6 +19,7 @@ import {
 } from "@/components/tracking-consent";
 import { getCart } from "@/lib/cart";
 import { getLegalLinks, getNavLinks } from "@/lib/nav";
+import { getRoutineGoals } from "@/lib/routine";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 import { baseOpenGraph, isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
 import { getCartSuggestions } from "@/lib/recommendations";
@@ -57,10 +58,11 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   // In parallel: neither depends on the other, and both are on every page.
-  const [cart, navLinks, legalLinks] = await Promise.all([
+  const [cart, navLinks, legalLinks, routineGoals] = await Promise.all([
     getCart(),
     getNavLinks(),
     getLegalLinks(),
+    getRoutineGoals(),
   ]);
   // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
   // no request at all.
@@ -114,6 +116,17 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                 </Link>
                 <SiteNav links={navLinks} />
                 <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
+                  {/* The routine quiz (SHO-161), once its goals exist. Desktop
+                      only: a phone header has room for Search and Cart, and the
+                      quiz is offered on collections and empty searches there. */}
+                  {routineGoals.length > 0 ? (
+                    <Link
+                      href="/routine"
+                      className="hidden rounded-md px-3 py-1.5 text-sm font-medium text-foreground-muted hover:text-foreground hover:underline md:inline-flex"
+                    >
+                      Find your routine
+                    </Link>
+                  ) : null}
                   {/* A link to the search page, not an inline field: it works
                       without JavaScript and keeps the header compact on a phone. */}
                   <Link

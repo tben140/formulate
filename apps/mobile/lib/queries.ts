@@ -7,12 +7,14 @@ import {
   PaymentSettingsQuery,
   ComplementaryProductsQuery,
   ProductByHandleQuery,
+  RoutineGoalsQuery,
   SearchProductsQuery,
   ShopPoliciesQuery,
   describeError,
   paymentIconIds,
   productFiltersFromParams,
   toNavLinks,
+  toRoutineGoals,
 } from "@formulate/shopify";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
@@ -176,4 +178,17 @@ export const useSearch = (term: string, filterQuery = "") =>
       ).search,
     enabled: term.trim().length >= 2,
     placeholderData: keepPreviousData,
+  });
+
+/**
+ * The routine quiz's goals and their products (SHO-161), from Shopify's
+ * `routine_goal` metaobjects. Empty until the store is set up. Cached for ten
+ * minutes, like the other merchandising.
+ */
+export const useRoutineGoals = () =>
+  useQuery({
+    queryKey: ["routine-goals"],
+    queryFn: async () =>
+      toRoutineGoals(unwrap(await storefront.request(RoutineGoalsQuery))),
+    staleTime: 10 * 60_000,
   });
