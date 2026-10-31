@@ -15,6 +15,7 @@ export const PRICE_KEY = "price_history";
 const ENTRY_FIELDS = `
   id
   handle
+  updatedAt
   capabilities { publishable { status } }
   fields { key value }
   image: field(key: "image") {
@@ -25,6 +26,7 @@ const ENTRY_FIELDS = `
 interface EntryNode {
   id: string;
   handle: string;
+  updatedAt?: string;
   capabilities: { publishable: { status: string } | null };
   fields: { key: string; value: string | null }[];
   image: { reference: { image?: { altText: string | null } | null } | null } | null;
@@ -33,6 +35,7 @@ interface EntryNode {
 const toEntry = (node: EntryNode): CampaignEntry => ({
   id: node.id,
   handle: node.handle,
+  updatedAt: node.updatedAt ?? null,
   published: node.capabilities.publishable?.status === "ACTIVE",
   fields: Object.fromEntries(node.fields.map((field) => [field.key, field.value])),
   imageAlt: node.image?.reference?.image?.altText ?? null,
@@ -765,4 +768,30 @@ export const addRedeemCodes = async (
     accepted += data.discountRedeemCodeBulkAdd.bulkCreation?.codesCount ?? 0;
   }
   return accepted;
+};
+
+/** Signs a campaign off: approved_by and approved_at on the record. */
+export const approveCampaign = async (
+  admin: Admin,
+  id: string,
+  by: string,
+  at: Date,
+): Promise<void> => {
+  const data = await admin.request<{
+    metaobjectUpdate: { userErrors: { message: string }[] };
+  }>(
+    `mutation Approve($id: ID!, $fields: [MetaobjectFieldInput!]!) {
+      metaobjectUpdate(id: $id, metaobject: { fields: $fields }) { userErrors { message } }
+    }`,
+    {
+      id,
+      fields: [
+        { key: "approved_by", value: by },
+        { key: "approved_at", value: at.toISOString() },
+      ],
+    },
+  );
+  const errors = data.metaobjectUpdate.userErrors;
+  if (errors.length > 0)
+    throw new Error(`Not approved: ${errors.map((e) => e.message).join("; ")}`);
 };

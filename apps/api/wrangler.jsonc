@@ -58,9 +58,16 @@
    * available on the Workers Free plan.
    */
   "durable_objects": {
-    "bindings": [{ "name": "RATE_LIMITER", "class_name": "RateLimiter" }]
+    "bindings": [
+      { "name": "RATE_LIMITER", "class_name": "RateLimiter" },
+      // The campaigns' change log (src/campaign-log.ts).
+      { "name": "CAMPAIGN_LOG", "class_name": "CampaignLog" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RateLimiter"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["RateLimiter"] },
+    { "tag": "v2", "new_sqlite_classes": ["CampaignLog"] }
+  ],
 
   /*
    * Logs are opt-in and deliberately kept. They record outcomes and status

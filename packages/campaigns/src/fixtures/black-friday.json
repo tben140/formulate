@@ -19,8 +19,11 @@
       "terms": "25% off one-time purchases of the products on this page, from 00:00 on Friday 27 November to 23:59 on Monday 30 November 2026 (UK time). Taken automatically at checkout. Doesn't apply to subscriptions, and can't be combined with other discounts or codes, except free delivery. Subscriber shaker: one per active subscription, added to the next delivery after 30 November. This is a demo store: checkout is in test mode and nothing is charged or shipped.",
       "collection": "gid://shopify/Collection/524187107640",
       "audience": null,
-      "offer_rules": "{\"type\":\"percent\",\"percent\":25}"
-    }
+      "offer_rules": "{\"type\":\"percent\",\"percent\":25}",
+      "approved_by": "Ben",
+      "approved_at": "2026-10-30T12:00:00Z"
+    },
+    "updatedAt": "2026-10-30T12:00:30Z"
   },
   "collection": {
     "id": "gid://shopify/Collection/524187107640",

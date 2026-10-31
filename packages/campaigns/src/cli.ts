@@ -33,6 +33,7 @@ import { reportHtml } from "./dashboard";
 import { campaignReport, reportMarkdown } from "./report";
 import {
   addRedeemCodes,
+  approveCampaign,
   createCampaign,
   getCollection,
   getDiscounts,
@@ -64,6 +65,10 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns emails <handle> [--create]   the planned emails; --create makes Klaviyo drafts
   pnpm campaigns pushes <handle> [--create]   launch and last-day pushes; --create makes Klaviyo
                                               drafts for KLAVIYO_PUSH_SEGMENT_ID
+  pnpm campaigns approve <handle> --by <name> sign-off: check fails until it's approved,
+                                              and again after any later edit
+  pnpm campaigns history [<handle>]           the change log: every edit to a campaign
+                                              record, what changed and when
   pnpm campaigns flows <handle> [--create]    the last-day abandoned-checkout email, as a
                                               draft Klaviyo flow (switched on by hand)
   pnpm campaigns report <handle> [--html <file> [--watch <minutes>]]
@@ -305,6 +310,51 @@ Next:
       }
       await tagCustomers(admin, buyers, tag);
       console.log("Tagged.");
+      return 0;
+    }
+
+    case "approve": {
+      const by = flag(rest, "by")?.trim();
+      if (!handle || !by) break;
+      const admin = await adminFromEnv();
+      const entry = await getEntry(admin, handle);
+      if (!entry) throw new Error(`No campaign "${handle}".`);
+      await approveCampaign(admin, entry.id, by, new Date());
+      console.log(`Approved by ${by}. Run check: any later edit needs approving again.`);
+      return 0;
+    }
+
+    case "history": {
+      const token = process.env.CAMPAIGN_LOG_TOKEN;
+      if (!token)
+        throw new Error("Set CAMPAIGN_LOG_TOKEN (the Worker's, docs/campaigns.md).");
+      const base =
+        process.env.CAMPAIGNS_API_URL ?? "https://formulate-api.tben140-6bc.workers.dev";
+      const url = new URL("/campaigns/log", base);
+      if (handle) url.searchParams.set("handle", handle);
+      const response = await fetch(url, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!response.ok)
+        throw new Error(`The change log answered HTTP ${response.status}.`);
+      const entries = (await response.json()) as {
+        at: string;
+        topic: string;
+        handle: string;
+        changes: { field: string; before: string | null; after: string | null }[];
+      }[];
+      const short = (value: string | null) =>
+        value === null ? "(empty)" : value.length > 60 ? `${value.slice(0, 57)}…` : value;
+      for (const entry of entries) {
+        console.log(
+          `${entry.at}  ${entry.topic.replace("metaobjects/", "")}  ${entry.handle}`,
+        );
+        for (const change of entry.changes)
+          console.log(
+            `    ${change.field}: ${short(change.before)} → ${short(change.after)}`,
+          );
+      }
+      if (entries.length === 0) console.log("No changes logged yet.");
       return 0;
     }
 
