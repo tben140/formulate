@@ -92,8 +92,8 @@ Expo app at all.
 
 **Sentry** (EU region, project `web`) receives errors from the browser, from
 Server Components and route handlers (`instrumentation.ts`), and from the
-error boundaries (`components/error-state.tsx`). It's errors only: no
-tracing, no session replay.
+error boundaries (`components/error-state.tsx`). The server also sends
+traces. There's no session replay.
 
 - **Off without a DSN.** `NEXT_PUBLIC_SENTRY_DSN` is public by design and
   set in Vercel. Local builds and forks run without Sentry.
@@ -108,6 +108,18 @@ tracing, no session replay.
   261 KB). It now loads as its own chunk once the browser is idle, which
   costs the critical path about 1.4 KB. Errors raised before it arrives are
   queued and sent when it does.
+- **Server traces** (`serverSentryOptions` in `lib/sentry.ts`). Each traced
+  request shows its route, its rendering, and every call to Shopify or
+  another service as a timed span. 10% of production requests are traced,
+  every request in previews. Two rules:
+  - no outgoing request gets trace headers (`tracePropagationTargets: []`):
+    every service the server calls belongs to someone else;
+  - `beforeSendTransaction` runs `scrubTransaction` from
+    `@formulate/analytics`. Checked against a local build: without it,
+    traces carried the shopper's user agent, search term and cookie names.
+    With it, none of those, the IP or a sign-in code reached Sentry.
+- **No browser tracing.** It would put the SDK back on the critical path that
+  "Loaded after the page" keeps it off.
 - **Readable stack traces** need `SENTRY_ORG` and `SENTRY_AUTH_TOKEN` (a
   secret) in Vercel. Without them, the build skips the source map upload.
 
