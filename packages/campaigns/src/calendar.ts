@@ -41,7 +41,18 @@ export const calendar = (
       audience: campaign?.audience === "email_link" ? "email link" : "everyone",
     };
   });
-  rows.sort((a, b) => (a.startsAt ?? "~").localeCompare(b.startsAt ?? "~"));
+  // Undated (invalid) entries last; ISO timestamps compare as strings.
+  rows.sort((a, b) =>
+    a.startsAt === b.startsAt
+      ? 0
+      : a.startsAt === null
+        ? 1
+        : b.startsAt === null
+          ? -1
+          : a.startsAt < b.startsAt
+            ? -1
+            : 1,
+  );
 
   const notes: string[] = [];
   const dated = rows.filter((row) => row.startsAt && row.endsAt && row.state !== "ended");
