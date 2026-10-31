@@ -101,7 +101,8 @@ const main = async (args: string[]): Promise<number> => {
       const starts = flag(rest, "starts");
       const ends = flag(rest, "ends");
       if (!template || !newHandle || !starts || !ends) break;
-      if (!(template in TEMPLATES)) throw new Error(`No template "${template}".`);
+      if (!Object.hasOwn(TEMPLATES, template))
+        throw new Error(`No template "${template}".`);
       if (!/^[a-z0-9-]{1,64}$/.test(newHandle))
         throw new Error("Handles are lowercase letters, digits and hyphens.");
       const startsAt = new Date(starts);
@@ -149,7 +150,7 @@ Next:
       });
       console.log(
         existing
-          ? `Updated ${id}.`
+          ? `Updated ${id}.${rest.includes("--activate") ? " Updating doesn't switch it on: activate it in the admin." : ""}`
           : `Created ${id}${rest.includes("--activate") ? "" : ", switched off: activate it in the admin, and switch off any plain discount it replaces"}.`,
       );
       return 0;
