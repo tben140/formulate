@@ -53,11 +53,34 @@ export const getEntries = async (admin: Admin): Promise<CampaignEntry[]> => {
   return data.metaobjects.nodes.map(toEntry);
 };
 
+/**
+ * The Online Store's publication. Found by its channel's handle, which is
+ * fixed, rather than by a title or an id that differs per store.
+ */
+const onlineStorePublication = async (admin: Admin): Promise<string | null> => {
+  const data = await admin.request<{
+    publications: {
+      nodes: { id: string; channels: { nodes: { handle: string }[] } }[];
+    };
+  }>(
+    `query Publications {
+      publications(first: 50) { nodes { id channels(first: 5) { nodes { handle } } } }
+    }`,
+    {},
+  );
+  return (
+    data.publications.nodes.find((p) =>
+      p.channels.nodes.some((c) => c.handle === "online_store"),
+    )?.id ?? null
+  );
+};
+
 export const getCollection = async (
   admin: Admin,
   id: string,
   entryId: string,
 ): Promise<{ collection: CollectionInfo; products: ProductInfo[] } | null> => {
+  const onlineStore = await onlineStorePublication(admin);
   const data = await admin.request<{
     collection: {
       id: string;
@@ -71,7 +94,7 @@ export const getCollection = async (
           id: string;
           title: string;
           status: string;
-          onlineStoreUrl: string | null;
+          onOnlineStore?: boolean;
           campaign: { value: string } | null;
           variants: {
             nodes: { id: string; price: string; campaign: { value: string } | null }[];
@@ -80,7 +103,7 @@ export const getCollection = async (
       };
     } | null;
   }>(
-    `query Collection($id: ID!) {
+    `query Collection($id: ID!, $onlineStore: ID!, $hasOnlineStore: Boolean!) {
       collection(id: $id) {
         id
         handle
@@ -91,7 +114,10 @@ export const getCollection = async (
             id
             title
             status
-            onlineStoreUrl
+            # Not onlineStoreUrl: that's null for every product while the
+            # store is password-protected, published or not.
+            onOnlineStore: publishedOnPublication(publicationId: $onlineStore)
+              @include(if: $hasOnlineStore)
             campaign: metafield(namespace: "double_helix", key: "campaign") { value }
             variants(first: 50) {
               nodes {
@@ -104,7 +130,13 @@ export const getCollection = async (
         }
       }
     }`,
-    { id },
+    // Without an Online Store channel (removed from a headless-only store)
+    // the field is skipped, and every product counts as off it.
+    {
+      id,
+      onlineStore: onlineStore ?? id,
+      hasOnlineStore: onlineStore !== null,
+    },
   );
   const collection = data.collection;
   if (!collection) return null;
@@ -124,7 +156,7 @@ export const getCollection = async (
       id: product.id,
       title: product.title,
       status: product.status,
-      onOnlineStore: product.onlineStoreUrl !== null,
+      onOnlineStore: product.onOnlineStore ?? false,
       campaignId: product.campaign?.value ?? null,
       variants: product.variants.nodes.map((variant) => ({
         id: variant.id,
