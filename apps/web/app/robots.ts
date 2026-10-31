@@ -15,7 +15,9 @@ import { absoluteUrl, isIndexable } from "@/lib/site";
 const robots = (): MetadataRoute.Robots =>
   isIndexable
     ? {
-        rules: { userAgent: "*", allow: "/" },
+        // /account is personal, and to a crawler only ever a redirect to
+        // Shopify's sign-in. The pages say noindex too.
+        rules: { userAgent: "*", allow: "/", disallow: "/account" },
         sitemap: absoluteUrl("/sitemap.xml"),
       }
     : { rules: { userAgent: "*", disallow: "/" } };
