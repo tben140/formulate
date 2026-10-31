@@ -116,6 +116,15 @@ jobs:
       # action's CLI names it, "Development (<hash>-<12-hex container id>)".
       # A developer's own `theme dev` theme (named after their machine) can't
       # match, even if one appears mid-run.
+      #
+      # And only when exactly one is new. Runs for other PRs use the same
+      # store, so with several running at once a new theme may be another
+      # run's, still mid-audit: deleting it failed that run (a 422 on its
+      # preview) and then this one ("No themes match") when the other run
+      # deleted it first. The container id in the name can't be matched to
+      # this run (the action's container is gone by now), so when it's
+      # ambiguous nothing is deleted; Shopify removes idle development themes
+      # itself. A theme already gone isn't a failure either.
       - name: Delete the development theme this run created
         if: always() && steps.themes-before.outcome == 'success'
         env:
@@ -127,8 +136,11 @@ jobs:
           ids=$(jq -r --slurpfile before "$RUNNER_TEMP/themes-before.json" '
             [.[] | select(.name | test("^Development \\([0-9a-f]+-[0-9a-f]{12}\\)$")) | .id]
             - [$before[0][].id] | .[]' "$RUNNER_TEMP/themes-after.json")
-          if [ -z "$ids" ]; then echo "No temporary theme to delete."; exit 0; fi
-          for id in $ids; do
-            echo "Deleting temporary development theme $id"
-            cli theme delete --theme "$id" --force
-          done
+          count=$(printf '%s\n' "$ids" | grep -c . || true)
+          if [ "$count" -eq 0 ]; then echo "No temporary theme to delete."; exit 0; fi
+          if [ "$count" -gt 1 ]; then
+            echo "::notice::$count new development themes: other runs are using the store, so none is deleted (Shopify removes idle ones)."
+            exit 0
+          fi
+          echo "Deleting temporary development theme $ids"
+          cli theme delete --theme "$ids" --force || echo "::notice::Theme $ids was already gone."
