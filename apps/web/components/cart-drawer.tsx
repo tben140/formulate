@@ -2,9 +2,11 @@
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
 import {
-  formatMoney,
+  campaignShippingThreshold,
   type Cart,
   type CartSuggestion,
+  formatMoney,
+  FREE_SHIPPING_THRESHOLD,
   type OfferRules,
 } from "@formulate/shopify";
 import { useEffect, useRef } from "react";
@@ -106,6 +108,11 @@ export const CartDrawer = ({
         {/* Above the lines, so it is read before the list rather than after it. */}
         <FreeShippingBar
           subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
+          threshold={
+            campaign
+              ? campaignShippingThreshold(campaign.rules, FREE_SHIPPING_THRESHOLD)
+              : null
+          }
         />
         {campaign ? <CampaignCartHint campaign={campaign} lines={lines} /> : null}
 

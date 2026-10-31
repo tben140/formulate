@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   campaignCartProgress,
+  campaignShippingThreshold,
   campaignCountdown,
   campaignUnitPrice,
   offerLimits,
@@ -20,6 +21,7 @@ const REACH = {
   maxUnits: null,
   oncePerCustomer: false,
   audienceTags: [],
+  shipping: null,
 };
 
 describe("parseOfferRules: reach and limits", () => {
@@ -343,5 +345,36 @@ describe("gift offers", () => {
 
   it("has no single campaign price", () => {
     expect(campaignUnitPrice(gift, gbp("9.95"))).toBeNull();
+  });
+});
+
+describe("shipping offers", () => {
+  it("parses free delivery, optionally capped at a rate", () => {
+    expect(
+      parseOfferRules(
+        '{"type":"percent","percent":25,"shipping":{"minSubtotal":"0.00","maxRate":"6.99"}}',
+      )?.shipping,
+    ).toEqual({ minSubtotal: gbp("0.00"), maxRate: gbp("6.99") });
+    expect(
+      parseOfferRules('{"type":"percent","percent":25,"shipping":{"minSubtotal":"x"}}'),
+    ).toBeNull();
+  });
+
+  it("lowers the free-delivery threshold only when it's lower", () => {
+    const rules = parseOfferRules(
+      '{"type":"percent","percent":25,"shipping":{"minSubtotal":"20.00"}}',
+    );
+    expect(campaignShippingThreshold(rules, gbp("40.00"))).toEqual(gbp("20.00"));
+    expect(campaignShippingThreshold(rules, gbp("15.00"))).toBeNull();
+    const free = parseOfferRules(
+      '{"type":"percent","percent":25,"shipping":{"minSubtotal":"0.00"}}',
+    );
+    expect(campaignShippingThreshold(free, gbp("40.00"))).toEqual(gbp("0.01"));
+    expect(
+      campaignShippingThreshold(
+        parseOfferRules('{"type":"percent","percent":25}'),
+        gbp("40.00"),
+      ),
+    ).toBeNull();
   });
 });

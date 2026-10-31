@@ -56,6 +56,30 @@
     {% endcomment %}
     {%- liquid
       assign free_shipping_threshold = section.settings.free_shipping_threshold | times: 100 | round
+      comment
+        A live campaign's free-delivery offer lowers the threshold while it
+        runs (campaignShippingThreshold in packages/shopify).
+      endcomment
+      capture live_handle
+        render 'campaign-live-handle'
+      endcapture
+      assign live_handle = live_handle | strip
+      if live_handle != blank
+        assign live_shipping = shop.metaobjects.campaign[live_handle].offer_rules.value.shipping
+        if live_shipping.minSubtotal != blank
+          assign live_min = live_shipping.minSubtotal | times: 100 | round
+          if live_min < free_shipping_threshold
+            assign free_shipping_threshold = live_min
+          endif
+          comment
+            Free on every order: 1p, so any cart shows "unlocked" as on web
+            and the app, rather than the bar disappearing.
+          endcomment
+          if free_shipping_threshold == 0
+            assign free_shipping_threshold = 1
+          endif
+        endif
+      endif
       assign free_shipping_subtotal = cart.items_subtotal_price
       assign show_free_shipping = false
       if cart.item_count > 0 and free_shipping_threshold > 0

@@ -50,6 +50,8 @@ import {
   tagCustomers,
   tidyCampaign,
   upsertFunctionDiscount,
+  upsertShippingDiscount,
+  deactivateAutomatic,
   writePriceHistories,
 } from "./shopify-data";
 import { campaignDiscounts, discountConfig, usedTag } from "./sync";
@@ -243,6 +245,27 @@ Next:
           ? `Updated ${id}.${rest.includes("--activate") ? " Updating doesn't switch it on: activate it in the admin." : ""}`
           : `Created ${id}${rest.includes("--activate") ? "" : ", switched off: activate it in the admin, and switch off any plain discount it replaces"}.`,
       );
+      const rules = parseOfferRules(data.entry.fields.offer_rules);
+      if (rules?.shipping) {
+        const ship = campaignDiscounts(data.entry, data.discounts).find(
+          (d) => d.kind === "shipping",
+        );
+        const shipId = await upsertShippingDiscount(admin, {
+          existingId: ship?.id ?? null,
+          title: `${campaign.title} (free delivery)`,
+          startsAt: campaign.startsAt.toISOString(),
+          endsAt: campaign.endsAt.toISOString(),
+          minSubtotal: rules.shipping.minSubtotal.amount,
+          maxRate: rules.shipping.maxRate?.amount ?? null,
+        });
+        if (!ship && !rest.includes("--activate"))
+          await deactivateAutomatic(admin, shipId);
+        console.log(
+          ship
+            ? `Updated free delivery ${shipId}.`
+            : `Created free delivery ${shipId}${rest.includes("--activate") ? "" : ", switched off"}.`,
+        );
+      }
       return 0;
     }
 
