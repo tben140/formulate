@@ -11,6 +11,7 @@ import {
 import { AddToCart } from "../../../../components/add-to-cart";
 import { useCartUi } from "../../../../components/cart-provider";
 import { PairsWellWith } from "../../../../components/pairs-well-with";
+import { ProductDescription } from "../../../../components/product-description";
 import { ShareButton } from "../../../../components/share-button";
 import { SiteFooter } from "../../../../components/site-footer";
 import {
@@ -179,9 +180,7 @@ const ProductBody = ({ product }: { product: Product }) => {
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
         </View>
 
-        {product.description ? (
-          <Text className="text-base text-foreground-muted">{product.description}</Text>
-        ) : null}
+        <ProductDescription html={product.descriptionHtml} />
 
         {/*
           The price lives inside AddToCart, because it changes with the selection

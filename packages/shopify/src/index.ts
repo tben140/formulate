@@ -109,6 +109,8 @@ export {
   paths,
 } from "./routes";
 export type { ProductFilter } from "./generated/graphql";
+export { descriptionBlocks } from "./description";
+export type { DescriptionBlock } from "./description";
 
 export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";
