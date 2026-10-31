@@ -36,9 +36,22 @@ describe("checkCampaign on the live Black Friday campaign", () => {
     expect(findings.some((f) => f.message.includes("body"))).toBe(false);
   });
 
-  it("warns that the products aren't on the Online Store", () => {
-    expect(warnings(findings)).toContain(
-      "3 of 3 products aren't on the Online Store channel, so the theme won't show them: Vitamin D3, Daily Multivitamin, Magnesium Glycinate.",
+  it("has no Online Store warning when every product is published there", () => {
+    expect(warnings(findings).some((w) => w.includes("Online Store"))).toBe(false);
+  });
+
+  it("warns about products that aren't on the Online Store", () => {
+    const offStore = checkCampaign(
+      {
+        ...live,
+        products: live.products.map((product, i) =>
+          i === 0 ? { ...product, onOnlineStore: false } : product,
+        ),
+      },
+      BEFORE,
+    );
+    expect(warnings(offStore)).toContain(
+      "1 of 3 products aren't on the Online Store channel, so the theme won't show them: Vitamin D3.",
     );
   });
 
