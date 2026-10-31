@@ -8,6 +8,7 @@ import { campaignOf } from "./campaign-node";
 import { checkCampaign } from "./check";
 import { plannedEmails, plannedPushes } from "./emails";
 import { perkKey, planPerks } from "./perks";
+import { recordPrice, ukDay } from "./price-history";
 import { activeSubscriptions, addPerk, perkOnetimes } from "./recharge";
 import { createDraft, createPushDraft, getEmails, getPushNames } from "./klaviyo";
 import { campaignReport, reportMarkdown } from "./report";
@@ -19,7 +20,9 @@ import {
   getEntry,
   getOrders,
   getPerkVariant,
+  getVariantPrices,
   upsertFunctionDiscount,
+  writePriceHistories,
 } from "./shopify-data";
 import { campaignDiscounts, discountConfig } from "./sync";
 import { templateFields, TEMPLATES, type TemplateName } from "./templates";
@@ -28,7 +31,11 @@ import type { Snapshot } from "./types";
 const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
 
   pnpm campaigns calendar                     every campaign, overlaps and housekeeping
-  pnpm campaigns check <handle>               everything that must agree before go-live
+  pnpm campaigns check <handle> [--min-margin 30]
+                                              everything that must agree before go-live,
+                                              prices and margins included
+  pnpm campaigns prices record [--apply]      today's price for every variant, into its
+                                              history (daily, from CI); plans unless --apply
   pnpm campaigns new <template> <handle> --starts <ISO> --ends <ISO>
                                               a draft campaign and its collection
                                               templates: ${Object.keys(TEMPLATES).join(", ")}
@@ -90,12 +97,39 @@ const main = async (args: string[]): Promise<number> => {
       if (!handle) break;
       const admin = await adminFromEnv();
       const data = await snapshot(admin, handle);
-      const findings = checkCampaign(data);
+      const minMargin = flag(rest, "min-margin");
+      const findings = checkCampaign(data, new Date(), {
+        ...(minMargin !== undefined ? { minMargin: Number(minMargin) } : {}),
+      });
       const mark = { error: "✗", warning: "!", ok: "✓" } as const;
       for (const finding of findings)
         console.log(`${mark[finding.level]} ${finding.message}`);
       if (!data.emails) console.log("- Emails not checked: no KLAVIYO_PRIVATE_KEY.");
       return findings.some((finding) => finding.level === "error") ? 1 : 0;
+    }
+
+    case "prices": {
+      if (handle !== "record") break;
+      const admin = await adminFromEnv();
+      const today = ukDay(new Date());
+      const variants = await getVariantPrices(admin);
+      const updates = variants.flatMap((variant) => {
+        const history = recordPrice(variant.history, variant.price, today);
+        return history
+          ? [{ id: variant.id, label: variant.label, price: variant.price, history }]
+          : [];
+      });
+      console.log(
+        `${variants.length} variants; ${updates.length} to record for ${today}${updates.length ? ":" : "."}`,
+      );
+      for (const update of updates) console.log(`  ${update.label}: £${update.price}`);
+      if (!rest.includes("--apply")) {
+        if (updates.length) console.log("Planned only. Run with --apply to save.");
+        return 0;
+      }
+      await writePriceHistories(admin, updates);
+      console.log("Saved.");
+      return 0;
     }
 
     case "new": {

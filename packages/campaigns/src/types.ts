@@ -34,8 +34,14 @@ export interface ProductInfo {
   readonly campaignId: string | null;
   readonly variants: readonly {
     readonly id: string;
+    /** "Default Title" for a product without options. */
+    readonly title?: string;
     readonly price: string;
     readonly campaignId: string | null;
+    /** Shopify's unit cost, when one is set (needs read_inventory). */
+    readonly cost?: string | null;
+    /** Recorded price changes, oldest first (price-history.ts). */
+    readonly priceHistory?: readonly (readonly [string, string])[];
   }[];
 }
 
