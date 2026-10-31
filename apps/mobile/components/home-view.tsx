@@ -41,6 +41,8 @@ export const HomeView = () => {
       // The footer's email field is last; see collection-view.tsx.
       automaticallyAdjustKeyboardInsets
       keyboardDismissMode="on-drag"
+      // Sign up takes one tap with the keyboard up; see collection-view.tsx.
+      keyboardShouldPersistTaps="handled"
     >
       <View className="rounded-xl bg-surface-muted p-6">
         <Text

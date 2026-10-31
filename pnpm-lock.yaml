@@ -71,6 +71,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@expo/vector-icons':
+        specifier: ^15.1.1
+        version: 15.1.1(expo-font@58.0.9(expo@58.0.16)(react-native@0.88.0(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)
       '@formulate/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
@@ -147,6 +150,9 @@ importers:
       '@formulate/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      '@playwright/test':
+        specifier: 1.63.0
+        version: 1.63.0
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3
@@ -1315,6 +1321,13 @@ packages:
 
   '@expo/sudo-prompt@9.3.2':
     resolution: {integrity: sha512-HHQigo3rQWKMDzYDLkubN5WQOYXJJE2eNqIQC2axC2iO3mHdwnIR7FgZVvHWtBwAdzBgAP0ECp8KqS8TiMKvgw==}
+
+  '@expo/vector-icons@15.1.1':
+    resolution: {integrity: sha512-Iu2VkcoI5vygbtYngm7jb4ifxElNVXQYdDrYkT7UCEIiKLeWnQY0wf2ZhHZ+Wro6Sc5TaumpKUOqDRpLi5rkvw==}
+    peerDependencies:
+      expo-font: '>=14.0.4'
+      react: 19.3.0
+      react-native: '*'
 
   '@expo/ws-tunnel@2.0.1':
     resolution: {integrity: sha512-mljsRffbOHzmSimYQbQu9h9NR3alwCCwEEouRGFL4QRTt8dNvsNtKEPa/5jHmtDLDtsh4xXsWKwzjN9BTpeXHQ==}
@@ -7650,6 +7663,12 @@ snapshots:
       cross-spawn: 7.0.6
 
   '@expo/sudo-prompt@9.3.2': {}
+
+  '@expo/vector-icons@15.1.1(expo-font@58.0.9(expo@58.0.16)(react-native@0.88.0(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)':
+    dependencies:
+      expo-font: 58.0.9(expo@58.0.16)(react-native@0.88.0(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)
+      react: 19.3.0
+      react-native: 0.88.0(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
 
   '@expo/ws-tunnel@2.0.1(ws@8.22.0)':
     dependencies:
