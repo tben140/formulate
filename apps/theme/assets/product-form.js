@@ -62,6 +62,10 @@ class ProductForm extends Component {
   /** @type {number | null} */
   #plansBuiltFor = null;
 
+  /** Whether an add is in flight. #sync runs on every option or plan change,
+   * and without this it would re-enable both buttons mid-request. */
+  #pending = false;
+
   /** @override */
   connectedCallback() {
     super.connectedCallback();
@@ -91,7 +95,9 @@ class ProductForm extends Component {
     // different variant. Trusting it skipped the rebuild, and an add could
     // send one variant's selling plan with another variant's id.
     const rendered = this.refs.planList?.querySelector('input[name="selling_plan"]');
-    this.#plansBuiltFor = rendered ? Number(this.refs.planList?.dataset.builtFor) || null : null;
+    this.#plansBuiltFor = rendered
+      ? Number(this.refs.planList?.dataset.builtFor) || null
+      : null;
     this.#sync();
     this.#observeMainButton();
   }
@@ -136,7 +142,13 @@ class ProductForm extends Component {
 
     const resize = new ResizeObserver(pad);
     resize.observe(stickyBar);
-    small.addEventListener("change", pad, { signal: this.signal });
+    // From 48rem up CSS hides the bar, which drops focus to <body> if its
+    // button had it. Hand focus to the main button, scrolling to it.
+    const breakpoint = () => {
+      if (!small.matches && stickyBar.contains(document.activeElement)) submit.focus();
+      pad();
+    };
+    small.addEventListener("change", breakpoint, { signal: this.signal });
 
     this.signal.addEventListener("abort", () => {
       observer.disconnect();
@@ -207,7 +219,7 @@ class ProductForm extends Component {
         : (submit?.dataset.soldOutLabel ?? "Sold out");
 
     if (submit) {
-      submit.disabled = !match || !match.available;
+      submit.disabled = this.#pending || !match || !match.available;
       submit.textContent = label;
     }
 
@@ -319,7 +331,7 @@ class ProductForm extends Component {
       stickyDetail.textContent = [detail, priceText].filter(Boolean).join(" — ");
     }
     if (stickySubmit) {
-      stickySubmit.disabled = !match || !match.available;
+      stickySubmit.disabled = this.#pending || !match || !match.available;
       stickySubmit.textContent = label;
       stickySubmit.setAttribute(
         "aria-label",
@@ -331,6 +343,7 @@ class ProductForm extends Component {
   /** @param {SubmitEvent} event */
   #onSubmit = async (event) => {
     event.preventDefault();
+    if (this.#pending) return;
 
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
@@ -339,6 +352,7 @@ class ProductForm extends Component {
     const variantId = String(data.get("id") ?? "");
     if (!variantId) return;
 
+    this.#pending = true;
     const { submit, stickySubmit, status, stickyError } = this.refs;
     if (submit) submit.disabled = true;
     if (stickySubmit) stickySubmit.disabled = true;
@@ -365,7 +379,8 @@ class ProductForm extends Component {
     } catch (error) {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
-      const message = error instanceof Error ? error.message : "Could not update your cart.";
+      const message =
+        error instanceof Error ? error.message : "Could not update your cart.";
       if (status) status.textContent = message;
       // The status line sits by the main button, off screen whenever the bar
       // is up, so the bar shows the message too. Not a live region: the
@@ -375,6 +390,7 @@ class ProductForm extends Component {
         stickyError.hidden = false;
       }
     } finally {
+      this.#pending = false;
       // Back to whatever the selection allows, for both buttons, rather than
       // a blanket re-enable.
       this.#sync();
