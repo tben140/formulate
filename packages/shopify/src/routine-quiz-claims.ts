@@ -49,8 +49,26 @@ export const AUTHORISED_CLAIMS: Readonly<
 };
 
 /**
+ * The consumer information some claims must carry, keyed by product handle
+ * (Regulation 432/2012, conditions of use). The omega-3 heart claim and the
+ * creatine performance claim may only be made if the shopper is told the
+ * daily intake the effect needs, so it's part of the claim wherever it shows:
+ * both results screens and the app's accessibility label read the string
+ * `authorisedClaimFor` returns.
+ */
+export const CLAIM_CONDITIONS: Readonly<Partial<Record<string, string>>> = {
+  "omega-3-fish-oil":
+    "The beneficial effect is obtained with a daily intake of 250 mg of EPA and DHA.",
+  "omega-3-algae-oil":
+    "The beneficial effect is obtained with a daily intake of 250 mg of EPA and DHA.",
+  "creatine-monohydrate":
+    "The beneficial effect is obtained with a daily intake of 3 g of creatine.",
+};
+
+/**
  * The claim for a result: the first of its goals that has one, in the order
- * the shopper's goals put it there. Null when none does.
+ * the shopper's goals put it there, followed by its condition of use when it
+ * has one. Null when none does.
  */
 export const authorisedClaimFor = (
   handle: string,
@@ -60,7 +78,9 @@ export const authorisedClaimFor = (
   if (!claims) return null;
   for (const goal of goals) {
     const claim = claims[goal];
-    if (claim) return claim;
+    if (!claim) continue;
+    const condition = CLAIM_CONDITIONS[handle];
+    return condition ? `${claim} ${condition}` : claim;
   }
   return null;
 };

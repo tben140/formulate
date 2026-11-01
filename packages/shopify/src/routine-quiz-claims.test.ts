@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import data from "../scripts/routine-quiz-data.json";
 
-import { AUTHORISED_CLAIMS, authorisedClaimFor } from "./routine-quiz-claims";
+import {
+  AUTHORISED_CLAIMS,
+  CLAIM_CONDITIONS,
+  authorisedClaimFor,
+} from "./routine-quiz-claims";
 
 const BANNED =
   /\b(cure|treat|prevent|boost|immunity|anxiety|detox|heal|protects? you)\b/i;
@@ -15,6 +19,21 @@ describe("authorised claims for quiz results", () => {
     expect(authorisedClaimFor("vitamin-c-zinc", ["focus", "energy"])).toBe(
       "Vitamin C contributes to the reduction of tiredness and fatigue.",
     );
+  });
+
+  it("states the daily intake for claims that need one", () => {
+    expect(authorisedClaimFor("omega-3-fish-oil", ["everyday"])).toBe(
+      "EPA and DHA contribute to the normal function of the heart. " +
+        "The beneficial effect is obtained with a daily intake of 250 mg of EPA and DHA.",
+    );
+    expect(authorisedClaimFor("omega-3-algae-oil", ["everyday"])).toContain("250 mg");
+    expect(authorisedClaimFor("creatine-monohydrate", ["training"])).toBe(
+      "Creatine increases physical performance in successive bursts of short-term, high intensity exercise. " +
+        "The beneficial effect is obtained with a daily intake of 3 g of creatine.",
+    );
+    for (const handle of Object.keys(CLAIM_CONDITIONS)) {
+      expect(AUTHORISED_CLAIMS[handle]).toBeDefined();
+    }
   });
 
   it("makes no claim for products that have none", () => {
