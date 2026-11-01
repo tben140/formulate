@@ -1,3 +1,4 @@
+import { PRODUCT_EVENTS, productViewedProperties } from "@formulate/analytics";
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -9,6 +10,7 @@ import { useCartUi } from "../../components/cart-provider";
 import { PairsWellWith } from "../../components/pairs-well-with";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
+import { analytics } from "../../lib/product-analytics";
 import { useProduct } from "../../lib/queries";
 import { usePurchase, type Product } from "../../lib/use-purchase";
 
@@ -73,6 +75,11 @@ const ProductScreen = () => {
  */
 const ProductBody = ({ product }: { product: Product }) => {
   const { openCart } = useCartUi();
+
+  // PostHog's product_viewed (SHO-87), once per product shown.
+  useEffect(() => {
+    analytics()?.capture(PRODUCT_EVENTS.productViewed, productViewedProperties(product));
+  }, [product]);
   const { bottom } = useSafeAreaInsets();
   const purchase = usePurchase(product);
 
