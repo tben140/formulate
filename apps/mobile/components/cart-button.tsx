@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 
 import { useCart } from "../lib/use-cart";
 
@@ -10,6 +10,10 @@ import { useCartUi } from "./cart-provider";
  * Reads the same TanStack Query cache entry the sheet does, so the badge cannot
  * disagree with the contents — mutations seed that entry directly rather than
  * invalidating it, which is why there is no loading flicker on the count.
+ *
+ * Always the header's right-most item. On iOS and Android the native header
+ * insets it; on the web the header doesn't, so it gets the title's 16 px
+ * (SHO-200).
  */
 export const CartButton = () => {
   const { openCart } = useCartUi();
@@ -29,6 +33,7 @@ export const CartButton = () => {
           : `Open cart, ${count} ${count === 1 ? "item" : "items"}`
       }
       className="flex-row items-center gap-2"
+      style={Platform.OS === "web" ? { marginRight: 16 } : undefined}
     >
       <Text className="text-base text-foreground">Cart</Text>
 
