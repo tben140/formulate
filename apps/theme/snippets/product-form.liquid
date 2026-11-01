@@ -144,7 +144,7 @@
           ref="planList"
           class="product-form__plans"
           data-built-for="{{ current_variant.id }}"
-          data-one-time-label="{{ 'product.one_time' | t | escape }}"
+          data-one-time-label="{{ 'product.one_time' | t }}"
         >
           <label class="product-form__plan">
             <span>
@@ -185,9 +185,9 @@
       ref="submit"
       type="submit"
       class="product-form__submit"
-      data-add-label="{{ 'product.add_to_cart' | t | escape }}"
-      data-sold-out-label="{{ 'product.sold_out' | t | escape }}"
-      data-unavailable-label="{{ 'product.unavailable' | t | escape }}"
+      data-add-label="{{ 'product.add_to_cart' | t }}"
+      data-sold-out-label="{{ 'product.sold_out' | t }}"
+      data-unavailable-label="{{ 'product.unavailable' | t }}"
       {% unless current_variant.available %}disabled{% endunless %}
     >
       {% if current_variant.available %}
@@ -204,7 +204,7 @@
       class="product-form__status"
       role="status"
       aria-live="polite"
-      data-added-label="{{ 'product.added' | t | escape }}"
+      data-added-label="{{ 'product.added' | t }}"
     ></p>
 
     {% comment %}
