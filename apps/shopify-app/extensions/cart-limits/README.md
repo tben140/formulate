@@ -25,6 +25,11 @@ it and build it again."
 Whether each code is in the range isn't checked: the ingredients are
 metaobjects, which a Function's input can't read. See `docs/blend.md`.
 
+Merge this after the blend builder (#189). Before it, the product forms on
+web, the app and the theme treat the pack as an ordinary product and add it
+without `_blend`, which this rejects at checkout. With it, all three route
+the pack through the blend picker, which writes `_blend`.
+
 ## Commands
 
 |                       |                                                                                                 |
