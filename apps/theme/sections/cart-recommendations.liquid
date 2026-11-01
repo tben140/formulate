@@ -14,8 +14,9 @@
   because Liquid cannot import it:
     - nothing already in the cart, nothing unavailable
     - at most three, in Shopify's order
-    - one-tap add only for a single-variant product; otherwise a link, because
-      choosing a variant for the shopper would be a guess
+    - one-tap add only for a single-variant product that can be bought
+      one-time; otherwise a link, because choosing a variant or a plan for the
+      shopper would be a guess
 
   Intent is `related`. `complementary` returned nothing at all on this store
   (it needs the Search & Discovery app and hand-made pairings).
@@ -52,10 +53,10 @@
         >
       {%- endif -%}
       <div class="cart-suggestion__body">
-        <p class="cart-suggestion__title">{{ product.title }}</p>
+        <p class="cart-suggestion__title">{{ product.title | escape }}</p>
         <p class="cart-suggestion__price">{{ product.price | money }}</p>
       </div>
-      {%- if product.variants.size == 1 and only_variant.available -%}
+      {%- if product.variants.size == 1 and only_variant.available and product.requires_selling_plan == false -%}
         <form action="{{ routes.cart_add_url }}" method="post" data-cart-suggestion-add>
           <input type="hidden" name="id" value="{{ only_variant.id }}">
           <input type="hidden" name="quantity" value="1">

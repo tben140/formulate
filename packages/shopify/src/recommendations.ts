@@ -11,7 +11,8 @@ export const RECOMMENDATION_LIMIT = 3;
 export type CartSuggestion =
   /** One variant, in stock: added straight from the drawer. */
   | { readonly kind: "add"; readonly product: Recommendation; readonly variantId: string }
-  /** Several variants: the shopper has to choose, so this links to the product. */
+  /** Several variants, or subscription only: the shopper has to choose, so
+   * this links to the product. */
   | { readonly kind: "view"; readonly product: Recommendation };
 
 /**
@@ -28,7 +29,8 @@ export type CartSuggestion =
  *   worse than none.
  * - A product with one variant can be added in one tap. One with several
  *   can't be, because picking a variant for the shopper would be a guess, so
- *   it links to its page instead.
+ *   it links to its page instead. So does a product sold only by
+ *   subscription: a one-tap add carries no plan, so Shopify would refuse it.
  */
 export const selectCartSuggestions = (
   recommendations: readonly Recommendation[] | null | undefined,
@@ -42,7 +44,7 @@ export const selectCartSuggestions = (
     .slice(0, limit)
     .map((product): CartSuggestion => {
       const [only, second] = product.variants.nodes;
-      return only && !second && only.availableForSale
+      return only && !second && only.availableForSale && !product.requiresSellingPlan
         ? { kind: "add", product, variantId: only.id }
         : { kind: "view", product };
     });

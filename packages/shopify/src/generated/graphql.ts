@@ -1368,7 +1368,7 @@ export type ProductRecommendationsQueryVariables = Exact<{
 }>;
 
 
-export type ProductRecommendationsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, availableForSale: boolean, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, variants: { nodes: Array<{ id: string, availableForSale: boolean }> } }> | null };
+export type ProductRecommendationsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, availableForSale: boolean, requiresSellingPlan: boolean, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, variants: { nodes: Array<{ id: string, availableForSale: boolean }> } }> | null };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -2065,6 +2065,7 @@ export const ProductRecommendationsDocument = new TypedDocumentString(`
     handle
     title
     availableForSale
+    requiresSellingPlan
     featuredImage {
       url
       altText

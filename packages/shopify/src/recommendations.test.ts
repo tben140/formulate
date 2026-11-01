@@ -4,12 +4,17 @@ import { selectCartSuggestions } from "./recommendations";
 
 const product = (
   id: string,
-  { available = true, variants = [{ id: `${id}-v1`, availableForSale: true }] } = {},
+  {
+    available = true,
+    requiresSellingPlan = false,
+    variants = [{ id: `${id}-v1`, availableForSale: true }],
+  } = {},
 ) => ({
   id,
   handle: id,
   title: id,
   availableForSale: available,
+  requiresSellingPlan,
   featuredImage: null,
   priceRange: { minVariantPrice: { amount: "10.0", currencyCode: "GBP" as const } },
   variants: { nodes: variants },
@@ -43,6 +48,14 @@ describe("selectCartSuggestions", () => {
   it("offers one-tap add only for a single in-stock variant", () => {
     const [single] = selectCartSuggestions([product("a")], []);
     expect(single).toEqual(expect.objectContaining({ kind: "add", variantId: "a-v1" }));
+  });
+
+  it("links to a product sold only by subscription, since an add carries no plan", () => {
+    const [subscription] = selectCartSuggestions(
+      [product("a", { requiresSellingPlan: true })],
+      [],
+    );
+    expect(subscription?.kind).toBe("view");
   });
 
   it("links to the product when there is a variant to choose", () => {

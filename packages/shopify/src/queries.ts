@@ -377,6 +377,7 @@ export const ProductRecommendationsQuery = graphql(`
       handle
       title
       availableForSale
+      requiresSellingPlan
       featuredImage {
         url
         altText
