@@ -4,6 +4,14 @@ import { chromium } from "@playwright/test";
 export const VERCEL_AUTH_STATE = "e2e/.auth/vercel.json";
 
 /**
+ * The only hosts the bypass secret may be sent to: this project's Vercel
+ * deployments (production web-six-murex-18.vercel.app and previews such as
+ * web-git-<branch>-<team>.vercel.app). A manual run takes any URL, so without
+ * this a typo or a hostile input would hand the secret to another site.
+ */
+const VERCEL_PROJECT_HOST = /^web-[a-z0-9-]+\.vercel\.app$/;
+
+/**
  * Gets past Vercel Deployment Protection once, before any test runs (SHO-140).
  *
  * Only does anything when E2E_BASE_URL points at a deployment and
@@ -20,6 +28,14 @@ const globalSetup = async () => {
   const baseURL = process.env.E2E_BASE_URL;
   const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   if (!baseURL || !secret) return;
+
+  const target = new URL(baseURL);
+  if (target.protocol !== "https:" || !VERCEL_PROJECT_HOST.test(target.hostname)) {
+    throw new Error(
+      `Vercel bypass refused: ${target.origin} isn't one of this project's Vercel deployments ` +
+        "(https://web-….vercel.app), so the bypass secret isn't sent to it.",
+    );
+  }
 
   const browser = await chromium.launch();
   try {
