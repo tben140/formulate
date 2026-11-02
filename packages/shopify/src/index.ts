@@ -126,6 +126,7 @@ export type {
 export {
   activeCampaign,
   campaignBadge,
+  campaignCardPrice,
   campaignEndsLabel,
   campaignForVariant,
   campaignHandleFromPath,
@@ -147,3 +148,13 @@ export type {
   CampaignRef,
   CampaignView,
 } from "./campaign";
+
+export {
+  campaignCartProgress,
+  campaignCountdown,
+  campaignUnitPrice,
+  offerLines,
+  offerPercents,
+  parseOfferRules,
+} from "./campaign-offer";
+export type { OfferLine, OfferRules } from "./campaign-offer";

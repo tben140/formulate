@@ -8,6 +8,9 @@
  * decides what shoppers are told.
  */
 
+import { campaignUnitPrice, parseOfferRules, type OfferRules } from "./campaign-offer";
+import type { MoneyLike } from "./format-money";
+
 /** A metaobject field as the Storefront API returns it (`field(key:)`). */
 interface FieldValue {
   readonly value?: string | null;
@@ -28,6 +31,7 @@ export interface CampaignNode {
   readonly body?: FieldValue | null;
   readonly terms?: FieldValue | null;
   readonly audience?: FieldValue | null;
+  readonly offerRules?: FieldValue | null;
   readonly image?: {
     readonly reference?: {
       readonly image?: CampaignImage | null;
@@ -63,6 +67,8 @@ export interface Campaign {
   readonly collectionHandle: string | null;
   /** `email_link`: only for people who arrived through an email link. */
   readonly audience: "everyone" | "email_link";
+  /** The offer as data, when set and valid: see campaign-offer.ts. */
+  readonly rules: OfferRules | null;
 }
 
 /**
@@ -121,6 +127,7 @@ export const toCampaign = (node: CampaignNode | null | undefined): Campaign | nu
     image: node.image?.reference?.image ?? null,
     collectionHandle: node.collection?.reference?.handle ?? null,
     audience: text(node.audience) === "email_link" ? "email_link" : "everyone",
+    rules: parseOfferRules(text(node.offerRules)),
   };
 };
 
@@ -193,6 +200,39 @@ export const campaignBadge = (
 ): string | null => {
   const campaign = toCampaign(productCampaign?.reference as CampaignNode | null);
   return campaign && isCampaignLive(campaign, view) ? campaign.badge : null;
+};
+
+/**
+ * A product card's campaign price: the cheapest variant the live campaign
+ * covers, with its normal price, when the offer has a single price. Null
+ * otherwise, and the card shows its normal price and the badge.
+ *
+ * Variants rather than the product's price range, because a campaign that
+ * covers only some variants mustn't put its price on the others.
+ */
+export const campaignCardPrice = (
+  productCampaign: CampaignRef | null | undefined,
+  variants: readonly {
+    readonly price: MoneyLike;
+    readonly campaign?: CampaignRef | null;
+  }[],
+  view: CampaignView,
+): {
+  readonly normal: MoneyLike;
+  readonly offer: MoneyLike;
+  readonly badge: string;
+} | null => {
+  const refs = variants.map((variant) => variant.campaign);
+  const covered = variants
+    .filter((variant) => campaignForVariant(productCampaign, variant, refs, view))
+    .sort((a, b) => Number(a.price.amount) - Number(b.price.amount));
+  const cheapest = covered[0];
+  if (!cheapest) return null;
+  const campaign = campaignForVariant(productCampaign, cheapest, refs, view);
+  const offer = campaign ? campaignUnitPrice(campaign.rules, cheapest.price) : null;
+  return campaign && offer
+    ? { normal: cheapest.price, offer, badge: campaign.badge }
+    : null;
 };
 
 /** The same path on the theme (Shopify's metaobject pages) and on web. */

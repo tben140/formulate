@@ -1,0 +1,34 @@
+{% doc %}
+  Outputs the campaign price in pence for one item, or nothing (SHO-169):
+  only a `percent` offer has one, and a one-time-only offer gives
+  subscriptions none. The same rule and rounding as `campaignUnitPrice` in
+  packages/shopify/src/campaign-offer.ts. The caller checks the campaign is
+  live and covers the variant.
+
+  @param {object} campaign - A live `campaign` metaobject.
+  @param {number} price - The normal price, in pence.
+  @param {boolean} [subscription] - Whether this is a subscription price.
+
+  @example
+  {% capture offer %}{% render 'campaign-offer-cents', campaign: campaign, price: variant.price %}{% endcapture %}
+{% enddoc %}
+{%- liquid
+  assign rules = campaign.offer_rules.value
+  if rules.type == 'percent'
+    assign percent = rules.percent | plus: 0
+    assign whole = percent | round
+    assign one_time_only = true
+    if rules.oneTimeOnly == false
+      assign one_time_only = false
+    endif
+    if percent >= 1 and percent <= 90 and whole == rules.percent and price > 0
+      unless subscription and one_time_only
+        comment
+          Half up, as Math.round in campaign-offer.ts.
+        endcomment
+        assign off = price | times: percent | plus: 50 | divided_by: 100
+        echo price | minus: off
+      endunless
+    endif
+  endif
+-%}

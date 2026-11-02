@@ -72,16 +72,23 @@ export const readPreviewCookie = (value: string | undefined): string | null => {
   return a.length === b.length && timingSafeEqual(a, b) ? handle : null;
 };
 
-export const campaignView = cache(async (): Promise<CampaignView> => {
-  const jar = await cookies();
-  return {
-    now: campaignNow(
-      process.env.VERCEL_ENV === "production" ? null : process.env.CAMPAIGN_PREVIEW_AT,
-    ),
-    preview: readPreviewCookie(jar.get(PREVIEW_COOKIE)?.value),
-    access: new Set(parseAccess(jar.get(ACCESS_COOKIE)?.value)),
-  };
-});
+export const campaignView = cache(
+  async (): Promise<CampaignView & { readonly clockPreview: boolean }> => {
+    const jar = await cookies();
+    const previewAt =
+      process.env.VERCEL_ENV === "production" ? null : process.env.CAMPAIGN_PREVIEW_AT;
+    const now = campaignNow(previewAt);
+    return {
+      now,
+      // Whether `now` is a preview time rather than the real clock, so a
+      // countdown knows whether to keep the server's offset (CampaignEnds).
+      clockPreview:
+        Boolean(previewAt) && now.getTime() === new Date(previewAt ?? "").getTime(),
+      preview: readPreviewCookie(jar.get(PREVIEW_COOKIE)?.value),
+      access: new Set(parseAccess(jar.get(ACCESS_COOKIE)?.value)),
+    };
+  },
+);
 
 /**
  * Every campaign, the same for every visitor, so cached for a minute rather

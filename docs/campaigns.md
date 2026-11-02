@@ -35,6 +35,7 @@ Campaign ◄──── product.double_helix.campaign        (one campaign per 
 | `body`            | rich text        |          | Landing page copy                                                  |
 | `terms`           | multi-line text  | yes      | Shown on the landing page                                          |
 | `collection`      | collection       |          | The products on the landing page                                   |
+| `offer_rules`     | JSON             |          | The offer as data: see [Offer rules](#offer-rules)                 |
 
 The definition is **publishable** (draft or active) and **readable by the
 Storefront API**. Online Store pages for it are off until the theme has a
@@ -90,6 +91,44 @@ surfaces only describe it with `offer`.
 **Step two: a discount Function** that reads the campaign itself, so the price
 charged and the badge come from one record. Later, once step one is live.
 
+### Offer rules
+
+`offer` is the wording; `offer_rules` is the same offer as data, so the
+surfaces can show it before checkout and the discount Function can charge it.
+One of:
+
+```text
+{ "type": "percent", "percent": 25 }
+{ "type": "tiered", "tiers": [{ "minSubtotal": "40.00", "percent": 15 }, { "minSubtotal": "60.00", "percent": 25 }] }
+{ "type": "bundle", "buy": 3, "free": 1 }
+```
+
+- Percentages are whole numbers from 1 to 90. Tiers go up in both threshold
+  and percentage; `currencyCode` defaults to `GBP`. A bundle gives the
+  cheapest `free` of every `buy` items free ("3 for 2" is buy 3, free 1).
+- Add `"oneTimeOnly": false` to include subscriptions; the default leaves
+  them out (see below).
+- Rules that don't parse are ignored: the surfaces show `offer` alone, never a
+  guessed price. `campaigns check` reports them.
+- Variant narrowing works with `percent` only: tiers and bundles count every
+  item of a product in the campaign.
+
+What each surface does with them, from `packages/shopify/src/campaign-offer.ts`
+(the theme repeats the rules in `campaign-offer-cents`, `campaign-covers` and
+`campaign-cart-hint`):
+
+| Rule      | Product cards and purchase options                | Cart                                                  |
+| --------- | ------------------------------------------------- | ----------------------------------------------------- |
+| `percent` | The campaign price beside the struck normal price | Shopify's discounted line prices                      |
+| `tiered`  | The `offer` text                                  | "Spend £12.00 more on Black Friday items for 25% off" |
+| `bundle`  | The `offer` text                                  | "Add 1 item from Black Friday for 1 more free"        |
+
+The struck price is the price the item sells at outside the campaign, so it's
+a genuine comparison (CMA pricing guidance); screen readers hear "Normally
+£24.95, Black Friday price £18.71". It's rounded to the penny per item, as
+Shopify rounds a percentage; a line of several can differ by a penny at
+checkout, which shows the exact total.
+
 ### Subscribers get a perk, not the sale price
 
 Subscriptions are already 15% off. Stacking a sale on top cuts the margin
@@ -104,14 +143,15 @@ and tempts them to cancel and rebuy at the sale price. So:
 
 ## On each surface
 
-|               | Theme                                                               | Web                                                            | App                                               |
-| ------------- | ------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------- |
-| Banner        | Header section reading the active campaign                          | Banner in the layout                                           | Banner on home                                    |
-| Product badge | Card and product page                                               | Card and product page                                          | Product row and product screen                    |
-| Landing page  | `metaobject/campaign` template                                      | `/pages/campaigns/<handle>`                                    | A native campaign screen, opened by the same path |
-| Prices        | "Was/now" only for a genuine price; otherwise "25% off at checkout" | The same                                                       | The same                                          |
-| Cart          | Shows the discount applied (already does)                           | The same                                                       | The same                                          |
-| Sharing       | Theme meta tags                                                     | Metadata, share image, offer structured data with its end date | n/a                                               |
+|               | Theme                                                      | Web                                                            | App                                               |
+| ------------- | ---------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------- |
+| Banner        | Header section reading the active campaign                 | Banner in the layout                                           | Banner on home                                    |
+| Product badge | Card and product page                                      | Card and product page                                          | Product row and product screen                    |
+| Landing page  | `metaobject/campaign` template                             | `/pages/campaigns/<handle>`                                    | A native campaign screen, opened by the same path |
+| Prices        | Campaign price beside the normal one for a `percent` offer | The same                                                       | The same                                          |
+| Countdown     | "Ends in 5h 12m" in the last day, from `ends_at`           | The same                                                       | The same                                          |
+| Cart          | Shows the discount applied (already does)                  | The same                                                       | The same                                          |
+| Sharing       | Theme meta tags                                            | Metadata, share image, offer structured data with its end date | n/a                                               |
 
 ### URLs
 
@@ -120,8 +160,10 @@ handling opens it in the campaign screen. The route-parity test covers it.
 
 ## Rules that must hold
 
-- **Honest urgency** (Digital Markets, Competition and Consumers Act 2024): a
-  countdown matches `ends_at`; no invented low-stock messages.
+- **Honest urgency** (Digital Markets, Competition and Consumers Act 2024): the
+  countdown runs to `ends_at` and only in the last day; no invented low-stock
+  messages. The theme counts by the browser's clock, since its pages are
+  cached.
 - **Genuine "was" prices** (CMA pricing guidance): show a strikethrough only
   against a price the product really sold at.
 - **Authorised health claims only**, including in campaign copy.

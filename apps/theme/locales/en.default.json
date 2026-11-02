@@ -136,6 +136,21 @@
     "in_offer": "In the {{ badge }} offer",
     "terms": "Terms",
     "see_offer": "See the {{ badge }} offer and terms",
-    "only": "({{ variants }} only)"
+    "only": "({{ variants }} only)",
+    "normally": "Normally",
+    "badge_price": "{{ badge }} price",
+    "ends_in_hm": "Ends in {{ hours }}h {{ minutes }}m",
+    "ends_in_m": "Ends in {{ minutes }}m",
+    "ends_soon": "Ends in under a minute",
+    "tier_next": "Spend {{ amount }} more on {{ badge }} items for {{ percent }}% off",
+    "tier_reached": "{{ percent }}% off your {{ badge }} items at checkout",
+    "bundle_next": {
+      "one": "Add 1 item from {{ badge }} for {{ free }} more free",
+      "other": "Add {{ count }} items from {{ badge }} for {{ free }} more free"
+    },
+    "bundle_reached": {
+      "one": "1 item free at checkout",
+      "other": "{{ count }} items free at checkout"
+    }
   }
 }

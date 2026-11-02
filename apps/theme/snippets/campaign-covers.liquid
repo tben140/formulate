@@ -1,0 +1,30 @@
+{% doc %}
+  Outputs the live campaign's handle if it covers this variant, or nothing
+  (SHO-169). The rule of `campaignForVariant` in packages/shopify: the product's
+  campaign, live, and, when any variant names a campaign, only those that
+  name this one.
+
+  @param {object} product - The product.
+  @param {object} variant - One of its variants.
+{% enddoc %}
+{%- liquid
+  assign campaign = product.metafields.double_helix.campaign.value
+  if campaign != blank
+    capture status
+      render 'campaign-status', campaign: campaign
+    endcapture
+    if status contains 'active'
+      assign narrowed = false
+      for other in product.variants
+        if other.metafields.double_helix.campaign.value != blank
+          assign narrowed = true
+          break
+        endif
+      endfor
+      assign own = variant.metafields.double_helix.campaign.value
+      if narrowed == false or own.system.handle == campaign.system.handle
+        echo campaign.system.handle
+      endif
+    endif
+  endif
+-%}

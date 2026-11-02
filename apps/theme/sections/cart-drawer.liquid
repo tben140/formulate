@@ -90,6 +90,8 @@
       </div>
     {% endif %}
 
+    {% render 'campaign-cart-hint' %}
+
     {% if cart.item_count == 0 %}
       <p class="cart-drawer__empty">{{ 'cart.empty' | t }}</p>
     {% else %}

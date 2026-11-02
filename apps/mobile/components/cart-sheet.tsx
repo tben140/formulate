@@ -13,6 +13,7 @@ import {
 import { useCheckout } from "../lib/checkout";
 import { useClearCart, useOptimisticCart, useUpdateCartLine } from "../lib/use-cart";
 
+import { CampaignCartHint } from "./campaign-cart-hint";
 import { FreeShippingBar } from "./free-shipping-bar";
 
 /**
@@ -143,6 +144,7 @@ export const CartSheet = ({
         <FreeShippingBar
           subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
         />
+        <CampaignCartHint lines={lines} />
 
         {updateLine.lineError ? (
           <Text

@@ -1,0 +1,81 @@
+{% doc %}
+  A tiered or bundle campaign in the cart drawer (SHO-169): what's reached,
+  and how far to the next step ("Spend £12.00 more on Black Friday items for
+  25% off"). The same rules as `campaignCartProgress` and `offerLines` in
+  packages/shopify/src/campaign-offer.ts, which web and the app use: a line
+  counts when its product is in the campaign and, for a one-time-only offer,
+  isn't a subscription; it counts at its price before discounts. Shopify
+  works out the discount itself at checkout.
+{% enddoc %}
+{%- liquid
+  assign next = ''
+  assign reached = ''
+  capture handle
+    render 'campaign-live-handle'
+  endcapture
+  # A rendered snippet's output starts with a newline: strip it, or the
+  # lookup below is for "\nblack-friday-2026" and finds nothing.
+  assign handle = handle | strip
+  assign campaign = nil
+  if handle != blank
+    assign campaign = shop.metaobjects.campaign[handle]
+  endif
+  assign rules = campaign.offer_rules.value
+
+  assign total = 0
+  assign units = 0
+  if rules.type == 'tiered' or rules.type == 'bundle'
+    assign one_time_only = true
+    if rules.oneTimeOnly == false
+      assign one_time_only = false
+    endif
+    for item in cart.items
+      if item.product.metafields.double_helix.campaign.value.system.handle == handle
+        if one_time_only and item.selling_plan_allocation
+          continue
+        endif
+        assign total = total | plus: item.original_line_price
+        assign units = units | plus: item.quantity
+      endif
+    endfor
+  endif
+
+  assign badge = campaign.badge.value
+  if units > 0 and rules.type == 'bundle'
+    assign buy = rules.buy | plus: 0
+    assign free = rules.free | plus: 0
+    if buy > 1 and free > 0 and free < buy
+      assign sets = units | divided_by: buy
+      assign missing = units | modulo: buy
+      assign missing = buy | minus: missing
+      assign next = 'campaign.bundle_next' | t: count: missing, badge: badge, free: free
+      if sets > 0
+        assign free_units = sets | times: free
+        assign reached = 'campaign.bundle_reached' | t: count: free_units
+      endif
+    endif
+  elsif units > 0 and rules.type == 'tiered'
+    assign currency = rules.currencyCode | default: 'GBP'
+    if currency == cart.currency.iso_code
+      for tier in rules.tiers
+        assign min = tier.minSubtotal | times: 100 | round
+        if min <= total
+          assign reached = 'campaign.tier_reached' | t: percent: tier.percent, badge: badge
+        elsif next == ''
+          assign remaining = min | minus: total | money
+          assign next = 'campaign.tier_next' | t: amount: remaining, badge: badge, percent: tier.percent
+        endif
+      endfor
+    endif
+  endif
+-%}
+{%- if next != blank or reached != blank -%}
+  <div class="campaign-cart-hint">
+    {%- if reached != blank -%}
+      <p class="campaign-cart-hint__reached">{{ reached }}</p>
+    {%- endif -%}
+    {%- if next != blank -%}
+      <p>{{ next }}</p>
+    {%- endif -%}
+  </div>
+{%- endif -%}

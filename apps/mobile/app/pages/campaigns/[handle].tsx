@@ -1,5 +1,4 @@
 import {
-  campaignEndsLabel,
   campaignParagraphs,
   campaignStartsLabel,
   campaignStatus,
@@ -11,6 +10,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 import { CampaignBadge } from "../../../components/campaign-badge";
+import { CampaignEnds } from "../../../components/campaign-ends";
 import { ProductRow } from "../../../components/product-row";
 import { SiteFooter } from "../../../components/site-footer";
 import {
@@ -89,13 +89,15 @@ const CampaignScreen = () => {
           {campaign.headline}
         </Text>
         <Text className="text-base text-foreground-muted">
-          {status === "upcoming"
-            ? campaignStartsLabel(campaign)
-            : status === "active"
-              ? campaignEndsLabel(campaign)
-              : status === "restricted"
-                ? "This offer is for our email subscribers. Open it from the link in your email."
-                : "This offer has ended."}
+          {status === "upcoming" ? (
+            campaignStartsLabel(campaign)
+          ) : status === "active" ? (
+            <CampaignEnds campaign={campaign} />
+          ) : status === "restricted" ? (
+            "This offer is for our email subscribers. Open it from the link in your email."
+          ) : (
+            "This offer has ended."
+          )}
         </Text>
         {status === "ended" || status === "restricted" ? (
           <Link href="/" asChild>

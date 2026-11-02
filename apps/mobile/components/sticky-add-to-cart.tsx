@@ -62,7 +62,8 @@ export const StickyAddToCart = ({
 }) => {
   const { bottom } = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
-  const { variant, displayPrice, disabled, label, add, addToCart } = purchase;
+  const { variant, displayPrice, displayOfferPrice, disabled, label, add, addToCart } =
+    purchase;
 
   // 0 = off screen below, 1 = in place. Starts where `visible` says, so the
   // first render never animates. Held in state rather than a ref, so render
@@ -153,7 +154,7 @@ export const StickyAddToCart = ({
             </Text>
             {displayPrice ? (
               <Text className="text-sm text-foreground-muted">
-                {formatMoney(displayPrice)}
+                {formatMoney(displayOfferPrice ?? displayPrice)}
               </Text>
             ) : null}
           </View>

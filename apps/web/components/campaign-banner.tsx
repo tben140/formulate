@@ -6,12 +6,22 @@ import {
 } from "@formulate/shopify";
 import Link from "next/link";
 
+import { CampaignEnds } from "@/components/campaign-ends";
+
 /**
  * The live campaign, under the demo notice on every page (SHO-169). The end
- * time is the real one, from the campaign: no countdown, so nothing can drift
- * from it. The theme's `sections/campaign-banner.liquid` says the same.
+ * time is the real one, from the campaign, counting down in its last day.
+ * The theme's `sections/campaign-banner.liquid` says the same.
  */
-export const CampaignBanner = ({ campaign }: { readonly campaign: Campaign }) => (
+export const CampaignBanner = ({
+  campaign,
+  now,
+  clockPreview,
+}: {
+  readonly campaign: Campaign;
+  readonly now: number;
+  readonly clockPreview: boolean;
+}) => (
   <div className="bg-brand-700 px-4 py-2 text-center text-sm text-surface">
     <p className="mx-auto max-w-5xl">
       <Link
@@ -20,7 +30,13 @@ export const CampaignBanner = ({ campaign }: { readonly campaign: Campaign }) =>
       >
         {campaign.bannerText}
       </Link>{" "}
-      <span className="whitespace-nowrap">· {campaignEndsLabel(campaign)}</span>
+      ·{" "}
+      <CampaignEnds
+        endsAt={campaign.endsAt.toISOString()}
+        label={campaignEndsLabel(campaign)}
+        now={now}
+        clockPreview={clockPreview}
+      />
     </p>
   </div>
 );

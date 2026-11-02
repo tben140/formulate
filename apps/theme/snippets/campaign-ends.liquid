@@ -1,6 +1,7 @@
 {% doc %}
   "Ends 23:59 Mon 30 Nov" or "Starts 00:00 Fri 27 Nov", in the shop's time
-  zone (Europe/London), as packages/shopify/src/campaign.ts words it.
+  zone (Europe/London), as packages/shopify/src/campaign.ts words it. The end
+  counts down in its last day ("Ends in 5h 12m"), as on web and the app.
 
   @param {object} campaign - A `campaign` metaobject.
   @param {string} [which] - `starts` for the start time; the end otherwise.
@@ -16,6 +17,24 @@
     endcomment
     assign at = campaign.ends_at.value | date: '%s' | minus: 60
     assign time = at | date: '%H:%M %a %-d %b'
-    echo 'campaign.ends' | t: time: time
+    assign end_s = campaign.ends_at.value | date: '%s'
+    assign now_s = ''
+    if settings.campaign_preview_at != blank
+      assign now_s = settings.campaign_preview_at | date: '%s'
+    endif
   endif
 -%}
+{%- if which != 'starts' -%}
+  {%- comment -%} Counts down in the last day: assets/campaign-ends.js. {%- endcomment -%}
+  <campaign-ends
+    data-end="{{ end_s }}"
+    {% if now_s != '' %}
+      data-now="{{ now_s }}"
+    {% endif %}
+    data-hm="{{ 'campaign.ends_in_hm' | t: hours: '[h]', minutes: '[m]'  }}"
+    data-m="{{ 'campaign.ends_in_m' | t: minutes: '[m]'  }}"
+    data-soon="{{ 'campaign.ends_soon' | t }}"
+  >
+    {{- 'campaign.ends' | t: time: time -}}
+  </campaign-ends>
+{%- endif -%}

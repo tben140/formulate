@@ -2,6 +2,7 @@ import { findVariantByOptions, formatMoney, withOption } from "@formulate/shopif
 import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 
 import type { Product, Purchase } from "../lib/use-purchase";
+import { OfferPrice, offerPriceLabel } from "./offer-price";
 
 /**
  * Variant pickers, subscribe-and-save, and add to cart.
@@ -30,6 +31,8 @@ export const AddToCart = ({
     allocations,
     effectivePlanId,
     displayPrice,
+    displayOfferPrice,
+    offerBadge,
     disabled,
     choices,
     label,
@@ -106,7 +109,7 @@ export const AddToCart = ({
                 accessibilityState={{ selected: effectivePlanId === choice.id }}
                 accessibilityLabel={
                   choice.price
-                    ? `${choice.label}, ${formatMoney(choice.price)}`
+                    ? `${choice.label}, ${offerPriceLabel(choice.price, choice.offerPrice, offerBadge)}`
                     : choice.label
                 }
                 className={`flex-row items-center justify-between rounded-md border px-3 py-3 ${
@@ -116,7 +119,13 @@ export const AddToCart = ({
                 }`}
               >
                 <Text className="text-sm text-foreground">{choice.label}</Text>
-                {choice.price ? (
+                {choice.price && choice.offerPrice && offerBadge ? (
+                  <OfferPrice
+                    normal={choice.price}
+                    offer={choice.offerPrice}
+                    badge={offerBadge}
+                  />
+                ) : choice.price ? (
                   <Text
                     className={`text-sm ${
                       effectivePlanId === choice.id
@@ -133,7 +142,14 @@ export const AddToCart = ({
         </View>
       ) : null}
 
-      {displayPrice ? (
+      {displayPrice && displayOfferPrice && offerBadge ? (
+        <OfferPrice
+          normal={displayPrice}
+          offer={displayOfferPrice}
+          badge={offerBadge}
+          className="text-2xl font-semibold"
+        />
+      ) : displayPrice ? (
         <Text className="text-2xl font-semibold text-foreground">
           {formatMoney(displayPrice)}
         </Text>
