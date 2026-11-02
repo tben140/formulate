@@ -11,7 +11,6 @@ import {
   type Cart,
   type CartChange,
   type CartSuggestion,
-  formatMoney,
   FREE_SHIPPING_THRESHOLD,
   type OfferRules,
 } from "@formulate/shopify";
@@ -24,6 +23,7 @@ import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
 import { CampaignCartHint } from "./campaign-cart-hint";
 import { FreeShippingBar } from "./free-shipping-bar";
 import { CartSuggestions } from "./cart-suggestions";
+
 /**
  * The slide-in cart.
  *
