@@ -1,4 +1,4 @@
-{% comment %}
+{% doc %}
   Add to cart, with variant and selling-plan selection.
 
   The Liquid counterpart of apps/web's components/add-to-cart-form.tsx. Same
@@ -20,7 +20,9 @@
   packages/shopify: a store carries selling plan groups that no app manages,
   and this store has four of them. They add to the cart and complete at
   checkout, then never charge or ship again.
-{% endcomment %}
+
+  @param {product} product - The product whose variants and selling plans the form offers.
+{% enddoc %}
 
 {% assign current_variant = product.selected_or_first_available_variant %}
 
