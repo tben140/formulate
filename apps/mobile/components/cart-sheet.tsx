@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
 import { useCheckout } from "../lib/checkout";
-import { useCart, useClearCart, useUpdateCartLine } from "../lib/use-cart";
+import { useClearCart, useOptimisticCart, useUpdateCartLine } from "../lib/use-cart";
 
 import { FreeShippingBar } from "./free-shipping-bar";
 import { Text } from "./text";
@@ -34,7 +34,8 @@ export const CartSheet = ({
   readonly visible: boolean;
   readonly onClose: () => void;
 }) => {
-  const { data: cart, isPending } = useCart();
+  // Line changes show at once; see useOptimisticCart (SHO-52).
+  const { cart, busy, isPending } = useOptimisticCart();
   const updateLine = useUpdateCartLine();
   const clearCart = useClearCart();
   const checkout = useCheckout();
@@ -137,6 +138,16 @@ export const CartSheet = ({
           subtotal={lines.length > 0 ? (cart?.cost.subtotalAmount ?? null) : null}
         />
 
+        {updateLine.lineError ? (
+          <Text
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            className="border-b border-border px-4 py-2 text-sm text-danger"
+          >
+            {updateLine.lineError.message}
+          </Text>
+        ) : null}
+
         {isPending ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator />
@@ -151,7 +162,8 @@ export const CartSheet = ({
               return (
                 <View
                   key={line.id}
-                  className="flex-row gap-3 border-b border-border px-4 py-4"
+                  accessibilityState={{ busy: busy.has(line.id) }}
+                  className={`flex-row gap-3 border-b border-border px-4 py-4 ${busy.has(line.id) ? "opacity-60" : ""}`}
                 >
                   {variant.image ? (
                     <Image
@@ -248,13 +260,16 @@ export const CartSheet = ({
               Taxes and shipping calculated at checkout.
             </Text>
 
+            {/* Held while a line change is in flight, as on web. */}
             <Pressable
               onPress={() => checkout.present(cart.checkoutUrl)}
+              disabled={busy.size > 0}
               accessibilityRole="button"
-              className="rounded-md bg-brand-600 px-4 py-3"
+              accessibilityState={{ disabled: busy.size > 0, busy: busy.size > 0 }}
+              className={`rounded-md bg-brand-600 px-4 py-3 ${busy.size > 0 ? "opacity-60" : ""}`}
             >
               <Text className="text-center text-sm font-semibold text-surface">
-                Checkout
+                {busy.size > 0 ? "Updating your cart…" : "Checkout"}
               </Text>
             </Pressable>
           </View>
