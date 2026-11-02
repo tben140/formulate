@@ -1,5 +1,7 @@
+import { campaignLogRoute, type CampaignLog } from "./campaign-log";
 import type { RateLimiter } from "./rate-limiter";
 
+export { CampaignLog } from "./campaign-log";
 export { RateLimiter } from "./rate-limiter";
 
 import {
@@ -37,6 +39,11 @@ interface Env {
    * src/rate-limiter.ts for why that one was removed.
    */
   readonly RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
+  /** Campaign change log (src/campaign-log.ts): the app's secret verifies Shopify's webhooks. */
+  readonly SHOPIFY_APP_CLIENT_SECRET?: string;
+  /** Bearer token for reading the log (`campaigns history`). */
+  readonly CAMPAIGN_LOG_TOKEN?: string;
+  readonly CAMPAIGN_LOG: DurableObjectNamespace<CampaignLog>;
 }
 
 /**
@@ -60,7 +67,10 @@ const MAX_BODY_BYTES = 1024;
  */
 type Outcome =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: "invalid-email" | "rate-limited" | "rejected" };
+  | {
+      readonly ok: false;
+      readonly reason: "invalid-email" | "rate-limited" | "rejected";
+    };
 
 const json = (body: Outcome, status: number): Response =>
   new Response(JSON.stringify(body), {
@@ -85,6 +95,11 @@ const json = (body: Outcome, status: number): Response =>
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    // The campaign change log has its own two paths; everything else is the
+    // consent endpoint below, as before.
+    const logged = await campaignLogRoute(request, env);
+    if (logged) return logged;
+
     if (request.method !== "POST") {
       return json({ ok: false, reason: "rejected" }, 405);
     }

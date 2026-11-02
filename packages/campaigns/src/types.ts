@@ -10,6 +10,8 @@ export interface CampaignEntry {
   readonly handle: string;
   /** Published (active), rather than a draft. */
   readonly published: boolean;
+  /** When the record last changed: checked against its approval. */
+  readonly updatedAt?: string | null;
   /** Field values by key; references are GIDs. */
   readonly fields: Readonly<Record<string, string | null>>;
   /** The image's alt text, when it has an image. */

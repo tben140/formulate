@@ -14,6 +14,13 @@ embedded = true
 [webhooks]
 api_version = "2026-10"
 
+  # The campaigns' change log (apps/api/src/campaign-log.ts): every edit to a
+  # campaign record, signed with this app's secret. The Worker URL is public.
+  [[webhooks.subscriptions]]
+  topics = [ "metaobjects/create", "metaobjects/update", "metaobjects/delete" ]
+  uri = "https://formulate-api.tben140-6bc.workers.dev/webhooks/shopify/campaigns"
+  filter = "type:campaign"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 # The campaigns CLI (packages/campaigns) signs in as this app: campaigns and

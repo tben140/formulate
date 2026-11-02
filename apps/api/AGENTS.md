@@ -86,7 +86,14 @@ Secrets are per-environment and set from the CLI:
 
 ```bash
 pnpm --filter @formulate/api exec wrangler secret put KLAVIYO_PRIVATE_KEY
+# The campaigns' change log (src/campaign-log.ts, docs/campaigns.md):
+pnpm --filter @formulate/api exec wrangler secret put SHOPIFY_APP_CLIENT_SECRET
+pnpm --filter @formulate/api exec wrangler secret put CAMPAIGN_LOG_TOKEN
 ```
+
+Without them the change log is closed: webhooks fail their signature check
+(Shopify retries them) and the log answers 401. The consent endpoint doesn't
+use either.
 
 ## The rate limiter is a Durable Object, not the binding
 

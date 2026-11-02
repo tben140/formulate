@@ -296,6 +296,8 @@ campaign even without its discount, for example a tiered offer just missed.
 | `sync <handle> [--activate]`                          | Creates or updates the campaign's discount on the campaign Function, with the record's dates and rules. New ones start switched off                 |
 | `emails <handle> [--create]`                          | The launch and last-day emails, timed from the dates; `--create` makes them Klaviyo drafts (never scheduled)                                        |
 | `pushes <handle> [--create]`                          | Launch and last-day pushes, opening the campaign screen; `--create` makes Klaviyo drafts for `KLAVIYO_PUSH_SEGMENT_ID` (needs push set up: SHO-165) |
+| `approve <handle> --by <name>`                        | Signs the campaign off; `check` fails until it's approved, and again after any later edit                                                           |
+| `history [<handle>]`                                  | The change log: every edit to a campaign record, what changed and when (below)                                                                      |
 | `flows <handle> [--create]`                           | The last-day abandoned-checkout email as a draft Klaviyo flow (below)                                                                               |
 | `report <handle>`                                     | Orders, revenue, discount cost, first orders, subscriptions started, by surface and email source, top products                                      |
 | `codes <handle> --count <n> [--prefix BF] [--apply]`  | Personal single-use codes: a code discount on the campaign Function and a Klaviyo coupon with the same codes (below)                                |
@@ -310,6 +312,30 @@ percentage, one-time only if the offer is, on the collection, a code for
 email-link campaigns, or a Function config in step with the record; and,
 with a Klaviyo key, the emails send before the end and say the right
 percentage. And the prices, below.
+
+### Sign-off and the change log
+
+**Sign-off.** `campaigns approve <handle> --by Ben` writes `approved_by` and
+`approved_at` on the record. `check` fails a campaign nobody has approved, and
+one edited since its approval (Shopify's `updatedAt`, two minutes' grace for
+the approval's own save), so a late typo in the terms can't go live unseen.
+
+**Change log.** Shopify sends every create, edit and delete of a campaign
+record to the Worker (`apps/api/src/campaign-log.ts`, subscribed in
+`shopify.app.toml`), signed with the app's client secret. The Worker keeps
+each campaign's last fields and logs what changed, and when; Shopify doesn't
+say who, which is what the sign-off is for. `campaigns history [<handle>]`
+reads it:
+
+```text
+2026-11-26T16:02:11Z  update  black-friday-2026
+    terms: 25% off one-time purchases of the products… → 25% off one-time purchases, until…
+```
+
+Setting it up (Ben): `wrangler secret put SHOPIFY_APP_CLIENT_SECRET` and
+`wrangler secret put CAMPAIGN_LOG_TOKEN` (any long random string) on the
+Worker, `CAMPAIGN_LOG_TOKEN` in `~/.config/formulate/shopify-app.env` too, then
+deploy the Worker and `shopify app deploy`. Edits before that aren't logged.
 
 ### Ends tonight: the abandoned checkout
 
