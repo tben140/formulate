@@ -17,37 +17,61 @@ export interface DiscountConfig {
   readonly message: string;
   /** The rules as the Function reads them: thresholds as plain amounts. */
   readonly rules: FunctionRules;
+  /** The tag a customer gets once they've had the offer (oncePerCustomer). */
+  readonly usedTags: readonly string[];
+  /** Only customers with one of these tags get it; empty for everyone. */
+  readonly audienceTags: readonly string[];
 }
 
-export type FunctionRules =
-  | { readonly type: "percent"; readonly percent: number; readonly oneTimeOnly: boolean }
-  | {
-      readonly type: "tiered";
-      readonly tiers: readonly {
-        readonly minSubtotal: string;
-        readonly percent: number;
-      }[];
-      readonly oneTimeOnly: boolean;
-    }
-  | {
-      readonly type: "bundle";
-      readonly buy: number;
-      readonly free: number;
-      readonly oneTimeOnly: boolean;
-    };
+/** The tag `campaigns tag-buyers` gives a customer who's had a campaign. */
+export const usedTag = (handle: string): string => `campaign:${handle}`;
 
-/** The shared rules in the Function's shape (it has no currencies: GBP only). */
-export const functionRules = (rules: OfferRules): FunctionRules =>
-  rules.type === "tiered"
-    ? {
+/** What the Function reads beside the offer itself; defaults left out. */
+interface FunctionReach {
+  readonly appliesTo?: "all" | "subscriptions";
+  readonly maxUnits?: number;
+  readonly oncePerCustomer?: true;
+}
+
+export type FunctionRules = FunctionReach &
+  (
+    | { readonly type: "percent"; readonly percent: number }
+    | {
+        readonly type: "tiered";
+        readonly tiers: readonly {
+          readonly minSubtotal: string;
+          readonly percent: number;
+        }[];
+      }
+    | { readonly type: "bundle"; readonly buy: number; readonly free: number }
+  );
+
+/**
+ * The shared rules in the Function's shape (it has no currencies: GBP only).
+ * Only what differs from the defaults, so a plain offer's config stays plain.
+ */
+export const functionRules = (rules: OfferRules): FunctionRules => {
+  const reach: FunctionReach = {
+    ...(rules.appliesTo !== "one_time" ? { appliesTo: rules.appliesTo } : {}),
+    ...(rules.maxUnits !== null ? { maxUnits: rules.maxUnits } : {}),
+    ...(rules.oncePerCustomer ? { oncePerCustomer: true as const } : {}),
+  };
+  switch (rules.type) {
+    case "percent":
+      return { type: "percent", percent: rules.percent, ...reach };
+    case "tiered":
+      return {
         type: "tiered",
         tiers: rules.tiers.map((tier) => ({
           minSubtotal: tier.minSubtotal.amount,
           percent: tier.percent,
         })),
-        oneTimeOnly: rules.oneTimeOnly,
-      }
-    : rules;
+        ...reach,
+      };
+    case "bundle":
+      return { type: "bundle", buy: rules.buy, free: rules.free, ...reach };
+  }
+};
 
 /**
  * The config for a campaign, or the reason there can't be one.
@@ -93,6 +117,8 @@ export const discountConfig = (
       variantIds,
       message: badge,
       rules: functionRules(rules),
+      usedTags: rules.oncePerCustomer ? [usedTag(entry.handle)] : [],
+      audienceTags: rules.audienceTags,
     },
   };
 };

@@ -14,30 +14,55 @@ import { formatMoney, type MoneyLike } from "./format-money";
  * - `bundle`: buy `buy` eligible items, the cheapest `free` of them are free,
  *   repeated ("3 for 2" is buy 3, free 1).
  *
- * `oneTimeOnly` (the default): subscriptions are already 15% off, so the
- * campaign doesn't stack on them. Subscribers get the perk instead.
+ * Who and what it reaches, on every type (all optional in the JSON):
+ * - `appliesTo`: `"one_time"` (the default: subscriptions are already 15% off,
+ *   so the campaign doesn't stack on them; subscribers get the perk instead),
+ *   `"all"`, or `"subscriptions"`: a subscribe-first offer, on the first
+ *   delivery only (Recharge's renewals don't pass through checkout). The older
+ *   `"oneTimeOnly": false` still means `"all"`, and `oneTimeOnly` below is
+ *   kept for the code that reads it.
+ * - `maxUnits`: at most this many of each product at the campaign price per
+ *   order.
+ * - `oncePerCustomer`: once per signed-in customer (they're tagged after
+ *   ordering; guests can't be told apart).
+ * - `audienceTags`: only signed-in customers with one of these Shopify tags,
+ *   e.g. a win-back offer for lapsed subscribers. Such an offer is never
+ *   advertised to everyone: it goes with the email-link-only audience.
+ *
+ * The discount Function (apps/shopify-app/extensions/campaign-discount)
+ * enforces all of these at checkout; the surfaces only describe them.
  */
-export type OfferRules =
-  | {
-      readonly type: "percent";
-      readonly percent: number;
-      readonly oneTimeOnly: boolean;
-    }
-  | {
-      readonly type: "tiered";
-      /** Ascending by `minSubtotal`; at least one. */
-      readonly tiers: readonly {
-        readonly minSubtotal: MoneyLike;
+export type AppliesTo = "one_time" | "all" | "subscriptions";
+
+interface OfferReach {
+  readonly appliesTo: AppliesTo;
+  /** appliesTo is "one_time". */
+  readonly oneTimeOnly: boolean;
+  readonly maxUnits: number | null;
+  readonly oncePerCustomer: boolean;
+  readonly audienceTags: readonly string[];
+}
+
+export type OfferRules = OfferReach &
+  (
+    | {
+        readonly type: "percent";
         readonly percent: number;
-      }[];
-      readonly oneTimeOnly: boolean;
-    }
-  | {
-      readonly type: "bundle";
-      readonly buy: number;
-      readonly free: number;
-      readonly oneTimeOnly: boolean;
-    };
+      }
+    | {
+        readonly type: "tiered";
+        /** Ascending by `minSubtotal`; at least one. */
+        readonly tiers: readonly {
+          readonly minSubtotal: MoneyLike;
+          readonly percent: number;
+        }[];
+      }
+    | {
+        readonly type: "bundle";
+        readonly buy: number;
+        readonly free: number;
+      }
+  );
 
 const isPercent = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 90;
@@ -46,6 +71,40 @@ const isCount = (value: unknown, max: number): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= max;
 
 const AMOUNT = /^\d{1,6}(\.\d{1,2})?$/;
+/** A Shopify customer tag, as the campaigns CLI writes them. */
+const TAG = /^[A-Za-z0-9][\w :-]{0,39}$/;
+
+/** The reach fields, or null when any is present but wrong. */
+const parseReach = (raw: Record<string, unknown>): OfferReach | null => {
+  const appliesTo: AppliesTo | null =
+    raw.appliesTo === undefined
+      ? raw.oneTimeOnly === false
+        ? "all"
+        : "one_time"
+      : raw.appliesTo === "one_time" ||
+          raw.appliesTo === "all" ||
+          raw.appliesTo === "subscriptions"
+        ? raw.appliesTo
+        : null;
+  if (!appliesTo) return null;
+  if (raw.maxUnits !== undefined && !isCount(raw.maxUnits, 99)) return null;
+  if (raw.oncePerCustomer !== undefined && typeof raw.oncePerCustomer !== "boolean")
+    return null;
+  const tags = raw.audienceTags ?? [];
+  if (
+    !Array.isArray(tags) ||
+    tags.length > 10 ||
+    !tags.every((tag) => typeof tag === "string" && TAG.test(tag))
+  )
+    return null;
+  return {
+    appliesTo,
+    oneTimeOnly: appliesTo === "one_time",
+    maxUnits: (raw.maxUnits as number | undefined) ?? null,
+    oncePerCustomer: raw.oncePerCustomer === true,
+    audienceTags: tags as string[],
+  };
+};
 const CURRENCY = /^[A-Z]{3}$/;
 
 /**
@@ -63,11 +122,12 @@ export const parseOfferRules = (json: string | null | undefined): OfferRules | n
   } catch {
     return null;
   }
-  const oneTimeOnly = raw.oneTimeOnly !== false;
+  const reach = parseReach(raw);
+  if (!reach) return null;
   switch (raw.type) {
     case "percent":
       return isPercent(raw.percent)
-        ? { type: "percent", percent: raw.percent, oneTimeOnly }
+        ? { type: "percent", percent: raw.percent, ...reach }
         : null;
     case "tiered": {
       const currencyCode = raw.currencyCode ?? "GBP";
@@ -89,11 +149,11 @@ export const parseOfferRules = (json: string | null | undefined): OfferRules | n
           return null;
         tiers.push({ minSubtotal: { amount: minSubtotal, currencyCode }, percent });
       }
-      return { type: "tiered", tiers, oneTimeOnly };
+      return { type: "tiered", tiers, ...reach };
     }
     case "bundle":
       return isCount(raw.buy, 10) && isCount(raw.free, 9) && raw.free < raw.buy
-        ? { type: "bundle", buy: raw.buy, free: raw.free, oneTimeOnly }
+        ? { type: "bundle", buy: raw.buy, free: raw.free, ...reach }
         : null;
     default:
       return null;
@@ -122,7 +182,9 @@ const fromMinor = (minor: number, currencyCode: string): MoneyLike => {
 /**
  * The price a shopper pays for one item under a `percent` offer, shown before
  * checkout beside the normal price. Null when the offer has no single price
- * (tiered, bundle), or doesn't apply (a subscription under `oneTimeOnly`).
+ * (tiered, bundle), or doesn't apply to this kind of purchase (`appliesTo`).
+ * For a subscription, `price` is the subscription's own price: a
+ * subscribe-first offer comes off that.
  *
  * Rounded to the penny the way Shopify rounds a percentage off one item. A
  * line of several can differ by a penny at checkout, which then shows the
@@ -134,7 +196,8 @@ export const campaignUnitPrice = (
   { subscription = false }: { readonly subscription?: boolean } = {},
 ): MoneyLike | null => {
   if (rules?.type !== "percent") return null;
-  if (subscription && rules.oneTimeOnly) return null;
+  if (subscription ? rules.appliesTo === "one_time" : rules.appliesTo === "subscriptions")
+    return null;
   const minor = toMinor(price);
   if (minor === null || minor <= 0) return null;
   const off = Math.round((minor * rules.percent) / 100);
@@ -225,9 +288,33 @@ export const offerLines = (
       subtotal: fromMinor(minor * line.quantity, line.merchandise.price.currencyCode),
       eligible:
         line.merchandise.product.campaign?.reference?.handle === campaign.handle &&
-        !(campaign.rules?.oneTimeOnly !== false && line.sellingPlanAllocation),
+        reaches(campaign.rules, Boolean(line.sellingPlanAllocation)),
     };
   });
+
+/** Whether the offer reaches a one-time purchase or a subscription. */
+const reaches = (rules: OfferRules | null, subscription: boolean): boolean => {
+  const appliesTo = rules?.appliesTo ?? "one_time";
+  return appliesTo === "all" || (appliesTo === "subscriptions") === subscription;
+};
+
+/**
+ * The limits as shoppers read them, or null when there are none: "Black
+ * Friday price on up to 2 of each product, once per customer". Shown beside
+ * the offer, so a capped cart isn't a surprise at checkout.
+ */
+export const offerLimits = (rules: OfferRules | null, badge: string): string | null => {
+  if (!rules) return null;
+  const parts = [
+    rules.maxUnits !== null
+      ? `${badge} price on up to ${rules.maxUnits} of each product`
+      : null,
+    rules.oncePerCustomer ? "once per customer (signed in)" : null,
+  ].filter(Boolean);
+  if (parts.length === 0) return null;
+  const text = parts.join(", ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
 
 /** Every percentage the rules can give, for checking the wording against. */
 export const offerPercents = (rules: OfferRules): number[] =>

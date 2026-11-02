@@ -108,12 +108,42 @@ One of:
 - Percentages are whole numbers from 1 to 90. Tiers go up in both threshold
   and percentage; `currencyCode` defaults to `GBP`. A bundle gives the
   cheapest `free` of every `buy` items free ("3 for 2" is buy 3, free 1).
-- Add `"oneTimeOnly": false` to include subscriptions; the default leaves
-  them out (see below).
+- `appliesTo`: `"one_time"` (the default; see below), `"all"`, or
+  `"subscriptions"`, a **subscribe-first** offer: the subscription options
+  show the campaign price off the subscription price, and Recharge's renewals
+  don't pass through checkout, so it's the first delivery only. The older
+  `"oneTimeOnly": false` still means `"all"`.
 - Rules that don't parse are ignored: the surfaces show `offer` alone, never a
   guessed price. `campaigns check` reports them.
 - Variant narrowing works with `percent` only: tiers and bundles count every
   item of a product in the campaign.
+
+**Limits and audiences** (all optional; only the campaign Function enforces
+them, so `check` fails a plain Shopify discount for an offer that has them):
+
+```text
+{ "type": "percent", "percent": 25, "maxUnits": 2, "oncePerCustomer": true }
+{ "type": "percent", "percent": 30, "audienceTags": ["lapsed-subscriber"] }
+```
+
+- `maxUnits`: at most this many of each product at the campaign price per
+  order; past it, the rest are full price. Stops a reseller clearing stock.
+- `oncePerCustomer`: a signed-in customer who's had the offer doesn't again.
+  They're marked with the tag `campaign:<handle>`: run
+  `campaigns tag-buyers <handle> --apply` during the campaign, or, so it's
+  instant, a Shopify Flow ("Order created → discount is the campaign's → add
+  customer tag `campaign:<handle>`").
+- `audienceTags`: only signed-in customers with one of these tags, such as a
+  **win-back** offer for lapsed subscribers:
+  `campaigns audience lapsed --tag lapsed-subscriber --within 180 --apply`
+  tags every customer whose subscriptions are all cancelled, the last within
+  180 days (from Recharge). Such an offer must be `audience: email_link`, so
+  nobody else is shown an offer they can't have; `check` enforces it.
+- Guests can't be told apart at checkout: they're never limited and never in
+  an audience. Say "per signed-in customer" in the terms; `check` warns when
+  the terms don't mention a limit. The product page shows the limits under
+  the offer ("Black Friday price on up to 2 of each product, once per
+  customer (signed in)").
 
 What each surface does with them, from `packages/shopify/src/campaign-offer.ts`
 (the theme repeats the rules in `campaign-offer-cents`, `campaign-covers` and

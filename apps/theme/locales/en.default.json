@@ -127,6 +127,9 @@
     "payment_methods": "Payment methods"
   },
   "campaign": {
+    "limit_units": "{{ badge }} price on up to {{ count }} of each product",
+    "limit_once": "once per customer (signed in)",
+    "limit_once_alone": "Once per customer (signed in)",
     "starts": "Starts {{ time }}",
     "ends": "Ends {{ time }}",
     "ended": "This offer has ended.",

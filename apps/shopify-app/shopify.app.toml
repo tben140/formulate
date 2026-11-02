@@ -19,7 +19,7 @@ api_version = "2026-10"
 # The campaigns CLI (packages/campaigns) signs in as this app: campaigns and
 # their collections, the campaign discount Function's discounts, and orders
 # for the report. See docs/campaigns.md, "The campaigns CLI".
-scopes = "read_customers,read_discounts,read_inventory,read_metaobject_definitions,read_metaobjects,read_orders,read_products,read_publications,write_discounts,write_metaobjects,write_products"
+scopes = "read_customers,read_discounts,read_inventory,read_metaobject_definitions,read_metaobjects,read_orders,read_products,read_publications,write_customers,write_discounts,write_metaobjects,write_products"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
