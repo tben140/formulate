@@ -28,6 +28,7 @@ export const toNode = (
     audience: field("audience"),
     priority: field("priority"),
     offerRules: field("offer_rules"),
+    countdown: field("countdown"),
     collection: collectionHandle ? { reference: { handle: collectionHandle } } : null,
   };
 };

@@ -46,7 +46,11 @@ export const CampaignBanner = () => {
 
 /** A component of its own, so the countdown's hook runs only with a campaign. */
 const BannerLink = ({ campaign }: { readonly campaign: Campaign }) => {
-  const ends = useCampaignEnds(campaign.endsAt, campaignEndsLabel(campaign));
+  const ends = useCampaignEnds(
+    campaign.endsAt,
+    campaignEndsLabel(campaign),
+    campaign.countdown,
+  );
   return (
     <Link href={campaignPath(campaign.handle)} asChild>
       <Pressable

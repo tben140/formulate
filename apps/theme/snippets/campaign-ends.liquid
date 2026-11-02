@@ -1,7 +1,9 @@
 {% doc %}
   "Ends 23:59 Mon 30 Nov" or "Starts 00:00 Fri 27 Nov", in the shop's time
   zone (Europe/London), as packages/shopify/src/campaign.ts words it. The end
-  counts down in its last day ("Ends in 5h 12m"), as on web and the app.
+  counts down within the campaign's countdown window, the last day unless its
+  `countdown` field says `none`, `48h` or `always` ("Ends in 5h 12m", "Ends in
+  2d 4h"), as on web and the app (SHO-201).
 
   @param {object} campaign - A `campaign` metaobject.
   @param {string} [which] - `starts` for the start time; the end otherwise.
@@ -28,9 +30,11 @@
   {%- comment -%} Counts down in the last day: assets/campaign-ends.js. {%- endcomment -%}
   <campaign-ends
     data-end="{{ end_s }}"
+    data-window="{{ campaign.countdown.value | default: '24h' | escape }}"
     {% if now_s != '' %}
       data-now="{{ now_s }}"
     {% endif %}
+    data-dh="{{ 'campaign.ends_in_dh' | t: days: '[d]', hours: '[h]' }}"
     data-hm="{{ 'campaign.ends_in_hm' | t: hours: '[h]', minutes: '[m]'  }}"
     data-m="{{ 'campaign.ends_in_m' | t: minutes: '[m]'  }}"
     data-soon="{{ 'campaign.ends_soon' | t }}"

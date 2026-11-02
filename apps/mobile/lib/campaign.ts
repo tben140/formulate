@@ -2,12 +2,14 @@ import {
   activeCampaign,
   CampaignByHandleQuery,
   campaignCountdown,
+  countdownStartsAt,
   campaignNow,
   CampaignsQuery,
   type CampaignNode,
   describeError,
   toCampaign,
   type CampaignView,
+  type CountdownWindow,
 } from "@formulate/shopify";
 import { useQuery } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
@@ -182,9 +184,13 @@ export const useCampaign = (handle: string) =>
  * else `label` ("Ends 23:59 Mon 30 Nov"). Ticks every 30 seconds only within
  * the last day, by the campaign clock, so a preview time counts down too.
  */
-export const useCampaignEnds = (endsAt: Date, label: string): string => {
+export const useCampaignEnds = (
+  endsAt: Date,
+  label: string,
+  window: CountdownWindow = "24h",
+): string => {
   const [, setTick] = useState(0);
-  const text = campaignCountdown(endsAt, campaignClock()) ?? label;
+  const text = campaignCountdown(endsAt, campaignClock(), window) ?? label;
   const counting = text !== label;
   const end = endsAt.getTime();
   useEffect(() => {
@@ -193,13 +199,15 @@ export const useCampaignEnds = (endsAt: Date, label: string): string => {
       const timer = setInterval(tick, 30_000);
       return () => clearInterval(timer);
     }
-    // Not yet the last day: wake at its start, so a screen left open starts
-    // counting down then rather than at its next render.
-    const untilLastDay = end - 24 * 60 * 60 * 1000 - campaignClock().getTime();
-    if (untilLastDay <= 0) return;
-    const timer = setTimeout(tick, Math.min(untilLastDay + 1000, 2_147_483_647));
+    // Not yet in the countdown window: wake when it opens, so a screen left
+    // open starts counting down then rather than at its next render.
+    const opens = countdownStartsAt(new Date(end), window);
+    if (!opens) return;
+    const untilWindow = opens.getTime() - campaignClock().getTime();
+    if (untilWindow <= 0) return;
+    const timer = setTimeout(tick, Math.min(untilWindow + 1000, 2_147_483_647));
     return () => clearTimeout(timer);
-  }, [counting, end]);
+  }, [counting, end, window]);
   return text;
 };
 

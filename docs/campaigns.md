@@ -37,6 +37,7 @@ Campaign ◄──── product.double_helix.campaign        (one campaign per 
 | `collection`             | collection        |          | The products on the landing page                                                                        |
 | `offer_rules`            | JSON              |          | The offer as data: see [Offer rules](#offer-rules)                                                      |
 | `early_access_starts_at` | date and time     |          | Earlier start for email-link visitors: see [Early access](#early-access)                                |
+| `countdown`              | single line text  |          | When the end time counts down: `none`, `24h` (default), `48h` or `always`                               |
 | `perk_variant`           | variant reference |          | The subscriber perk's product: see [Subscribers get a perk](#subscribers-get-a-perk-not-the-sale-price) |
 
 The definition is **publishable** (draft or active) and **readable by the

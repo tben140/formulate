@@ -147,6 +147,7 @@
     "normally": "Normally",
     "badge_price": "{{ badge }} price",
     "ends_in_hm": "Ends in {{ hours }}h {{ minutes }}m",
+    "ends_in_dh": "Ends in {{ days }}d {{ hours }}h",
     "ends_in_m": "Ends in {{ minutes }}m",
     "ends_soon": "Ends in under a minute",
     "tier_next": "Spend {{ amount }} more on {{ badge }} items for {{ percent }}% off",

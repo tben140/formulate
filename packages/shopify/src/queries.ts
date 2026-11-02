@@ -857,6 +857,10 @@ export const CampaignBadgeFields = graphql(`
     earlyAccessStartsAt: field(key: "early_access_starts_at") {
       value
     }
+    # When the end becomes a countdown: none, 24h, 48h or always (SHO-201).
+    countdown: field(key: "countdown") {
+      value
+    }
   }
 `);
 
