@@ -26,6 +26,12 @@ storage and access without consent when **all** of these hold:
 4. the shopper gets clear and comprehensive information about the purpose;
 5. the shopper gets a simple, free way to object, and doesn't object.
 
+And one limit, paragraph 5(2): the access it allows "does not include ...
+collecting or monitoring information automatically emitted by the terminal
+equipment". So the exception can't be the basis for collecting what a device
+sends on its own, such as its IP address or user agent; see "Device details"
+under the decision.
+
 The ICO's guidance narrows it further:
 
 - It covers **aggregate** statistics, "how your service is used, not who uses
@@ -67,13 +73,34 @@ data, which fits. Three things don't:
 | Banner    | Explained in the banner and the privacy notice                                                            | The existing Accept / Decline choice                                                                                                                           |
 | Objecting | Turning it off stops all PostHog storage and sending                                                      | Declining or withdrawing works as in ADR 0008                                                                                                                  |
 
-- **The session id lives only for the session** (`sessionStorage` on web,
-  memory in the app), so nothing follows a visitor across visits. Funnels
-  are counted per session, which is enough to see where shoppers drop off.
-- **No person profiles in the exempt tier.** Events are aggregate-only in
-  PostHog.
-- **Upgrading.** When a shopper accepts the marketing tier, PostHog switches
-  to the persistent id with person profiles, and order attribution turns on.
+- **The session id lives only for the session**, and so does PostHog's own
+  storage. An id kept in our `sessionStorage` isn't enough if the SDK keeps
+  its default persistence, which would reuse its `distinct_id` across visits.
+  So the exempt mode starts PostHog with non-durable persistence
+  (`persistence: "sessionStorage"` in posthog-js on web, `"memory"` in the
+  app's SDK) and a fresh id each session. Funnels are counted per session,
+  which is enough to see where shoppers drop off.
+- **No person profiles, and raw events kept only as long as the aggregates
+  need them.** `$process_person_profile: false` stops profiles, but PostHog
+  still stores each event under its session id, and that isn't aggregate data
+  just because no profile exists. Before the tier goes live: a retention
+  period for exempt-tier events (proposed: 3 months, enough to produce and
+  check monthly figures), enforced by PostHog's retention setting or a
+  scheduled deletion; the aggregates (insights and exported figures) are what's
+  kept. Exempt-tier ids are never aliased or identified later.
+- **Device details.** Because of paragraph 5(2), the exempt tier doesn't
+  collect what the device emits on its own: the project discards client IP
+  addresses (so no IP-based location either), and the SDK's device properties
+  that come from the user agent and screen (browser and OS versions, screen and
+  viewport size, device type) are left out: posthog-js's `property_denylist`
+  on web, and the app client's equivalent (to confirm when #107 changes). The
+  events keep only what our code sends: the page or screen and the step.
+- **Upgrading.** When a shopper accepts the marketing tier, the client first
+  calls `posthog.reset()`, which discards the session-scoped id, then switches
+  to persistent storage with person profiles, and only then may call
+  `identify()`. Calling `identify()` without the reset would merge the earlier
+  anonymous id and its events into the person, which is exactly the linkage
+  this tier exists to avoid. Order attribution turns on after the switch.
   Events from before the choice stay unlinked.
 - **PostHog's role** is recorded as processor: EU Cloud, its data processing
   agreement, and no use of the data for its own purposes. Autocapture, replay
@@ -121,7 +148,9 @@ session-scoped id avoids the question.
   must say which they use. A funnel that ends at `order_completed` only works
   for the consented tier, because order attribution needs consent.
 - **More code paths.** Each surface's client needs the two modes, and a
-  switch between them when the shopper accepts. #93, #107 and #108 need
+  switch between them when the shopper accepts (with the reset above).
+  Device properties are dropped in the exempt tier, so its reports can't be
+  split by browser or screen size. #93, #107 and #108 need
   changing (follow-up ticket).
 - **The banner gets a little longer:** a sentence about usage statistics and
   an off switch, next to the existing Accept / Decline.
