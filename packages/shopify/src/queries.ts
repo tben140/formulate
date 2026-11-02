@@ -947,6 +947,73 @@ export const CampaignsQuery = graphql(`
   }
 `);
 
+/**
+ * The home page's hero (SHO-203): every campaign, for the live ones' slides,
+ * and every `hero_slide`. `heroSlides` orders them.
+ */
+export const HeroSlidesQuery = graphql(`
+  query HeroSlides {
+    campaigns: metaobjects(type: "campaign", first: 20) {
+      nodes {
+        ...CampaignFields
+      }
+    }
+    slides: metaobjects(type: "hero_slide", first: 20) {
+      nodes {
+        handle
+        headline: field(key: "headline") {
+          value
+        }
+        text: field(key: "text") {
+          value
+        }
+        buttonLabel: field(key: "button_label") {
+          value
+        }
+        link: field(key: "link") {
+          value
+        }
+        image: field(key: "image") {
+          reference {
+            ... on MediaImage {
+              image {
+                url
+                altText
+                width
+                height
+              }
+            }
+          }
+        }
+        mobileImage: field(key: "mobile_image") {
+          reference {
+            ... on MediaImage {
+              image {
+                url
+                altText
+                width
+                height
+              }
+            }
+          }
+        }
+        startsAt: field(key: "starts_at") {
+          value
+        }
+        endsAt: field(key: "ends_at") {
+          value
+        }
+        priority: field(key: "priority") {
+          value
+        }
+        isDefault: field(key: "is_default") {
+          value
+        }
+      }
+    }
+  }
+`);
+
 /** One campaign and its products, for the landing page. */
 export const CampaignByHandleQuery = graphql(`
   query CampaignByHandle($handle: String!) {

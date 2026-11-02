@@ -7,10 +7,11 @@ import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { CampaignHero } from "@/components/campaign-hero";
+import { HeroSlider } from "@/components/hero-slider";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { campaignView, getActiveCampaign } from "@/lib/campaign";
+import { getHeroSlides } from "@/lib/hero";
 import { getNavLinks } from "@/lib/nav";
 import { storefront } from "@/lib/storefront";
 
@@ -29,11 +30,12 @@ const FEATURED_COUNT = 4;
  * this page, with no deploy.
  */
 const HomePage = async () => {
-  const [navLinks, cardsResult, campaign, view] = await Promise.all([
+  const [navLinks, cardsResult, campaign, view, slides] = await Promise.all([
     getNavLinks(),
     storefront.request(CollectionCardsQuery, {}),
     getActiveCampaign(),
     campaignView(),
+    getHeroSlides(),
   ]);
 
   if (!cardsResult.ok) return <StorefrontErrorState error={cardsResult.error} />;
@@ -56,9 +58,9 @@ const HomePage = async () => {
 
   return (
     <>
-      {campaign ? (
-        <CampaignHero
-          campaign={campaign}
+      {slides.length > 0 ? (
+        <HeroSlider
+          slides={slides}
           now={view.now.getTime()}
           clockPreview={view.clockPreview}
         />

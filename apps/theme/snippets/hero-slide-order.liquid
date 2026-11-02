@@ -1,0 +1,106 @@
+{% doc %}
+  Outputs the home hero's slides in order (SHO-203), as a comma-separated
+  list of `c:<campaign handle>` and `s:<hero_slide handle>`, or nothing. The
+  order of `heroSlides` in packages/shopify/src/hero-slides.ts:
+
+  - while a campaign is live: live campaigns (the one leading site-wide
+    first, then the others), then the hero slides running now;
+  - otherwise: the hero slides running now, then the default slides.
+
+  Within the slides, higher priority first. A slide with no headline, a link
+  that isn't a path on the store, or dates the wrong way round is left out.
+{% enddoc %}
+{%- liquid
+  assign now_s = 'now' | date: '%s' | plus: 0
+  if settings.campaign_preview_at != blank
+    assign now_s = settings.campaign_preview_at | date: '%s' | plus: 0
+  endif
+
+  capture lead
+    render 'campaign-live-handle'
+  endcapture
+  assign lead = lead | strip
+  assign campaigns = ''
+  if lead != blank
+    assign campaigns = 'c:' | append: lead
+    for campaign in shop.metaobjects.campaign.values
+      if campaign.system.handle == lead
+        continue
+      endif
+      capture status
+        render 'campaign-status', campaign: campaign
+      endcapture
+      assign status = status | strip
+      if status == 'active'
+        assign campaigns = campaigns | append: ',c:' | append: campaign.system.handle
+      endif
+    endfor
+  endif
+
+  comment
+    Each running slide as "<1000 - priority>~<handle>", sorted as text so the
+    highest priority comes first.
+  endcomment
+  assign regular = ''
+  assign defaults = ''
+  for slide in shop.metaobjects.hero_slide.values
+    assign headline = slide.headline.value | strip
+    if headline == blank
+      continue
+    endif
+    assign link = slide.link.value | strip
+    if link != blank
+      assign first_char = link | slice: 0
+      assign first_two = link | slice: 0, 2
+      if first_char != '/' or first_two == '//'
+        continue
+      endif
+    endif
+    assign starts_s = nil
+    assign ends_s = nil
+    if slide.starts_at.value != blank
+      assign starts_s = slide.starts_at.value | date: '%s' | plus: 0
+    endif
+    if slide.ends_at.value != blank
+      assign ends_s = slide.ends_at.value | date: '%s' | plus: 0
+    endif
+    if starts_s and ends_s and ends_s <= starts_s
+      continue
+    endif
+    if starts_s and now_s < starts_s
+      continue
+    endif
+    if ends_s and now_s >= ends_s
+      continue
+    endif
+    assign rank = slide.priority.value | plus: 0
+    assign rank = 1000 | minus: rank | prepend: '0000' | slice: -4, 4
+    assign entry = rank | append: '~' | append: slide.system.handle | append: '^'
+    if slide.is_default.value
+      assign defaults = defaults | append: entry
+    else
+      assign regular = regular | append: entry
+    endif
+  endfor
+
+  assign order = campaigns
+  assign lists = regular
+  if campaigns == ''
+    assign lists = regular | append: '|' | append: defaults
+  endif
+  assign groups = lists | split: '|'
+  for group in groups
+    assign entries = group | split: '^' | sort
+    for entry in entries
+      assign handle = entry | split: '~' | last
+      if handle == blank
+        continue
+      endif
+      if order != ''
+        assign order = order | append: ','
+      endif
+      assign order = order | append: 's:' | append: handle
+    endfor
+  endfor
+  echo order
+-%}

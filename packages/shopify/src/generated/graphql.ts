@@ -1792,6 +1792,23 @@ export type CampaignsQuery = { metaobjects: { nodes: Array<{ handle: string, pri
           | Record<PropertyKey, never>
          | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }> } };
 
+export type HeroSlidesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type HeroSlidesQuery = { campaigns: { nodes: Array<{ handle: string, priority: { value: string | null } | null, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
+          | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+          | Record<PropertyKey, never>
+         | null } | null, collection: { reference:
+          | { handle: string }
+          | Record<PropertyKey, never>
+         | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }> }, slides: { nodes: Array<{ handle: string, headline: { value: string | null } | null, text: { value: string | null } | null, buttonLabel: { value: string | null } | null, link: { value: string | null } | null, image: { reference:
+          | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+          | Record<PropertyKey, never>
+         | null } | null, mobileImage: { reference:
+          | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+          | Record<PropertyKey, never>
+         | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, priority: { value: string | null } | null, isDefault: { value: string | null } | null }> } };
+
 export type CampaignByHandleQueryVariables = Exact<{
   handle: string;
 }>;
@@ -3639,6 +3656,137 @@ fragment CampaignFields on Metaobject {
     }
   }
 }`) as unknown as TypedDocumentString<CampaignsQuery, CampaignsQueryVariables>;
+export const HeroSlidesDocument = new TypedDocumentString(`
+    query HeroSlides {
+  campaigns: metaobjects(type: "campaign", first: 20) {
+    nodes {
+      ...CampaignFields
+    }
+  }
+  slides: metaobjects(type: "hero_slide", first: 20) {
+    nodes {
+      handle
+      headline: field(key: "headline") {
+        value
+      }
+      text: field(key: "text") {
+        value
+      }
+      buttonLabel: field(key: "button_label") {
+        value
+      }
+      link: field(key: "link") {
+        value
+      }
+      image: field(key: "image") {
+        reference {
+          ... on MediaImage {
+            image {
+              url
+              altText
+              width
+              height
+            }
+          }
+        }
+      }
+      mobileImage: field(key: "mobile_image") {
+        reference {
+          ... on MediaImage {
+            image {
+              url
+              altText
+              width
+              height
+            }
+          }
+        }
+      }
+      startsAt: field(key: "starts_at") {
+        value
+      }
+      endsAt: field(key: "ends_at") {
+        value
+      }
+      priority: field(key: "priority") {
+        value
+      }
+      isDefault: field(key: "is_default") {
+        value
+      }
+    }
+  }
+}
+    fragment CampaignBadgeFields on Metaobject {
+  handle
+  title: field(key: "title") {
+    value
+  }
+  startsAt: field(key: "starts_at") {
+    value
+  }
+  endsAt: field(key: "ends_at") {
+    value
+  }
+  badge: field(key: "badge") {
+    value
+  }
+  offer: field(key: "offer") {
+    value
+  }
+  terms: field(key: "terms") {
+    value
+  }
+  audience: field(key: "audience") {
+    value
+  }
+  offerRules: field(key: "offer_rules") {
+    value
+  }
+  earlyAccessStartsAt: field(key: "early_access_starts_at") {
+    value
+  }
+}
+fragment CampaignFields on Metaobject {
+  ...CampaignBadgeFields
+  priority: field(key: "priority") {
+    value
+  }
+  headline: field(key: "headline") {
+    value
+  }
+  bannerText: field(key: "banner_text") {
+    value
+  }
+  discountCode: field(key: "discount_code") {
+    value
+  }
+  subscriberPerk: field(key: "subscriber_perk") {
+    value
+  }
+  body: field(key: "body") {
+    value
+  }
+  image: field(key: "image") {
+    reference {
+      ... on MediaImage {
+        image {
+          url
+          altText
+          width
+          height
+        }
+      }
+    }
+  }
+  collection: field(key: "collection") {
+    reference {
+      ... on Collection {
+        handle
+      }
+    }
+  }
+}`) as unknown as TypedDocumentString<HeroSlidesQuery, HeroSlidesQueryVariables>;
 export const CampaignByHandleDocument = new TypedDocumentString(`
     query CampaignByHandle($handle: String!) {
   metaobject(handle: {type: "campaign", handle: $handle}) {

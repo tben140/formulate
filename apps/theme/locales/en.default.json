@@ -126,6 +126,17 @@
     "social": "Social media",
     "payment_methods": "Payment methods"
   },
+  "hero": {
+    "carousel": "carousel",
+    "slide": "slide",
+    "position": "{{ index }} of {{ total }}",
+    "pause": "Pause slides",
+    "play": "Play slides",
+    "previous": "Previous slide",
+    "next": "Next slide",
+    "show": "Show slide {{ index }}",
+    "shop_now": "Shop now"
+  },
   "campaign": {
     "gift_next": "Spend {{ amount }} more on {{ badge }} items for a free {{ gift }}",
     "gift_reached": "Your free {{ gift }} is unlocked: add it to your basket",

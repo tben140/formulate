@@ -56,6 +56,7 @@ export {
   CartLinesUpdateMutation,
   CampaignByHandleQuery,
   CampaignsQuery,
+  HeroSlidesQuery,
   CartAttributesUpdateMutation,
   CartDiscountCodesUpdateMutation,
   CartQuery,
@@ -171,3 +172,6 @@ export {
   parseOfferRules,
 } from "./campaign-offer";
 export type { AppliesTo, OfferLine, OfferRules } from "./campaign-offer";
+
+export { campaignSlide, heroSlides } from "./hero-slides";
+export type { HeroSlide, HeroSlideNode } from "./hero-slides";
