@@ -90,6 +90,7 @@ export const getCollection = async (
     collection: {
       id: string;
       handle: string;
+      title: string;
       productsCount: { count: number } | null;
       ruleSet: {
         rules: { column: string; relation: string; condition: string }[];
@@ -119,6 +120,7 @@ export const getCollection = async (
       collection(id: $id) {
         id
         handle
+        title
         productsCount { count }
         ruleSet { rules { column relation condition } }
         products(first: 250) {
@@ -160,6 +162,7 @@ export const getCollection = async (
     collection: {
       id: collection.id,
       handle: collection.handle,
+      title: collection.title,
       productsCount: collection.productsCount?.count ?? 0,
       ruleMatchesCampaign:
         rules.length === 1 &&

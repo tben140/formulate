@@ -19,6 +19,8 @@ export interface CampaignEntry {
 export interface CollectionInfo {
   readonly id: string;
   readonly handle: string;
+  /** Shown to shoppers, and what Klaviyo's Shopify events list in `Collections`. */
+  readonly title?: string;
   /** A smart collection whose one rule is "campaign equals this entry". */
   readonly ruleMatchesCampaign: boolean;
   readonly productsCount: number;
