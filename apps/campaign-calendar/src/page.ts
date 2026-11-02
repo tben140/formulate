@@ -42,6 +42,15 @@ export const page = (clientId: string): string => `<!doctype html>
   .muted { color: var(--muted); }
   code { font-size: 12px; word-break: break-all; }
   [hidden] { display: none !important; }
+  form.grid { display: grid; gap: 8px 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
+  label { display: grid; gap: 2px; font-size: 13px; }
+  input, select, textarea { font: inherit; padding: 4px 6px; border: 1px solid #94a3b8; border-radius: 6px; }
+  .side { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .side > div { border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .side h3 { margin: 0 0 6px; font-size: 14px; }
+  table.margins { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.margins td, table.margins th { padding: 2px 4px; border-bottom: 1px solid var(--line); text-align: left; }
+  pre { white-space: pre-wrap; font-size: 12px; background: var(--bg); padding: 6px; border-radius: 6px; }
 </style>
 </head>
 <body>
@@ -51,6 +60,16 @@ export const page = (clientId: string): string => `<!doctype html>
 <section><h2>Calendar</h2><div class="months" id="months"></div>
   <p class="muted">Bars are campaigns, by state: <span class="pill state-live">live</span> <span class="pill state-upcoming">upcoming</span> <span class="pill state-draft">draft</span> <span class="pill state-ended">ended</span>. Italics are UK retail days.</p></section>
 <section><h2>Campaigns</h2><table class="list"><thead><tr><th>Campaign</th><th>State</th><th>Runs (UK)</th><th></th></tr></thead><tbody id="rows"></tbody></table></section>
+<section><h2>New campaign</h2>
+  <form class="grid" id="new-form">
+    <label>Start from<select name="source" id="new-source"></select></label>
+    <label>Handle<input name="handle" required pattern="[a-z0-9-]{1,64}" placeholder="january-reset-2027"></label>
+    <label>Starts (your time)<input name="startsAt" type="datetime-local" required></label>
+    <label>Ends (your time)<input name="endsAt" type="datetime-local" required></label>
+    <button class="primary" type="submit">Create as a draft</button>
+  </form>
+  <p class="muted" id="new-status">A draft shows nowhere until it's published. It needs its products, copy and sign-off first.</p>
+</section>
 <section id="detail" hidden aria-live="polite"><h2 id="detail-title"></h2><div id="detail-body"></div></section>
 <script type="module">
 const el = (tag, props = {}, ...children) => {
@@ -160,6 +179,7 @@ const renderRows = (data) => {
   rows.replaceChildren(...data.rows.map((row) => {
     const actions = el("td", {},
       el("button", { type: "button", onclick: () => showChecklist(row) }, "Checklist"),
+      el("button", { type: "button", onclick: () => showOffer(row) }, "Offer"),
       el("button", { type: "button", onclick: () => showHistory(row) }, "Change log"));
     if (row.preview.web) actions.append(el("a", { class: "button", href: row.preview.web, target: "_blank", rel: "noopener" }, "Preview on web"));
     if (row.preview.app) {
@@ -175,6 +195,125 @@ const renderRows = (data) => {
   }));
 };
 
+const post = (path, body) => api(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+
+const field = (label, input) => el("label", {}, label, input);
+const num = (name, value, attrs = {}) => el("input", { name, type: "number", step: "any", value: value ?? "", ...attrs });
+
+/** The offer editor (SHO-206): a form for the rules the Function understands. */
+const showOffer = async (row) => {
+  const detail = document.getElementById("detail");
+  const body = document.getElementById("detail-body");
+  detail.hidden = false;
+  document.getElementById("detail-title").textContent = row.title + ": offer";
+  body.replaceChildren(el("p", { class: "muted" }, "Loading the saved offer…"));
+  let saved = {};
+  try {
+    const first = await post("/api/campaigns/" + row.handle + "/offer/preview", { offerRules: "{}" });
+    if (first.saved) saved = JSON.parse(first.saved.rules);
+  } catch {}
+
+  const type = el("select", { name: "type" }, ...["percent", "tiered", "bundle", "gift"].map((t) => el("option", t === (saved.type ?? "percent") ? { value: t, selected: "" } : { value: t }, t)));
+  const percent = num("percent", saved.percent ?? 25, { min: 1, max: 100 });
+  const tiers = [0, 1, 2].map((i) => [num("tierMin" + i, saved.tiers?.[i]?.minSubtotal), num("tierPercent" + i, saved.tiers?.[i]?.percent, { min: 1, max: 100 })]);
+  const buy = num("buy", saved.buy ?? 3, { min: 2, max: 10 });
+  const free = num("free", saved.free ?? 1, { min: 1, max: 9 });
+  const giftMin = num("giftMin", saved.minSubtotal ?? "40.00");
+  const giftVariant = el("input", { name: "variantId", value: saved.variantId ?? "", placeholder: "gid://shopify/ProductVariant/…" });
+  const giftLabel = el("input", { name: "giftLabel", value: saved.giftLabel ?? "gift" });
+  const appliesTo = el("select", { name: "appliesTo" }, ...[["one_time", "One-time purchases"], ["subscriptions", "New subscriptions (first delivery)"], ["all", "Both"]].map(([v, l]) => el("option", v === (saved.appliesTo ?? "one_time") ? { value: v, selected: "" } : { value: v }, l)));
+  const maxUnits = num("maxUnits", saved.maxUnits, { min: 1, max: 99 });
+  const once = el("input", saved.oncePerCustomer ? { type: "checkbox", checked: "" } : { type: "checkbox" });
+  const ship = el("input", saved.shipping ? { type: "checkbox", checked: "" } : { type: "checkbox" });
+  const shipMin = num("shipMin", saved.shipping?.minSubtotal ?? "0.00");
+  const shipMax = num("shipMax", saved.shipping?.maxRate);
+
+  const groups = {
+    percent: el("div", { class: "grid" }, field("Percent off", percent)),
+    tiered: el("div", { class: "grid" }, ...tiers.flatMap(([m, p], i) => [field("Tier " + (i + 1) + ": spend from £", m), field("Tier " + (i + 1) + ": percent off", p)])),
+    bundle: el("div", { class: "grid" }, field("Buy", buy), field("Of which free", free)),
+    gift: el("div", { class: "grid" }, field("Free gift over £", giftMin), field("Gift variant", giftVariant), field("Gift label", giftLabel)),
+  };
+  const money = (v) => (v === "" || v === null || v === undefined ? null : Number(v).toFixed(2));
+  const rules = () => {
+    const r = { type: type.value };
+    if (type.value === "percent") r.percent = Number(percent.value);
+    if (type.value === "tiered") r.tiers = tiers.filter(([m, p]) => m.value !== "" && p.value !== "").map(([m, p]) => ({ minSubtotal: money(m.value), percent: Number(p.value) }));
+    if (type.value === "bundle") { r.buy = Number(buy.value); r.free = Number(free.value); }
+    if (type.value === "gift") { r.minSubtotal = money(giftMin.value); r.variantId = giftVariant.value.trim(); r.giftLabel = giftLabel.value.trim(); }
+    r.appliesTo = appliesTo.value;
+    if (maxUnits.value !== "") r.maxUnits = Number(maxUnits.value);
+    if (once.checked) r.oncePerCustomer = true;
+    if (Array.isArray(saved.audienceTags) && saved.audienceTags.length) r.audienceTags = saved.audienceTags;
+    if (ship.checked) { r.shipping = { minSubtotal: money(shipMin.value) ?? "0.00" }; if (shipMax.value !== "") r.shipping.maxRate = money(shipMax.value); }
+    return r;
+  };
+
+  const json = el("pre");
+  const sides = el("div", { class: "side" });
+  const status = el("p", { class: "muted" });
+  const marginTable = (p) => el("table", { class: "margins" },
+    el("thead", {}, el("tr", {}, el("th", {}, "Lowest margins"), el("th", {}, "Price"), el("th", {}, "At worst"), el("th", {}, "Margin"))),
+    el("tbody", {}, ...p.lowest.map((m) => el("tr", {}, el("td", {}, m.title), el("td", {}, "£" + m.price.toFixed(2)), el("td", {}, "£" + m.worst.toFixed(2)), el("td", { class: m.margin < p.minMargin ? "finding-error" : "" }, m.margin + "%")))));
+  const side = (title, p) => el("div", {}, el("h3", {}, title),
+    p.valid
+      ? el("div", {}, el("p", {}, p.words), el("p", { class: p.underFloor ? "finding-error" : "finding-ok" }, p.underFloor + " of " + p.variants + " variants under a " + p.minMargin + "% margin" + (p.withoutCost ? " (" + p.withoutCost + " without a unit cost)" : "") + "."), marginTable(p), el("p", { class: "muted" }, "Terms it writes:"), el("p", {}, p.terms))
+      : el("p", { class: "finding-error" }, p.error));
+
+  let timer;
+  const refresh = () => {
+    for (const [name, group] of Object.entries(groups)) group.hidden = name !== type.value;
+    shipMin.disabled = shipMax.disabled = !ship.checked;
+    const text = JSON.stringify(rules());
+    json.textContent = text;
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try {
+        const result = await post("/api/campaigns/" + row.handle + "/offer/preview", { offerRules: text });
+        sides.replaceChildren(...[result.saved ? side("Saved offer", result.saved.preview) : el("div", {}, el("h3", {}, "Saved offer"), el("p", { class: "muted" }, "None yet: the campaign uses its plain discount.")), side("This offer", result.edited)]);
+      } catch (error) { sides.replaceChildren(el("p", { class: "finding-error" }, "Preview failed: " + error.message)); }
+    }, 400);
+  };
+
+  const save = el("button", { class: "primary", type: "button", onclick: async () => {
+    if (!window.confirm("Save this offer to " + row.title + " and update its discount? A new discount starts switched off, and the campaign needs signing off again.")) return;
+    save.disabled = true;
+    try {
+      const result = await post("/api/campaigns/" + row.handle + "/offer", { offerRules: JSON.stringify(rules()) });
+      status.replaceChildren(...[...(result.synced ?? []).map((line) => el("span", { class: "finding-ok" }, line + " ")), result.error ? el("span", { class: "finding-error" }, result.error) : "",
+        el("a", { href: "shopify://admin/discounts", target: "_top" }, "Open discounts in Shopify to switch it on")]);
+    } catch (error) { status.textContent = "Couldn't save: " + error.message; }
+    save.disabled = false;
+  } }, "Save offer and update its discount");
+
+  const form = el("form", { class: "grid" }, field("Offer type", type), field("Applies to", appliesTo), field("Most of each product (optional)", maxUnits), field("Once per customer (signed in)", once), field("Free delivery too", ship), field("Free delivery from £", shipMin), field("Up to delivery rate £ (optional)", shipMax));
+  form.addEventListener("input", refresh);
+  for (const g of Object.values(groups)) g.addEventListener("input", refresh);
+  body.replaceChildren(form, ...Object.values(groups), el("p", { class: "muted" }, "As the discount Function reads it:"), json, sides, save, status);
+  refresh();
+};
+
+const setUpNewForm = (data) => {
+  const source = document.getElementById("new-source");
+  source.replaceChildren(
+    ...data.templates.map((t) => el("option", { value: "template:" + t }, "Template: " + t)),
+    ...data.rows.map((r) => el("option", { value: "from:" + r.handle }, "Copy of " + r.title)));
+  const formEl = document.getElementById("new-form");
+  const status = document.getElementById("new-status");
+  formEl.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const f = new FormData(formEl);
+    const [kind, name] = String(f.get("source")).split(":");
+    const body = { handle: f.get("handle"), startsAt: new Date(String(f.get("startsAt"))).toISOString(), endsAt: new Date(String(f.get("endsAt"))).toISOString() };
+    body[kind === "template" ? "template" : "from"] = name;
+    try {
+      const response = await fetch("/api/campaigns/new", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const result = await response.json().catch(() => ({ error: "HTTP " + response.status }));
+      status.textContent = result.created ? "Created " + result.created + " as a draft. Reload to see it." : "Not created: " + result.error;
+    } catch (error) { status.textContent = "Not created: " + error.message; }
+  });
+};
+
 try {
   const data = await api("/api/calendar");
   document.getElementById("status").textContent = data.rows.length + " campaign" + (data.rows.length === 1 ? "" : "s") + ".";
@@ -184,6 +323,7 @@ try {
   }
   renderMonths(data);
   renderRows(data);
+  setUpNewForm(data);
 } catch (error) {
   document.getElementById("status").textContent = "Couldn't load the campaigns: " + error.message;
 }

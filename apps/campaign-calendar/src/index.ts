@@ -1,4 +1,13 @@
-import { calendarData, checklist, HANDLE, signOff } from "./api";
+import {
+  calendarData,
+  checklist,
+  HANDLE,
+  newCampaign,
+  offerPreview,
+  saveOffer,
+  signOff,
+  TEMPLATE_NAMES,
+} from "./api";
 import { page } from "./page";
 import { verifySessionToken, type Session } from "./session";
 import { offlineAdmin, staffName } from "./shopify";
@@ -11,7 +20,10 @@ import { offlineAdmin, staffName } from "./shopify";
  * - `GET /api/calendar` every campaign, notes, UK retail days, preview links;
  * - `GET /api/campaigns/<handle>/check` the go-live checklist;
  * - `POST /api/campaigns/<handle>/approve` signs it off as the staff member;
- * - `GET /api/campaigns/<handle>/history` the change log (apps/api).
+ * - `GET /api/campaigns/<handle>/history` the change log (apps/api);
+ * - `POST /api/campaigns/<handle>/offer/preview` the offer editor's preview;
+ * - `POST /api/campaigns/<handle>/offer` saves the offer, updates its discounts;
+ * - `POST /api/campaigns/new` a draft copied from a campaign, or a template.
  *
  * ⚠️ Every /api call needs a valid App Bridge session token for this app and
  * this shop. Admin access is by token exchange, server-side, never stored.
@@ -49,6 +61,21 @@ const session = async (request: Request, env: Env): Promise<Session | null> => {
   });
 };
 
+/** A small JSON object body, or null. */
+const readJson = async (request: Request): Promise<Record<string, unknown> | null> => {
+  if (!request.headers.get("content-type")?.startsWith("application/json")) return null;
+  const text = await request.text();
+  if (text.length > 10_000) return null;
+  try {
+    const value: unknown = JSON.parse(text);
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+};
+
 export const handle = async (request: Request, env: Env): Promise<Response> => {
   const url = new URL(request.url);
 
@@ -76,12 +103,43 @@ export const handle = async (request: Request, env: Env): Promise<Response> => {
         env.SHOPIFY_APP_CLIENT_ID,
         env.SHOPIFY_APP_CLIENT_SECRET,
       );
-      return json(
-        await calendarData(admin, {
+      return json({
+        ...(await calendarData(admin, {
           webUrl: env.WEB_URL,
           previewToken: env.CAMPAIGN_PREVIEW_TOKEN,
-        }),
+        })),
+        templates: TEMPLATE_NAMES,
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/campaigns/new") {
+      const body = await readJson(request);
+      if (!body) return json({ error: "bad request" }, 400);
+      const admin = await offlineAdmin(
+        who,
+        env.SHOPIFY_APP_CLIENT_ID,
+        env.SHOPIFY_APP_CLIENT_SECRET,
       );
+      const result = await newCampaign(admin, body);
+      return json(result, "error" in result ? 400 : 201);
+    }
+
+    const offer = /^\/api\/campaigns\/([^/]+)\/offer(\/preview)?$/.exec(url.pathname);
+    if (offer && request.method === "POST") {
+      const handle = offer[1] ?? "";
+      const body = await readJson(request);
+      const rules = typeof body?.offerRules === "string" ? body.offerRules : null;
+      if (!HANDLE.test(handle) || !rules || rules.length > 4000)
+        return json({ error: "bad request" }, 400);
+      const admin = await offlineAdmin(
+        who,
+        env.SHOPIFY_APP_CLIENT_ID,
+        env.SHOPIFY_APP_CLIENT_SECRET,
+      );
+      const result = offer[2]
+        ? await offerPreview(admin, handle, rules)
+        : await saveOffer(admin, handle, rules);
+      return result ? json(result) : json({ error: "not found" }, 404);
     }
 
     const match = /^\/api\/campaigns\/([^/]+)\/(check|approve|history)$/.exec(
