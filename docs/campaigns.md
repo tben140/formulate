@@ -297,6 +297,7 @@ campaign even without its discount, for example a tiered offer just missed.
 | `emails <handle> [--create]`                          | The launch and last-day emails, timed from the dates; `--create` makes them Klaviyo drafts (never scheduled)                                        |
 | `pushes <handle> [--create]`                          | Launch and last-day pushes, opening the campaign screen; `--create` makes Klaviyo drafts for `KLAVIYO_PUSH_SEGMENT_ID` (needs push set up: SHO-165) |
 | `report <handle>`                                     | Orders, revenue, discount cost, first orders, subscriptions started, by surface and email source, top products                                      |
+| `codes <handle> --count <n> [--prefix BF] [--apply]`  | Personal single-use codes: a code discount on the campaign Function and a Klaviyo coupon with the same codes (below)                                |
 | `prices record [--apply]`                             | Today's price for every variant into its price history (below). Run daily by `.github/workflows/price-history.yml`                                  |
 
 **What `check` compares:** the record parses as the surfaces read it; every
@@ -308,6 +309,25 @@ percentage, one-time only if the offer is, on the collection, a code for
 email-link campaigns, or a Function config in step with the record; and,
 with a Klaviyo key, the emails send before the end and say the right
 percentage. And the prices, below.
+
+### Personal codes
+
+A shared code ends up on voucher sites within hours. For a code campaign,
+`campaigns codes <handle> --count 5000 --apply` makes one code per recipient
+(`BF-7KQ2MZ9P`: eight characters, no 0/O or 1/I/L, from a cryptographic
+source), on a second code discount on the campaign Function, titled
+"<title> (personal codes)", its config marked `pool: "personal"`, set to one
+use per code and once per customer, starting switched off like `sync`'s. With
+`KLAVIYO_PRIVATE_KEY` the same codes go to a Klaviyo coupon named after the
+handle (`BLACK_FRIDAY_2026`), and the email gives each person one with
+`{% coupon_code 'BLACK_FRIDAY_2026' %}`. Run it again to add more; `check`
+holds the pool to the same config and dates as the main discount.
+
+⚠️ Shopify documents `usageLimit` as "the number of times the discount can be
+redeemed", not per code. Before the codes go out, make one test order with a
+code on the development store and try the same code again: it must be
+refused, while a second code still works. If the limit turns out to be for
+the whole discount, remove it in the admin and rely on once per customer.
 
 ### Prices and margins
 
