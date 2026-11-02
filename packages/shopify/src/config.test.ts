@@ -17,7 +17,7 @@ const COPIES = [
   "apps/web/lighthouserc.cjs",
   "apps/web/playwright.config.ts",
   "apps/web/e2e/global-setup.ts",
-  ".github/workflows/lighthouse-theme.yml",
+  "apps/theme/lighthouserc.cjs",
 ];
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
