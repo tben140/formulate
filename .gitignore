@@ -15,6 +15,10 @@ node_modules/
 # Build output
 .next/
 storybook-static/
+# Written by Next.js, differently by `next dev` (.next/dev/types) and by
+# `next build` or `next typegen` (.next/types), so a local dev run rewrote it
+# in PRs. apps/web's `typecheck` runs `next typegen` first.
+apps/web/next-env.d.ts
 out/
 dist/
 build/
