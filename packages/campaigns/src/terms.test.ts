@@ -4,7 +4,7 @@ import { campaignOf } from "./campaign-node";
 import live from "./fixtures/black-friday.json";
 import { campaignTerms } from "./terms";
 import { parseOfferRules } from "@formulate/shopify";
-import type { CampaignEntry } from "./types";
+import type { CampaignEntry, Snapshot } from "./types";
 
 describe("campaignTerms", () => {
   const campaign = campaignOf(live.entry as CampaignEntry, "black-friday")!;
@@ -29,7 +29,7 @@ describe("campaignTerms", () => {
 describe("check against the generated terms", () => {
   it("warns when the saved terms differ, and not when they match", async () => {
     const { checkCampaign } = await import("./check");
-    const snapshot = live as unknown as import("./types").Snapshot;
+    const snapshot = live as unknown as Snapshot;
     const campaign = campaignOf(snapshot.entry, "black-friday")!;
     const rules = parseOfferRules(snapshot.entry.fields.offer_rules)!;
     const at = new Date("2026-11-01T12:00:00Z");
