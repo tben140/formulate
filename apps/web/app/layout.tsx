@@ -3,7 +3,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { cacheLife } from "next/cache";
 import { cookies } from "next/headers";
-import Link from "next/link";
+import Link from "@/components/link";
 import { Suspense, type ReactNode } from "react";
 
 import { CartButton } from "@/components/cart-button";
