@@ -1751,7 +1751,7 @@ export type ProductRecommendationsQuery = { productRecommendations: Array<{ id: 
 export type PaymentSettingsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type PaymentSettingsQuery = { shop: { paymentSettings: { acceptedCardBrands: Array<CardBrand>, supportedDigitalWallets: Array<DigitalWallet> } } };
+export type PaymentSettingsQuery = { shop: { paymentSettings: { acceptedCardBrands: Array<CardBrand>, supportedDigitalWallets: Array<DigitalWallet> }, payLater: { value: string } | null } };
 
 export type CampaignBadgeFieldsFragment = { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null };
 
@@ -3449,6 +3449,9 @@ export const PaymentSettingsDocument = new TypedDocumentString(`
     paymentSettings {
       acceptedCardBrands
       supportedDigitalWallets
+    }
+    payLater: metafield(namespace: "double_helix", key: "pay_later") {
+      value
     }
   }
 }
