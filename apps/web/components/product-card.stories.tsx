@@ -7,40 +7,49 @@ const meta = {
   title: "Catalogue/Product card",
   component: ProductCard,
   args: { product: FIXTURE_PRODUCTS.magnesium, sizes: "300px" },
-  decorators: [
-    (Story) => (
-      <div className="w-72">
-        <Story />
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof ProductCard>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+/** One card at a card's width. Not on the meta, so Grid isn't squeezed into it. */
+const oneCard: Story["decorators"] = [
+  (Story) => (
+    <div className="w-72">
+      <Story />
+    </div>
+  ),
+];
+
+export const Default: Story = { decorators: oneCard };
 
 /** The fallback when a product has no image in Shopify. */
-export const NoImage: Story = { args: { product: FIXTURE_PRODUCTS.noImage } };
+export const NoImage: Story = {
+  args: { product: FIXTURE_PRODUCTS.noImage },
+  decorators: oneCard,
+};
 
-export const LongTitle: Story = { args: { product: FIXTURE_PRODUCTS.focusSticks } };
+export const LongTitle: Story = {
+  args: { product: FIXTURE_PRODUCTS.focusSticks },
+  decorators: oneCard,
+};
 
-/** Three across, as on a collection page: the first card is the LCP image (`priority`). */
+/**
+ * As on a collection page, with its responsive columns (one, two, then three
+ * across): the first card is the LCP image (`priority`).
+ */
 export const Grid: Story = {
-  decorators: [
-    () => (
-      <ul className="grid w-[56rem] grid-cols-3 gap-6">
-        {[
-          FIXTURE_PRODUCTS.magnesium,
-          FIXTURE_PRODUCTS.multivitamin,
-          FIXTURE_PRODUCTS.vitaminD3,
-        ].map((product, index) => (
-          <li key={product.handle}>
-            <ProductCard product={product} sizes="300px" priority={index === 0} />
-          </li>
-        ))}
-      </ul>
-    ),
-  ],
+  render: () => (
+    <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {[
+        FIXTURE_PRODUCTS.magnesium,
+        FIXTURE_PRODUCTS.multivitamin,
+        FIXTURE_PRODUCTS.vitaminD3,
+      ].map((product, index) => (
+        <li key={product.handle}>
+          <ProductCard product={product} sizes="300px" priority={index === 0} />
+        </li>
+      ))}
+    </ul>
+  ),
 };

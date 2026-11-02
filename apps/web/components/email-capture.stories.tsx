@@ -8,6 +8,11 @@ import { EmailCapture } from "./email-capture";
 const meta = {
   title: "Marketing/Email capture",
   component: EmailCapture,
+  // A mocked module has no implementation until it's given one, so a submit
+  // in Default would read `result.ok` of undefined. Stories override this.
+  beforeEach: () => {
+    mocked(subscribe).mockResolvedValue({ ok: true });
+  },
   decorators: [
     (Story) => (
       <div className="max-w-md">
