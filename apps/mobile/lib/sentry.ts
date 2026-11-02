@@ -33,6 +33,14 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 export const navigationIntegration = Sentry.reactNavigationIntegration();
 
 /**
+ * Set per EAS build profile (eas.json), so a preview build's errors are kept
+ * apart from production's: both are release builds, so `__DEV__` can't tell
+ * them apart, and they share the DSN.
+ */
+const environment =
+  process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? (__DEV__ ? "development" : "production");
+
+/**
  * Sentry for the Expo app (EU region, project `app`).
  *
  * JavaScript errors, and traces: app start, screen changes and network
@@ -50,7 +58,7 @@ export const initSentry = () => {
   if (!dsn) return;
   Sentry.init({
     dsn,
-    environment: __DEV__ ? "development" : "production",
+    environment,
     sendDefaultPii: false,
     tracesSampleRate,
     tracePropagationTargets: API_BASE_URL ? [API_BASE_URL] : [],
@@ -66,8 +74,11 @@ export const initSentry = () => {
       }
       return event;
     },
-    // Network breadcrumbs keep the endpoint, never the query.
+    // Console breadcrumbs are dropped: a log line can carry what the shopper
+    // typed (the Klaviyo warning includes the email). Network breadcrumbs keep
+    // the endpoint, never the query.
     beforeBreadcrumb: (breadcrumb) => {
+      if (breadcrumb.category === "console") return null;
       const url = breadcrumb.data?.url;
       if (typeof url === "string" && breadcrumb.data)
         breadcrumb.data.url = stripQuery(url);

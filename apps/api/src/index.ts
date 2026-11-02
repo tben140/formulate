@@ -205,7 +205,9 @@ const handler = {
  *   body capture is off at source, not just dropped later;
  * - beforeSend drops the request from errors, so headers (including
  *   CF-Connecting-IP), cookies and the query string never leave the Worker;
- * - scrubTransaction does the same for traces, including span attributes.
+ * - scrubTransaction does the same for traces, including span attributes;
+ * - console breadcrumbs are dropped: the Klaviyo failure log carries
+ *   Klaviyo's message, which can quote the address.
  *
  * tracePropagationTargets is empty, so no trace headers are added to the
  * Klaviyo call. Klaviyo isn't ours to send them to.
@@ -219,9 +221,12 @@ export default Sentry.withSentry<Env, unknown, unknown, typeof handler>(
     tracesSampleRate: 0.1,
     tracePropagationTargets: [],
     integrations: [Sentry.httpServerIntegration({ maxRequestBodySize: "none" })],
+    beforeBreadcrumb: (breadcrumb) =>
+      breadcrumb.category === "console" ? null : breadcrumb,
     beforeSend: (event) => {
       delete event.request;
       delete event.user;
+      delete event.breadcrumbs;
       return event;
     },
     beforeSendTransaction: (event) => scrubTransaction(event),
