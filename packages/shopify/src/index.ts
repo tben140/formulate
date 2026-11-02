@@ -135,6 +135,7 @@ export {
   activeCampaign,
   campaignBadge,
   campaignCardPrice,
+  campaignFirst,
   campaignEndsLabel,
   campaignForVariant,
   campaignHandleFromPath,

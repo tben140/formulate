@@ -1,10 +1,16 @@
-import { CollectionCardsQuery, CollectionProductsQuery } from "@formulate/shopify";
+import {
+  campaignFirst,
+  CollectionCardsQuery,
+  CollectionProductsQuery,
+} from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CampaignHero } from "@/components/campaign-hero";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { campaignView, getActiveCampaign } from "@/lib/campaign";
 import { getNavLinks } from "@/lib/nav";
 import { storefront } from "@/lib/storefront";
 
@@ -23,9 +29,11 @@ const FEATURED_COUNT = 4;
  * this page, with no deploy.
  */
 const HomePage = async () => {
-  const [navLinks, cardsResult] = await Promise.all([
+  const [navLinks, cardsResult, campaign, view] = await Promise.all([
     getNavLinks(),
     storefront.request(CollectionCardsQuery, {}),
+    getActiveCampaign(),
+    campaignView(),
   ]);
 
   if (!cardsResult.ok) return <StorefrontErrorState error={cardsResult.error} />;
@@ -48,26 +56,34 @@ const HomePage = async () => {
 
   return (
     <>
-      <section
-        aria-labelledby="home-intro"
-        className="rounded-xl bg-surface-muted px-6 py-12 sm:px-10"
-      >
-        <h1 id="home-intro" className="max-w-xl text-4xl font-semibold tracking-tight">
-          Everyday supplements, delivered on your schedule
-        </h1>
-        <p className="mt-4 max-w-xl text-lg text-foreground">
-          Buy once or subscribe. Subscriptions can be skipped, paused or cancelled at any
-          time.
-        </p>
-        {featuredLink ? (
-          <Link
-            href={featuredLink.path}
-            className="mt-8 inline-block rounded-md bg-brand-600 px-6 py-3 font-semibold text-surface hover:bg-brand-700"
-          >
-            Shop {featuredLink.title}
-          </Link>
-        ) : null}
-      </section>
+      {campaign ? (
+        <CampaignHero
+          campaign={campaign}
+          now={view.now.getTime()}
+          clockPreview={view.clockPreview}
+        />
+      ) : (
+        <section
+          aria-labelledby="home-intro"
+          className="rounded-xl bg-surface-muted px-6 py-12 sm:px-10"
+        >
+          <h1 id="home-intro" className="max-w-xl text-4xl font-semibold tracking-tight">
+            Everyday supplements, delivered on your schedule
+          </h1>
+          <p className="mt-4 max-w-xl text-lg text-foreground">
+            Buy once or subscribe. Subscriptions can be skipped, paused or cancelled at
+            any time.
+          </p>
+          {featuredLink ? (
+            <Link
+              href={featuredLink.path}
+              className="mt-8 inline-block rounded-md bg-brand-600 px-6 py-3 font-semibold text-surface hover:bg-brand-700"
+            >
+              Shop {featuredLink.title}
+            </Link>
+          ) : null}
+        </section>
+      )}
 
       {categories.length > 0 ? (
         <section aria-labelledby="home-categories" className="mt-16">
@@ -127,7 +143,7 @@ const HomePage = async () => {
             </Link>
           </div>
           <ul className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {featured.products.nodes.map((product) => (
+            {campaignFirst(featured.products.nodes, campaign?.handle).map((product) => (
               <li key={product.id}>
                 <ProductCard
                   product={product}

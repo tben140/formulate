@@ -80,3 +80,26 @@ test("the campaign page lists its products at the campaign price", async ({ page
   await expect(cards.first()).toBeVisible();
   for (const card of (await cards.all()).slice(0, 4)) await expectOfferPrice(card);
 });
+
+test("the home page leads with the campaign", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    /Black Friday: 25% off one-time orders/,
+  );
+  await expect(
+    page.getByRole("link", { name: "Shop the Black Friday offer" }),
+  ).toHaveAttribute("href", "/pages/campaigns/black-friday-2026");
+});
+
+test("a collection lists the campaign's products first", async ({ page }) => {
+  await page.goto("/collections/best-sellers");
+  const cards = page.locator('main li:has(a[href^="/products/"])');
+  await expect(cards.first()).toBeVisible();
+  const inCampaign = await cards.evaluateAll((items) =>
+    items.map((item) => (item.textContent ?? "").includes("Black Friday price")),
+  );
+  // Every campaign card before the first one that isn't.
+  const firstOther = inCampaign.indexOf(false);
+  expect(inCampaign[0]).toBe(true);
+  if (firstOther !== -1) expect(inCampaign.slice(firstOther)).not.toContain(true);
+});

@@ -4,18 +4,19 @@ import {
   activeCampaign,
   campaignBadge,
   campaignEndsLabel,
+  campaignFirst,
   campaignForVariant,
+  campaignHandleFromPath,
+  type CampaignNode,
   campaignNow,
   campaignParagraphs,
   campaignPath,
   campaignStartFor,
   campaignStartsLabel,
-  campaignHandleFromPath,
   campaignStatus,
   isCampaignLive,
   safeRedirectPath,
   toCampaign,
-  type CampaignNode,
 } from "./campaign";
 
 const v = (value: string) => ({ value });
@@ -219,5 +220,22 @@ describe("early access", () => {
       toCampaign({ ...blackFriday, earlyAccessStartsAt: v("2026-11-28T00:00:00Z") })!
         .earlyAccessStartsAt,
     ).toBeNull();
+  });
+});
+
+describe("campaignFirst", () => {
+  const p = (id: string, handle?: string) => ({
+    id,
+    campaign: handle ? { reference: { handle } } : null,
+  });
+
+  it("puts the campaign's products first, keeping each group's order", () => {
+    const list = [p("a"), p("b", "bf"), p("c"), p("d", "bf"), p("e", "other")];
+    expect(campaignFirst(list, "bf").map((x) => x.id)).toEqual(["b", "d", "a", "c", "e"]);
+  });
+
+  it("leaves the order alone with no campaign", () => {
+    const list = [p("a"), p("b", "bf")];
+    expect(campaignFirst(list, null).map((x) => x.id)).toEqual(["a", "b"]);
   });
 });

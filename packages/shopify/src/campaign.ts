@@ -350,3 +350,25 @@ export const campaignParagraphs = (body: string | null): string[] => {
     return [];
   }
 };
+
+/**
+ * Products in the live campaign first, the rest after, each group in its own
+ * order (SHO-169 merchandising). A stable partition, so the merchant's sort
+ * still decides within each; with no campaign the list is unchanged. Used on
+ * collection pages and the home page's featured row, on web and the app; the
+ * theme's product grid does the same in Liquid.
+ */
+export const campaignFirst = <
+  T extends {
+    readonly campaign?: {
+      readonly reference?: { readonly handle?: string } | null;
+    } | null;
+  },
+>(
+  products: readonly T[],
+  handle: string | null | undefined,
+): T[] => {
+  if (!handle) return [...products];
+  const inCampaign = (product: T) => product.campaign?.reference?.handle === handle;
+  return [...products.filter(inCampaign), ...products.filter((p) => !inCampaign(p))];
+};
