@@ -1,6 +1,11 @@
 import { revalidateTag } from "next/cache";
 
-import { isFromShopify, tagsForDelivery, type EventData } from "@/lib/shopify-events";
+import {
+  isFromShopify,
+  queryFailed,
+  tagsForDelivery,
+  type EventData,
+} from "@/lib/shopify-events";
 
 /**
  * Receives Shopify Events (SHO-171) and clears the cache tags a change
@@ -21,7 +26,12 @@ export const POST = async (request: Request): Promise<Response> => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  let payload: { topic?: string; action?: string; data?: EventData };
+  let payload: {
+    topic?: string;
+    action?: string;
+    data?: EventData;
+    errors?: readonly unknown[];
+  };
   try {
     payload = JSON.parse(rawBody) as typeof payload;
   } catch {
@@ -30,6 +40,16 @@ export const POST = async (request: Request): Promise<Response> => {
 
   const topic = payload.topic ?? request.headers.get("shopify-topic") ?? "";
   const action = payload.action ?? request.headers.get("shopify-action") ?? "";
+
+  // An update whose query failed carries `errors` and no usable data, so
+  // there's no handle to clear. Not acknowledged: a 5xx makes Shopify retry,
+  // and if the query keeps failing the hourly backstop still applies.
+  if (queryFailed(action, payload.errors)) {
+    console.error(
+      `[shopify-events] ${topic}/${action} ${request.headers.get("shopify-webhook-id") ?? ""}: query failed, asking Shopify to retry`,
+    );
+    return new Response("Event query failed", { status: 503 });
+  }
   const tags = tagsForDelivery(topic, action, payload.data);
   for (const tag of tags) revalidateTag(tag, { expire: 0 });
 

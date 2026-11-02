@@ -56,6 +56,14 @@ const productTags = (product: ProductData | null | undefined): string[] => {
 };
 
 /**
+ * Whether a delivery is an update whose query failed: Shopify sends `errors`
+ * and no usable data, so there's no handle to clear. The route answers 503
+ * so Shopify retries; create and delete need no data, so they never count.
+ */
+export const queryFailed = (action: string, errors: readonly unknown[] | undefined) =>
+  action === "update" && Boolean(errors?.length);
+
+/**
  * The tags one delivery clears.
  *
  * - A product change clears the product page and its collections' listings.

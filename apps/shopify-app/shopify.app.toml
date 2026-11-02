@@ -30,10 +30,11 @@ redirect_urls = [ ]
 # previews keep the hourly backstop.
 #
 # The uri is production (web-six-murex-18.vercel.app, built from main), so
-# deliveries only work once the batch with the receiver is merged. Check the
-# product trigger names at the first deploy. price and compareAtPrice
-# are from Shopify's reference; title, handle and status follow the same
-# pattern. A wrong one fails `shopify app deploy`, so nothing ships broken.
+# deliveries only work once the batch with the receiver is merged. Every
+# trigger name is from Shopify's 2026-10 Events reference (Product,
+# Collection, InventoryItem); a wrong one fails `shopify app deploy`, so
+# nothing ships broken. Triggers cover what the cached pages show: text,
+# images, prices, whether it sells when out of stock, and selling-plan rules.
 [events]
 api_version = "2026-10"
 
@@ -45,8 +46,14 @@ api_version = "2026-10"
     "product.title",
     "product.handle",
     "product.status",
+    "product.descriptionHtml",
+    "product.media",
+    "product.requiresSellingPlan",
     "product.variants.price",
     "product.variants.compareAtPrice",
+    "product.variants.inventoryPolicy",
+    "product.variants.media",
+    "product.variants.title",
   ]
   uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
   query = """
@@ -55,12 +62,13 @@ api_version = "2026-10"
   }
   """
 
-  # Stock: changes to an item's levels arrive on the item itself, so no
-  # narrower trigger is needed. Sold-out states read this.
+  # Stock: levels are a child of the item, so their changes arrive on the
+  # InventoryItem topic. Sold-out states read this.
   [[events.subscription]]
   handle = "stock-changed"
   topic = "InventoryItem"
   actions = ["update"]
+  triggers = ["inventoryItem.inventoryLevel.quantities.quantity", "inventoryItem.tracked"]
   uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
   query = """
   query stock_changed($inventoryItemId: ID!) {
@@ -74,7 +82,15 @@ api_version = "2026-10"
   handle = "collection-changed"
   topic = "Collection"
   actions = ["update"]
-  triggers = ["collection.title", "collection.handle", "collection.descriptionHtml"]
+  # products: membership, which the home page's featured products read.
+  triggers = [
+    "collection.title",
+    "collection.handle",
+    "collection.descriptionHtml",
+    "collection.image",
+    "collection.products",
+    "collection.sortOrder",
+  ]
   uri = "https://web-six-murex-18.vercel.app/api/shopify-events"
   query = """
   query collection_changed($collectionId: ID!) {

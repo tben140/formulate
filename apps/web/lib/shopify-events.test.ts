@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { isFromShopify, tagsForDelivery } from "./shopify-events";
+import { isFromShopify, queryFailed, tagsForDelivery } from "./shopify-events";
 
 const sign = (body: string, secret: string) =>
   createHmac("sha256", secret).update(body, "utf8").digest("base64");
@@ -64,5 +64,18 @@ describe("tagsForDelivery", () => {
 
   it("an unknown topic clears nothing", () => {
     expect(tagsForDelivery("Order", "update", {})).toEqual([]);
+  });
+});
+
+describe("queryFailed", () => {
+  it("is true for an update whose query returned errors", () => {
+    expect(queryFailed("update", [{ message: "Field doesn't exist" }])).toBe(true);
+  });
+
+  it("is false without errors, and for create and delete, which need no data", () => {
+    expect(queryFailed("update", undefined)).toBe(false);
+    expect(queryFailed("update", [])).toBe(false);
+    expect(queryFailed("delete", [{ message: "gone" }])).toBe(false);
+    expect(queryFailed("create", [{ message: "x" }])).toBe(false);
   });
 });
