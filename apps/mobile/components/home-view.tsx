@@ -2,7 +2,11 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+import { campaignEndsLabel, campaignPath } from "@formulate/shopify";
+
+import { useActiveCampaign } from "../lib/campaign";
 import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
+import { CampaignBadge } from "./campaign-badge";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
 
@@ -21,6 +25,7 @@ const FEATURED_COUNT = 4;
 export const HomeView = () => {
   const { data: navLinks } = useNavLinks();
   const { data: cards } = useCollectionCards();
+  const campaign = useActiveCampaign();
 
   const menuCollections = navLinks?.filter((link) => link.kind === "collection") ?? [];
   const featuredLink = menuCollections[0];
@@ -42,6 +47,26 @@ export const HomeView = () => {
       automaticallyAdjustKeyboardInsets
       keyboardDismissMode="on-drag"
     >
+      {campaign ? (
+        <Link href={campaignPath(campaign.handle)} asChild>
+          <Pressable
+            accessibilityRole="link"
+            className="gap-2 rounded-xl border border-brand-300 bg-brand-50 p-5"
+          >
+            <CampaignBadge label={campaign.badge} />
+            <Text className="text-xl font-semibold text-foreground">
+              {campaign.headline}
+            </Text>
+            <Text className="text-sm text-foreground-muted">
+              {campaignEndsLabel(campaign)}
+            </Text>
+            <Text className="text-sm font-semibold text-foreground underline">
+              See the offer
+            </Text>
+          </Pressable>
+        </Link>
+      ) : null}
+
       <View className="rounded-xl bg-surface-muted p-6">
         <Text
           accessibilityRole="header"

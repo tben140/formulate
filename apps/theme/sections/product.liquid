@@ -79,6 +79,8 @@
   <div class="product__info">
     <h1 class="product__title">{{ product.title }}</h1>
 
+    {% render 'campaign-offer', product: product %}
+
     {% if product.description != blank %}
       <div class="product__description">{{ product.description }}</div>
     {% endif %}
@@ -88,6 +90,44 @@
 </article>
 
 {% stylesheet %}
+  /* Matched to apps/web's CampaignOffer. */
+  .campaign-offer {
+    margin-block-start: var(--spacing-4);
+    padding: var(--spacing-4);
+    border: 1px solid var(--color-brand-300);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    background: var(--color-brand-50);
+  }
+
+  .campaign-offer__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-2);
+  }
+
+  .campaign-offer__ends,
+  .campaign-offer__perk {
+    color: var(--color-foreground-muted);
+  }
+
+  .campaign-offer__offer {
+    margin-block-start: var(--spacing-2);
+    font-weight: 600;
+  }
+
+  .campaign-offer__perk {
+    margin-block-start: var(--spacing-1);
+  }
+
+  .campaign-offer a {
+    display: inline-block;
+    margin-block-start: var(--spacing-2);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
   /* The trail sits above the product grid, in its own container, so it takes
      the top padding and leaves the gap below it to .product's own. */
   .product-breadcrumbs {

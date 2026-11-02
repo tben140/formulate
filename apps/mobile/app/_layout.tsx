@@ -6,6 +6,7 @@ import { View } from "react-native";
 import { CartButton } from "../components/cart-button";
 import { HeaderActions } from "../components/header-actions";
 import { CartProvider } from "../components/cart-provider";
+import { CampaignBanner } from "../components/campaign-banner";
 import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
 import { initKlaviyo } from "../lib/klaviyo";
@@ -57,6 +58,7 @@ const RootLayout = () => {
             screenLayout={({ children }) => (
               <View className="flex-1">
                 <DemoNotice />
+                <CampaignBanner />
                 {children}
               </View>
             )}
@@ -71,6 +73,8 @@ const RootLayout = () => {
             <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
             <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
             <Stack.Screen name="policies/[handle]" options={{ title: "" }} />
+            <Stack.Screen name="pages/campaigns/[handle]" options={{ title: "" }} />
+            <Stack.Screen name="discount/[code]" options={{ title: "" }} />
             {/* Cart only: a Search button on the search screen goes nowhere. */}
             <Stack.Screen
               name="search"

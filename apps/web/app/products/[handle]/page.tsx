@@ -1,5 +1,5 @@
 import { viewedProduct } from "@formulate/analytics";
-import { breadcrumbCollection } from "@formulate/shopify";
+import { breadcrumbCollection, campaignForVariant } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -7,10 +7,12 @@ import { Suspense } from "react";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { CampaignOffer } from "@/components/campaign-offer";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
+import { campaignView } from "@/lib/campaign";
 import { getProduct } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
 import { baseOpenGraph } from "@/lib/site";
@@ -76,6 +78,21 @@ const ProductPage = async ({ params }: PageProps) => {
   // The same trail for people and for search engines.
   const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, navLinks);
 
+  // The campaign, if live for any variant; named variants when it's narrowed.
+  const view = await campaignView();
+  const variantCampaigns = product.variants.nodes.map((variant) => variant.campaign);
+  const covered = product.variants.nodes.filter((variant) =>
+    campaignForVariant(product.campaign, variant, variantCampaigns, view),
+  );
+  const campaign =
+    covered.length > 0
+      ? campaignForVariant(product.campaign, covered[0], variantCampaigns, view)
+      : null;
+  const coveredNames =
+    covered.length < product.variants.nodes.length
+      ? covered.map((variant) => variant.title)
+      : null;
+
   return (
     <>
       <Breadcrumbs
@@ -134,6 +151,10 @@ const ProductPage = async ({ params }: PageProps) => {
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+
+          {campaign ? (
+            <CampaignOffer campaign={campaign} variants={coveredNames} />
+          ) : null}
 
           {product.description ? (
             <p className="mt-4 text-foreground-muted">{product.description}</p>

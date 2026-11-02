@@ -125,5 +125,17 @@
   "footer": {
     "social": "Social media",
     "payment_methods": "Payment methods"
+  },
+  "campaign": {
+    "starts": "Starts {{ time }}",
+    "ends": "Ends {{ time }}",
+    "ended": "This offer has ended.",
+    "unavailable": "This campaign isn't available.",
+    "shop_the_range": "Shop the range",
+    "subscribers": "Subscribers:",
+    "in_offer": "In the {{ badge }} offer",
+    "terms": "Terms",
+    "see_offer": "See the {{ badge }} offer and terms",
+    "only": "({{ variants }} only)"
   }
 }
