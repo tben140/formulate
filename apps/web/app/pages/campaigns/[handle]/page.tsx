@@ -1,4 +1,5 @@
 import {
+  availableFirst,
   CampaignByHandleQuery,
   campaignEndsLabel,
   campaignParagraphs,
@@ -73,7 +74,8 @@ const CampaignPage = async ({ params }: PageProps) => {
   const status = campaignStatus(campaign, view);
   const products =
     status === "active"
-      ? (result.data.metaobject?.products?.reference?.products.nodes ?? [])
+      ? // Sold-out products last: the page shouldn't lead with one.
+        availableFirst(result.data.metaobject?.products?.reference?.products.nodes ?? [])
       : [];
   const paragraphs = campaignParagraphs(campaign.body);
 

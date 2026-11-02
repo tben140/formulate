@@ -337,3 +337,44 @@ describe("checkCampaign's sign-off", () => {
     ).toBe(true);
   });
 });
+
+describe("checkCampaign's stock", () => {
+  const snapshot = live as unknown as Snapshot;
+  const withStock = (stock: (i: number) => number | null): Snapshot => ({
+    ...snapshot,
+    products: snapshot.products.map((product, p) => ({
+      ...product,
+      variants: product.variants.map((variant, v) => ({
+        ...variant,
+        stock: stock(p * 10 + v),
+      })),
+    })),
+  });
+  const warnings = (s: Snapshot, minStock?: number) =>
+    checkCampaign(s, BEFORE, minStock === undefined ? {} : { minStock })
+      .filter((f) => f.level === "warning")
+      .map((f) => f.message);
+
+  it("warns about sold-out and low stock", () => {
+    const w = warnings(withStock((i) => (i === 0 ? 0 : i === 1 ? 3 : 50)));
+    expect(w.some((m) => m.startsWith("Sold out: "))).toBe(true);
+    expect(w.some((m) => m.startsWith("Under 10 in stock: ") && m.includes("(3)"))).toBe(
+      true,
+    );
+  });
+
+  it("says nothing about stock it doesn't track", () => {
+    expect(warnings(withStock(() => null)).some((m) => /stock|Sold out/.test(m))).toBe(
+      false,
+    );
+  });
+
+  it("moves the threshold with --min-stock", () => {
+    expect(
+      warnings(
+        withStock(() => 20),
+        30,
+      ).some((m) => m.startsWith("Under 30")),
+    ).toBe(true);
+  });
+});

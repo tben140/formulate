@@ -111,7 +111,11 @@ export const getCollection = async (
               title: string;
               price: string;
               campaign: { value: string } | null;
-              inventoryItem: { unitCost: { amount: string } | null } | null;
+              inventoryQuantity: number | null;
+              inventoryItem: {
+                tracked: boolean;
+                unitCost: { amount: string } | null;
+              } | null;
               priceHistory: { value: string } | null;
             }[];
           };
@@ -142,7 +146,8 @@ export const getCollection = async (
                 title
                 price
                 campaign: metafield(namespace: "double_helix", key: "campaign") { value }
-                inventoryItem { unitCost { amount } }
+                inventoryQuantity
+                inventoryItem { tracked unitCost { amount } }
                 priceHistory: metafield(namespace: "${PRICE_NAMESPACE}", key: "${PRICE_KEY}") { value }
               }
             }
@@ -185,6 +190,7 @@ export const getCollection = async (
         price: variant.price,
         campaignId: variant.campaign?.value ?? null,
         cost: variant.inventoryItem?.unitCost?.amount ?? null,
+        stock: variant.inventoryItem?.tracked ? (variant.inventoryQuantity ?? 0) : null,
         priceHistory: parseHistory(variant.priceHistory?.value),
       })),
     })),

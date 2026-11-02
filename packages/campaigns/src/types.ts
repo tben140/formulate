@@ -44,6 +44,8 @@ export interface ProductInfo {
     readonly campaignId: string | null;
     /** Shopify's unit cost, when one is set (needs read_inventory). */
     readonly cost?: string | null;
+    /** Units on hand, when Shopify tracks this variant's stock. */
+    readonly stock?: number | null;
     /** Recorded price changes, oldest first (price-history.ts). */
     readonly priceHistory?: readonly (readonly [string, string])[];
   }[];

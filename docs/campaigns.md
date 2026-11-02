@@ -349,6 +349,14 @@ at the end**; it has no dates of its own. Add the email's body in Klaviyo
 (the last-day campaign's template fits) and it sends from the account's
 default sender. Black Friday 2026's is `VwNnXJ` (draft).
 
+### Stock
+
+`check` reads each variant's stock (where Shopify tracks it) and warns about
+anything sold out or under 10 (`--min-stock`) before launch. During the
+campaign its page lists buyable products first and sold-out ones last, on
+every surface (`availableFirst`). The home hero shows the campaign's own
+image, never a product, so it can't feature something sold out.
+
 ### Personal codes
 
 A shared code ends up on voucher sites within hours. For a code campaign,

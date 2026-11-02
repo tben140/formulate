@@ -1,4 +1,5 @@
 import {
+  availableFirst,
   campaignParagraphs,
   campaignStartFor,
   campaignStartsLabel,
@@ -76,7 +77,8 @@ const CampaignScreen = () => {
   const status = campaignStatus(campaign, view);
   const products =
     status === "active"
-      ? (data?.metaobject?.products?.reference?.products.nodes ?? [])
+      ? // Sold-out products last: the page shouldn't lead with one.
+        availableFirst(data?.metaobject?.products?.reference?.products.nodes ?? [])
       : [];
 
   return (
