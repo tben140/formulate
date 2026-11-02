@@ -1,4 +1,4 @@
-import { campaignEndsLabel } from "@formulate/shopify";
+import { campaignEndsLabel, campaignPath } from "@formulate/shopify";
 
 import { campaignOf } from "./campaign-node";
 import type { CampaignEntry } from "./types";
@@ -52,4 +52,50 @@ export const plannedEmails = (entry: CampaignEntry): PlannedEmail[] => {
     });
   }
   return emails;
+};
+
+/** One push notification a campaign sends, timed from its dates. */
+export interface PlannedPush {
+  readonly name: string;
+  readonly sendAt: string;
+  readonly title: string;
+  readonly body: string;
+  /** Opens the campaign screen: the app's scheme and the shared path. */
+  readonly deepLink: string;
+}
+
+/** The app's URL scheme (apps/mobile/app.config.ts). */
+export const APP_SCHEME = "formulate";
+
+/**
+ * The pushes a campaign sends (SHO-169), as the emails: the launch, and the
+ * last day. Only to people who chose offer notifications (`push_offers`, see
+ * SHO-165), so `campaigns pushes --create` needs that segment's id. Kept
+ * short: lock screens cut titles at about 40 characters.
+ */
+export const plannedPushes = (entry: CampaignEntry): PlannedPush[] => {
+  const campaign = campaignOf(entry);
+  // An email-link offer isn't for the whole offers segment.
+  if (!campaign || campaign.audience === "email_link") return [];
+  const deepLink = `${APP_SCHEME}://${campaignPath(campaign.handle).slice(1)}`;
+  const pushes: PlannedPush[] = [
+    {
+      name: `${campaign.title}: launch push`,
+      sendAt: campaign.startsAt.toISOString(),
+      title: `${campaign.badge} is on`,
+      body: campaign.offer,
+      deepLink,
+    },
+  ];
+  const lastDay = campaign.endsAt.getTime() - 24 * HOUR;
+  if (lastDay > campaign.startsAt.getTime() + 12 * HOUR) {
+    pushes.push({
+      name: `${campaign.title}: last day push`,
+      sendAt: new Date(lastDay).toISOString(),
+      title: `Last day of ${campaign.badge}`,
+      body: `${campaign.offer}. ${campaignEndsLabel(campaign)}.`,
+      deepLink,
+    });
+  }
+  return pushes;
 };
