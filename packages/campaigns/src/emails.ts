@@ -15,8 +15,8 @@ export interface PlannedEmail {
 
 /**
  * The emails a campaign sends, from its record, so the times can't drift
- * from the offer: the launch when it starts, and "last day" 24 hours before
- * it ends. `campaigns emails --create` makes them as Klaviyo drafts, never
+ * from the offer: early access when that opens, the launch when it starts,
+ * and "last day" 24 hours before it ends. `campaigns emails --create` makes them as Klaviyo drafts, never
  * scheduled: sending stays Ben's call (docs/campaigns.md).
  */
 export const plannedEmails = (entry: CampaignEntry): PlannedEmail[] => {
@@ -26,14 +26,22 @@ export const plannedEmails = (entry: CampaignEntry): PlannedEmail[] => {
   const startsAt = campaign.startsAt.getTime();
   const endsAt = campaign.endsAt.getTime();
   const lastDay = endsAt - 24 * HOUR;
-  const emails: PlannedEmail[] = [
-    {
-      name: `${title}: launch`,
-      sendAt: new Date(startsAt).toISOString(),
-      subject: headline,
-      previewText: offer,
-    },
-  ];
+  const emails: PlannedEmail[] = [];
+  // Early access: the email's link (/discount/<code>?redirect=…) is the way in.
+  if (campaign.earlyAccessStartsAt) {
+    emails.push({
+      name: `${title}: early access`,
+      sendAt: campaign.earlyAccessStartsAt.toISOString(),
+      subject: `Early access: ${offer}`,
+      previewText: "Open this email's link to shop before everyone else.",
+    });
+  }
+  emails.push({
+    name: `${title}: launch`,
+    sendAt: new Date(startsAt).toISOString(),
+    subject: headline,
+    previewText: offer,
+  });
   // Only when the campaign runs for longer than a day.
   if (lastDay > startsAt + 12 * HOUR) {
     emails.push({

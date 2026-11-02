@@ -44,6 +44,8 @@ export const checkCampaign = (snapshot: Snapshot, now: Date = new Date()): Findi
   if (campaign.endsAt <= now)
     warn("It has already ended. Delete it, its collection and discount (Housekeeping).");
   if (entry.fields.image && !entry.imageAlt?.trim()) warn("The image has no alt text.");
+  if (entry.fields.early_access_starts_at && !campaign.earlyAccessStartsAt)
+    error("early_access_starts_at isn't before starts_at, so it's ignored.");
 
   // The offer as data, and the wording against it.
   const rules = parseOfferRules(entry.fields.offer_rules);
@@ -128,7 +130,13 @@ export const checkCampaign = (snapshot: Snapshot, now: Date = new Date()): Findi
       );
     for (const discount of live) {
       const name = `Discount "${discount.title}"`;
-      if (new Date(discount.startsAt).getTime() !== campaign.startsAt.getTime())
+      const startsEarly =
+        discount.method === "code" &&
+        campaign.earlyAccessStartsAt?.getTime() === new Date(discount.startsAt).getTime();
+      if (
+        !startsEarly &&
+        new Date(discount.startsAt).getTime() !== campaign.startsAt.getTime()
+      )
         error(
           `${name} starts ${discount.startsAt}, the campaign ${campaign.startsAt.toISOString()}.`,
         );
@@ -167,8 +175,21 @@ export const checkCampaign = (snapshot: Snapshot, now: Date = new Date()): Findi
         else if (!sameConfig(discount.config, expected.config))
           error(`${name}'s config is out of date: run campaigns sync ${entry.handle}.`);
       }
-      if (discount.status === "ACTIVE" && now < campaign.startsAt)
+      // An early-access code is meant to be on from early_access_starts_at.
+      if (
+        discount.status === "ACTIVE" &&
+        now < (startsEarly ? campaign.earlyAccessStartsAt! : campaign.startsAt)
+      )
         error(`${name} is already active, before the campaign starts.`);
+    }
+    if (campaign.earlyAccessStartsAt) {
+      const early = campaign.earlyAccessStartsAt.getTime();
+      if (
+        !live.some((d) => d.method === "code" && new Date(d.startsAt).getTime() === early)
+      )
+        error(
+          `Early access starts ${campaign.earlyAccessStartsAt.toISOString()}, but no code discount starts then: email visitors would see the offer without getting it.`,
+        );
     }
     if (findings.every((finding) => finding.level !== "error"))
       ok(`Discount${own.length > 1 ? "s" : ""}: ${own.map((d) => d.title).join(", ")}.`);

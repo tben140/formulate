@@ -1,5 +1,6 @@
 import {
   campaignParagraphs,
+  campaignStartFor,
   campaignStartsLabel,
   campaignStatus,
   toCampaign,
@@ -18,6 +19,7 @@ import {
   useCampaign,
   useCampaignView,
 } from "../../../lib/campaign";
+import { useMarkCampaignSeen } from "../../../lib/use-cart";
 
 /**
  * A campaign's screen (SHO-169), at the same path as its web and theme page,
@@ -32,6 +34,18 @@ const CampaignScreen = () => {
   }>();
   const { data, isPending, isError } = useCampaign(handle);
   const view = useCampaignView();
+  const markSeen = useMarkCampaignSeen();
+  const live = (() => {
+    const loaded = toCampaign(data?.metaobject);
+    return loaded ? campaignStatus(loaded, view) === "active" : false;
+  })();
+
+  // A visit while it's live tags the cart (`_campaign`) for the report.
+  useEffect(() => {
+    if (live) markSeen.mutate(handle);
+    // Once per campaign shown live.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, handle]);
 
   // A preview link (?preview=<token>): the web site checks the token.
   useEffect(() => {
@@ -90,7 +104,7 @@ const CampaignScreen = () => {
         </Text>
         <Text className="text-base text-foreground-muted">
           {status === "upcoming" ? (
-            campaignStartsLabel(campaign)
+            campaignStartsLabel(campaign, campaignStartFor(campaign, view))
           ) : status === "active" ? (
             <CampaignEnds campaign={campaign} />
           ) : status === "restricted" ? (

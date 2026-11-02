@@ -84,3 +84,21 @@ export const addItem = (variantId, quantity, sellingPlanId) =>
  */
 export const changeItem = (lineKey, quantity) =>
   post("/cart/change.js", { id: lineKey, quantity });
+
+/**
+ * Tags the cart with the campaign whose page was seen (`_campaign`, SHO-169),
+ * for `campaigns report`. Shopify merges attributes, so the others stay. No
+ * sections: nothing on screen changes.
+ *
+ * @param {string} handle
+ */
+export const tagCampaign = async (handle) => {
+  const root =
+    /** @type {{ Shopify?: { routes?: { root?: string } } }} */ (window).Shopify?.routes
+      ?.root ?? "/";
+  await fetch(`${root}cart/update.js`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ attributes: { _campaign: handle } }),
+  });
+};

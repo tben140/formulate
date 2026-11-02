@@ -2,6 +2,7 @@ import {
   CampaignByHandleQuery,
   campaignEndsLabel,
   campaignParagraphs,
+  campaignStartFor,
   campaignStartsLabel,
   campaignStatus,
   priorityIndex,
@@ -16,6 +17,7 @@ import { cache } from "react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CampaignBadge } from "@/components/campaign-badge";
 import { CampaignEnds } from "@/components/campaign-ends";
+import { CampaignSeen } from "@/components/campaign-seen";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { campaignView } from "@/lib/campaign";
@@ -78,6 +80,7 @@ const CampaignPage = async ({ params }: PageProps) => {
   return (
     <article>
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: campaign.title }]} />
+      {status === "active" ? <CampaignSeen handle={campaign.handle} /> : null}
 
       <header className="grid gap-6 md:grid-cols-2 md:items-center">
         <div>
@@ -87,7 +90,7 @@ const CampaignPage = async ({ params }: PageProps) => {
           </h1>
           <p className="mt-2 text-foreground-muted">
             {status === "upcoming" ? (
-              campaignStartsLabel(campaign)
+              campaignStartsLabel(campaign, campaignStartFor(campaign, view))
             ) : status === "active" ? (
               <CampaignEnds
                 endsAt={campaign.endsAt.toISOString()}
