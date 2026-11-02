@@ -29,6 +29,7 @@
     {% endcomment %}
     {% if settings.klaviyo_public_key != blank and settings.klaviyo_list_id != blank %}
       <email-capture
+        id="email-signup"
         class="email-capture"
         data-public-key="{{ settings.klaviyo_public_key }}"
         data-list-id="{{ settings.klaviyo_list_id }}"

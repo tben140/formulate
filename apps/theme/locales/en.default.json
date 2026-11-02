@@ -127,6 +127,7 @@
     "payment_methods": "Payment methods"
   },
   "campaign": {
+    "next_offer_html": "Want the next offer first? <a href=\"{{ url }}\">Sign up for our emails</a>.",
     "shop_offer": "Shop the {{ badge }} offer",
     "limit_units": "{{ badge }} price on up to {{ count }} of each product",
     "limit_once": "once per customer (signed in)",

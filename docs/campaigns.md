@@ -412,9 +412,16 @@ Shopify's source.
 
 ## Housekeeping
 
-Delete a campaign's entry (and its collection and discount) once it has
-ended. The theme's banner and collections list read the first 50 campaigns
-only, a Liquid limit, so a long tail of old ones could hide a live one.
+Once a campaign has ended, `campaigns tidy <handle> --apply` takes it off its
+products and variants, deletes its collection and sets the record back to
+draft: kept for `report` and `history`, shown nowhere. It refuses while the
+campaign is still running. Expired discounts are left; they do nothing. Until
+then, the campaign page says the offer has ended and points to the email
+sign-up ("Want the next offer first?") on every surface.
+
+Tidy ended campaigns: the theme's banner and collections list read the first
+50 campaigns only, a Liquid limit, so a long tail of old ones could hide a
+live one.
 
 ## Moving the clock (local checks)
 

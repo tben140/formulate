@@ -114,11 +114,22 @@ const CampaignScreen = () => {
           )}
         </Text>
         {status === "ended" || status === "restricted" ? (
-          <Link href="/" asChild>
-            <Pressable accessibilityRole="link" className="self-start">
-              <Text className="text-base text-foreground underline">Shop the range</Text>
-            </Pressable>
-          </Link>
+          <View className="gap-2">
+            <Link href="/" asChild>
+              <Pressable accessibilityRole="link" className="self-start">
+                <Text className="text-base text-foreground underline">
+                  Shop the range
+                </Text>
+              </Pressable>
+            </Link>
+            {status === "ended" ? (
+              // The sign-up form is at the bottom of this screen (SiteFooter).
+              <Text className="text-base text-foreground">
+                Want the next offer first? Sign up for our emails at the bottom of this
+                page.
+              </Text>
+            ) : null}
+          </View>
         ) : (
           <>
             {/* The offer itself, always: `body` is optional. */}

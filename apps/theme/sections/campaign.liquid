@@ -67,6 +67,8 @@
         </p>
         {% if status == 'ended' %}
           <a class="campaign__link" href="{{ routes.root_url }}">{{ 'campaign.shop_the_range' | t }}</a>
+          {% comment %} The footer's sign-up form has this id (sections/footer.liquid). {% endcomment %}
+          <p class="campaign__next">{{ 'campaign.next_offer_html' | t: url: '#email-signup' }}</p>
         {% else %}
           {% comment %} The offer itself, always: `body` is optional. {% endcomment %}
           <p class="campaign__offer">{{ campaign.offer.value | escape }}</p>
