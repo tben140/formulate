@@ -1,0 +1,12 @@
+{
+  "extends": "@formulate/typescript-config/base.json",
+  "compilerOptions": {
+    // The Workers runtime, plus Node's types for the parts of
+    // packages/campaigns this reuses (node:crypto, behind nodejs_compat in
+    // wrangler.jsonc).
+    "types": ["@cloudflare/workers-types", "node"],
+    "lib": ["ES2023"],
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

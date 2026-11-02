@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // The Campaign Calendar (SHO-205): the Double Helix app's embedded page.
+  "name": "formulate-campaign-calendar",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-09",
+  // packages/campaigns uses node:crypto (personal codes); nothing else Node.
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  // One stable URL, the app's application_url; no per-version preview URLs.
+  "preview_urls": false,
+  /*
+   * ⚠️ `vars` is plaintext and public. Secrets are set with
+   * `wrangler secret put`: SHOPIFY_APP_CLIENT_SECRET (required),
+   * CAMPAIGN_PREVIEW_TOKEN and CAMPAIGN_LOG_TOKEN (optional).
+   */
+  "vars": {
+    "SHOPIFY_APP_CLIENT_ID": "25a2aa35a50545b4b2146c5162def482",
+    "SHOP_DOMAIN": "tben140plus-xcorpito.myshopify.com",
+    "WEB_URL": "https://web-six-murex-18.vercel.app",
+    "API_URL": "https://formulate-api.tben140-6bc.workers.dev",
+  },
+  "observability": { "enabled": true },
+}
