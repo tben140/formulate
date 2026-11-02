@@ -1,0 +1,128 @@
+{% doc %}
+  A product's badges (SHO-202), the rule from packages/shopify/src/badges.ts
+  restated in Liquid: a live campaign's badge first (unless `campaign` is
+  false), then every `badge` metaobject whose rule matches and whose dates
+  include now, by priority, at most two, never the same label twice.
+
+  Rules: `manual` (the product lists it in `double_helix.badges`), `new`
+  (published in the last `rule_value` days, 30 if unset), `tag` (the product
+  has the tag in `rule_value`, any case) and `subscription_only`.
+  Matches apps/web's components/product-badges.tsx.
+
+  @param {object} product - The product.
+  @param {boolean} [campaign] - false to leave out the campaign's badge (the product page shows it in the offer box).
+{% enddoc %}
+{%- liquid
+  assign now_s = 'now' | date: '%s' | plus: 0
+  if settings.campaign_preview_at != blank
+    assign now_s = settings.campaign_preview_at | date: '%s' | plus: 0
+  endif
+
+  assign chosen = ','
+  for badge in product.metafields.double_helix.badges.value
+    assign chosen = chosen | append: badge.system.handle | append: ','
+  endfor
+  assign tags = product.tags | join: ',' | downcase | prepend: ',' | append: ','
+
+  comment
+    Each match as "<1000 - priority>~<label>~<tone>", so sorting the list
+    as text puts the highest priority first.
+  endcomment
+  assign matches = ''
+  for badge in shop.metaobjects.badge.values
+    assign label = badge.label.value | strip
+    if label == blank
+      continue
+    endif
+    if badge.starts_at.value != blank
+      assign starts_s = badge.starts_at.value | date: '%s' | plus: 0
+      if now_s < starts_s
+        continue
+      endif
+    endif
+    if badge.ends_at.value != blank
+      assign ends_s = badge.ends_at.value | date: '%s' | plus: 0
+      if now_s >= ends_s
+        continue
+      endif
+    endif
+
+    assign rule = badge.rule.value
+    assign value = badge.rule_value.value | strip
+    assign ok = false
+    case rule
+      when 'manual'
+        assign key = ',' | append: badge.system.handle | append: ','
+        if chosen contains key
+          assign ok = true
+        endif
+      when 'subscription_only'
+        if product.requires_selling_plan
+          assign ok = true
+        endif
+      when 'tag'
+        if value != blank
+          assign key = value | downcase | prepend: ',' | append: ','
+          if tags contains key
+            assign ok = true
+          endif
+        endif
+      when 'new'
+        assign days = value | plus: 0
+        if days < 1
+          assign days = 30
+        endif
+        if product.published_at != blank
+          assign published_s = product.published_at | date: '%s' | plus: 0
+          assign age = now_s | minus: published_s
+          assign limit = days | times: 86400
+          if age >= 0 and age < limit
+            assign ok = true
+          endif
+        endif
+    endcase
+    unless ok
+      continue
+    endunless
+
+    assign tone = badge.tone.value | default: 'brand'
+    assign rank = badge.priority.value | plus: 0
+    assign rank = 1000 | minus: rank | prepend: '0000' | slice: -4, 4
+    assign matches = matches | append: rank | append: '~' | append: label | append: '~' | append: tone | append: '^'
+  endfor
+  assign matches = matches | split: '^' | sort
+
+  assign shown = ''
+  assign count = 0
+  if campaign != false
+    assign live = product.metafields.double_helix.campaign.value
+    if live != blank
+      capture status
+        render 'campaign-status', campaign: live
+      endcapture
+      assign status = status | strip
+      if status == 'active'
+        assign campaign_label = live.badge.value | strip
+        assign shown = '|' | append: campaign_label | append: '|'
+        assign count = 1
+      endif
+    endif
+  endif
+-%}
+{%- capture badges_html -%}
+  {%- if count == 1 -%}
+    <span class="product-badge product-badge--brand">{{ campaign_label | escape }}</span>
+  {%- endif -%}
+  {%- for match in matches -%}
+    {%- if count >= 2 -%}{%- break -%}{%- endif -%}
+    {%- assign parts = match | split: '~' -%}
+    {%- assign key = '|' | append: parts[1] | append: '|' -%}
+    {%- if shown contains key -%}{%- continue -%}{%- endif -%}
+    {%- assign shown = shown | append: parts[1] | append: '|' -%}
+    {%- assign count = count | plus: 1 -%}
+    <span class="product-badge product-badge--{{ parts[2] | escape }}">{{ parts[1] | escape }}</span>
+  {%- endfor -%}
+{%- endcapture -%}
+{%- if count > 0 -%}
+  <span class="product-badges">{{ badges_html }}</span>
+{%- endif -%}

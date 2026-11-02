@@ -2,6 +2,8 @@ import {
   campaignBadge,
   campaignCardPrice,
   formatMoney,
+  productBadges,
+  type BadgeProduct,
   type CampaignRef,
   type MoneyLike,
 } from "@formulate/shopify";
@@ -9,11 +11,12 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Text, View } from "react-native";
 
+import { useBadges } from "../lib/badges";
 import { useCampaignView } from "../lib/campaign";
-import { CampaignBadge } from "./campaign-badge";
+import { ProductBadges } from "./product-badges";
 import { OfferPrice, offerPriceLabel } from "./offer-price";
 
-export type ProductRowData = {
+export type ProductRowData = BadgeProduct & {
   readonly handle: string;
   readonly title: string;
   readonly featuredImage?: { readonly url: string } | null;
@@ -35,7 +38,12 @@ export type ProductRowData = {
  */
 export const ProductRow = ({ product }: { readonly product: ProductRowData }) => {
   const view = useCampaignView();
-  const badge = campaignBadge(product.campaign, view);
+  const badges = productBadges(
+    product,
+    useBadges(),
+    view.now,
+    campaignBadge(product.campaign, view),
+  );
   const offer = campaignCardPrice(
     product.campaign,
     product.cardVariants?.nodes ?? [],
@@ -48,7 +56,9 @@ export const ProductRow = ({ product }: { readonly product: ProductRowData }) =>
     <Link href={`/products/${product.handle}`} asChild>
       <View
         accessibilityRole="link"
-        accessibilityLabel={`${product.title}, ${price}${badge ? `, ${badge}` : ""}`}
+        accessibilityLabel={[product.title, price, ...badges.map((b) => b.label)].join(
+          ", ",
+        )}
         className="flex-row items-center gap-3 rounded-lg border border-border p-3"
       >
         <Image
@@ -59,7 +69,7 @@ export const ProductRow = ({ product }: { readonly product: ProductRowData }) =>
           accessibilityIgnoresInvertColors
         />
         <View className="flex-1">
-          {badge ? <CampaignBadge label={badge} /> : null}
+          <ProductBadges badges={badges} hidden />
           <Text className="text-base font-medium text-foreground">{product.title}</Text>
           {offer ? (
             <View className="mt-1">

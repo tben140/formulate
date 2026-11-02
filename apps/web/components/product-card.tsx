@@ -2,14 +2,17 @@ import {
   campaignBadge,
   campaignCardPrice,
   formatMoney,
+  productBadges,
+  type BadgeProduct,
   type CampaignRef,
   type MoneyLike,
 } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import Link from "next/link";
 
-import { CampaignBadge } from "@/components/campaign-badge";
 import { OfferPrice } from "@/components/offer-price";
+import { ProductBadges } from "@/components/product-badges";
+import { getBadges } from "@/lib/badges";
 import { campaignView } from "@/lib/campaign";
 
 type CardImage = {
@@ -19,7 +22,7 @@ type CardImage = {
   readonly height?: number | null;
 };
 
-export type ProductCardData = {
+export type ProductCardData = BadgeProduct & {
   readonly handle: string;
   readonly title: string;
   readonly featuredImage?: CardImage | null;
@@ -58,7 +61,12 @@ export const ProductCard = async ({
 }) => {
   const Heading = headingLevel;
   const view = await campaignView();
-  const badge = campaignBadge(product.campaign, view);
+  const badges = productBadges(
+    product,
+    await getBadges(),
+    view.now,
+    campaignBadge(product.campaign, view),
+  );
   const offer = campaignCardPrice(
     product.campaign,
     product.cardVariants?.nodes ?? [],
@@ -70,9 +78,9 @@ export const ProductCard = async ({
       className="group block rounded-lg border border-border p-3 transition-colors hover:border-brand-400"
     >
       <div className="relative mb-3 aspect-square overflow-hidden rounded-md bg-surface-muted">
-        {badge ? (
-          <span className="absolute top-2 left-2 z-10">
-            <CampaignBadge label={badge} />
+        {badges.length > 0 ? (
+          <span className="absolute top-2 right-2 left-2 z-10">
+            <ProductBadges badges={badges} />
           </span>
         ) : null}
         {product.featuredImage ? (
