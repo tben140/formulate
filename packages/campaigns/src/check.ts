@@ -1,6 +1,8 @@
 import { campaignParagraphs, offerPercents, parseOfferRules } from "@formulate/shopify";
 
 import { campaignOf } from "./campaign-node";
+import { DEFAULT_MIN_MARGIN, marginRows } from "./margins";
+import { checkReferencePrice, REFERENCE_DAYS } from "./price-history";
 import { campaignDiscounts, discountConfig, sameConfig } from "./sync";
 import type { Finding, Snapshot } from "./types";
 
@@ -23,7 +25,11 @@ const DAY = 24 * 60 * 60 * 1000;
  * shoppers something untrue or charge the wrong price; warnings are worth a
  * look. See docs/campaigns.md, "The campaigns CLI".
  */
-export const checkCampaign = (snapshot: Snapshot, now: Date = new Date()): Finding[] => {
+export const checkCampaign = (
+  snapshot: Snapshot,
+  now: Date = new Date(),
+  { minMargin = DEFAULT_MIN_MARGIN }: { readonly minMargin?: number } = {},
+): Finding[] => {
   const { entry, collection, products, discounts, emails } = snapshot;
   const findings: Finding[] = [];
   const error = (message: string) => findings.push({ level: "error", message });
@@ -118,7 +124,87 @@ export const checkCampaign = (snapshot: Snapshot, now: Date = new Date()): Findi
       "Some products are narrowed to certain variants: that works with percent offers only.",
     );
 
+  // The prices: an honest "normally", and a margin left at the campaign price.
+  const listed = (limit: number, names: readonly string[]) =>
+    names.length <= limit
+      ? names.join(", ")
+      : `${names.slice(0, limit).join(", ")} and ${names.length - limit} more`;
+  const onSale = products
+    .filter((product) => product.status === "ACTIVE")
+    .flatMap((product) => {
+      const narrowedTo = product.variants.filter(
+        (variant) => variant.campaignId !== null,
+      );
+      return (narrowedTo.length > 0 ? narrowedTo : product.variants).map((variant) => ({
+        ...variant,
+        label:
+          !variant.title || variant.title === "Default Title"
+            ? product.title
+            : `${product.title}, ${variant.title}`,
+      }));
+    });
+  if (rules && onSale.length > 0) {
+    const raised: string[] = [];
+    const unknown: string[] = [];
+    for (const variant of onSale) {
+      const result = checkReferencePrice(
+        variant.priceHistory ?? [],
+        variant.price,
+        campaign.startsAt,
+      );
+      if (result.ok) continue;
+      if (result.reason === "raised")
+        raised.push(
+          `${variant.label} (£${result.lower} on ${result.on}, now £${variant.price})`,
+        );
+      else unknown.push(variant.label);
+    }
+    if (raised.length > 0)
+      error(
+        `Raised in the ${REFERENCE_DAYS} days before the campaign, so "Normally" would mislead: ${listed(5, raised)}.`,
+      );
+    if (unknown.length > 0)
+      warn(
+        `No ${REFERENCE_DAYS}-day price history for ${unknown.length} of ${onSale.length} variants, so "Normally" can't be checked: run campaigns prices record daily (docs/campaigns.md).`,
+      );
+    if (raised.length === 0 && unknown.length === 0)
+      ok(`Every "Normally" price held for the ${REFERENCE_DAYS} days before the start.`);
+
+    const rows = marginRows(
+      rules,
+      onSale.map((v) => ({ title: v.label, price: v.price, cost: v.cost ?? null })),
+    );
+    const loss = rows.filter((row) => row.cost !== null && row.worst < row.cost);
+    const thin = rows.filter(
+      (row) => row.margin !== null && row.margin < minMargin && !loss.includes(row),
+    );
+    const noCost = rows.filter((row) => row.cost === null);
+    if (loss.length > 0)
+      error(
+        `Sold below cost at the campaign price: ${listed(
+          5,
+          loss.map(
+            (r) => `${r.title} (£${r.worst.toFixed(2)}, costs £${r.cost!.toFixed(2)})`,
+          ),
+        )}.`,
+      );
+    if (thin.length > 0)
+      warn(
+        `Under a ${minMargin}% margin at the campaign price: ${listed(
+          5,
+          thin.map((r) => `${r.title} (${r.margin}%)`),
+        )}.`,
+      );
+    if (noCost.length > 0)
+      warn(
+        `No unit cost in Shopify for ${noCost.length} of ${rows.length} variants, so their margin can't be checked.`,
+      );
+    if (loss.length === 0 && thin.length === 0 && noCost.length === 0)
+      ok(`Every variant keeps at least a ${minMargin}% margin at the campaign price.`);
+  }
+
   // The discount that charges it.
+  const errorsBefore = findings.filter((finding) => finding.level === "error").length;
   const own = campaignDiscounts(entry, discounts);
   if (own.length === 0) {
     error(
@@ -195,7 +281,7 @@ export const checkCampaign = (snapshot: Snapshot, now: Date = new Date()): Findi
           `Early access starts ${campaign.earlyAccessStartsAt.toISOString()}, but no code discount starts then: email visitors would see the offer without getting it.`,
         );
     }
-    if (findings.every((finding) => finding.level !== "error"))
+    if (findings.filter((finding) => finding.level === "error").length === errorsBefore)
       ok(`Discount${own.length > 1 ? "s" : ""}: ${own.map((d) => d.title).join(", ")}.`);
   }
 

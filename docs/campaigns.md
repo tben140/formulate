@@ -267,6 +267,7 @@ campaign even without its discount, for example a tiered offer just missed.
 | `emails <handle> [--create]`                          | The launch and last-day emails, timed from the dates; `--create` makes them Klaviyo drafts (never scheduled)                                        |
 | `pushes <handle> [--create]`                          | Launch and last-day pushes, opening the campaign screen; `--create` makes Klaviyo drafts for `KLAVIYO_PUSH_SEGMENT_ID` (needs push set up: SHO-165) |
 | `report <handle>`                                     | Orders, revenue, discount cost, first orders, subscriptions started, by surface and email source, top products                                      |
+| `prices record [--apply]`                             | Today's price for every variant into its price history (below). Run daily by `.github/workflows/price-history.yml`                                  |
 
 **What `check` compares:** the record parses as the surfaces read it; every
 percentage in the copy is one the offer gives (or the 15% subscribe and save);
@@ -276,7 +277,28 @@ exactly one discount, starting and ending with the campaign, at the offer's
 percentage, one-time only if the offer is, on the collection, a code for
 email-link campaigns, or a Function config in step with the record; and,
 with a Klaviyo key, the emails send before the end and say the right
-percentage.
+percentage. And the prices, below.
+
+### Prices and margins
+
+**An honest "Normally".** The surfaces strike through the product's current
+price. UK pricing rules expect that to be a price the product was genuinely
+sold at, for a reasonable time, recently: the CMA treats a price raised just
+before a sale as misleading. Shopify keeps no price history, so
+`campaigns prices record` keeps one, as each variant's price changes in an
+app-owned metafield (`$app:campaigns.price_history`), written only when the
+price moves. `check` fails a campaign when any variant's price was lower at
+any point in the 28 days before the start, and warns while the history is
+shorter than 28 days. The workflow needs the repository secrets
+`SHOPIFY_STORE_DOMAIN` and `SHOPIFY_APP_CLIENT_SECRET`; until they're set it
+skips, and so the history only starts from the first run.
+
+**Margins.** `check` takes each variant's worst price under the offer (the
+highest tier; a bundle's free units spread across the set; subscribe and
+save's 15% first if the offer reaches subscriptions) against its unit cost in
+Shopify (Products → variant → Cost per item; read with `read_inventory`). Below
+cost is an error; under the floor (30%, or `--min-margin`) a warning. A
+variant with no cost set is listed, as its margin can't be checked.
 
 **Signing in.** The CLI signs in as the Double Helix app (client credentials,
 a token for the run, never stored or printed), because only the app can make
