@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:campaign": "CAMPAIGN_PREVIEW_AT=2026-11-30T20:00:00Z playwright test campaign"
   },
