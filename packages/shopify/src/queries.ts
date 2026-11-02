@@ -709,6 +709,11 @@ export const PaymentSettingsQuery = graphql(`
         acceptedCardBrands
         supportedDigitalWallets
       }
+      # Klarna and Clearpay, which paymentSettings doesn't report: a list set
+      # by hand (src/payment-icons.ts).
+      payLater: metafield(namespace: "double_helix", key: "pay_later") {
+        value
+      }
     }
   }
 `);
