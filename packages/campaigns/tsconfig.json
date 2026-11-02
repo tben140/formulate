@@ -1,0 +1,9 @@
+{
+  "extends": "@formulate/typescript-config/base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "ES2023"],
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.ts"]
+}

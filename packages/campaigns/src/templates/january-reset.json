@@ -1,0 +1,16 @@
+{
+  "title": "January reset {{year}}",
+  "badge": "January reset",
+  "headline": "New year, new routine: up to 25% off",
+  "banner_text": "January reset: 15% off over £40, 25% off over £60",
+  "offer": "15% off one-time orders over £40, 25% off over £60",
+  "offer_rules": {
+    "type": "tiered",
+    "tiers": [
+      { "minSubtotal": "40.00", "percent": 15 },
+      { "minSubtotal": "60.00", "percent": 25 }
+    ]
+  },
+  "subscriber_perk": "",
+  "terms": "15% off one-time purchases of the products on this page when they come to £40 or more, and 25% at £60 or more, before other discounts, from {{starts}} to {{ends}} (UK time). Taken automatically at checkout. Doesn't apply to subscriptions. This is a demo store: checkout is in test mode and nothing is charged or shipped."
+}

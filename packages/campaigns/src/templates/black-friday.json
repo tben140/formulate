@@ -1,0 +1,10 @@
+{
+  "title": "Black Friday {{year}}",
+  "badge": "Black Friday",
+  "headline": "Black Friday: 25% off one-time orders",
+  "banner_text": "Black Friday: 25% off one-time orders until {{ends_day}} midnight",
+  "offer": "25% off one-time orders, taken at checkout",
+  "offer_rules": { "type": "percent", "percent": 25 },
+  "subscriber_perk": "",
+  "terms": "25% off one-time purchases of the products on this page, from {{starts}} to {{ends}} (UK time). Taken automatically at checkout. Doesn't apply to subscriptions, and can't be combined with other discounts or codes, except free delivery. This is a demo store: checkout is in test mode and nothing is charged or shipped."
+}
