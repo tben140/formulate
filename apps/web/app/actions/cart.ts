@@ -146,25 +146,38 @@ export const addToCart = async (
   };
 };
 
-export const updateCartLine = async (formData: FormData): Promise<void> => {
+/** What a line update or removal reports back: nothing, or why it failed. */
+export interface CartLineResult {
+  readonly message?: string;
+}
+
+export const updateCartLine = async (formData: FormData): Promise<CartLineResult> => {
   const id = String(formData.get("lineId") ?? "");
   const quantity = Number(formData.get("quantity") ?? 0);
   const cartId = await readCartId();
-  if (!cartId || !id) return;
+  if (!cartId || !id) return { message: "Your cart couldn't be found. Please refresh." };
 
   // Quantity zero is how Shopify expresses removal on an update, so there is no
   // need for the caller to decide which mutation to use.
-  await cartClient.updateLines(cartId, [{ id, quantity }]);
+  const result = await cartClient.updateLines(cartId, [{ id, quantity }]);
   revalidate();
+  if (result.ok) return {};
+  // The drawer has already shown the change (SHO-52); this tells it to undo.
+  console.error(`[cart] update failed: ${describeError(result.error)}`);
+  return { message: describeForShopper(result.error) };
 };
 
-export const removeCartLine = async (formData: FormData): Promise<void> => {
+export const removeCartLine = async (formData: FormData): Promise<CartLineResult> => {
   const lineId = String(formData.get("lineId") ?? "");
   const cartId = await readCartId();
-  if (!cartId || !lineId) return;
+  if (!cartId || !lineId)
+    return { message: "Your cart couldn't be found. Please refresh." };
 
-  await cartClient.removeLines(cartId, [lineId]);
+  const result = await cartClient.removeLines(cartId, [lineId]);
   revalidate();
+  if (result.ok) return {};
+  console.error(`[cart] remove failed: ${describeError(result.error)}`);
+  return { message: describeForShopper(result.error) };
 };
 
 /**
