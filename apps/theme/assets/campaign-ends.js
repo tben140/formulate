@@ -27,7 +27,7 @@ class CampaignEnds extends HTMLElement {
     if (!Number.isFinite(end)) return;
     const offset = this.dataset.now ? Number(this.dataset.now) * 1000 - Date.now() : 0;
     const label = this.textContent ?? "";
-    const span = WINDOWS[this.dataset.window ?? ""] ?? WINDOWS["24h"];
+    const span = WINDOWS[this.dataset.window ?? ""] ?? 24 * HOUR;
 
     const update = () => {
       const left = end - (Date.now() + offset);
