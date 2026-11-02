@@ -171,3 +171,6 @@ export {
   parseOfferRules,
 } from "./campaign-offer";
 export type { AppliesTo, OfferLine, OfferRules } from "./campaign-offer";
+
+export { campaignImages, withCampaignImages } from "./campaign-media";
+export type { CampaignMediaField, CampaignMediaNode } from "./campaign-media";

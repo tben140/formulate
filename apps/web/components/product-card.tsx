@@ -1,7 +1,9 @@
 import {
   campaignBadge,
   campaignCardPrice,
+  campaignImages,
   formatMoney,
+  type CampaignMediaField,
   type CampaignRef,
   type MoneyLike,
 } from "@formulate/shopify";
@@ -26,6 +28,8 @@ export type ProductCardData = {
   readonly priceRange: { readonly minVariantPrice: MoneyLike };
   /** Its campaign (SHO-169): badged only while live. */
   readonly campaign?: CampaignRef | null;
+  /** Campaign imagery (SHO-204): a live campaign's first image leads. */
+  readonly campaignMedia?: CampaignMediaField | null;
   /** For the campaign price: only the variants it covers get it. */
   readonly cardVariants?: {
     readonly nodes: readonly {
@@ -59,6 +63,7 @@ export const ProductCard = async ({
   const Heading = headingLevel;
   const view = await campaignView();
   const badge = campaignBadge(product.campaign, view);
+  const image = campaignImages(product.campaignMedia, view)[0] ?? product.featuredImage;
   const offer = campaignCardPrice(
     product.campaign,
     product.cardVariants?.nodes ?? [],
@@ -75,9 +80,9 @@ export const ProductCard = async ({
             <CampaignBadge label={badge} />
           </span>
         ) : null}
-        {product.featuredImage ? (
+        {image ? (
           <Image
-            data={product.featuredImage}
+            data={image}
             sizes={sizes}
             className="h-full w-full object-cover"
             loading={priority ? "eager" : "lazy"}

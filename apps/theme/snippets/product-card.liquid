@@ -7,14 +7,42 @@
   @param {string} image_loading - 'eager' or 'lazy'.
   @param {string} image_priority - 'high' or 'auto'.
 {% enddoc %}
+{%- liquid
+  comment
+    A live campaign's imagery leads (SHO-204): the first entry in the
+    product's campaign_media whose campaign is live, as campaignImages in
+    packages/shopify/src/campaign-media.ts.
+  endcomment
+  assign campaign_images = blank
+  for entry in product.metafields.double_helix.campaign_media.value
+    assign entry_campaign = entry.campaign.value
+    if entry_campaign == blank or entry.images.value == blank
+      continue
+    endif
+    capture media_status
+      render 'campaign-status', campaign: entry_campaign
+    endcapture
+    assign media_status = media_status | strip
+    if media_status == 'active'
+      assign campaign_images = entry.images.value
+      break
+    endif
+  endfor
+-%}
+{%- liquid
+  assign card_image = product.featured_image
+  if campaign_images != blank
+    assign card_image = campaign_images.first.preview_image | default: campaign_images.first
+  endif
+-%}
 <li>
   <a class="product-card" href="{{ product.url }}">
     <div class="product-card__media">
       {% render 'campaign-badge', product: product %}
-      {% if product.featured_image %}
+      {% if card_image %}
         {% render 'image',
           class: 'product-card__image',
-          image: product.featured_image,
+          image: card_image,
           width: 600,
           height: 600,
           crop: 'center',
