@@ -152,6 +152,24 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   Image (snippets/image.liquid)
+
+   Here because a snippet cannot own a `{% stylesheet %}` block (AGENTS.md).
+   --------------------------------------------------------------------------- */
+.image {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: auto;
+}
+
+.image > img {
+  width: 100%;
+  height: auto;
+}
+
+/* ---------------------------------------------------------------------------
    Product grid
 
    Used by both the collection template and the homepage via
