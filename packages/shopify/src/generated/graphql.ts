@@ -1649,7 +1649,7 @@ export type ProductRecommendationsQuery = { productRecommendations: Array<{ id: 
 export type PaymentSettingsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type PaymentSettingsQuery = { shop: { paymentSettings: { acceptedCardBrands: Array<CardBrand>, supportedDigitalWallets: Array<DigitalWallet> } } };
+export type PaymentSettingsQuery = { shop: { paymentSettings: { acceptedCardBrands: Array<CardBrand>, supportedDigitalWallets: Array<DigitalWallet> }, payLater: { value: string } | null } };
 
 export type BlendIngredientsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2702,6 +2702,9 @@ export const PaymentSettingsDocument = new TypedDocumentString(`
     paymentSettings {
       acceptedCardBrands
       supportedDigitalWallets
+    }
+    payLater: metafield(namespace: "double_helix", key: "pay_later") {
+      value
     }
   }
 }

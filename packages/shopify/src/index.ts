@@ -106,8 +106,8 @@ export type { ProductFilter } from "./generated/graphql";
 
 export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";
-export { PLANNED_PAYMENT_ICON_IDS, paymentIconIds } from "./payment-icons";
-export type { PaymentIconId } from "./payment-icons";
+export { PLANNED_PAYMENT_ICON_IDS, payLaterIds, paymentIconIds } from "./payment-icons";
+export type { PayLaterId, PaymentIconId } from "./payment-icons";
 export {
   initialOptimisticCart,
   optimisticCart,
