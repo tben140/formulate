@@ -410,6 +410,34 @@ applied or the cart was tagged `_campaign` by a visit to the campaign page. By
 surface it uses `_surface` when present (the PostHog stack adds it), else
 Shopify's source.
 
+## Offer experiments (designed; waits for #93)
+
+Testing two offers against each other (20% off against spend-and-save, say)
+needs PostHog's feature flags, which arrive with #93. The design, so it's
+quick to build once that lands:
+
+1. **The record** gets `offer_variants`: JSON naming each arm and its rules,
+   `{ "control": <offer_rules>, "tiered": { "type": "tiered", … } }`, plus
+   its own wording per arm (`offer`, `banner_text`). `check` holds every arm
+   to the same rules as `offer_rules` (wording, margins, price history).
+2. **Assignment** is PostHog's flag `campaign-<handle>`, evaluated once per
+   visitor: on the server for web (so the first paint is already right), by
+   the SDK in the app, and in the theme's script after consent. Without
+   consent, or if PostHog fails, everyone gets `control`.
+3. **Checkout** can't see the flag, so the surfaces tag the cart with the arm
+   (`_offer_arm`, beside `_campaign`), and the campaign Function reads it
+   (`cart.attribute(key: "_offer_arm")`) and charges that arm's rules. An
+   untagged cart gets `control`. A shopper only ever sees, and pays, their
+   own arm's price.
+4. **Results:** `campaigns report` splits by `_offer_arm`: orders, revenue,
+   discount given and margin per visitor in each arm, with PostHog's
+   experiment view for conversion.
+
+Rules that hold: an arm never shows a price it won't charge; nobody's arm
+changes mid-campaign (the flag is sticky per visitor, and the cart carries
+it); and every arm's terms are on the campaign page, so shoppers comparing
+notes see why they differ.
+
 ## Housekeeping
 
 Once a campaign has ended, `campaigns tidy <handle> --apply` takes it off its
