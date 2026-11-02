@@ -2,6 +2,14 @@ import * as Sentry from "@sentry/react-native";
 
 const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
+/**
+ * Set per EAS build profile (eas.json), so a preview build's errors are kept
+ * apart from production's: both are release builds, so `__DEV__` can't tell
+ * them apart, and they share the DSN.
+ */
+const environment =
+  process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? (__DEV__ ? "development" : "production");
+
 /** Drops the query string and fragment, where search text and tokens travel. */
 const stripQuery = (url: string): string => url.split(/[?#]/, 1)[0] ?? url;
 
@@ -22,7 +30,7 @@ export const initSentry = () => {
   if (!dsn) return;
   Sentry.init({
     dsn,
-    environment: __DEV__ ? "development" : "production",
+    environment,
     sendDefaultPii: false,
     beforeSend: (event) => {
       delete event.user;
@@ -35,8 +43,11 @@ export const initSentry = () => {
       }
       return event;
     },
-    // Network breadcrumbs keep the endpoint, never the query.
+    // Console breadcrumbs are dropped: a log line can carry what the shopper
+    // typed (the Klaviyo warning includes the email). Network breadcrumbs keep
+    // the endpoint, never the query.
     beforeBreadcrumb: (breadcrumb) => {
+      if (breadcrumb.category === "console") return null;
       const url = breadcrumb.data?.url;
       if (typeof url === "string" && breadcrumb.data)
         breadcrumb.data.url = stripQuery(url);

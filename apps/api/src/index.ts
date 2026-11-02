@@ -196,7 +196,11 @@ const handler = {
  * ⚠️ No personal data. sendDefaultPii is off, and beforeSend drops the
  * request entirely, so headers (including CF-Connecting-IP), cookies, the
  * body and the query string never leave the Worker. The body is where the
- * email address is.
+ * email address is. Console breadcrumbs are dropped too: the Klaviyo
+ * failure log carries Klaviyo's message, which can quote the address.
+ *
+ * The request body is never read by Sentry (`maxRequestBodySize: "none"`),
+ * so the handler's checks still run before anything reads it.
  */
 export default Sentry.withSentry<Env, unknown, unknown, typeof handler>(
   (env: Env) => ({
@@ -204,9 +208,13 @@ export default Sentry.withSentry<Env, unknown, unknown, typeof handler>(
     enabled: Boolean(env.SENTRY_DSN),
     environment: "production",
     sendDefaultPii: false,
+    integrations: [Sentry.httpServerIntegration({ maxRequestBodySize: "none" })],
+    beforeBreadcrumb: (breadcrumb) =>
+      breadcrumb.category === "console" ? null : breadcrumb,
     beforeSend: (event) => {
       delete event.request;
       delete event.user;
+      delete event.breadcrumbs;
       return event;
     },
   }),

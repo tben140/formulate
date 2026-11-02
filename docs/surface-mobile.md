@@ -111,8 +111,10 @@ Klaviyo, so errors during the first render are caught. It's off without
 `EXPO_PUBLIC_SENTRY_DSN`, which `eas.json` sets for preview and production
 builds (a DSN is public by design: it can only submit events). Local runs
 stay off unless you put it in `.env.local`. There's no tracing and no replay. `beforeSend`
-removes the user and any request details, and breadcrumbs keep URLs
-without their query strings.
+removes the user and any request details, console breadcrumbs are dropped
+(a log line can carry an email), and other breadcrumbs keep URLs without
+their query strings. `EXPO_PUBLIC_SENTRY_ENVIRONMENT`, set per profile in
+`eas.json`, keeps preview builds' errors out of production's.
 
 Native crashes need the native layer, so they're only reported from a
 development or store build. Expo Go reports JavaScript errors only. The
