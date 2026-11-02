@@ -1,4 +1,4 @@
-{% comment %}
+{% doc %}
   The payment methods the store accepts, as icons, for the footer.
 
   The list is `shop.enabled_payment_types`. Until Shopify Payments is set up
@@ -12,7 +12,7 @@
   `double_helix.pay_later` lists them, whatever `enabled_payment_types` says:
   web and the app can't see pay-later providers through the Storefront API,
   so the metafield is the one switch for all three (docs/integration-pay-later.md).
-{% endcomment %}
+{% enddoc %}
 {%- assign planned = 'visa master american_express apple_pay google_pay shopify_pay' | split: ' ' -%}
 {%- assign order = 'visa master american_express apple_pay google_pay shopify_pay klarna clearpay' | split: ' ' -%}
 {%- assign types = shop.enabled_payment_types -%}
