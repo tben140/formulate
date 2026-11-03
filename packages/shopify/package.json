@@ -15,7 +15,8 @@
     "smoke": "node --env-file-if-exists=../../apps/web/.env.local scripts/smoke-test.mjs"
   },
   "dependencies": {
-    "@graphql-typed-document-node/core": "^3.2.0"
+    "@graphql-typed-document-node/core": "^3.2.0",
+    "htmlparser2": "~12.0.0"
   },
   "devDependencies": {
     "@formulate/eslint-config": "workspace:*",
