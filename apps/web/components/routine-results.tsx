@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  authorisedClaimFor,
   formatMoney,
   type Routine,
   type RoutineGoal,
@@ -45,6 +46,9 @@ export const RoutineResults = ({
   const currencyCode = routine.items[0]?.product.currencyCode ?? "GBP";
   const allSubscriptions = chosen.every((item) => item.product.sellingPlanId);
 
+  // The authorised claim for the goal that put it here (Article 10(3)).
+  const claimFor = (item: RoutineItem) =>
+    authorisedClaimFor(item.product.handle, item.forGoals);
   const goalLabel = (key: string) =>
     goals.find((goal) => goal.key === key)?.label.toLowerCase() ?? key;
   const forGoals = (item: RoutineItem) =>
@@ -86,6 +90,9 @@ export const RoutineResults = ({
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="font-semibold text-foreground">{product.title}</span>
                   <span className="text-sm text-foreground-muted">{forGoals(item)}</span>
+                  {claimFor(item) ? (
+                    <span className="text-sm text-foreground">{claimFor(item)}</span>
+                  ) : null}
                 </span>
                 <span className="shrink-0 text-right text-sm">
                   <span className="block font-mono text-foreground">
