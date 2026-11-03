@@ -262,9 +262,31 @@ export const ProductCardFields = graphql(`
  * only for now; `productFilters` are the filters for these results.
  */
 export const SearchProductsQuery = graphql(`
-  query SearchProducts($query: String!, $first: Int!, $filters: [ProductFilter!]) {
-    search(query: $query, first: $first, types: [PRODUCT], productFilters: $filters) {
+  query SearchProducts(
+    $query: String!
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $filters: [ProductFilter!]
+  ) {
+    # Cursor paging, as for collections (src/pagination.ts).
+    search(
+      query: $query
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      types: [PRODUCT]
+      productFilters: $filters
+    ) {
       totalCount
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
       productFilters {
         ...FilterFields
       }
