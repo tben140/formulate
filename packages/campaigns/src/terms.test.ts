@@ -24,6 +24,25 @@ describe("campaignTerms", () => {
       "one per active subscription, added to the next delivery after 30 November.",
     );
   });
+
+  it("reads naturally for tiered and bundle offers", () => {
+    const tiered = campaignTerms(
+      campaign,
+      parseOfferRules(
+        '{"type":"tiered","tiers":[{"minSubtotal":"40.00","percent":10},{"minSubtotal":"60.00","percent":20}]}',
+      )!,
+    );
+    expect(tiered).toContain(
+      "10% off when you spend £40.00, or 20% off when you spend £60.00 on one-time purchases of the products on this page",
+    );
+    const bundle = campaignTerms(
+      campaign,
+      parseOfferRules('{"type":"bundle","buy":3,"free":1}')!,
+    );
+    expect(bundle).toContain(
+      "Buy 3, get the cheapest one free, on one-time purchases of the products on this page",
+    );
+  });
 });
 
 describe("check against the generated terms", () => {
