@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   deliveryPromise,
+  deliveryQuote,
+  planIntervalDays,
+  supplyLabel,
+  supplyUnits,
   isIntroductoryPlan,
   pricePerDay,
   renewalTerms,
@@ -58,6 +62,51 @@ describe("subscribe and save", () => {
       false,
     );
     expect(isIntroductoryPlan([{ price: gbp("13.56") }])).toBe(false);
+  });
+
+  it("reads the interval from Recharge's frequency option", () => {
+    const opt = (value: string) => [
+      { name: "Recharge Plan ID", value: "1" },
+      { name: "Order Frequency and Unit", value },
+    ];
+    expect(planIntervalDays(opt("60-day"))).toBe(60);
+    expect(planIntervalDays(opt("2-week"))).toBe(14);
+    expect(planIntervalDays(opt("3-month"))).toBe(90);
+    expect(planIntervalDays(opt("whenever"))).toBeNull();
+    expect(planIntervalDays(undefined)).toBeNull();
+    expect([30, 60, 90].map((d) => supplyUnits(opt(`${d}-day`)))).toEqual([1, 2, 3]);
+    // Never below one, and one when the plan doesn't say.
+    expect(supplyUnits(opt("2-week"))).toBe(1);
+    expect(supplyUnits([])).toBe(1);
+  });
+
+  it("quotes a 90-day delivery as three supplies, saving on all three", () => {
+    const quote = deliveryQuote(gbp("15.95"), {
+      sellingPlan: { options: [{ name: "Order Frequency and Unit", value: "90-day" }] },
+      priceAdjustments: [{ price: gbp("13.56") }],
+    });
+    expect(quote).toEqual({
+      units: 3,
+      days: 90,
+      price: gbp("40.68"),
+      oneTime: gbp("47.85"),
+      saving: { amount: gbp("7.17"), percent: 15 },
+      later: null,
+    });
+    expect(pricePerDay(quote.price, quote.days)).toBe("45p a day");
+    expect(supplyLabel(quote.units)).toBe("90-day supply (3 × 30-day packs)");
+    expect(renewalTerms(quote.price, "Plan", null, quote.units)).toContain(
+      "£40.68 is charged for each delivery of a 90-day supply",
+    );
+  });
+
+  it("quotes one-time as one supply with no saving", () => {
+    expect(deliveryQuote(gbp("15.95"), null)).toMatchObject({
+      units: 1,
+      price: gbp("15.95"),
+      saving: null,
+    });
+    expect(supplyLabel(1)).toBeNull();
   });
 
   it("names the free-delivery threshold from the shared constant", () => {

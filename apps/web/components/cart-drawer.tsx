@@ -7,6 +7,8 @@ import {
   optimisticCart,
   optimisticCartReducer,
   pendingLineIds,
+  supplyLabel,
+  supplyUnits,
   type Cart,
   type CartChange,
   type CartSuggestion,
@@ -225,19 +227,39 @@ export const CartDrawer = ({
                       ) : null}
 
                       <div className="mt-2 flex items-center justify-between gap-2">
-                        <form action={changeLine} className="flex items-center gap-1">
-                          <input type="hidden" name="lineId" value={line.id} />
-                          <label htmlFor={`qty-${line.id}`} className="sr-only">
-                            Quantity for {variant.product.title}
-                          </label>
-                          <QuantityInput id={`qty-${line.id}`} quantity={line.quantity} />
-                          <button
-                            type="submit"
-                            className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
-                          >
-                            Update
-                          </button>
-                        </form>
+                        {supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) >
+                          1 &&
+                        line.quantity ===
+                          supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) ? (
+                          // A 60- or 90-day plan's quantity is its supply, set by
+                          // the plan (deliveryQuote), so it can only be removed.
+                          // Any other quantity (the same plan added twice) keeps
+                          // the quantity box, so it can be corrected.
+                          <p className="text-xs text-foreground-muted">
+                            {supplyLabel(
+                              supplyUnits(
+                                line.sellingPlanAllocation?.sellingPlan.options,
+                              ),
+                            )}
+                          </p>
+                        ) : (
+                          <form action={changeLine} className="flex items-center gap-1">
+                            <input type="hidden" name="lineId" value={line.id} />
+                            <label htmlFor={`qty-${line.id}`} className="sr-only">
+                              Quantity for {variant.product.title}
+                            </label>
+                            <QuantityInput
+                              id={`qty-${line.id}`}
+                              quantity={line.quantity}
+                            />
+                            <button
+                              type="submit"
+                              className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
+                            >
+                              Update
+                            </button>
+                          </form>
+                        )}
 
                         <p className="font-mono text-sm">
                           {formatMoney(line.cost.totalAmount)}

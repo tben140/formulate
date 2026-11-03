@@ -1,13 +1,12 @@
 import {
   deliveryPromise,
-  isIntroductoryPlan,
   findVariantByOptions,
   formatMoney,
   pricePerDay,
   renewalTerms,
   savingMessage,
   SUBSCRIPTION_BENEFITS,
-  subscriptionSaving,
+  supplyLabel,
   withOption,
 } from "@formulate/shopify";
 import { Pressable, View, type LayoutChangeEvent } from "react-native";
@@ -39,25 +38,25 @@ export const AddToCart = ({
     selected,
     setSelected,
     setPlanId,
-    variant,
     allocations,
     effectivePlanId,
     displayPrice,
+    quote,
+    quoteFor,
     disabled,
     choices,
     label,
     add,
   } = purchase;
 
-  // What a subscription option saves against buying once; null for one-time.
-  const saving = (choice: (typeof choices)[number]) => {
-    if (!choice.id || !choice.price) return null;
-    // No saving claim for a plan whose price rises later (isIntroductoryPlan).
-    const adjustments =
-      allocations.find((a) => a.sellingPlan.id === choice.id)?.priceAdjustments ?? [];
-    if (isIntroductoryPlan(adjustments)) return null;
-    return subscriptionSaving(variant?.price, choice.price);
-  };
+  // What a subscription option saves on one delivery; null for one-time.
+  const saving = (choice: (typeof choices)[number]) =>
+    quoteFor(choice.id)?.saving ?? null;
+  // A 60- or 90-day plan's price is for its whole 60- or 90-day supply.
+  const price = (choice: (typeof choices)[number]) =>
+    quoteFor(choice.id)?.price ?? choice.price;
+  const supply = (choice: (typeof choices)[number]) =>
+    supplyLabel(quoteFor(choice.id)?.units ?? 1);
   const planName =
     allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
     null;
@@ -134,10 +133,18 @@ export const AddToCart = ({
                 accessibilityRole="radio"
                 aria-checked={effectivePlanId === choice.id}
                 accessibilityLabel={
-                  choice.price
-                    ? saving(choice) && variant
-                      ? `${choice.label}, ${formatMoney(choice.price)} instead of ${formatMoney(variant.price)}. ${savingMessage(saving(choice)!)}. ${SUBSCRIPTION_BENEFITS}`
-                      : `${choice.label}, ${formatMoney(choice.price)}`
+                  price(choice)
+                    ? [
+                        saving(choice)
+                          ? `${choice.label}, ${formatMoney(price(choice)!)} instead of ${formatMoney(quoteFor(choice.id)!.oneTime)}`
+                          : `${choice.label}, ${formatMoney(price(choice)!)}`,
+                        supply(choice) ? `${supply(choice)} every delivery` : null,
+                        saving(choice)
+                          ? `${savingMessage(saving(choice)!)}. ${SUBSCRIPTION_BENEFITS}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(". ")
                     : choice.label
                 }
                 className={`flex-row items-center justify-between rounded-md border px-3 py-3 ${
@@ -148,21 +155,26 @@ export const AddToCart = ({
               >
                 <View className="flex-1 pr-3">
                   <Text className="text-sm text-foreground">{choice.label}</Text>
+                  {supply(choice) ? (
+                    <Text className="mt-0.5 text-xs text-foreground">
+                      {supply(choice)} every delivery
+                    </Text>
+                  ) : null}
                   {saving(choice) ? (
                     <Text className="mt-0.5 text-xs text-foreground">
                       {savingMessage(saving(choice)!)} · {SUBSCRIPTION_BENEFITS}
                     </Text>
                   ) : null}
                 </View>
-                {choice.price ? (
+                {price(choice) ? (
                   // One right-hand column for every price, as on web and the
                   // theme: struck-through above, subscription price below.
                   <View className="items-end">
-                    {saving(choice) && variant ? (
+                    {saving(choice) ? (
                       // The one-time price, on sale now: a real comparison
                       // (packages/shopify/src/subscribe-and-save.ts).
                       <Text className="font-mono text-sm text-foreground line-through">
-                        {formatMoney(variant.price)}
+                        {formatMoney(quoteFor(choice.id)!.oneTime)}
                       </Text>
                     ) : null}
                     <Text
@@ -172,7 +184,7 @@ export const AddToCart = ({
                           : "text-foreground-muted"
                       }`}
                     >
-                      {formatMoney(choice.price)}
+                      {formatMoney(price(choice)!)}
                     </Text>
                   </View>
                 ) : null}
@@ -189,7 +201,7 @@ export const AddToCart = ({
             {formatMoney(displayPrice)}
           </Text>
           <Text className="mt-1 text-sm text-foreground-muted">
-            {pricePerDay(displayPrice)} · {deliveryPromise()}
+            {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
           </Text>
         </View>
       ) : null}
@@ -209,12 +221,7 @@ export const AddToCart = ({
         // The renewal terms, before purchase and next to the button
         // (California's Automatic Renewal Law; the UK's DMCC rules from 2027).
         <Text className="text-xs text-foreground-muted">
-          {renewalTerms(
-            displayPrice,
-            planName,
-            allocations.find((a) => a.sellingPlan.id === effectivePlanId)
-              ?.priceAdjustments[1]?.price,
-          )}
+          {renewalTerms(displayPrice, planName, quote?.later, quote?.units)}
         </Text>
       ) : null}
 
