@@ -21,13 +21,24 @@ const mockCheckout = {
     return { remove: () => delete mockListeners[name] };
   },
 };
-const mockUpdateLine = { mutate: jest.fn<(change: unknown) => void>(), isPending: false };
+const mockUpdateLine = {
+  mutate: jest.fn<(change: unknown) => void>(),
+  isPending: false,
+  lineError: null,
+};
 const mockClearCart = { mutate: jest.fn<() => void>() };
 const mockCart: { data: unknown; isPending: boolean } = { data: null, isPending: false };
 
 jest.mock("../../lib/checkout", () => ({ useCheckout: () => mockCheckout }));
 jest.mock("../../lib/use-cart", () => ({
   useCart: () => mockCart,
+  // The sheet reads the optimistic cart (SHO-52); with nothing in flight it's
+  // the confirmed cart and no line is busy.
+  useOptimisticCart: () => ({
+    cart: mockCart.data,
+    busy: new Set<string>(),
+    isPending: mockCart.isPending,
+  }),
   useUpdateCartLine: () => mockUpdateLine,
   useClearCart: () => mockClearCart,
 }));
