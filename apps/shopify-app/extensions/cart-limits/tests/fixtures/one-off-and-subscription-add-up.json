@@ -7,8 +7,10 @@
         "lines": [
           {
             "quantity": 1,
+            "blend": null,
             "merchandise": {
               "__typename": "ProductVariant",
+              "blendSize": null,
               "product": {
                 "id": "gid://shopify/Product/2",
                 "title": "Vitamin D3"
@@ -17,8 +19,10 @@
           },
           {
             "quantity": 4,
+            "blend": null,
             "merchandise": {
               "__typename": "ProductVariant",
+              "blendSize": null,
               "product": {
                 "id": "gid://shopify/Product/1",
                 "title": "Magnesium Glycinate"
@@ -27,8 +31,10 @@
           },
           {
             "quantity": 3,
+            "blend": null,
             "merchandise": {
               "__typename": "ProductVariant",
+              "blendSize": null,
               "product": {
                 "id": "gid://shopify/Product/1",
                 "title": "Magnesium Glycinate"
