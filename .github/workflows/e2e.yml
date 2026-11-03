@@ -23,7 +23,9 @@ concurrency:
   # state is in the group so that a later non-success status for the same
   # deployment doesn't cancel a run that's already testing it; that status's
   # own job is skipped anyway.
-  group: ${{ github.workflow }}-${{ github.event.deployment.id || github.ref }}-${{ github.event.deployment_status.state || 'manual' }}
+  # A manual run is its own group (run_id), so two runs against different URLs
+  # both finish.
+  group: ${{ github.workflow }}-${{ github.event.deployment.id || github.run_id }}-${{ github.event.deployment_status.state || 'manual' }}
   cancel-in-progress: true
 
 permissions:

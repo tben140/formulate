@@ -11,6 +11,16 @@ export const VERCEL_AUTH_STATE = "e2e/.auth/vercel.json";
  */
 const VERCEL_PROJECT_HOST = /^web-[a-z0-9-]+\.vercel\.app$/;
 
+/** Whether a base URL is one of this project's Vercel deployments, over https. */
+export const isVercelProjectUrl = (baseURL: string): boolean => {
+  try {
+    const target = new URL(baseURL);
+    return target.protocol === "https:" && VERCEL_PROJECT_HOST.test(target.hostname);
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Gets past Vercel Deployment Protection once, before any test runs (SHO-140).
  *
@@ -29,12 +39,14 @@ const globalSetup = async () => {
   const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   if (!baseURL || !secret) return;
 
-  const target = new URL(baseURL);
-  if (target.protocol !== "https:" || !VERCEL_PROJECT_HOST.test(target.hostname)) {
-    throw new Error(
-      `Vercel bypass refused: ${target.origin} isn't one of this project's Vercel deployments ` +
-        "(https://web-….vercel.app), so the bypass secret isn't sent to it.",
+  // Anywhere else (a manual run against another URL) runs unprotected: the
+  // secret is never sent, and the tests start without the bypass cookie
+  // (playwright.config.ts asks the same question).
+  if (!isVercelProjectUrl(baseURL)) {
+    console.info(
+      `[e2e] ${new URL(baseURL).origin} isn't one of this project's Vercel deployments: running without the bypass.`,
     );
+    return;
   }
 
   const browser = await chromium.launch();
