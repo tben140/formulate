@@ -37,7 +37,7 @@ interface AppOwnedLike {
   readonly appName?: string | null;
 }
 
-interface SellingPlanGroupLike extends AppOwnedLike {
+export interface SellingPlanGroupLike extends AppOwnedLike {
   readonly sellingPlans: { readonly nodes: readonly { readonly id: string }[] };
 }
 

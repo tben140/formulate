@@ -44,8 +44,14 @@ const LINE_KEY = ["cart", "line"] as const;
 
 interface LineChange {
   readonly lineId: string;
-  readonly quantity: number;
+  /** Omitted when only the plan changes. */
+  readonly quantity?: number;
+  /** Switches the line to this subscription plan ("Subscribe & save"). */
+  readonly sellingPlanId?: string;
 }
+
+/** A change the optimistic cart can show: one with a quantity. */
+type QuantityChange = LineChange & { readonly quantity: number };
 
 /**
  * An Error whose message a shopper can read, with the developer detail logged.
@@ -145,13 +151,23 @@ export const useUpdateCartLine = () => {
     // One at a time: each answer is the whole cart, and a slow early answer
     // must not land after a later one and undo it.
     scope: { id: "cart-lines" },
-    mutationFn: async ({ lineId, quantity }: LineChange): Promise<Cart> => {
+    mutationFn: async ({
+      lineId,
+      quantity,
+      sellingPlanId,
+    }: LineChange): Promise<Cart> => {
       const id = await readCartId();
       if (!id) throw new Error("No cart to update.");
 
       // Quantity zero is how Shopify expresses removal on an update, so the
       // caller never has to choose between two mutations.
-      const result = await cartClient.updateLines(id, [{ id: lineId, quantity }]);
+      const result = await cartClient.updateLines(id, [
+        {
+          id: lineId,
+          ...(quantity !== undefined ? { quantity } : {}),
+          ...(sellingPlanId ? { sellingPlanId } : {}),
+        },
+      ]);
       if (!result.ok) throw shopperError(result.error);
 
       return result.data;
@@ -179,14 +195,26 @@ export const useOptimisticCart = () => {
   });
   const state = {
     confirmed: data ?? null,
-    pending: pending.map((change, index): CartChange =>
-      change.quantity > 0
-        ? { id: String(index), kind: "update", ...change }
-        : { id: String(index), kind: "remove", lineId: change.lineId },
-    ),
+    // Only quantity changes are shown ahead of Shopify. A plan switch changes
+    // the price in ways only Shopify knows, so it shows when Shopify answers.
+    pending: pending
+      .filter((change): change is QuantityChange => change.quantity !== undefined)
+      .map((change, index): CartChange =>
+        change.quantity > 0
+          ? { id: String(index), kind: "update", ...change }
+          : { id: String(index), kind: "remove", lineId: change.lineId },
+      ),
     error: null,
   };
-  return { cart: optimisticCart(state), busy: pendingLineIds(state), isPending };
+  // A plan switch isn't shown ahead of Shopify, but its line is busy until
+  // Shopify answers, so checkout waits for it.
+  const busy = new Set([
+    ...pendingLineIds(state),
+    ...pending
+      .filter((change) => change.quantity === undefined)
+      .map((change) => change.lineId),
+  ]);
+  return { cart: optimisticCart(state), busy, isPending };
 };
 
 /** Called after checkout completes, so the next read starts a fresh cart. */

@@ -107,6 +107,15 @@ export {
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
 export type { ProductFilter } from "./generated/graphql";
+export {
+  STACK_PERCENT,
+  STACK_SIZE,
+  stackMessage,
+  stackProgress,
+  subscribeOffer,
+  subscribeOfferLabel,
+} from "./cart-offers";
+export type { OfferLine, StackLine, StackProgress, SubscribeOffer } from "./cart-offers";
 
 export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";

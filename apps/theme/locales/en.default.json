@@ -46,7 +46,12 @@
       "add_for": "{{ title }} to cart",
       "choose": "Choose options",
       "choose_for": "for {{ title }}"
-    }
+    },
+    "subscribe_and_save": "Subscribe & save {{ amount }} a delivery",
+    "subscribe_and_save_on": " on {{ title }}, {{ plan }}",
+    "stack_applied": "Build your stack: 10% off your one-time items, at checkout",
+    "stack_away_one": "Add 1 more different product for 10% off your one-time items",
+    "stack_away_many": "Add {{ count }} more different products for 10% off your one-time items"
   },
   "collections": {
     "title": "Collections",

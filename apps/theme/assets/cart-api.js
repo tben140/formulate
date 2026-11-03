@@ -80,7 +80,13 @@ export const addItem = (variantId, quantity, sellingPlanId) =>
  * @param {string} lineKey Shopify's line key, not the variant id — the same
  *   variant can appear twice with different selling plans.
  * @param {number} quantity
+ * @param {string} [sellingPlan] Switches the line to this subscription plan
+ *   ("Subscribe & save" in the drawer).
  * @returns {Promise<CartResponse>}
  */
-export const changeItem = (lineKey, quantity) =>
-  post("/cart/change.js", { id: lineKey, quantity });
+export const changeItem = (lineKey, quantity, sellingPlan) =>
+  post("/cart/change.js", {
+    id: lineKey,
+    quantity,
+    ...(sellingPlan ? { selling_plan: Number(sellingPlan) } : {}),
+  });

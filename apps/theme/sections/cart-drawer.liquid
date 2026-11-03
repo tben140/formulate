@@ -115,6 +115,37 @@
       </div>
     {% endif %}
 
+    {% comment %}
+      "Build your stack" progress, as packages/shopify's stackProgress: the
+      stack-discount Function's rule (3 different products, then 10% off the
+      one-time items). Shown only when there's a one-time item to discount.
+    {% endcomment %}
+    {%- liquid
+      assign stack_products = ''
+      assign stack_count = 0
+      for item in cart.items
+        assign stack_key = item.product_id | append: ','
+        unless stack_products contains stack_key
+          assign stack_products = stack_products | append: stack_key
+          assign stack_count = stack_count | plus: 1
+        endunless
+      endfor
+    -%}
+    {% if free_shipping_one_time > 0 %}
+      <p class="cart-drawer__stack" data-stack-message>
+        {%- if stack_count >= 3 -%}
+          {{- 'cart.stack_applied' | t -}}
+        {%- else -%}
+          {%- assign stack_needed = 3 | minus: stack_count -%}
+          {%- if stack_needed == 1 -%}
+            {{- 'cart.stack_away_one' | t -}}
+          {%- else -%}
+            {{- 'cart.stack_away_many' | t: count: stack_needed -}}
+          {%- endif -%}
+        {%- endif -%}
+      </p>
+    {% endif %}
+
     {% if cart.item_count == 0 %}
       <p class="cart-drawer__empty">{{ 'cart.empty' | t }}</p>
     {% else %}
@@ -154,6 +185,44 @@
                 <p class="cart-line__plan">
                   {{ item.selling_plan_allocation.selling_plan.name }}
                 </p>
+              {% endif %}
+
+              {% comment %}
+                "Subscribe & save" on a one-time line: the first subscription
+                plan an app manages that costs less, as packages/shopify's
+                subscribeOffer. A real form to /cart/change, which accepts a
+                selling plan; cart-drawer.js submits it in place.
+              {% endcomment %}
+              {%- liquid
+                assign subscribe_plan = nil
+                unless item.selling_plan_allocation
+                  assign line_owned_groups = ''
+                  for group in item.product.selling_plan_groups
+                    if group.app_id
+                      assign line_owned_groups = line_owned_groups | append: group.id | append: ','
+                    endif
+                  endfor
+                  for allocation in item.variant.selling_plan_allocations
+                    assign line_group_key = allocation.selling_plan_group_id | append: ','
+                    if line_owned_groups contains line_group_key and allocation.selling_plan.recurring_deliveries and allocation.price < item.variant.price
+                      assign subscribe_plan = allocation
+                      break
+                    endif
+                  endfor
+                endunless
+              -%}
+              {% if subscribe_plan %}
+                {%- assign subscribe_saving = item.variant.price | minus: subscribe_plan.price | times: item.quantity | money -%}
+                <form action="{{ routes.cart_change_url }}" method="post" class="cart-line__subscribe">
+                  <input type="hidden" name="id" value="{{ item.key }}">
+                  <input type="hidden" name="quantity" value="{{ item.quantity }}">
+                  <input type="hidden" name="selling_plan" value="{{ subscribe_plan.selling_plan.id }}">
+                  <button type="submit" class="cart-line__subscribe-button">
+                    {{ 'cart.subscribe_and_save' | t: amount: subscribe_saving }}
+                    <span class="visually-hidden">
+                      {{ 'cart.subscribe_and_save_on' | t: title: item.product.title, plan: subscribe_plan.selling_plan.name }}</span>
+                  </button>
+                </form>
               {% endif %}
 
               <div class="cart-line__controls">

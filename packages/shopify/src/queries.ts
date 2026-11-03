@@ -465,6 +465,33 @@ export const CartFields = graphql(`
               id
               handle
               title
+              # Which plans an app manages, for "Switch to subscribe" on a
+              # one-time line (cart-offers.ts; purchasableAllocations).
+              sellingPlanGroups(first: 5) {
+                nodes {
+                  appName
+                  sellingPlans(first: 5) {
+                    nodes {
+                      id
+                    }
+                  }
+                }
+              }
+            }
+            sellingPlanAllocations(first: 5) {
+              nodes {
+                sellingPlan {
+                  id
+                  name
+                  recurringDeliveries
+                }
+                priceAdjustments {
+                  price {
+                    amount
+                    currencyCode
+                  }
+                }
+              }
             }
           }
         }

@@ -7,17 +7,21 @@ import {
   optimisticCart,
   optimisticCartReducer,
   pendingLineIds,
+  stackMessage,
+  stackProgress,
+  subscribeOffer,
   type Cart,
   type CartChange,
   type CartSuggestion,
 } from "@formulate/shopify";
-import { useEffect, useOptimistic, useRef, useState } from "react";
+import { useCallback, useEffect, useOptimistic, useRef, useState } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 
 import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
 import { FreeShippingBar } from "./free-shipping-bar";
+import { SubscribeLineForm } from "./subscribe-line-form";
 import { CartSuggestions } from "./cart-suggestions";
 /**
  * The slide-in cart.
@@ -90,7 +94,19 @@ export const CartDrawer = ({
   );
   const [error, setError] = useState<string | null>(null);
   const shown = optimisticCart(state);
-  const busy = pendingLineIds(state);
+  // Lines switching to a subscription: their own form's pending state,
+  // shared here so checkout waits for the switch as it waits for quantities.
+  const [subscribing, setSubscribing] = useState<ReadonlySet<string>>(new Set());
+  const onSubscribing = useCallback((lineId: string, pending: boolean) => {
+    setSubscribing((current) => {
+      if (current.has(lineId) === pending) return current;
+      const next = new Set(current);
+      if (pending) next.add(lineId);
+      else next.delete(lineId);
+      return next;
+    });
+  }, []);
+  const busy = new Set([...pendingLineIds(state), ...subscribing]);
   const lines = shown?.lines.nodes ?? [];
 
   const changeLine = async (formData: FormData) => {
@@ -160,6 +176,16 @@ export const CartDrawer = ({
         {/* The optimistic lines: their totals are rescaled as quantities change,
             so the bar moves with them (SHO-52). */}
         <FreeShippingBar lines={lines} />
+        {/* Always rendered, so a change is announced: a live region that
+            appears already filled in often isn't. */}
+        <p
+          role="status"
+          className={
+            stackProgress(lines) ? "border-b border-border px-4 py-2 text-sm" : "sr-only"
+          }
+        >
+          {stackProgress(lines) ? stackMessage(stackProgress(lines)!) : ""}
+        </p>
 
         {error ? (
           <p
@@ -222,6 +248,17 @@ export const CartDrawer = ({
                         <p className="mt-0.5 text-xs font-medium text-brand-600">
                           {line.sellingPlanAllocation.sellingPlan.name}
                         </p>
+                      ) : null}
+                      {subscribeOffer(line) ? (
+                        // The one nudge that matters most for a subscription
+                        // shop: the shopper who skipped the choice on the
+                        // product page (cart-offers.ts).
+                        <SubscribeLineForm
+                          lineId={line.id}
+                          productTitle={variant.product.title}
+                          offer={subscribeOffer(line)!}
+                          onPending={onSubscribing}
+                        />
                       ) : null}
 
                       <div className="mt-2 flex items-center justify-between gap-2">

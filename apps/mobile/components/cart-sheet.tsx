@@ -1,9 +1,17 @@
-import { formatMoney } from "@formulate/shopify";
+import {
+  formatMoney,
+  stackMessage,
+  stackProgress,
+  subscribeOffer,
+  subscribeOfferLabel,
+} from "@formulate/shopify";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -107,6 +115,21 @@ export const CartSheet = ({
   }, [onClose]);
 
   const lines = cart?.lines.nodes ?? [];
+  const stack = stackProgress(lines);
+  const stackText = stack ? stackMessage(stack) : "";
+  // As FreeShippingBar: the live region covers Android; iOS needs an explicit
+  // announcement, and only of a change, not the first message.
+  const previousStack = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      previousStack.current !== null &&
+      stackText &&
+      stackText !== previousStack.current
+    ) {
+      if (Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(stackText);
+    }
+    previousStack.current = stackText;
+  }, [stackText]);
 
   return (
     <Modal
@@ -141,6 +164,14 @@ export const CartSheet = ({
 
         {/* Above the lines, so VoiceOver reaches it before the list. */}
         <FreeShippingBar lines={lines} />
+        {stackText ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            className="border-b border-border px-4 py-2 text-sm text-foreground"
+          >
+            {stackText}
+          </Text>
+        ) : null}
 
         {updateLine.lineError ? (
           <Text
@@ -198,6 +229,28 @@ export const CartSheet = ({
                       <Text className="mt-0.5 text-xs font-medium text-brand-600">
                         {line.sellingPlanAllocation.sellingPlan.name}
                       </Text>
+                    ) : null}
+
+                    {subscribeOffer(line) ? (
+                      // The shopper who skipped the choice on the product page
+                      // (packages/shopify/src/cart-offers.ts).
+                      <Pressable
+                        onPress={() =>
+                          updateLine.mutate({
+                            lineId: line.id,
+                            sellingPlanId: subscribeOffer(line)!.sellingPlanId,
+                          })
+                        }
+                        disabled={updateLine.isPending}
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: updateLine.isPending }}
+                        accessibilityLabel={`${subscribeOfferLabel(subscribeOffer(line)!)} on ${variant.product.title}, ${subscribeOffer(line)!.planName}`}
+                        className="mt-1 min-h-11 justify-center self-start"
+                      >
+                        <Text className="text-xs font-medium text-brand-600 underline">
+                          {subscribeOfferLabel(subscribeOffer(line)!)}
+                        </Text>
+                      </Pressable>
                     ) : null}
 
                     <View className="mt-2 flex-row items-center justify-between">
