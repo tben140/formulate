@@ -195,6 +195,22 @@ importers:
         specifier: 4.1.12
         version: 4.1.12(@types/node@26.1.1)(vite@8.1.6(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
 
+  apps/shopify-app/extensions/order-next-steps:
+    dependencies:
+      '@preact/signals':
+        specifier: 2.11.3
+        version: 2.11.3(preact@10.29.8)
+      '@shopify/ui-extensions':
+        specifier: 2026.7.4
+        version: 2026.7.4(@preact/signals@2.11.3(preact@10.29.8))(preact@10.29.8)
+      preact:
+        specifier: 10.29.8
+        version: 10.29.8
+    devDependencies:
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+
   apps/shopify-app/extensions/stack-discount:
     dependencies:
       '@shopify/shopify_function':
@@ -210,6 +226,41 @@ importers:
       '@shopify/shopify-function-test-helpers':
         specifier: 1.1.0
         version: 1.1.0
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 4.1.12
+        version: 4.1.12(@types/node@26.1.1)(vite@8.1.6(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
+
+  apps/shopify-app/extensions/stack-discount-settings:
+    dependencies:
+      '@preact/signals':
+        specifier: 2.11.3
+        version: 2.11.3(preact@10.29.8)
+      '@shopify/ui-extensions':
+        specifier: 2026.7.4
+        version: 2026.7.4(@preact/signals@2.11.3(preact@10.29.8))(preact@10.29.8)
+      preact:
+        specifier: 10.29.8
+        version: 10.29.8
+    devDependencies:
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+
+  apps/shopify-app/extensions/subscription-summary:
+    dependencies:
+      '@preact/signals':
+        specifier: 2.11.3
+        version: 2.11.3(preact@10.29.8)
+      '@shopify/ui-extensions':
+        specifier: 2026.7.4
+        version: 2026.7.4(@preact/signals@2.11.3(preact@10.29.8))(preact@10.29.8)
+      preact:
+        specifier: 10.29.8
+        version: 10.29.8
+    devDependencies:
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -2358,6 +2409,14 @@ packages:
   '@poppinss/exception@1.2.3':
     resolution: {integrity: sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==}
 
+  '@preact/signals-core@1.14.4':
+    resolution: {integrity: sha512-HNB6HYeYKhQbJ1aKl+YRjrS4+QWHLKX6qKoUsfS/m0vqzsVaEBiZiaKbG/e+NKk2ch5ALQr/ihWaMHxiCuuWHA==}
+
+  '@preact/signals@2.11.3':
+    resolution: {integrity: sha512-mttwFM98G/JiriTgMwU+UWygL6sfVmYEiNcPSKkUnv4PxPpZhmP2ugGC4qi360+ZIHyQ8NY05bfJT3b4RUIGlw==}
+    peerDependencies:
+      preact: '>= 10.25.0 || >=11.0.0-0'
+
   '@radix-ui/primitive@1.1.7':
     resolution: {integrity: sha512-rqWnm76nYT8HoNNqEjpgJ7Pw/DrBj5iBTrmEPo6HTX5+VJyBNOqTdv4g89G63HuR5g0AaENoAcH7Is5fF2kZ8Q==}
 
@@ -2751,6 +2810,17 @@ packages:
   '@shopify/shopify_function@2.0.1':
     resolution: {integrity: sha512-MEqIm1RJuF28ppuOqXpPeJ3SDSowtgmDGS5GYZ5j85izovmQ2HxK0oFKZyjmfYMvzZairRKVvHp+YYdPdqdp4g==}
 
+  '@shopify/ui-extensions@2026.7.4':
+    resolution: {integrity: sha512-z0CcCIpQCAYnEJ+A4pW0zW1KdVQZnrD4uZVMWcci8IeCTCF62yYm0k5CZCnwdrP70l2v7ZX3rsy/bGqOjRAbug==}
+    peerDependencies:
+      '@preact/signals': '*'
+      preact: '*'
+    peerDependenciesMeta:
+      '@preact/signals':
+        optional: true
+      preact:
+        optional: true
+
   '@sinclair/typebox@0.27.12':
     resolution: {integrity: sha512-hhyNJ+nbR6ZR7pToHvllEFun9TL0sbL+tk/ON75lo+Xas054uez98qRbsuNt7MBCyZKK4+8Yli/OAGZhmfBZ/g==}
 
@@ -2866,6 +2936,9 @@ packages:
     resolution: {integrity: sha512-yRg2pfOCxIs4ZJW3XYYHU/WgtD04FHSnfHlpRT7h7pR77hwkdRG4wxbKe4aq6P0RvXUTBSQpQeadS1SUYUe+KA==}
     peerDependencies:
       react: 19.3.0
+
+  '@ts-morph/common@0.26.1':
+    resolution: {integrity: sha512-Sn28TGl/4cFpcM+jwsH1wLncYq3FtN/BIpem+HOygfBWPT5pAeS5dB4VFVzV8FbnOKHpDLZmvAl4AjPEev5idA==}
 
   '@turbo/darwin-64@2.10.6':
     resolution: {integrity: sha512-S+yIyZkmjYBQbIM7sTqMAwnLeMjSK60Q9grUDPbTWvkRjbsn5k1Rt5sPvTX80M4PnlYQBwLiYsjlu6tHsuIqQQ==}
@@ -3673,6 +3746,9 @@ packages:
   clone@1.0.4:
     resolution: {integrity: sha512-JQHZ2QMW6l3aH/j6xCqQThY/9OH4D/9ls34cgkUBiEeocRTU04tHfKPBsUK1PqZCUQM7GiA0IIXJSuXHI64Kbg==}
     engines: {node: '>=0.8'}
+
+  code-block-writer@13.0.3:
+    resolution: {integrity: sha512-Oofo0pq3IKnsFtuHqSF7TqBfr71aeyZDVJ0HpmqB7FBM2qEigL0iPONSCZSO9pE9dZTAxANe5XHG9Uy0YMv8cg==}
 
   color-convert@1.9.3:
     resolution: {integrity: sha512-QfAUtd+vFdAtFQcC8CCyYt1fYWxSqAiK2cSD6zDB8N3cpsEBAvRxp9zOGg6G/SHHJYAT88/az/IuDGALsNVbGg==}
@@ -5741,6 +5817,9 @@ packages:
   pascal-case@3.1.2:
     resolution: {integrity: sha512-uWlGT3YSnK9x3BQJaOdcZwrnV6hPpd8jFH1/ucpiLRPh/2zCVJKS19E4GvYHvaCcACn3foXZ0cLB9Wrx1KGe5g==}
 
+  path-browserify@1.0.1:
+    resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
+
   path-case@3.0.4:
     resolution: {integrity: sha512-qO4qCFjXqVTrcbPt/hQfhTQ+VhFsqNKOPtytgNKkKxSoEp3XPUQ8ObFuePylOIok5gjn69ry8XiULxCwot3Wfg==}
 
@@ -5820,6 +5899,14 @@ packages:
   postcss@8.5.23:
     resolution: {integrity: sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg==}
     engines: {node: ^10 || ^12 || >=14}
+
+  preact@10.29.8:
+    resolution: {integrity: sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q==}
+    peerDependencies:
+      preact-render-to-string: '>=5'
+    peerDependenciesMeta:
+      preact-render-to-string:
+        optional: true
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -6528,6 +6615,9 @@ packages:
   ts-log@3.0.2:
     resolution: {integrity: sha512-esq6hx2lM66sQV1YcFkIYTqrWWabmqBqobKHyn1CswdI5FgfQhkmiKiRWVGBNlIbdjBxEIkNvMIwLKKPgRYZLQ==}
     engines: {node: '>=20', npm: '>=10'}
+
+  ts-morph@25.0.1:
+    resolution: {integrity: sha512-QJEiTdnz1YjrB3JFhd626gX4rKHDLSjSVMvGGG4v7ONc3RBwa0Eei98G9AT9uNFDMtV54JyuXsFeC+OH0n6bXQ==}
 
   tsconfig-paths@3.15.0:
     resolution: {integrity: sha512-2Ac2RgzDe/cn48GvOe3M+o82pEFewD3UPbyoUHHdKasHwJKjds4fLXWf/Ux5kATBKN20oaFGu+jbElp1pos0mg==}
@@ -9446,6 +9536,13 @@ snapshots:
 
   '@poppinss/exception@1.2.3': {}
 
+  '@preact/signals-core@1.14.4': {}
+
+  '@preact/signals@2.11.3(preact@10.29.8)':
+    dependencies:
+      '@preact/signals-core': 1.14.4
+      preact: 10.29.8
+
   '@radix-ui/primitive@1.1.7': {}
 
   '@radix-ui/react-collection@1.1.14(@types/react-dom@19.2.3(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
@@ -9859,6 +9956,13 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  '@shopify/ui-extensions@2026.7.4(@preact/signals@2.11.3(preact@10.29.8))(preact@10.29.8)':
+    dependencies:
+      ts-morph: 25.0.1
+    optionalDependencies:
+      '@preact/signals': 2.11.3(preact@10.29.8)
+      preact: 10.29.8
+
   '@sinclair/typebox@0.27.12': {}
 
   '@sindresorhus/is@7.2.0': {}
@@ -9946,6 +10050,12 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.101.4
       react: 19.3.0
+
+  '@ts-morph/common@0.26.1':
+    dependencies:
+      fast-glob: 3.3.3
+      minimatch: 9.0.9
+      path-browserify: 1.0.1
 
   '@turbo/darwin-64@2.10.6':
     optional: true
@@ -10773,6 +10883,8 @@ snapshots:
       wrap-ansi: 9.0.2
 
   clone@1.0.4: {}
+
+  code-block-writer@13.0.3: {}
 
   color-convert@1.9.3:
     dependencies:
@@ -13337,6 +13449,8 @@ snapshots:
       no-case: 3.0.4
       tslib: 2.8.1
 
+  path-browserify@1.0.1: {}
+
   path-case@3.0.4:
     dependencies:
       dot-case: 3.0.4
@@ -13396,6 +13510,8 @@ snapshots:
       nanoid: 3.3.18
       picocolors: 1.1.1
       source-map-js: 1.2.2
+
+  preact@10.29.8: {}
 
   prelude-ls@1.2.1: {}
 
@@ -14262,6 +14378,11 @@ snapshots:
   ts-log@2.2.7: {}
 
   ts-log@3.0.2: {}
+
+  ts-morph@25.0.1:
+    dependencies:
+      '@ts-morph/common': 0.26.1
+      code-block-writer: 13.0.3
 
   tsconfig-paths@3.15.0:
     dependencies:

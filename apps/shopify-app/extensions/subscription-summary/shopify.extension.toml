@@ -1,0 +1,25 @@
+api_version = "2026-07"
+
+[[extensions]]
+name = "Subscription summary"
+handle = "subscription-summary"
+uid = "063c654c-e11a-ee1c-69c1-717e9fe9376b41edc1a3"
+type = "ui_extension"
+
+# Under the order summary's list of items, only when the order has a
+# subscription. Checkout steps need Shopify Plus, which the dev store is.
+[[extensions.targeting]]
+module = "./src/SubscriptionSummary.tsx"
+target = "purchase.checkout.cart-line-list.render-after"
+
+[extensions.capabilities]
+# Plan frequency and discount come from the Storefront API: checkout itself
+# only says whether a line repeats.
+api_access = true
+
+[extensions.settings]
+[[extensions.settings.fields]]
+key = "manage_url"
+type = "single_line_text_field"
+name = "Where shoppers manage subscriptions"
+description = "A full https:// link, such as the Recharge customer portal. Leave empty to show the sentence without a link."
