@@ -1,7 +1,17 @@
 import { calendar } from "@formulate/campaigns/calendar";
 import { checkCampaign } from "@formulate/campaigns/check";
 import { duplicateFields, previewOffer } from "@formulate/campaigns/offer-preview";
+import { campaignOf } from "@formulate/campaigns/campaign-node";
+import { campaignReport } from "@formulate/campaigns/report";
 import { syncCampaign } from "@formulate/campaigns/run-sync";
+import {
+  BASELINE_DAYS,
+  campaignDays,
+  campaignUplift,
+  stockPlan,
+  unitsByProduct,
+} from "@formulate/campaigns/stock-plan";
+import { campaignDiscounts } from "@formulate/campaigns/sync";
 import {
   TEMPLATES,
   templateFields,
@@ -15,7 +25,10 @@ import {
   getDiscounts,
   getEntries,
   getEntry,
+  getOrders,
+  getRecentSales,
   setCampaignField,
+  tidyCampaign,
 } from "@formulate/campaigns/shopify-data";
 import type { Snapshot } from "@formulate/campaigns/types";
 import type { Admin } from "@formulate/campaigns/admin";
@@ -67,7 +80,11 @@ export const calendarData = async (
 };
 
 /** Everything the checks look at, without Klaviyo (no key here). */
-const loadSnapshot = async (admin: Admin, handle: string): Promise<Snapshot | null> => {
+const loadSnapshot = async (
+  admin: Admin,
+  handle: string,
+  includeExpired = false,
+): Promise<Snapshot | null> => {
   const entry = await getEntry(admin, handle);
   if (!entry) return null;
   const linked = entry.fields.collection
@@ -77,7 +94,7 @@ const loadSnapshot = async (admin: Admin, handle: string): Promise<Snapshot | nu
     entry,
     collection: linked?.collection ?? null,
     products: linked?.products ?? [],
-    discounts: await getDiscounts(admin, { includeExpired: false }),
+    discounts: await getDiscounts(admin, { includeExpired }),
     emails: null,
   };
 };
@@ -190,3 +207,109 @@ export const newCampaign = async (
 };
 
 export const TEMPLATE_NAMES = Object.keys(TEMPLATES);
+
+const DAY = 24 * 60 * 60 * 1000;
+const iso = (at: number) => new Date(at).toISOString();
+
+/**
+ * Stock against the plan (SHO-209): each product's likely sales during the
+ * campaign against its stock. The uplift is the last ended campaign's, when
+ * there is one with sales on both sides, otherwise the default.
+ */
+export const stockFor = async (admin: Admin, handle: string, now: Date = new Date()) => {
+  const snapshot = await loadSnapshot(admin, handle);
+  if (!snapshot) return null;
+  const campaign = campaignOf(snapshot.entry);
+  if (!campaign) return { error: "The campaign can't be read; run its checklist." };
+  const recent = unitsByProduct(
+    await getRecentSales(admin, iso(now.getTime() - BASELINE_DAYS * DAY)),
+  );
+
+  let uplift: number | null = null;
+  let upliftFrom: string | null = null;
+  const past = (await getEntries(admin))
+    .map((entry) => ({ entry, past: campaignOf(entry) }))
+    .filter(({ entry, past }) => entry.handle !== handle && past && past.endsAt <= now)
+    .sort((a, b) => b.past!.endsAt.getTime() - a.past!.endsAt.getTime())[0];
+  if (past?.past) {
+    const start = past.past.startsAt.getTime();
+    const end = past.past.endsAt.getTime();
+    const during = unitsByProduct(await getRecentSales(admin, iso(start), iso(end)));
+    const before = unitsByProduct(
+      await getRecentSales(admin, iso(start - BASELINE_DAYS * DAY), iso(start)),
+    );
+    uplift = campaignUplift(
+      during,
+      campaignDays(past.past.startsAt, past.past.endsAt),
+      before,
+      BASELINE_DAYS,
+    );
+    if (uplift) upliftFrom = past.past.title;
+  }
+
+  const days = campaignDays(campaign.startsAt, campaign.endsAt);
+  return {
+    days,
+    uplift: uplift ?? undefined,
+    upliftFrom,
+    lines: stockPlan(snapshot.products, recent, { days, ...(uplift ? { uplift } : {}) }),
+  };
+};
+
+/** After a campaign: its results, as `campaigns report`. */
+export const resultsFor = async (
+  admin: Admin,
+  handle: string,
+  now: Date = new Date(),
+) => {
+  const snapshot = await loadSnapshot(admin, handle, true);
+  if (!snapshot) return null;
+  const campaign = campaignOf(snapshot.entry);
+  if (!campaign) return { error: "The campaign can't be read; run its checklist." };
+  if (campaign.endsAt > now) return { error: "Results show once it has ended." };
+  const titles = campaignDiscounts(snapshot.entry, snapshot.discounts).flatMap((d) => [
+    d.title,
+    ...d.codes,
+  ]);
+  if (campaign.discountCode) titles.push(campaign.discountCode);
+  try {
+    const orders = await getOrders(
+      admin,
+      campaign.startsAt.toISOString(),
+      campaign.endsAt.toISOString(),
+      titles,
+    );
+    return { report: campaignReport(orders, { handle, discountTitles: titles }) };
+  } catch {
+    // Orders with customer fields need the app's protected customer data access.
+    return {
+      error:
+        "Couldn't read the orders. The app may still need protected customer data access (Partner Dashboard).",
+    };
+  }
+};
+
+/**
+ * After a campaign: takes it off its products and variants, deletes its
+ * collection and returns the record to draft (`campaigns tidy`). Refused
+ * while it's running.
+ */
+export const tidyFor = async (admin: Admin, handle: string, now: Date = new Date()) => {
+  const snapshot = await loadSnapshot(admin, handle, true);
+  if (!snapshot) return null;
+  const campaign = campaignOf(snapshot.entry);
+  if (campaign && campaign.endsAt > now)
+    return { error: "It hasn't ended: nothing tidied." };
+  const owners = snapshot.products.flatMap((product) => [
+    ...(product.campaignId === snapshot.entry.id ? [product.id] : []),
+    ...product.variants
+      .filter((v) => v.campaignId === snapshot.entry.id)
+      .map((v) => v.id),
+  ]);
+  await tidyCampaign(admin, {
+    entryId: snapshot.entry.id,
+    collectionId: snapshot.collection?.id ?? null,
+    owners,
+  });
+  return { tidied: owners.length };
+};

@@ -1120,3 +1120,37 @@ export const saveReferralCodes = async (
     if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
   }
 };
+
+/**
+ * Units sold by product title since a time (SHO-209's stock forecast): order
+ * lines only, no customer fields, so it needs nothing beyond read_orders.
+ * Shopify shows the last 60 days of orders without read_all_orders.
+ */
+export const getRecentSales = async (
+  admin: Admin,
+  since: string,
+  until?: string,
+): Promise<{ title: string; quantity: number }[]> => {
+  const lines: { title: string; quantity: number }[] = [];
+  const query = `created_at:>=${since}${until ? ` created_at:<${until}` : ""}`;
+  let after: string | null = null;
+  do {
+    const data: {
+      orders: {
+        nodes: { lineItems: { nodes: { title: string; quantity: number }[] } }[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    } = await admin.request(
+      `query Sales($query: String!, $after: String) {
+        orders(first: 100, after: $after, query: $query) {
+          nodes { lineItems(first: 50) { nodes { title quantity } } }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`,
+      { query, after },
+    );
+    for (const order of data.orders.nodes) lines.push(...order.lineItems.nodes);
+    after = data.orders.pageInfo.hasNextPage ? data.orders.pageInfo.endCursor : null;
+  } while (after);
+  return lines;
+};

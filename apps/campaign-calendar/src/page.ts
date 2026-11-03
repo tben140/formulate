@@ -180,7 +180,10 @@ const renderRows = (data) => {
     const actions = el("td", {},
       el("button", { type: "button", onclick: () => showChecklist(row) }, "Checklist"),
       el("button", { type: "button", onclick: () => showOffer(row) }, "Offer"),
-      el("button", { type: "button", onclick: () => showHistory(row) }, "Change log"));
+      el("button", { type: "button", onclick: () => showHistory(row) }, "Change log"),
+      row.state === "ended"
+        ? el("button", { type: "button", onclick: () => showResults(row) }, "Results")
+        : el("button", { type: "button", onclick: () => showStock(row) }, "Stock"));
     if (row.preview.web) actions.append(el("a", { class: "button", href: row.preview.web, target: "_blank", rel: "noopener" }, "Preview on web"));
     if (row.preview.app) {
       const b = el("button", { type: "button" }, "Copy app preview link");
@@ -291,6 +294,54 @@ const showOffer = async (row) => {
   for (const g of Object.values(groups)) g.addEventListener("input", refresh);
   body.replaceChildren(form, ...Object.values(groups), el("p", { class: "muted" }, "As the discount Function reads it:"), json, sides, save, status);
   refresh();
+};
+
+/** Stock against the plan (SHO-209). */
+const showStock = async (row) => {
+  const detail = document.getElementById("detail");
+  const body = document.getElementById("detail-body");
+  detail.hidden = false;
+  document.getElementById("detail-title").textContent = row.title + ": stock against the plan";
+  body.replaceChildren(el("p", { class: "muted" }, "Forecasting…"));
+  try {
+    const data = await api("/api/campaigns/" + row.handle + "/stock");
+    if (data.error) { body.replaceChildren(el("p", { class: "finding-error" }, data.error)); return; }
+    const short = data.lines.filter((l) => l.short).length;
+    body.replaceChildren(
+      el("p", {}, short ? short + " product" + (short === 1 ? "" : "s") + " likely to sell out." : "Every product should last the campaign."),
+      el("p", { class: "muted" }, "Forecast: the last 28 days' daily sales × " + (Math.round(data.days * 10) / 10) + " days × " + (data.uplift ?? 3) + (data.upliftFrom ? " (the uplift " + data.upliftFrom + " showed)" : " (a default uplift; this shop has no past campaign to learn from yet)") + "."),
+      el("table", { class: "margins" },
+        el("thead", {}, el("tr", {}, el("th", {}, "Product"), el("th", {}, "In stock"), el("th", {}, "Sells a day"), el("th", {}, "Likely to sell"))),
+        el("tbody", {}, ...data.lines.map((l) => el("tr", {}, el("td", { class: l.short ? "finding-error" : "" }, l.product), el("td", {}, l.stock === null ? "not tracked" : String(l.stock)), el("td", {}, String(l.perDay)), el("td", {}, String(l.expected)))))));
+  } catch (error) { body.replaceChildren(el("p", { class: "finding-error" }, "The forecast couldn't run: " + error.message)); }
+};
+
+/** After a campaign (SHO-209): its results, and tidying up. */
+const showResults = async (row) => {
+  const detail = document.getElementById("detail");
+  const body = document.getElementById("detail-body");
+  detail.hidden = false;
+  document.getElementById("detail-title").textContent = row.title + ": results";
+  body.replaceChildren(el("p", { class: "muted" }, "Loading…"));
+  try {
+    const data = await api("/api/campaigns/" + row.handle + "/results");
+    if (data.error) { body.replaceChildren(el("p", { class: "muted" }, data.error)); return; }
+    const r = data.report;
+    const money = (n) => "£" + n.toFixed(2);
+    const tidy = el("button", { type: "button", onclick: async () => {
+      if (!window.confirm("Tidy " + row.title + "? It comes off its products, its collection is deleted and the record goes back to draft. The report stays.")) return;
+      tidy.disabled = true;
+      const response = await fetch("/api/campaigns/" + row.handle + "/tidy", { method: "POST" });
+      const result = await response.json().catch(() => ({ error: "HTTP " + response.status }));
+      body.append(el("p", { class: result.error ? "finding-error" : "finding-ok" }, result.error ?? "Tidied: " + result.tidied + " products and variants taken off it."));
+    } }, "Tidy up");
+    body.replaceChildren(
+      el("ul", {}, el("li", {}, r.orders + " orders, " + money(r.revenue) + " revenue"), el("li", {}, money(r.discountCost) + " given in discounts"),
+        el("li", {}, r.firstOrders + " first orders, " + r.subscriptionsStarted + " subscriptions started")),
+      el("p", { class: "muted" }, "Top products:"),
+      el("ol", {}, ...r.topProducts.slice(0, 5).map((p) => el("li", {}, p.title + " × " + p.quantity))),
+      tidy);
+  } catch (error) { body.replaceChildren(el("p", { class: "finding-error" }, "Results couldn't load: " + error.message)); }
 };
 
 const setUpNewForm = (data) => {

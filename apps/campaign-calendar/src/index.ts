@@ -4,9 +4,12 @@ import {
   HANDLE,
   newCampaign,
   offerPreview,
+  resultsFor,
   saveOffer,
   signOff,
+  stockFor,
   TEMPLATE_NAMES,
+  tidyFor,
 } from "./api";
 import { page } from "./page";
 import { verifySessionToken, type Session } from "./session";
@@ -23,7 +26,10 @@ import { offlineAdmin, staffName } from "./shopify";
  * - `GET /api/campaigns/<handle>/history` the change log (apps/api);
  * - `POST /api/campaigns/<handle>/offer/preview` the offer editor's preview;
  * - `POST /api/campaigns/<handle>/offer` saves the offer, updates its discounts;
- * - `POST /api/campaigns/new` a draft copied from a campaign, or a template.
+ * - `POST /api/campaigns/new` a draft copied from a campaign, or a template;
+ * - `GET /api/campaigns/<handle>/stock` stock against the plan;
+ * - `GET /api/campaigns/<handle>/results` after it ends: its report;
+ * - `POST /api/campaigns/<handle>/tidy` after it ends: `campaigns tidy`.
  *
  * ⚠️ Every /api call needs a valid App Bridge session token for this app and
  * this shop. Admin access is by token exchange, server-side, never stored.
@@ -142,9 +148,10 @@ export const handle = async (request: Request, env: Env): Promise<Response> => {
       return result ? json(result) : json({ error: "not found" }, 404);
     }
 
-    const match = /^\/api\/campaigns\/([^/]+)\/(check|approve|history)$/.exec(
-      url.pathname,
-    );
+    const match =
+      /^\/api\/campaigns\/([^/]+)\/(check|approve|history|stock|results|tidy)$/.exec(
+        url.pathname,
+      );
     const handle = match?.[1] ?? "";
     if (!match || !HANDLE.test(handle)) return json({ error: "not found" }, 404);
 
@@ -172,6 +179,31 @@ export const handle = async (request: Request, env: Env): Promise<Response> => {
       );
       return (await signOff(admin, handle, name))
         ? json({ approvedBy: name })
+        : json({ error: "not found" }, 404);
+    }
+
+    if ((match[2] === "stock" || match[2] === "results") && request.method === "GET") {
+      const admin = await offlineAdmin(
+        who,
+        env.SHOPIFY_APP_CLIENT_ID,
+        env.SHOPIFY_APP_CLIENT_SECRET,
+      );
+      const result =
+        match[2] === "stock"
+          ? await stockFor(admin, handle)
+          : await resultsFor(admin, handle);
+      return result ? json(result) : json({ error: "not found" }, 404);
+    }
+
+    if (match[2] === "tidy" && request.method === "POST") {
+      const admin = await offlineAdmin(
+        who,
+        env.SHOPIFY_APP_CLIENT_ID,
+        env.SHOPIFY_APP_CLIENT_SECRET,
+      );
+      const result = await tidyFor(admin, handle);
+      return result
+        ? json(result, "error" in result ? 409 : 200)
         : json({ error: "not found" }, 404);
     }
 
