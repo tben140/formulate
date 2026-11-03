@@ -30,3 +30,7 @@ export {
 } from "./subscribe";
 
 export type { SubscribeResult, SubscriptionSource } from "./subscribe";
+
+export { scrubTransaction, stripQuery } from "./trace-scrub";
+
+export type { TransactionLike } from "./trace-scrub";
