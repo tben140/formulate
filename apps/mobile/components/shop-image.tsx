@@ -20,6 +20,7 @@ export const ShopImage = ({
   height,
   style,
   transition = 150,
+  alt = "",
 }: {
   readonly url: string | null | undefined;
   /** Drawn width in points. */
@@ -28,6 +29,13 @@ export const ShopImage = ({
   readonly height?: number;
   readonly style?: StyleProp<ImageStyle>;
   readonly transition?: number;
+  /**
+   * What the image shows, for screen readers. Leave it empty (the default)
+   * when the image sits inside a control that's already labelled, like a
+   * product row: then it's decoration, and VoiceOver and the web build both
+   * skip it. Give it only where the image is content on its own.
+   */
+  readonly alt?: string;
 }) => {
   const scale = PixelRatio.get();
   const source = url
@@ -52,6 +60,12 @@ export const ShopImage = ({
       cachePolicy="memory-disk"
       // surface-muted from packages/tokens.
       style={[{ backgroundColor: "#f1f5f9" }, style]}
+      alt={alt}
+      // Also as accessibilityLabel: expo-image's web renderer (57.0.5) only
+      // reads `alt` for the placeholder, and labels the loaded image from
+      // accessibilityLabel alone. Native reads it the same way.
+      accessibilityLabel={alt}
+      accessible={alt !== ""}
       accessibilityIgnoresInvertColors
     />
   );
