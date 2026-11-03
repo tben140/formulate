@@ -4,8 +4,8 @@ import { Link } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Text, TextInput, View } from "react-native";
 
-import { CollectionFilters } from "../components/collection-filters";
-import { useSearch } from "../lib/queries";
+import { CollectionFilters } from "../../../components/collection-filters";
+import { useSearch } from "../../../lib/queries";
 
 /** How long typing must pause before a search runs. */
 const DEBOUNCE_MS = 300;

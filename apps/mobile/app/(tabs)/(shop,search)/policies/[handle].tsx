@@ -2,7 +2,7 @@ import { policyBlocks } from "@formulate/shopify";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
-import { usePolicy } from "../../lib/queries";
+import { usePolicy } from "../../../../lib/queries";
 
 /**
  * A store policy (privacy, subscription and so on), as written in Shopify

@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type BrowserContext, type Page } from "@playwright/test";
 
 /**
  * Shared steps. Each test gets a fresh browser context, so a fresh cart
@@ -39,3 +39,18 @@ export const lineTitles = (page: Page) =>
     .filter({ has: page.getByRole("button", { name: /^Remove .+ from cart$/ }) })
     .locator("p.truncate")
     .allTextContents();
+
+/**
+ * Starts the test as a shopper who has already declined tracking, so the
+ * consent banner (fixed to the bottom of the screen) isn't covering anything.
+ * Needed without JavaScript, where the banner's buttons can't dismiss it.
+ */
+export const decideConsent = async (
+  context: BrowserContext,
+  baseURL: string | undefined,
+) => {
+  if (!baseURL) return;
+  await context.addCookies([
+    { name: "formulate_tracking_consent", value: "denied", url: baseURL },
+  ]);
+};
