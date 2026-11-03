@@ -1,4 +1,4 @@
-{% comment %}
+{% doc %}
   Add to cart, with variant and selling-plan selection.
 
   The Liquid counterpart of apps/web's components/add-to-cart-form.tsx. Same
@@ -20,7 +20,9 @@
   packages/shopify: a store carries selling plan groups that no app manages,
   and this store has four of them. They add to the cart and complete at
   checkout, then never charge or ship again.
-{% endcomment %}
+
+  @param {product} product - The product whose variants and selling plans the form offers.
+{% enddoc %}
 
 {% assign current_variant = product.selected_or_first_available_variant %}
 
@@ -144,9 +146,9 @@
           ref="planList"
           class="product-form__plans"
           data-built-for="{{ current_variant.id }}"
-          data-one-time-label="{{ 'product.one_time' | t | escape }}"
-          data-one-time-price-label="{{ 'product.one_time_price' | t | escape }}"
-          data-subscription-price-label="{{ 'product.subscription_price' | t | escape }}"
+          data-one-time-label="{{ 'product.one_time' | t }}"
+          data-one-time-price-label="{{ 'product.one_time_price' | t }}"
+          data-subscription-price-label="{{ 'product.subscription_price' | t }}"
         >
           <label class="product-form__plan">
             <span>
@@ -205,7 +207,7 @@
         plan change can't update it, and a stale price per day is worse than
         none. The delivery line is always true, so it always shows.
       {%- endcomment -%}
-      <span ref="perDay" data-per-day-suffix="{{ 'product.per_day' | t | escape }}" hidden>
+      <span ref="perDay" data-per-day-suffix="{{ 'product.per_day' | t }}" hidden>
         {%- if per_day < 100 -%}{{ per_day }}p{%- else -%}{{ per_day | money }}{%- endif %} {{ 'product.per_day' | t }} ·
       </span>
       {{ 'product.delivery_promise' | t }}
@@ -220,9 +222,9 @@
       ref="submit"
       type="submit"
       class="product-form__submit"
-      data-add-label="{{ 'product.add_to_cart' | t | escape }}"
-      data-sold-out-label="{{ 'product.sold_out' | t | escape }}"
-      data-unavailable-label="{{ 'product.unavailable' | t | escape }}"
+      data-add-label="{{ 'product.add_to_cart' | t }}"
+      data-sold-out-label="{{ 'product.sold_out' | t }}"
+      data-unavailable-label="{{ 'product.unavailable' | t }}"
       {% unless current_variant.available %}disabled{% endunless %}
     >
       {% if current_variant.available %}
@@ -262,7 +264,7 @@
       class="product-form__status"
       role="status"
       aria-live="polite"
-      data-added-label="{{ 'product.added' | t | escape }}"
+      data-added-label="{{ 'product.added' | t }}"
     ></p>
 
     {% comment %}
