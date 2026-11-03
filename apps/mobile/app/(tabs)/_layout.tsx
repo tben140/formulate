@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 import type { ColorValue } from "react-native";
 
 import { useCartUi } from "../../components/cart-provider";
+import { fontFor } from "../../lib/fonts";
 import { useOptimisticCart } from "../../lib/use-cart";
 
 /**
@@ -43,6 +44,8 @@ const TabsLayout = () => {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: ACTIVE,
+        // The face carries the weight (lib/fonts.ts), so the default 500 goes.
+        tabBarLabelStyle: { fontFamily: fontFor("font-medium"), fontWeight: "normal" },
         tabBarInactiveTintColor: INACTIVE,
       }}
     >

@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { View } from "react-native";
 
 import { DemoNotice } from "../../../components/demo-notice";
+import { fontFor } from "../../../lib/fonts";
 
 /**
  * One stack per tab, shared by Shop and Search (Expo Router's shared routes:
@@ -31,6 +32,10 @@ const SharedStack = () => (
     )}
     screenOptions={{
       headerStyle: { backgroundColor: "#ffffff" },
+      // Native headers don't use the Text wrapper, so they get the face here.
+      // The face carries the weight; a fontWeight too would let Android add a
+      // fake bold on top.
+      headerTitleStyle: { fontFamily: fontFor("font-semibold"), fontWeight: "normal" },
       headerTintColor: "#0f172a",
       contentStyle: { backgroundColor: "#ffffff" },
     }}

@@ -1,10 +1,11 @@
 import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { useLegalLinks } from "../lib/queries";
 import { EmailCapture } from "./email-capture";
 import { PaymentIcons } from "./payment-icons";
 import { SocialLinks } from "./social-links";
+import { Text } from "./text";
 
 /**
  * Site footer, mirroring apps/web's app/layout.tsx and apps/theme's

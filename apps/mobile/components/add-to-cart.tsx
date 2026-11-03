@@ -1,7 +1,8 @@
 import { findVariantByOptions, formatMoney, withOption } from "@formulate/shopify";
-import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
+import { Pressable, View, type LayoutChangeEvent } from "react-native";
 
 import type { Product, Purchase } from "../lib/use-purchase";
+import { Text } from "./text";
 
 /**
  * Variant pickers, subscribe-and-save, and add to cart.
@@ -118,7 +119,7 @@ export const AddToCart = ({
                 <Text className="text-sm text-foreground">{choice.label}</Text>
                 {choice.price ? (
                   <Text
-                    className={`text-sm ${
+                    className={`font-mono text-sm ${
                       effectivePlanId === choice.id
                         ? "text-foreground"
                         : "text-foreground-muted"
@@ -134,7 +135,7 @@ export const AddToCart = ({
       ) : null}
 
       {displayPrice ? (
-        <Text className="text-2xl font-semibold text-foreground">
+        <Text className="text-2xl font-semibold text-foreground font-mono">
           {formatMoney(displayPrice)}
         </Text>
       ) : null}

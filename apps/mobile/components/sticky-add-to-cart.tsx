@@ -1,8 +1,9 @@
 import { formatMoney } from "@formulate/shopify";
 import { useEffect, useState } from "react";
-import { AccessibilityInfo, Animated, Easing, Pressable, Text, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, Pressable, View } from "react-native";
 
 import type { Product, Purchase } from "../lib/use-purchase";
+import { Text } from "./text";
 
 /**
  * The product screen's add-to-cart bar, pinned to the bottom while the
@@ -151,7 +152,7 @@ export const StickyAddToCart = ({
               {variantTitle ?? product.title}
             </Text>
             {displayPrice ? (
-              <Text className="text-sm text-foreground-muted">
+              <Text className="text-sm text-foreground-muted font-mono">
                 {formatMoney(displayPrice)}
               </Text>
             ) : null}

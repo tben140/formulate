@@ -1,5 +1,6 @@
 import { DEMO_STORE_NOTICE } from "@formulate/shopify";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { Text } from "./text";
 
 /**
  * The demo-store notice, directly below the native header on every screen.
