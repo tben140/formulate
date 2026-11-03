@@ -195,6 +195,22 @@ importers:
         specifier: 4.1.12
         version: 4.1.12(@types/node@26.1.1)(vite@8.1.6(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
 
+  apps/shopify-app/extensions/checkout-guarantee:
+    dependencies:
+      '@preact/signals':
+        specifier: 2.11.3
+        version: 2.11.3(preact@10.29.8)
+      '@shopify/ui-extensions':
+        specifier: 2026.7.4
+        version: 2026.7.4(@preact/signals@2.11.3(preact@10.29.8))(preact@10.29.8)
+      preact:
+        specifier: 10.29.8
+        version: 10.29.8
+    devDependencies:
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+
   apps/shopify-app/extensions/order-next-steps:
     dependencies:
       '@preact/signals':
@@ -234,6 +250,22 @@ importers:
         version: 4.1.12(@types/node@26.1.1)(vite@8.1.6(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
 
   apps/shopify-app/extensions/stack-discount-settings:
+    dependencies:
+      '@preact/signals':
+        specifier: 2.11.3
+        version: 2.11.3(preact@10.29.8)
+      '@shopify/ui-extensions':
+        specifier: 2026.7.4
+        version: 2026.7.4(@preact/signals@2.11.3(preact@10.29.8))(preact@10.29.8)
+      preact:
+        specifier: 10.29.8
+        version: 10.29.8
+    devDependencies:
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+
+  apps/shopify-app/extensions/subscribe-upgrade:
     dependencies:
       '@preact/signals':
         specifier: 2.11.3
