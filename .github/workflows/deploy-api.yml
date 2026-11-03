@@ -23,9 +23,12 @@ on:
       - .github/workflows/deploy-api.yml
   workflow_dispatch:
 
-# One deploy at a time, and never cancel one halfway.
+# One deploy at a time per branch, and never cancel one halfway. Each branch
+# has its own queue: a queue holds one pending run and drops any older one, so
+# a shared queue would let a manual run from a branch push out a pending main
+# deploy, and main's change would never ship.
 concurrency:
-  group: deploy-api
+  group: deploy-api-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -37,49 +40,45 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
+    env:
+      # Whether both secrets are set: they're empty on forks and until added,
+      # and the job then skips rather than failing. The token itself goes only
+      # to the deploy step, so install scripts and tests never see it.
+      HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+
     steps:
-      # Only checks the secrets exist. The token itself reaches the Deploy step
-      # alone, so install scripts and tests never see it.
-      - name: Check for Cloudflare credentials
-        id: creds
-        env:
-          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
-          HAS_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
-        run: |
-          if [ "$HAS_TOKEN" = "true" ] && [ "$HAS_ACCOUNT" = "true" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::API deploy skipped - CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets are not both set."
-          fi
+      - name: Skip without Cloudflare credentials
+        if: env.HAS_CLOUDFLARE != 'true'
+        run: echo "::notice::API deploy skipped - CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets are not both set."
 
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-        if: steps.creds.outputs.ready == 'true'
+        if: env.HAS_CLOUDFLARE == 'true'
         with:
           # No token left in .git/config for later steps to read.
           persist-credentials: false
 
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        if: steps.creds.outputs.ready == 'true'
+        if: env.HAS_CLOUDFLARE == 'true'
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
-        if: steps.creds.outputs.ready == 'true'
+        if: env.HAS_CLOUDFLARE == 'true'
         with:
           node-version: 22
           cache: pnpm
 
-      - if: steps.creds.outputs.ready == 'true'
+      - if: env.HAS_CLOUDFLARE == 'true'
         run: pnpm install --frozen-lockfile
 
       # The Worker's tests pin its security rules (no CORS, no error bodies,
       # only the email read). A deploy that breaks one never ships.
       - name: Test the Worker
-        if: steps.creds.outputs.ready == 'true'
+        if: env.HAS_CLOUDFLARE == 'true'
         run: pnpm --filter @formulate/api test
 
       # Wrangler from the lockfile, not a floating version, and it reads the
       # token and account from the environment.
       - name: Deploy
-        if: steps.creds.outputs.ready == 'true'
+        if: env.HAS_CLOUDFLARE == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
