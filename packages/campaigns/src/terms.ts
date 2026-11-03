@@ -55,6 +55,14 @@ export const offerInWords = (rules: OfferRules): string => {
   }
 };
 
+/**
+ * Between the offer and what it applies to: "25% off one-time purchases",
+ * but "… when you spend £40.00 on one-time purchases" and "buy 3, get the
+ * cheapest one free, on one-time purchases".
+ */
+const joiner = (rules: OfferRules): string =>
+  rules.type === "percent" ? " " : rules.type === "bundle" ? ", on " : " on ";
+
 const reach = (rules: OfferRules): string =>
   rules.appliesTo === "one_time"
     ? "one-time purchases"
@@ -70,7 +78,7 @@ export const campaignTerms = (
   // ends_at is the first moment it's over; the last one covered is a minute before.
   const lastMinute = new Date(campaign.endsAt.getTime() - 60_000);
   const sentences = [
-    `${offerInWords(rules).replace(/^./, (c) => c.toUpperCase())} ${reach(rules)} of the products on this page, from ${ukLong(campaign.startsAt)} to ${ukLong(lastMinute)} (UK time).`,
+    `${offerInWords(rules).replace(/^./, (c) => c.toUpperCase())}${joiner(rules)}${reach(rules)} of the products on this page, from ${ukLong(campaign.startsAt)} to ${ukLong(lastMinute)} (UK time).`,
     campaign.discountCode
       ? `Enter the code ${campaign.discountCode} at checkout.`
       : "Taken automatically at checkout.",
