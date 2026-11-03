@@ -33,12 +33,24 @@ export interface Decision {
  * counter, and for "stop someone hammering a signup form" that extra state
  * is not worth it.
  */
-export const decide = (state: WindowState | null, now: number): Decision => {
+/**
+ * The signed-in routes (/account/…) are called from web's *server*, so every
+ * web customer shares Vercel's IP. They get a looser per-IP backstop, and the
+ * real limit per customer, keyed by the id Shopify verified (SHO-73).
+ */
+export const ACCOUNT_IP_LIMIT = 120;
+export const CUSTOMER_LIMIT = 30;
+
+export const decide = (
+  state: WindowState | null,
+  now: number,
+  limit: number = LIMIT,
+): Decision => {
   if (state === null || now - state.windowStart >= WINDOW_MS) {
     return { allowed: true, next: { windowStart: now, count: 1 } };
   }
 
-  if (state.count >= LIMIT) return { allowed: false };
+  if (state.count >= limit) return { allowed: false };
 
   return { allowed: true, next: { ...state, count: state.count + 1 } };
 };
