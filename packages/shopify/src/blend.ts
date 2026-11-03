@@ -90,7 +90,13 @@ export const toBlendIngredients = (
       ];
     })
     .sort((a, b) => a.sort - b.sort)
-    .map(({ ingredient }) => ingredient);
+    .map(({ ingredient }) => ingredient)
+    // One entry per code: a duplicate would let one ingredient count twice
+    // towards a pack's size. The first, in sort order, wins.
+    .filter(
+      (ingredient, index, all) =>
+        all.findIndex((i) => i.code === ingredient.code) === index,
+    );
 
 /** A variant's size, from `double_helix.blend_size`; null if it isn't a pack. */
 export const blendSize = (variant: {

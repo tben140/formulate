@@ -30,7 +30,7 @@
   data-min="2"
   data-size="2"
   data-ready="false"
-  data-incomplete-label="{{ 'product.blend_incomplete' | t: min: 2, max: max | escape }}"
+  data-incomplete-label="{{ 'product.blend_incomplete' | t: min: 2, max: max }}"
 >
   <fieldset>
     <legend class="product-form__legend">Choose your ingredients</legend>
@@ -46,8 +46,21 @@
     </div>
 
     <ul class="blend-picker__list" role="list">
+      {%- assign seen_codes = ',' -%}
       {%- for ingredient in shop.metaobjects.blend_ingredient.values -%}
         {%- liquid
+          comment
+            The same entries toBlendIngredients keeps (packages/shopify/src/blend.ts):
+            name, a code of 1 to 12 lowercase letters and digits, amount and claim
+            all set, and each code once.
+          endcomment
+          assign code = ingredient.code.value | strip
+          assign code_key = ',' | append: code | append: ','
+          assign code_chars = code | remove: 'a' | remove: 'b' | remove: 'c' | remove: 'd' | remove: 'e' | remove: 'f' | remove: 'g' | remove: 'h' | remove: 'i' | remove: 'j' | remove: 'k' | remove: 'l' | remove: 'm' | remove: 'n' | remove: 'o' | remove: 'p' | remove: 'q' | remove: 'r' | remove: 's' | remove: 't' | remove: 'u' | remove: 'v' | remove: 'w' | remove: 'x' | remove: 'y' | remove: 'z' | remove: '0' | remove: '1' | remove: '2' | remove: '3' | remove: '4' | remove: '5' | remove: '6' | remove: '7' | remove: '8' | remove: '9'
+          if ingredient.name.value == blank or code == blank or code.size > 12 or code_chars != blank or ingredient.amount.value == blank or ingredient.claim.value == blank or seen_codes contains code_key
+            continue
+          endif
+          assign seen_codes = seen_codes | append: code | append: ','
           assign short_name = ingredient.name.value | split: ' (' | first
         -%}
         <li>
@@ -55,7 +68,7 @@
             <input
               ref="ingredient"
               type="checkbox"
-              value="{{ ingredient.code.value | escape }}"
+              value="{{ code | escape }}"
               data-short-name="{{ short_name | escape }}"
             >
             <span>

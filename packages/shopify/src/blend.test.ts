@@ -39,6 +39,22 @@ describe("toBlendIngredients", () => {
     expect(range[0]?.shortName).toBe("Vitamin D3");
     expect(range[0]?.vegan).toBe(true);
   });
+
+  it("keeps one entry per code, so an ingredient can't count twice", () => {
+    const doubled = toBlendIngredients([
+      node("d3", "Vitamin D3 (from lichen)", 10),
+      node("d3", "Vitamin D3 (again)", 20),
+      node("mg", "Magnesium (glycinate)", 30),
+    ]);
+    expect(doubled.map((i) => i.name)).toEqual([
+      "Vitamin D3 (from lichen)",
+      "Magnesium (glycinate)",
+    ]);
+    expect(checkBlend(["d3", "mg"], doubled, 2)).toEqual({
+      ok: true,
+      codes: ["d3", "mg"],
+    });
+  });
 });
 
 describe("pack sizes", () => {

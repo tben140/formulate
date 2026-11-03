@@ -86,7 +86,9 @@ range is hidden.
 ## Checks at checkout
 
 The Storefront API is public, so anyone can add a pack with properties our
-pickers would never send. The `cart-limits` Cart Validation Function
-(`apps/shopify-app/extensions/cart-limits`) blocks checkout unless a pack's
-`_blend` holds exactly as many valid, distinct codes as its size. It can't
-check the `Blend` label against the codes, so nothing relies on the label.
+pickers would never send. **Planned, not in this change:** the `cart-limits`
+Cart Validation Function (#191, `apps/shopify-app/extensions/cart-limits`)
+will block checkout unless a pack's `_blend` holds exactly as many valid,
+distinct codes as its size. Until it ships, the pickers' checks are the only
+guard, and a hand-built cart can get past them. It can't check the `Blend`
+label against the codes, so nothing relies on the label.
