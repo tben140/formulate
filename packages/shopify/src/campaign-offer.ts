@@ -62,6 +62,14 @@ export type OfferRules = OfferReach &
         readonly buy: number;
         readonly free: number;
       }
+    | {
+        /** One `variantId` free once the campaign's items reach `minSubtotal`. */
+        readonly type: "gift";
+        readonly minSubtotal: MoneyLike;
+        readonly variantId: string;
+        /** What the gift is called in the cart, e.g. "shaker"; "gift" without it. */
+        readonly giftLabel: string;
+      }
   );
 
 const isPercent = (value: unknown): value is number =>
@@ -155,6 +163,26 @@ export const parseOfferRules = (json: string | null | undefined): OfferRules | n
       return isCount(raw.buy, 10) && isCount(raw.free, 9) && raw.free < raw.buy
         ? { type: "bundle", buy: raw.buy, free: raw.free, ...reach }
         : null;
+    case "gift": {
+      const currencyCode = raw.currencyCode ?? "GBP";
+      const label = raw.giftLabel ?? "gift";
+      return typeof raw.minSubtotal === "string" &&
+        AMOUNT.test(raw.minSubtotal) &&
+        typeof currencyCode === "string" &&
+        CURRENCY.test(currencyCode) &&
+        typeof raw.variantId === "string" &&
+        /^gid:\/\/shopify\/ProductVariant\/\d+$/.test(raw.variantId) &&
+        typeof label === "string" &&
+        /^[\w' -]{1,30}$/.test(label)
+        ? {
+            type: "gift",
+            minSubtotal: { amount: raw.minSubtotal, currencyCode },
+            variantId: raw.variantId,
+            giftLabel: label,
+            ...reach,
+          }
+        : null;
+    }
     default:
       return null;
   }
@@ -232,6 +260,22 @@ export const campaignCartProgress = (
   const eligible = lines.filter((line) => line.eligible && line.quantity > 0);
   if (eligible.length === 0) return null;
 
+  if (rules.type === "gift") {
+    const currency = rules.minSubtotal.currencyCode;
+    if (eligible.some((line) => line.subtotal.currencyCode !== currency)) return null;
+    const total = eligible.reduce((sum, line) => sum + (toMinor(line.subtotal) ?? 0), 0);
+    const threshold = toMinor(rules.minSubtotal) ?? 0;
+    return total >= threshold
+      ? {
+          next: null,
+          reached: `Your free ${rules.giftLabel} is unlocked: add it to your basket`,
+        }
+      : {
+          next: `Spend ${formatMoney(fromMinor(threshold - total, currency))} more on ${badge} items for a free ${rules.giftLabel}`,
+          reached: null,
+        };
+  }
+
   if (rules.type === "bundle") {
     const units = eligible.reduce((sum, line) => sum + line.quantity, 0);
     const sets = Math.floor(units / rules.buy);
@@ -262,6 +306,8 @@ export const campaignCartProgress = (
 interface CampaignCartLine {
   readonly quantity: number;
   readonly merchandise: {
+    /** The variant: a gift offer's own variant never counts towards it. */
+    readonly id?: string;
     readonly price: MoneyLike;
     readonly product: {
       readonly campaign?: {
@@ -288,7 +334,11 @@ export const offerLines = (
       subtotal: fromMinor(minor * line.quantity, line.merchandise.price.currencyCode),
       eligible:
         line.merchandise.product.campaign?.reference?.handle === campaign.handle &&
-        reaches(campaign.rules, Boolean(line.sellingPlanAllocation)),
+        reaches(campaign.rules, Boolean(line.sellingPlanAllocation)) &&
+        !(
+          campaign.rules?.type === "gift" &&
+          line.merchandise.id === campaign.rules.variantId
+        ),
     };
   });
 

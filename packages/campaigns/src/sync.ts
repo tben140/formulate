@@ -44,6 +44,7 @@ export type FunctionRules = FunctionReach &
         }[];
       }
     | { readonly type: "bundle"; readonly buy: number; readonly free: number }
+    | { readonly type: "gift"; readonly minSubtotal: string; readonly variantId: string }
   );
 
 /**
@@ -70,6 +71,13 @@ export const functionRules = (rules: OfferRules): FunctionRules => {
       };
     case "bundle":
       return { type: "bundle", buy: rules.buy, free: rules.free, ...reach };
+    case "gift":
+      return {
+        type: "gift",
+        minSubtotal: rules.minSubtotal.amount,
+        variantId: rules.variantId,
+        ...reach,
+      };
   }
 };
 
@@ -89,8 +97,9 @@ export const discountConfig = (
   const rules = parseOfferRules(entry.fields.offer_rules);
   if (!rules) return { error: "offer_rules is missing or doesn't parse" };
   if (
-    rules.type === "tiered" &&
-    rules.tiers.some((tier) => tier.minSubtotal.currencyCode !== "GBP")
+    (rules.type === "tiered" &&
+      rules.tiers.some((tier) => tier.minSubtotal.currencyCode !== "GBP")) ||
+    (rules.type === "gift" && rules.minSubtotal.currencyCode !== "GBP")
   )
     return { error: "the discount Function prices in GBP only" };
   if (!collection) return { error: "the campaign has no collection" };

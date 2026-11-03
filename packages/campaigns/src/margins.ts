@@ -28,7 +28,10 @@ export const worstUnitPrice = (rules: OfferRules, price: number): number => {
       ? 1 - rules.percent / 100
       : rules.type === "tiered"
         ? 1 - Math.max(...rules.tiers.map((tier) => tier.percent)) / 100
-        : (rules.buy - rules.free) / rules.buy;
+        : rules.type === "bundle"
+          ? (rules.buy - rules.free) / rules.buy
+          : // A gift doesn't lower the items' price; its own cost is the gift's margin.
+            1;
   return Math.round(base * factor * 100) / 100;
 };
 

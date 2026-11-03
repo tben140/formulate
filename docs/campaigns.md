@@ -103,7 +103,13 @@ One of:
 { "type": "percent", "percent": 25 }
 { "type": "tiered", "tiers": [{ "minSubtotal": "40.00", "percent": 15 }, { "minSubtotal": "60.00", "percent": 25 }] }
 { "type": "bundle", "buy": 3, "free": 1 }
+{ "type": "gift", "minSubtotal": "40.00", "variantId": "gid://shopify/ProductVariant/…", "giftLabel": "shaker" }
 ```
+
+A **gift** is one unit of `variantId` free once the campaign's items (never
+the gift itself) reach `minSubtotal`; the shopper adds it, and the cart says
+"Spend £12.00 more on Black Friday items for a free shaker", then "Your free
+shaker is unlocked: add it to your basket". It needs the campaign Function.
 
 - Percentages are whole numbers from 1 to 90. Tiers go up in both threshold
   and percentage; `currencyCode` defaults to `GBP`. A bundle gives the

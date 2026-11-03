@@ -303,3 +303,45 @@ describe("campaignCountdown", () => {
     expect(campaignCountdown(end, end)).toBeNull();
   });
 });
+
+describe("gift offers", () => {
+  const gift = parseOfferRules(
+    '{"type":"gift","minSubtotal":"40.00","variantId":"gid://shopify/ProductVariant/9","giftLabel":"shaker"}',
+  );
+  const line = (amount: string): OfferLine => ({
+    subtotal: gbp(amount),
+    quantity: 1,
+    eligible: true,
+  });
+
+  it("parses, and refuses a bad variant or amount", () => {
+    expect(gift).toMatchObject({
+      type: "gift",
+      giftLabel: "shaker",
+      variantId: "gid://shopify/ProductVariant/9",
+    });
+    expect(
+      parseOfferRules('{"type":"gift","minSubtotal":"40","variantId":"9"}'),
+    ).toBeNull();
+    expect(
+      parseOfferRules(
+        '{"type":"gift","minSubtotal":"x","variantId":"gid://shopify/ProductVariant/9"}',
+      ),
+    ).toBeNull();
+  });
+
+  it("says how far to the gift, then that it's unlocked", () => {
+    expect(campaignCartProgress(gift, [line("28.00")], "Black Friday")).toEqual({
+      next: "Spend £12.00 more on Black Friday items for a free shaker",
+      reached: null,
+    });
+    expect(campaignCartProgress(gift, [line("40.00")], "Black Friday")).toEqual({
+      next: null,
+      reached: "Your free shaker is unlocked: add it to your basket",
+    });
+  });
+
+  it("has no single campaign price", () => {
+    expect(campaignUnitPrice(gift, gbp("9.95"))).toBeNull();
+  });
+});
