@@ -18,7 +18,11 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 const config: CodegenConfig = {
   overwrite: true,
   schema: "./node_modules/@shopify/hydrogen-react/storefront.schema.json",
-  documents: ["src/**/*.ts", "!src/generated/**"],
+  // customer-orders.ts is the Customer Account API: a different schema, so
+  // its queries are hand-typed and kept out of this Storefront-only run.
+  // Without this, codegen validates them against the Storefront schema and
+  // generates nothing at all.
+  documents: ["src/**/*.ts", "!src/generated/**", "!src/customer-orders.ts"],
   generates: {
     "./src/generated/": {
       preset: "client",

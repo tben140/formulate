@@ -82,7 +82,9 @@ export const AddToCart = ({
                         // Muted grey on the selected brand-50 is 4.34:1,
                         // under AA's 4.5:1: selected keeps full strength.
                         match && !match.availableForSale
-                          ? `line-through ${checked ? "text-foreground" : "text-foreground-muted"}`
+                          ? // Muted grey on the selected brand-50 is 4.34:1,
+                            // under AA's 4.5:1: selected keeps full strength.
+                            `line-through ${checked ? "text-foreground" : "text-foreground-muted"}`
                           : "text-foreground"
                       } ${checked ? "font-medium" : ""}`}
                     >
