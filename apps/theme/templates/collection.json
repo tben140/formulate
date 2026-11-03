@@ -12,9 +12,17 @@
     "main": {
       "type": "collection",
       "settings": {}
+    },
+    "routine": {
+      "type": "routine-cta",
+      "settings": {
+        "heading": "Not sure where to start?",
+        "text": "Answer four questions and we'll suggest a routine."
+      }
     }
   },
   "order": [
-    "main"
+    "main",
+    "routine"
   ]
 }
