@@ -33,19 +33,25 @@ export interface CustomerOrdersResult {
     readonly id: string;
     readonly firstName: string | null;
     readonly emailAddress: { readonly emailAddress: string | null } | null;
-    readonly orders: { readonly nodes: readonly CustomerOrderSummary[] };
+    readonly orders: {
+      readonly nodes: readonly CustomerOrderSummary[];
+      readonly pageInfo: {
+        readonly hasNextPage: boolean;
+        readonly endCursor: string | null;
+      };
+    };
   };
 }
 
 export const CUSTOMER_ORDERS_QUERY = /* GraphQL */ `
-  query CustomerOrders($first: Int!) {
+  query CustomerOrders($first: Int!, $after: String) {
     customer {
       id
       firstName
       emailAddress {
         emailAddress
       }
-      orders(first: $first, sortKey: PROCESSED_AT, reverse: true) {
+      orders(first: $first, after: $after, sortKey: PROCESSED_AT, reverse: true) {
         nodes {
           id
           name
@@ -64,6 +70,10 @@ export const CUSTOMER_ORDERS_QUERY = /* GraphQL */ `
               variantTitle
             }
           }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
         }
       }
     }
