@@ -33,8 +33,8 @@ class HeroSlider extends HTMLElement {
     this.#dots = [...this.querySelectorAll("[data-dot]")].filter(
       (el) => el instanceof HTMLButtonElement,
     );
-    const controls = this.querySelector("[data-controls]");
-    if (controls instanceof HTMLElement) controls.hidden = false;
+    // Shown, not inserted: their space is already reserved, so nothing moves.
+    this.dataset.ready = "";
 
     this.querySelector("[data-prev]")?.addEventListener("click", () =>
       this.#go(this.#index - 1),

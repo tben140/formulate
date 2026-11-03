@@ -64,7 +64,7 @@
       {%- endif -%}
     {%- endfor -%}
     {% if slides.size > 1 %}
-      <div class="home-intro__controls" hidden data-controls>
+      <div class="home-intro__controls" data-controls>
         <button type="button" class="home-intro__control" data-play data-pause-label="{{ 'hero.pause' | t }}" data-play-label="{{ 'hero.play' | t }}">{{ 'hero.pause' | t }}</button>
         <button type="button" class="home-intro__control" data-prev>{{ 'hero.previous' | t }}</button>
         <button type="button" class="home-intro__control" data-next>{{ 'hero.next' | t }}</button>
@@ -185,8 +185,10 @@
     margin-block-start: var(--spacing-8);
   }
 
-  .home-intro__controls[hidden] {
-    display: none;
+  /* Laid out from the first paint, so revealing them moves nothing (CLS);
+     only shown once assets/hero-slider.js has wired them up. */
+  hero-slider:not([data-ready]) .home-intro__controls {
+    visibility: hidden;
   }
 
   .home-intro__control {
