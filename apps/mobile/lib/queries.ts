@@ -10,6 +10,7 @@ import {
   SearchProductsQuery,
   ShopPoliciesQuery,
   describeError,
+  payLaterIds,
   paymentIconIds,
   productFiltersFromParams,
   toNavLinks,
@@ -106,13 +107,15 @@ export const useLegalLinks = () =>
 
 /**
  * The footer's payment icons: what Shopify says the store accepts, or the
- * planned methods while it reports none (paymentIconIds).
+ * planned methods while it reports none (paymentIconIds), plus Klarna and
+ * Clearpay from the shop's `double_helix.pay_later` metafield.
  */
 export const usePaymentIconIds = () =>
   useQuery({
     queryKey: ["payment-settings"],
     queryFn: async () => unwrap(await storefront.request(PaymentSettingsQuery, {})).shop,
-    select: (shop) => paymentIconIds(shop.paymentSettings),
+    select: (shop) =>
+      paymentIconIds(shop.paymentSettings, payLaterIds(shop.payLater?.value)),
     staleTime: 60 * 60_000,
   });
 
