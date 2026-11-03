@@ -71,30 +71,44 @@ data, which fits. Three things don't:
 | Default   | **On**, with a clear off switch                                                                           | **Off** until the shopper accepts                                                                                                                              |
 | What      | PostHog events with a **session-scoped** id and **no person profiles** (`$process_person_profile: false`) | Klaviyo; the ad tags (#101, #102); PostHog's persistent id, `identify()` and order attribution (#108's cart attributes); the Shopify pixel's `order_completed` |
 | Banner    | Explained in the banner and the privacy notice                                                            | The existing Accept / Decline choice                                                                                                                           |
-| Objecting | Turning it off stops all PostHog storage and sending                                                      | Declining or withdrawing works as in ADR 0008                                                                                                                  |
+| Objecting | Turning it off stops all further PostHog storage and sending (see "Objecting" below)                      | Declining or withdrawing works as in ADR 0008                                                                                                                  |
 
 - **The session id lives only for the session**, and so does PostHog's own
   storage. An id kept in our `sessionStorage` isn't enough if the SDK keeps
   its default persistence, which would reuse its `distinct_id` across visits.
   So the exempt mode starts PostHog with non-durable persistence
   (`persistence: "sessionStorage"` in posthog-js on web, `"memory"` in the
-  app's SDK) and a fresh id each session. Funnels are counted per session,
-  which is enough to see where shoppers drop off.
+  app's SDK) and a fresh id each session. "Session" here means the storage's
+  lifetime, not PostHog's own analytics session: on web, a browser tab until
+  it closes (`sessionStorage`); in the app, the app's process until it's
+  closed or restarted (`memory`). A new tab or a restarted app gets a new id.
+  Funnels are counted per session, which is enough to see where shoppers drop
+  off.
 - **No person profiles, and raw events kept only as long as the aggregates
   need them.** `$process_person_profile: false` stops profiles, but PostHog
   still stores each event under its session id, and that isn't aggregate data
   just because no profile exists. Before the tier goes live: a retention
   period for exempt-tier events (proposed: 3 months, enough to produce and
   check monthly figures), enforced by PostHog's retention setting or a
-  scheduled deletion; the aggregates (insights and exported figures) are what's
-  kept. Exempt-tier ids are never aliased or identified later.
-- **Device details.** Because of paragraph 5(2), the exempt tier doesn't
-  collect what the device emits on its own: the project discards client IP
-  addresses (so no IP-based location either), and the SDK's device properties
-  that come from the user agent and screen (browser and OS versions, screen and
-  viewport size, device type) are left out: posthog-js's `property_denylist`
-  on web, and the app client's equivalent (to confirm when #107 changes). The
-  events keep only what our code sends: the page or screen and the step.
+  scheduled deletion. Insights are computed from the raw events, so deleting
+  those empties them: a monthly job first exports the month's aggregate
+  figures (counts by page, step and funnel stage, nothing per id) to a
+  durable store of our own, checks the export matches PostHog's totals, and
+  only then may that month's raw events be deleted. The exported aggregates
+  are what's kept. Exempt-tier ids are never aliased or identified later.
+- **Device details.** Paragraph 5(2) means the exception doesn't cover
+  collecting what the device emits on its own, so the project discards client
+  IP addresses (and with them IP-based location). Beyond what the law
+  requires, and as a privacy control of our own, the SDK's device properties
+  from the user agent and screen (browser and OS versions, screen and
+  viewport size, device type) are left out too: posthog-js's
+  `property_denylist` on web, and the app client's equivalent (to confirm
+  when #107 changes). The events keep only what our code sends: the page or
+  screen and the step.
+- **Objecting** stops future capture: storage is cleared and nothing more is
+  sent from that browser or app. Events already sent before the objection
+  aren't deleted on the spot; they follow the retention rule above, and carry
+  only a session id that can't be traced back to the shopper.
 - **Upgrading.** When a shopper accepts the marketing tier, the client first
   calls `posthog.reset()`, which discards the session-scoped id, then switches
   to persistent storage with person profiles, and only then may call
@@ -170,7 +184,7 @@ session-scoped id avoids the question.
 
 ## Sources
 
-- Data (Use and Access) Act 2025, s.112 and Schedule 12 (inserting PECR
-  Schedule A1): legislation.gov.uk/ukpga/2025/18
-- ICO, _Guidance on the use of storage and access technologies_, "What are
-  the exceptions?" (finalised 29 April 2026)
+- [Data (Use and Access) Act 2025, Schedule 12](https://www.legislation.gov.uk/ukpga/2025/18/schedule/12)
+  (s.112, inserting PECR Schedule A1)
+- [ICO, _Guidance on the use of storage and access technologies_](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/),
+  "What are the exceptions?" (finalised 29 April 2026)
