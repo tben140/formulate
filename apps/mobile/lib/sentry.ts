@@ -8,7 +8,8 @@ const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
  * them apart, and they share the DSN.
  */
 const environment =
-  process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? (__DEV__ ? "development" : "production");
+  // `||`, not `??`: a copied .env.example leaves it empty, which means unset.
+  process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT || (__DEV__ ? "development" : "production");
 
 /** Drops the query string and fragment, where search text and tokens travel. */
 const stripQuery = (url: string): string => url.split(/[?#]/, 1)[0] ?? url;
@@ -32,6 +33,8 @@ export const initSentry = () => {
     dsn,
     environment,
     sendDefaultPii: false,
+    // Errors only: no release-health sessions, which the SDK sends by default.
+    enableAutoSessionTracking: false,
     beforeSend: (event) => {
       delete event.user;
       if (event.request) {

@@ -117,9 +117,9 @@ their query strings. `EXPO_PUBLIC_SENTRY_ENVIRONMENT`, set per profile in
 `eas.json`, keeps preview builds' errors out of production's.
 
 Native crashes need the native layer, so they're only reported from a
-development or store build. Expo Go reports JavaScript errors only. The
-version follows Expo's own recommendation for SDK 57 (`~7.11.0`), not the
-newest Sentry release.
+development or store build. Expo Go reports JavaScript errors only. The app
+uses `@sentry/react-native` 8.28.0, the version Expo SDK 58 expects. Release
+health sessions are off (`enableAutoSessionTracking: false`): errors only.
 
 ## Known constraints
 
