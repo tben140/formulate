@@ -53,9 +53,17 @@ export const offerInWords = (rules: OfferRules): string => {
     case "bundle":
       return `buy ${rules.buy}, get the cheapest ${rules.free === 1 ? "one" : rules.free} free`;
     case "gift":
-      return `a free ${rules.giftLabel} when you spend ${formatMoney(rules.minSubtotal)} on`;
+      return `a free ${rules.giftLabel} when you spend ${formatMoney(rules.minSubtotal)}`;
   }
 };
+
+/**
+ * Between the offer and what it applies to: "25% off one-time purchases",
+ * but "… when you spend £40.00 on one-time purchases" and "buy 3, get the
+ * cheapest one free, on one-time purchases".
+ */
+const joiner = (rules: OfferRules): string =>
+  rules.type === "percent" ? " " : rules.type === "bundle" ? ", on " : " on ";
 
 const reach = (rules: OfferRules): string =>
   rules.appliesTo === "one_time"
@@ -72,7 +80,7 @@ export const campaignTerms = (
   // ends_at is the first moment it's over; the last one covered is a minute before.
   const lastMinute = new Date(campaign.endsAt.getTime() - 60_000);
   const sentences = [
-    `${offerInWords(rules).replace(/^./, (c) => c.toUpperCase())} ${reach(rules)} of the products on this page, from ${ukLong(campaign.startsAt)} to ${ukLong(lastMinute)} (UK time).`,
+    `${offerInWords(rules).replace(/^./, (c) => c.toUpperCase())}${joiner(rules)}${reach(rules)} of the products on this page, from ${ukLong(campaign.startsAt)} to ${ukLong(lastMinute)} (UK time).`,
     rules.type === "gift"
       ? `Add the ${rules.giftLabel} to your basket to get it free; one per order`
       : null,
