@@ -378,3 +378,58 @@ describe("checkCampaign's stock", () => {
     ).toBe(true);
   });
 });
+
+describe("checkCampaign's free delivery", () => {
+  const snapshot = live as unknown as Snapshot;
+  const ship = (patch: Partial<Snapshot["discounts"][number]> = {}) => ({
+    id: "gid://shopify/DiscountAutomaticNode/7",
+    title: `${snapshot.entry.fields.title} (free delivery)`,
+    kind: "shipping" as const,
+    method: "automatic" as const,
+    status: "SCHEDULED",
+    startsAt: "2026-11-27T00:00:00Z",
+    endsAt: "2026-12-01T00:00:00Z",
+    percent: null,
+    appliesOnOneTimePurchase: null,
+    appliesOnSubscription: null,
+    collectionIds: [],
+    config: null,
+    codes: [],
+    shippingMin: null,
+    shippingMaxRate: "6.99",
+    ...patch,
+  });
+  const run = (offerRules: string, discounts: Snapshot["discounts"]) =>
+    checkCampaign(
+      {
+        ...snapshot,
+        entry: {
+          ...snapshot.entry,
+          fields: { ...snapshot.entry.fields, offer_rules: offerRules },
+        },
+        discounts: [...snapshot.discounts, ...discounts],
+      },
+      BEFORE,
+    );
+  const rules =
+    '{"type":"percent","percent":25,"shipping":{"minSubtotal":"0.00","maxRate":"6.99"}}';
+
+  it("passes a matching free-delivery discount, and doesn't count it as a second offer", () => {
+    const findings = run(rules, [ship()]);
+    expect(findings.filter((f) => f.message.startsWith("Free delivery"))).toEqual([]);
+    expect(
+      findings.some((f) => f.message.startsWith("More than one automatic discount")),
+    ).toBe(false);
+  });
+
+  it("fails when it's missing or set differently", () => {
+    expect(
+      run(rules, []).some((f) => f.message.includes("there's no free-delivery discount")),
+    ).toBe(true);
+    expect(
+      run(rules, [ship({ shippingMaxRate: "3.99" })]).some((f) =>
+        f.message.includes("covers rates up to 3.99"),
+      ),
+    ).toBe(true);
+  });
+});

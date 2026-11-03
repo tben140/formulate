@@ -41,6 +41,15 @@ interface OfferReach {
   readonly maxUnits: number | null;
   readonly oncePerCustomer: boolean;
   readonly audienceTags: readonly string[];
+  /**
+   * Free delivery during the campaign, from `minSubtotal` (0 for every order),
+   * on rates up to `maxRate` (so express can be included); null for none.
+   * Charged by a Shopify free-shipping discount `campaigns sync` makes.
+   */
+  readonly shipping: {
+    readonly minSubtotal: MoneyLike;
+    readonly maxRate: MoneyLike | null;
+  } | null;
 }
 
 export type OfferRules = OfferReach &
@@ -105,7 +114,29 @@ const parseReach = (raw: Record<string, unknown>): OfferReach | null => {
     !tags.every((tag) => typeof tag === "string" && TAG.test(tag))
   )
     return null;
+  let shipping: OfferReach["shipping"] = null;
+  if (raw.shipping !== undefined) {
+    const ship = raw.shipping as Record<string, unknown> | null;
+    const currencyCode = (ship?.currencyCode as unknown) ?? "GBP";
+    if (
+      !ship ||
+      typeof ship !== "object" ||
+      typeof ship.minSubtotal !== "string" ||
+      !AMOUNT.test(ship.minSubtotal) ||
+      (ship.maxRate !== undefined &&
+        (typeof ship.maxRate !== "string" || !AMOUNT.test(ship.maxRate))) ||
+      typeof currencyCode !== "string" ||
+      !CURRENCY.test(currencyCode)
+    )
+      return null;
+    shipping = {
+      minSubtotal: { amount: ship.minSubtotal, currencyCode },
+      maxRate:
+        typeof ship.maxRate === "string" ? { amount: ship.maxRate, currencyCode } : null,
+    };
+  }
   return {
+    shipping,
     appliesTo,
     oneTimeOnly: appliesTo === "one_time",
     maxUnits: (raw.maxUnits as number | undefined) ?? null,
@@ -364,6 +395,25 @@ export const offerLimits = (rules: OfferRules | null, badge: string): string | n
   if (parts.length === 0) return null;
   const text = parts.join(", ");
   return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+/**
+ * The free-delivery threshold while a campaign with a shipping offer is live:
+ * its own when lower than the everyday one, else null (the everyday one
+ * stands). The free-delivery bar takes it.
+ */
+export const campaignShippingThreshold = (
+  rules: OfferRules | null,
+  everyday: MoneyLike,
+): MoneyLike | null => {
+  const offer = rules?.shipping?.minSubtotal;
+  if (!offer || offer.currencyCode !== everyday.currencyCode) return null;
+  if (Number(offer.amount) >= Number(everyday.amount)) return null;
+  // Free on every order: a penny, so any cart reads "unlocked" rather than
+  // the bar disappearing (a zero threshold shows nothing).
+  return Number(offer.amount) > 0
+    ? offer
+    : { amount: "0.01", currencyCode: offer.currencyCode };
 };
 
 /** Every percentage the rules can give, for checking the wording against. */

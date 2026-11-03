@@ -287,7 +287,44 @@ export const checkCampaign = (
 
   // The discount that charges it.
   const errorsBefore = findings.filter((finding) => finding.level === "error").length;
-  const own = campaignDiscounts(entry, discounts);
+  const mine = campaignDiscounts(entry, discounts);
+  const own = mine.filter((discount) => discount.kind !== "shipping");
+  const shipping = mine.filter(
+    (discount) => discount.kind === "shipping" && discount.status !== "EXPIRED",
+  );
+  if (rules?.shipping) {
+    const offer = rules.shipping;
+    if (shipping.length === 0)
+      error(
+        "offer_rules has free delivery, but there's no free-delivery discount: run campaigns sync.",
+      );
+    for (const discount of shipping) {
+      const name = `Free delivery "${discount.title}"`;
+      if (
+        new Date(discount.startsAt).getTime() !== campaign.startsAt.getTime() ||
+        !discount.endsAt ||
+        new Date(discount.endsAt).getTime() !== campaign.endsAt.getTime()
+      )
+        error(`${name} doesn't run for the campaign's dates.`);
+      if (Number(discount.shippingMin ?? 0) !== Number(offer.minSubtotal.amount))
+        error(
+          `${name} starts at ${discount.shippingMin ?? "0"}, the offer at ${offer.minSubtotal.amount}.`,
+        );
+      if (
+        (discount.shippingMaxRate === null || discount.shippingMaxRate === undefined) !==
+          (offer.maxRate === null) ||
+        (offer.maxRate &&
+          Number(discount.shippingMaxRate) !== Number(offer.maxRate.amount))
+      )
+        error(
+          `${name} covers rates up to ${discount.shippingMaxRate ?? "any"}, the offer ${offer.maxRate?.amount ?? "any"}.`,
+        );
+    }
+  } else if (shipping.length > 0) {
+    warn(
+      `There's a free-delivery discount titled after the campaign, but offer_rules doesn't mention it: ${shipping.map((d) => d.title).join(", ")}.`,
+    );
+  }
   if (own.length === 0) {
     error(
       entry.fields.discount_code

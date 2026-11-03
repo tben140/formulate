@@ -213,6 +213,8 @@ interface DiscountNode {
       items: { collections?: { nodes: { id: string }[] } };
     };
     codes?: { nodes: { code: string }[] };
+    minimumRequirement?: { greaterThanOrEqualToSubtotal?: { amount: string } } | null;
+    maximumShippingPrice?: { amount: string } | null;
   };
 }
 
@@ -250,6 +252,11 @@ export const getDiscounts = async (
             ... on DiscountAutomaticBasic { ${basic} }
             ... on DiscountCodeBasic { ${basic} codes(first: 10) { nodes { code } } }
             ... on DiscountAutomaticApp { title status startsAt endsAt }
+            ... on DiscountAutomaticFreeShipping {
+              title status startsAt endsAt
+              minimumRequirement { ... on DiscountMinimumSubtotal { greaterThanOrEqualToSubtotal { amount } } }
+              maximumShippingPrice { amount }
+            }
             ... on DiscountCodeApp { title status startsAt endsAt codes(first: 10) { nodes { code } } }
           }
         }
@@ -271,7 +278,13 @@ export const getDiscounts = async (
       return {
         id: node.id,
         title: node.discount.title,
-        kind: type.endsWith("Basic") ? "basic" : type.endsWith("App") ? "app" : "other",
+        kind: type.endsWith("Basic")
+          ? "basic"
+          : type.endsWith("App")
+            ? "app"
+            : type.endsWith("FreeShipping")
+              ? "shipping"
+              : "other",
         method: type.startsWith("DiscountCode") ? "code" : "automatic",
         status: node.discount.status,
         startsAt: node.discount.startsAt,
@@ -285,6 +298,9 @@ export const getDiscounts = async (
         collectionIds: gets?.items.collections?.nodes.map((c) => c.id) ?? [],
         config: node.config?.jsonValue ?? null,
         codes: node.discount.codes?.nodes.map((c) => c.code) ?? [],
+        shippingMin:
+          node.discount.minimumRequirement?.greaterThanOrEqualToSubtotal?.amount ?? null,
+        shippingMaxRate: node.discount.maximumShippingPrice?.amount ?? null,
       } satisfies DiscountInfo;
     });
 };
@@ -910,4 +926,82 @@ export const setCampaignField = async (
   );
   const errors = data.metaobjectUpdate.userErrors;
   if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
+};
+
+/**
+ * Creates or updates a campaign's free-delivery discount (offer_rules.shipping):
+ * automatic, for the campaign's dates, from minSubtotal, on rates up to
+ * maxRate, combining with the campaign's product discount.
+ */
+export const upsertShippingDiscount = async (
+  admin: Admin,
+  input: {
+    existingId: string | null;
+    title: string;
+    startsAt: string;
+    endsAt: string;
+    minSubtotal: string;
+    maxRate: string | null;
+  },
+): Promise<string> => {
+  const discount = {
+    title: input.title,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    destination: { all: true },
+    ...(Number(input.minSubtotal) > 0
+      ? {
+          minimumRequirement: {
+            subtotal: { greaterThanOrEqualToSubtotal: input.minSubtotal },
+          },
+        }
+      : {}),
+    ...(input.maxRate ? { maximumShippingPrice: input.maxRate } : {}),
+    combinesWith: {
+      productDiscounts: true,
+      orderDiscounts: false,
+      shippingDiscounts: false,
+    },
+  };
+  if (input.existingId) {
+    const data = await admin.request<
+      Record<string, { userErrors: { message: string }[] }>
+    >(
+      `mutation Update($id: ID!, $discount: DiscountAutomaticFreeShippingInput!) {
+        result: discountAutomaticFreeShippingUpdate(id: $id, freeShippingAutomaticDiscount: $discount) {
+          userErrors { message }
+        }
+      }`,
+      { id: input.existingId, discount },
+    );
+    userErrors(data.result);
+    return input.existingId;
+  }
+  const data = await admin.request<{
+    result: {
+      automaticDiscountNode: { id: string } | null;
+      userErrors: { message: string }[];
+    };
+  }>(
+    `mutation Create($discount: DiscountAutomaticFreeShippingInput!) {
+      result: discountAutomaticFreeShippingCreate(freeShippingAutomaticDiscount: $discount) {
+        automaticDiscountNode { id }
+        userErrors { message }
+      }
+    }`,
+    { discount },
+  );
+  userErrors(data.result);
+  const id = data.result.automaticDiscountNode?.id;
+  if (!id) throw new Error("Shopify didn't return the free-delivery discount");
+  return id;
+};
+
+/** Switches an automatic discount off (it stays, with its dates). */
+export const deactivateAutomatic = async (admin: Admin, id: string): Promise<void> => {
+  const data = await admin.request<Record<string, { userErrors: { message: string }[] }>>(
+    `mutation Off($id: ID!) { result: discountAutomaticDeactivate(id: $id) { userErrors { message } } }`,
+    { id },
+  );
+  userErrors(data.result);
 };

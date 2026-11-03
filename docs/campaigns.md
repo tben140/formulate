@@ -106,6 +106,14 @@ One of:
 { "type": "gift", "minSubtotal": "40.00", "variantId": "gid://shopify/ProductVariant/…", "giftLabel": "shaker" }
 ```
 
+**Free delivery** goes with any offer: add `"shipping": { "minSubtotal":
+"0.00", "maxRate": "6.99" }` (from `minSubtotal`, on delivery options up to
+`maxRate`, so express can be included). `campaigns sync` makes a Shopify
+free-shipping discount for the campaign's dates (switched off until
+`--activate`), `check` compares it, the terms say it, and while the campaign
+runs the free-delivery bar on every surface uses its threshold when it's
+lower than the everyday one.
+
 A **gift** is one unit of `variantId` free once the campaign's items (never
 the gift itself) reach `minSubtotal`; the shopper adds it, and the cart says
 "Spend £12.00 more on Black Friday items for a free shaker", then "Your free

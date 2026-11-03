@@ -21,10 +21,15 @@ import { AccessibilityInfo, Platform, Text, View } from "react-native";
  */
 export const FreeShippingBar = ({
   subtotal,
+  threshold = null,
 }: {
   readonly subtotal: MoneyLike | null;
+  /** A live campaign's lower threshold (campaignShippingThreshold), else the everyday one. */
+  readonly threshold?: MoneyLike | null;
 }) => {
-  const progress = subtotal ? freeShippingProgress(subtotal) : null;
+  const progress = subtotal
+    ? freeShippingProgress(subtotal, ...(threshold ? [threshold] : []))
+    : null;
   const message = progress ? freeShippingMessage(progress) : "";
 
   const previous = useRef<string | null>(null);

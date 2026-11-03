@@ -55,7 +55,7 @@ export interface DiscountInfo {
   readonly id: string;
   readonly title: string;
   /** `basic`: Shopify's own percentage discount; `app`: the campaign Function. */
-  readonly kind: "basic" | "app" | "other";
+  readonly kind: "basic" | "app" | "shipping" | "other";
   readonly method: "automatic" | "code";
   /** ACTIVE, SCHEDULED, EXPIRED. */
   readonly status: string;
@@ -69,6 +69,9 @@ export interface DiscountInfo {
   /** App discounts: the Function's config metafield. */
   readonly config: unknown;
   readonly codes: readonly string[];
+  /** Free-shipping discounts: the minimum subtotal, and the highest rate covered. */
+  readonly shippingMin?: string | null;
+  readonly shippingMaxRate?: string | null;
 }
 
 export interface EmailInfo {

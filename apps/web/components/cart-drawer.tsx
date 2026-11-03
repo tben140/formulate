@@ -2,6 +2,7 @@
 
 import { EVENTS, startedCheckout } from "@formulate/analytics";
 import {
+  campaignShippingThreshold,
   formatMoney,
   initialOptimisticCart,
   optimisticCart,
@@ -10,6 +11,7 @@ import {
   type Cart,
   type CartChange,
   type CartSuggestion,
+  FREE_SHIPPING_THRESHOLD,
   type OfferRules,
 } from "@formulate/shopify";
 import { useEffect, useOptimistic, useRef, useState } from "react";
@@ -21,6 +23,7 @@ import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
 import { CampaignCartHint } from "./campaign-cart-hint";
 import { FreeShippingBar } from "./free-shipping-bar";
 import { CartSuggestions } from "./cart-suggestions";
+
 /**
  * The slide-in cart.
  *
@@ -168,6 +171,11 @@ export const CartDrawer = ({
         {/* Above the lines, so it is read before the list rather than after it. */}
         <FreeShippingBar
           subtotal={lines.length > 0 ? (shown?.cost.subtotalAmount ?? null) : null}
+          threshold={
+            campaign
+              ? campaignShippingThreshold(campaign.rules, FREE_SHIPPING_THRESHOLD)
+              : null
+          }
         />
         {campaign ? <CampaignCartHint campaign={campaign} lines={lines} /> : null}
 
