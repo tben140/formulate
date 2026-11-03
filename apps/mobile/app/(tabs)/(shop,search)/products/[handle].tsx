@@ -1,7 +1,12 @@
-import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Keyboard, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Keyboard,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
 import { AddToCart } from "../../../../components/add-to-cart";
 import { useCartUi } from "../../../../components/cart-provider";
@@ -14,6 +19,7 @@ import {
 import { useProduct } from "../../../../lib/queries";
 import { usePurchase, type Product } from "../../../../lib/use-purchase";
 import { Text } from "../../../../components/text";
+import { ShopImage } from "../../../../components/shop-image";
 
 /** Whether the software keyboard is showing. The "did" events fire on both platforms. */
 const useKeyboardOpen = () => {
@@ -103,6 +109,9 @@ const ProductBody = ({ product }: { product: Product }) => {
   const keyboardOpen = useKeyboardOpen();
   const showBar = button !== null && view.height > 0 && !buttonOnScreen && !keyboardOpen;
 
+  // The image's drawn size: the screen width less the 16 pt padding each side.
+  const imageSize = useWindowDimensions().width - 32;
+
   return (
     <View className="flex-1">
       <ScrollView
@@ -149,12 +158,12 @@ const ProductBody = ({ product }: { product: Product }) => {
       >
         <Stack.Screen options={{ title: product.title }} />
 
-        <Image
-          source={product.featuredImage?.url}
-          contentFit="cover"
-          transition={150}
+        {/* Full width inside the screen's 16 pt padding, and square. */}
+        <ShopImage
+          url={product.featuredImage?.url}
+          width={imageSize}
+          height={imageSize}
           style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}
-          accessibilityIgnoresInvertColors
         />
 
         <View>
