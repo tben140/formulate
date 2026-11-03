@@ -206,7 +206,15 @@ export const useOptimisticCart = () => {
       ),
     error: null,
   };
-  return { cart: optimisticCart(state), busy: pendingLineIds(state), isPending };
+  // A plan switch isn't shown ahead of Shopify, but its line is busy until
+  // Shopify answers, so checkout waits for it.
+  const busy = new Set([
+    ...pendingLineIds(state),
+    ...pending
+      .filter((change) => change.quantity === undefined)
+      .map((change) => change.lineId),
+  ]);
+  return { cart: optimisticCart(state), busy, isPending };
 };
 
 /** Called after checkout completes, so the next read starts a fresh cart. */

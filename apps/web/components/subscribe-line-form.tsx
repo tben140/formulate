@@ -1,7 +1,7 @@
 "use client";
 
 import { subscribeOfferLabel, type SubscribeOffer } from "@formulate/shopify";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import { subscribeCartLine } from "@/app/actions/cart";
 
@@ -15,12 +15,18 @@ export const SubscribeLineForm = ({
   lineId,
   productTitle,
   offer,
+  onPending,
 }: {
   readonly lineId: string;
   readonly productTitle: string;
   readonly offer: SubscribeOffer;
+  /** Told while the switch is in flight, so the drawer can hold checkout. */
+  readonly onPending?: (lineId: string, pending: boolean) => void;
 }) => {
   const [state, action, pending] = useActionState(subscribeCartLine, { error: null });
+  useEffect(() => {
+    onPending?.(lineId, pending);
+  }, [onPending, lineId, pending]);
 
   return (
     <form action={action} className="mt-1">

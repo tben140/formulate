@@ -8,8 +8,10 @@ import {
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -113,6 +115,21 @@ export const CartSheet = ({
   }, [onClose]);
 
   const lines = cart?.lines.nodes ?? [];
+  const stack = stackProgress(lines);
+  const stackText = stack ? stackMessage(stack) : "";
+  // As FreeShippingBar: the live region covers Android; iOS needs an explicit
+  // announcement, and only of a change, not the first message.
+  const previousStack = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      previousStack.current !== null &&
+      stackText &&
+      stackText !== previousStack.current
+    ) {
+      if (Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(stackText);
+    }
+    previousStack.current = stackText;
+  }, [stackText]);
 
   return (
     <Modal
@@ -147,12 +164,12 @@ export const CartSheet = ({
 
         {/* Above the lines, so VoiceOver reaches it before the list. */}
         <FreeShippingBar lines={lines} />
-        {stackProgress(lines) ? (
+        {stackText ? (
           <Text
             accessibilityLiveRegion="polite"
             className="border-b border-border px-4 py-2 text-sm text-foreground"
           >
-            {stackMessage(stackProgress(lines)!)}
+            {stackText}
           </Text>
         ) : null}
 
