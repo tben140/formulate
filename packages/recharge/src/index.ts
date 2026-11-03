@@ -14,6 +14,7 @@ export type {
   RechargeError,
   RechargeResult,
   RechargeSession,
+  BlendOption,
   RechargeSubscription,
 } from "./client";
 

@@ -222,6 +222,8 @@ describe("⚠️ which fields", () => {
           is_swappable: true,
           cancelled_at: null,
           created_at: "2026-10-06T16:14:04+00:00",
+          blend: [],
+          blend_label: null,
         },
       ],
       upcoming: [

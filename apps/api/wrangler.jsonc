@@ -35,6 +35,10 @@
    * destination, not a permission — and correct for it, because the list must
    * never be selectable by the caller.
    *
+   * SHOPIFY_STOREFRONT_TOKEN (the public Storefront token, for "Edit my
+   * blend" to read the ingredient range) is a secret too, only to keep tokens
+   * out of the repository: `wrangler secret put SHOPIFY_STOREFRONT_TOKEN`.
+   *
    * KLAVIYO_PRIVATE_KEY is deliberately absent. It is set with
    * `wrangler secret put KLAVIYO_PRIVATE_KEY`, which encrypts it and never
    * writes it to disk. Putting a key in `vars` is the most common way to leak

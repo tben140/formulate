@@ -1,5 +1,6 @@
 import {
   sortSubscriptions,
+  type BlendOption,
   type RechargeCharge,
   type RechargeSubscription,
   type SubscriptionChange,
@@ -34,6 +35,7 @@ type WorkerAnswer =
       readonly ok: true;
       readonly subscriptions: readonly RechargeSubscription[];
       readonly upcoming: readonly RechargeCharge[];
+      readonly blendOptions?: readonly BlendOption[];
     }
   | { readonly ok: false; readonly error: PortalError };
 
@@ -53,6 +55,7 @@ const fetchPortal = async (tokens: CustomerTokens): Promise<WorkerAnswer> => {
           ok: true;
           subscriptions: RechargeSubscription[];
           upcoming: RechargeCharge[];
+          blendOptions?: BlendOption[];
         }
       | { ok: false; reason: string }
       | null;
@@ -106,6 +109,7 @@ export type SubscriptionData =
       readonly kind: "ready";
       readonly subscription: RechargeSubscription;
       readonly upcoming: readonly RechargeCharge[];
+      readonly blendOptions: readonly BlendOption[];
     }
   | { readonly kind: "error"; readonly error: PortalError };
 
@@ -125,7 +129,12 @@ export const loadSubscription = async (
   }
   const subscription = answer.subscriptions.find((s) => String(s.id) === id);
   return subscription
-    ? { kind: "ready", subscription, upcoming: answer.upcoming }
+    ? {
+        kind: "ready",
+        subscription,
+        upcoming: answer.upcoming,
+        blendOptions: answer.blendOptions ?? [],
+      }
     : { kind: "not-found" };
 };
 

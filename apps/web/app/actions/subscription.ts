@@ -56,6 +56,12 @@ const toChange = (form: FormData): SubscriptionChange | null => {
       const comment = field(form, "comment");
       return { action: "cancel", reason, ...(comment ? { comment } : {}) };
     }
+    case "blend": {
+      const codes = form
+        .getAll("code")
+        .filter((code): code is string => typeof code === "string");
+      return codes.length > 0 ? { action: "blend", codes } : null;
+    }
     default:
       return null;
   }
@@ -69,6 +75,10 @@ export const changeSubscriptionAction = async (form: FormData): Promise<never> =
 
   const change = toChange(form);
   if (!change) redirect(`${page}?error=invalid`);
+  // A pack keeps its size: say so, rather than the Worker's general "no".
+  const size = wholeNumber(field(form, "size"));
+  if (change.action === "blend" && size !== null && change.codes.length !== size)
+    redirect(`${page}?error=blend-size`);
 
   const result = await changeSubscription(tokens, id, change);
   if (!result.ok) redirect(`${page}?error=${encodeURIComponent(result.reason)}`);

@@ -36,7 +36,9 @@ export type SubscriptionChange =
       readonly reason: CancelReason;
       readonly comment?: string;
     }
-  | { readonly action: "reactivate" };
+  | { readonly action: "reactivate" }
+  /** A daily pack's ingredients; the same number as now. */
+  | { readonly action: "blend"; readonly codes: readonly string[] };
 
 export type SubscriptionChangeResult =
   | { readonly ok: true; readonly skippedChargeId?: number }
@@ -62,6 +64,8 @@ export const changeDoneMessage = (action: string): string | null => {
       return "Your subscription is cancelled. You can restart it here any time.";
     case "reactivate":
       return "Your subscription is active again.";
+    case "blend":
+      return "Your blend is updated. It applies from your next delivery.";
     default:
       return null;
   }
@@ -74,6 +78,8 @@ export const changeErrorMessage = (reason: string): string => {
       return "That change isn't available for this subscription.";
     case "invalid":
       return "That didn't look right. Check the date or amount and try again.";
+    case "blend-size":
+      return "Choose the same number of ingredients as your pack holds.";
     case "not-found":
       return "We couldn't find that subscription.";
     default:

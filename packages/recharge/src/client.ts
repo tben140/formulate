@@ -218,6 +218,17 @@ export interface RechargeSubscription {
   readonly is_swappable: boolean;
   readonly cancelled_at: string | null;
   readonly created_at: string;
+  /** A daily pack's ingredient codes (`_blend`); empty for anything else. */
+  readonly blend?: readonly string[];
+  /** The same as words (`Blend`), as the order shows them. */
+  readonly blend_label?: string | null;
+}
+
+/** An ingredient a daily pack can hold, as the Worker lists them. */
+export interface BlendOption {
+  readonly code: string;
+  readonly name: string;
+  readonly shortName: string;
 }
 
 export interface RechargeChargeLine {

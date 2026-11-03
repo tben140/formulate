@@ -1,5 +1,6 @@
 import {
   sortSubscriptions,
+  type BlendOption,
   type RechargeCharge,
   type RechargeSubscription,
   type SubscriptionChange,
@@ -29,12 +30,14 @@ const loadError = () =>
 export interface Portal {
   readonly subscriptions: readonly RechargeSubscription[];
   readonly upcoming: readonly RechargeCharge[];
+  /** For daily packs: the range to choose from. */
+  readonly blendOptions: readonly BlendOption[];
 }
 
 /** Subscriptions and queued charges; empty lists when signed out or there are none. */
 export const loadPortal = async (): Promise<Portal> => {
   const tokens = await getUsableTokens();
-  if (!tokens) return { subscriptions: [], upcoming: [] };
+  if (!tokens) return { subscriptions: [], upcoming: [], blendOptions: [] };
 
   let response: Response;
   try {
@@ -52,7 +55,12 @@ export const loadPortal = async (): Promise<Portal> => {
   }
 
   const body = (await response.json().catch(() => null)) as
-    | { ok: true; subscriptions: RechargeSubscription[]; upcoming: RechargeCharge[] }
+    | {
+        ok: true;
+        subscriptions: RechargeSubscription[];
+        upcoming: RechargeCharge[];
+        blendOptions?: BlendOption[];
+      }
     | { ok: false; reason: string }
     | null;
   if (!body?.ok) {
@@ -62,12 +70,14 @@ export const loadPortal = async (): Promise<Portal> => {
   return {
     subscriptions: sortSubscriptions(body.subscriptions),
     upcoming: body.upcoming,
+    blendOptions: body.blendOptions ?? [],
   };
 };
 
 interface SubscriptionDetail {
   readonly subscription: RechargeSubscription;
   readonly upcoming: readonly RechargeCharge[];
+  readonly blendOptions: readonly BlendOption[];
 }
 
 /**
@@ -79,7 +89,9 @@ export const loadSubscription = async (
 ): Promise<SubscriptionDetail | null> => {
   const portal = await loadPortal();
   const subscription = portal.subscriptions.find((s) => String(s.id) === id);
-  return subscription ? { subscription, upcoming: portal.upcoming } : null;
+  return subscription
+    ? { subscription, upcoming: portal.upcoming, blendOptions: portal.blendOptions }
+    : null;
 };
 
 /**

@@ -4,6 +4,7 @@ import {
   isoDateFrom,
   MAX_PAUSE_MONTHS,
   MAX_SUBSCRIPTION_QUANTITY,
+  type BlendOption,
   type RechargeSubscription,
   type SubscriptionChange,
   type SubscriptionChangeResult,
@@ -134,8 +135,11 @@ const Outcome = ({
 export const SubscriptionControls = ({
   subscription,
   arrivedAfter,
+  blendOptions = [],
 }: {
   readonly subscription: RechargeSubscription;
+  /** For a daily pack: the range to choose from (from the Worker). */
+  readonly blendOptions?: readonly BlendOption[];
   /** A change made on the cancel screen, which came back here to say so. */
   readonly arrivedAfter?: { readonly action: string; readonly chargeId?: number };
 }) => {
@@ -157,11 +161,25 @@ export const SubscriptionControls = ({
   const setQuantity = (update: (current: number) => number) =>
     setChosenQuantity(update(quantity));
 
+  // A daily pack's ingredients: the unsaved choice, else the saved blend.
+  const savedBlend = subscription.blend ?? [];
+  const [chosenBlend, setChosenBlend] = useState<string[] | null>(null);
+  // Saved codes that have left the range have no checkbox to untick, so they
+  // start unticked: the shopper picks a replacement to fill the gap.
+  const blend =
+    chosenBlend ??
+    savedBlend.filter((code) => blendOptions.some((option) => option.code === code));
+  const toggleBlend = (code: string) =>
+    setChosenBlend(
+      blend.includes(code) ? blend.filter((c) => c !== code) : [...blend, code],
+    );
+
   const run = (next: SubscriptionChange) => {
     change.mutate(next, {
       onSuccess: (result) => {
         setOutcome({ action: next.action, result });
         if (result.ok && next.action === "quantity") setChosenQuantity(null);
+        if (result.ok && next.action === "blend") setChosenBlend(null);
       },
     });
   };
@@ -218,6 +236,49 @@ export const SubscriptionControls = ({
         Manage
       </Text>
       {outcomeView}
+
+      {savedBlend.length > 0 && blendOptions.length > 0 ? (
+        <Section title="Your blend">
+          <View className="w-full gap-2">
+            <Text className="text-sm text-foreground-muted">
+              Choose {savedBlend.length}. Your price stays the same; the change applies
+              from your next delivery.
+            </Text>
+            {blendOptions.map((option) => {
+              const checked = blend.includes(option.code);
+              return (
+                <Pressable
+                  key={option.code}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked }}
+                  onPress={() => toggleBlend(option.code)}
+                  className="min-h-11 flex-row items-center gap-2"
+                >
+                  <Text className="text-base text-foreground">{checked ? "☑" : "☐"}</Text>
+                  <Text className="text-sm text-foreground">{option.name}</Text>
+                </Pressable>
+              );
+            })}
+            <View className="flex-row">
+              <Button
+                locked={change.isPending}
+                label="Save blend"
+                busy={busy("blend")}
+                disabled={
+                  blend.length !== savedBlend.length ||
+                  blend.every((code) => savedBlend.includes(code))
+                }
+                accessibilityHint={
+                  blend.length !== savedBlend.length
+                    ? `Choose exactly ${savedBlend.length}.`
+                    : undefined
+                }
+                onPress={() => run({ action: "blend", codes: blend })}
+              />
+            </View>
+          </View>
+        </Section>
+      ) : null}
 
       {subscription.is_skippable ? (
         <Section title="Skip the next delivery">
