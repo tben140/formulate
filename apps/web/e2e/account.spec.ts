@@ -89,3 +89,13 @@ test("a failed sign-in explains itself, accessibly", async ({ page }) => {
     .analyze();
   expect(results.violations.map((v) => v.id)).toEqual([]);
 });
+
+test("signed out, the subscriptions page sends the buyer to sign in and back", async ({
+  request,
+}) => {
+  const page = await request.get("/account/subscriptions", { maxRedirects: 0 });
+  expect(page.status()).toBe(307);
+  expect(page.headers().location).toContain(
+    "/account/login?return_to=%2Faccount%2Fsubscriptions",
+  );
+});

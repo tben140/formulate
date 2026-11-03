@@ -1,0 +1,9 @@
+{
+  "extends": "@formulate/typescript-config/base.json",
+  "compilerOptions": {
+    // fetch, Response, RequestInit and URL, as packages/shopify has them. Vitest
+    // 3 used to bring them in by the back door; 4 doesn't.
+    "lib": ["DOM", "ES2023"]
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -77,6 +77,9 @@ importers:
       '@formulate/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
+      '@formulate/recharge':
+        specifier: workspace:*
+        version: link:../../packages/recharge
       '@formulate/shopify':
         specifier: workspace:*
         version: link:../../packages/shopify
@@ -210,6 +213,9 @@ importers:
       '@formulate/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
+      '@formulate/recharge':
+        specifier: workspace:*
+        version: link:../../packages/recharge
       '@formulate/shopify':
         specifier: workspace:*
         version: link:../../packages/shopify
@@ -320,6 +326,24 @@ importers:
       eslint:
         specifier: ^10.8.0
         version: 10.8.0(jiti@2.7.0)(supports-color@10.2.2)
+
+  packages/recharge:
+    devDependencies:
+      '@formulate/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@formulate/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      eslint:
+        specifier: ^10.8.0
+        version: 10.8.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 4.1.12
+        version: 4.1.12(@types/node@26.1.1)(vite@8.1.6(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
 
   packages/shopify:
     dependencies:

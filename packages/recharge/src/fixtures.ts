@@ -1,0 +1,120 @@
+/**
+ * Recharge API responses (version 2021-11) for tests, so nothing here ever
+ * calls the live API (SHO-71).
+ *
+ * Taken from the store's real test subscription (order #1009, 2026-10-06) and
+ * its queued renewal, with addresses, customer details, client details,
+ * analytics and notes removed. The shapes are what Recharge actually returns,
+ * including its quirks: dates without times, prices as strings, a null
+ * variant title.
+ */
+
+export const SUBSCRIPTION_FIXTURE = {
+  id: 891037192,
+  cancellation_reason: null,
+  cancellation_reason_comments: null,
+  cancelled_at: null,
+  charge_interval_frequency: 30,
+  created_at: "2026-10-06T16:14:04+00:00",
+  expire_after_specific_number_of_charges: null,
+  external_product_id: {
+    ecommerce: "10846318231864",
+  },
+  external_variant_id: {
+    ecommerce: "52871791378744",
+  },
+  has_queued_charges: true,
+  is_digital: false,
+  is_prepaid: false,
+  is_skippable: true,
+  is_swappable: true,
+  max_retries_reached: false,
+  next_charge_scheduled_at: "2026-11-05",
+  order_day_of_month: null,
+  order_day_of_week: null,
+  order_interval_frequency: 30,
+  order_interval_unit: "day",
+  presentment_currency: "GBP",
+  price: "13.56",
+  product_title: "Daily Multivitamin",
+  properties: [],
+  quantity: 1,
+  sku: "DH-MULTI-003-STD",
+  sku_override: false,
+  status: "active",
+  updated_at: "2026-10-06T16:14:04+00:00",
+  variant_title: null,
+} as const;
+
+export const QUEUED_CHARGE_FIXTURE = {
+  id: 1946419139,
+  created_at: "2026-10-06T16:14:04+00:00",
+  currency: "GBP",
+  discounts: [],
+  error: null,
+  error_type: null,
+  external_order_id: {
+    ecommerce: null,
+  },
+  has_uncommitted_changes: false,
+  line_items: [
+    {
+      purchase_item_id: 891037192,
+      external_product_id: {
+        ecommerce: "10846318231864",
+      },
+      external_variant_id: {
+        ecommerce: "52871791378744",
+      },
+      grams: 0,
+      handle: null,
+      offer_attributes: null,
+      original_price: "13.56",
+      properties: [],
+      purchase_item_type: "subscription",
+      quantity: 1,
+      sku: "DH-MULTI-003-STD",
+      tax_due: "0.00",
+      tax_lines: [],
+      taxable: true,
+      taxable_amount: "13.56",
+      title: "Daily Multivitamin",
+      total_price: "13.56",
+      unit_price: "13.56",
+      unit_price_includes_tax: false,
+      variant_title: null,
+    },
+  ],
+  merged_at: null,
+  orders_count: 0,
+  original_scheduled_at: "2026-11-05",
+  processed_at: null,
+  retry_date: null,
+  scheduled_at: "2026-11-05",
+  shipping_lines: [
+    {
+      code: "Standard delivery",
+      price: "3.95",
+      retrieved_at: "2026-10-06T16:14:09.482574+00:00",
+      source: "shopify",
+      status: "active",
+      tax_lines: [],
+      taxable: false,
+      title: "Standard delivery",
+    },
+  ],
+  status: "queued",
+  subtotal_price: "13.56",
+  tax_lines: [],
+  taxable: true,
+  taxes_included: false,
+  total_discounts: "0.00",
+  total_duties: "0.00",
+  total_line_items_price: "13.56",
+  total_price: "17.51",
+  total_refunds: "0.00",
+  total_tax: "0.00",
+  total_weight_grams: 0,
+  type: "recurring",
+  updated_at: "2026-10-06T16:14:09+00:00",
+} as const;

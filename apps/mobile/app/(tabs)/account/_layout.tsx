@@ -25,6 +25,8 @@ const AccountStack = () => (
   >
     <Stack.Screen name="index" options={{ title: "Account" }} />
     <Stack.Screen name="orders/[id]" options={{ title: "Order" }} />
+    <Stack.Screen name="subscriptions/index" options={{ title: "Subscriptions" }} />
+    <Stack.Screen name="subscriptions/[id]" options={{ title: "Subscription" }} />
   </Stack>
 );
 
