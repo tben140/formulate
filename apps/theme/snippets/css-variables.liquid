@@ -1,3 +1,9 @@
+{% doc %}
+  The theme settings that CSS needs at run time, as custom properties on
+  :root (page width and margin, colours, input radius). Rendered in the head
+  of every layout. Design tokens shared with web and the app come from
+  assets/tokens.css instead, generated from packages/tokens.
+{% enddoc %}
 {% style %}
   :root {
     --page-width: {{ settings.max_page_width }};
