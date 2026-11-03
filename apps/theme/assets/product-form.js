@@ -1,5 +1,5 @@
 import { Component } from "@theme/component";
-import { addItem } from "@theme/cart-api";
+import { addGift, addItem } from "@theme/cart-api";
 import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
 
 /**
@@ -9,6 +9,8 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {string[]} options Option values, in the product's option order.
  * @property {string} price Already formatted by Liquid's `money` filter.
  * @property {number} cents The same price in minor units, for the price per day.
+ * @property {{ id: number, title: string, image: string | null } | null} [gift]
+ *   Its free gift, in stock; null for none (free-gift.ts).
  * @property {PlanData[]} [plans] App-owned selling plans only. See the filter
  *   in snippets/product-form.liquid.
  */
@@ -36,6 +38,11 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLElement} [perDay]
  * @property {HTMLElement} [renewal]
  * @property {HTMLElement} [express]
+ * @property {HTMLElement} [gift]
+ * @property {HTMLElement} [giftTitle]
+ * @property {HTMLImageElement} [giftImage]
+ * @property {HTMLInputElement} [giftId]
+ * @property {HTMLInputElement} [giftParent]
  * @property {HTMLButtonElement} [submit]
  * @property {HTMLElement} [status]
  * @property {HTMLInputElement | HTMLInputElement[]} [optionInput]
@@ -230,6 +237,24 @@ class ProductForm extends Component {
     const { variantId, price, submit } = this.refs;
 
     if (variantId) variantId.value = match ? String(match.id) : "";
+
+    // The free gift: the offer, and the express button's fields for it.
+    const gift = match?.gift ?? null;
+    const { gift: giftCard, giftTitle, giftImage, giftId, giftParent } = this.refs;
+    if (giftCard) giftCard.hidden = !gift;
+    if (giftTitle) giftTitle.textContent = gift?.title ?? "";
+    if (giftImage) {
+      giftImage.hidden = !gift?.image;
+      if (gift?.image) giftImage.src = gift.image;
+    }
+    for (const [input, value] of /** @type {const} */ ([
+      [giftId, gift?.id],
+      [giftParent, match?.id],
+    ])) {
+      if (!input) continue;
+      input.disabled = !gift;
+      input.value = gift && value ? String(value) : "";
+    }
     // The plan sets the quantity: its supply (deliveryQuote in packages/shopify).
     if (this.refs.quantity) this.refs.quantity.value = String(effectivePlan?.units ?? 1);
 
@@ -464,7 +489,18 @@ class ProductForm extends Component {
       // The drawer is re-rendered from the response rather than refetched, so
       // the markup a shopper sees is the same Liquid the page would have
       // rendered on a full load.
-      replaceCartDrawer(result.sections);
+      // Its free gift, nested under it. A gift that can't be added doesn't fail
+      // the add: the product is in the cart (free-gift.ts).
+      const gift = this.#variants.find((v) => String(v.id) === variantId)?.gift;
+      const withGift = gift
+        ? await addGift(
+            variantId,
+            String(data.get("selling_plan") ?? ""),
+            String(gift.id),
+          ).catch(() => null)
+        : null;
+
+      replaceCartDrawer((withGift ?? result).sections);
       openCartDrawer();
 
       if (status) status.textContent = status.dataset.addedLabel ?? "Added to your cart.";

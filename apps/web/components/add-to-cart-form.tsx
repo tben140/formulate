@@ -18,6 +18,10 @@ import {
   deliveryPromise,
   deliveryQuote,
   expressCheckoutOnProduct,
+  FREE_GIFT_CONDITION,
+  FREE_GIFT_LABEL,
+  FREE_GIFT_PRICE,
+  freeGiftFor,
   supplyLabel,
   selectionStatus,
   withOption,
@@ -117,6 +121,8 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         )
       : null;
   const quote = quoteFor(effectivePlanId);
+  // This selection's free gift, in stock: added nested under it (free-gift.ts).
+  const gift = freeGiftFor(product, variant);
   // The selection rules are shared with the app (packages/shopify,
   // SHO-127); only the words and the rendering are this surface's.
   const displayPrice = quote?.price ?? priceForSelection(variant, allocations, planId);
@@ -155,6 +161,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
       <input type="hidden" name="quantity" value={quote?.units ?? 1} />
+      <input type="hidden" name="giftId" value={gift?.id ?? ""} />
 
       {product.options.map((option) =>
         // A single option called "Title" with one value is Shopify's stand-in
@@ -292,6 +299,34 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
             ))}
           </div>
         </fieldset>
+      ) : null}
+
+      {gift ? (
+        // The free gift, styled as a purchase option but not one to choose:
+        // it comes with whichever option is picked (free-gift.ts). Its
+        // condition is stated on it, where it's offered.
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
+          <span className="flex min-w-0 items-center gap-3">
+            {gift.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={gift.image.url}
+                alt=""
+                width={40}
+                height={40}
+                className="h-10 w-10 shrink-0 rounded-md border border-border object-cover"
+              />
+            ) : null}
+            <span className="flex min-w-0 flex-col">
+              <span className="text-xs font-medium text-brand-600">
+                {FREE_GIFT_LABEL}
+              </span>
+              <span>{gift.product.title}</span>
+              <span className="text-xs text-foreground-muted">{FREE_GIFT_CONDITION}</span>
+            </span>
+          </span>
+          <span className="shrink-0 font-mono text-brand-600">{FREE_GIFT_PRICE}</span>
+        </div>
       ) : null}
 
       {displayPrice ? (
