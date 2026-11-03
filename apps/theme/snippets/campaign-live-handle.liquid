@@ -1,6 +1,7 @@
 {% doc %}
   Outputs the handle of the campaign to show site-wide, or nothing (SHO-169):
-  the live one ending soonest, as `activeCampaign` in packages/shopify. Look
+  the live one with the highest priority, then ending soonest, as
+  `activeCampaign` in packages/shopify. Look
   it up with `shop.metaobjects.campaign[handle]`.
 
   Shopify gives the first 50 campaigns here. Fine while old campaigns are
@@ -9,6 +10,7 @@
 {%- liquid
   assign shown = ''
   assign shown_end = 0
+  assign shown_priority = 0
   for campaign in shop.metaobjects.campaign.values
     capture status
       render 'campaign-status', campaign: campaign
@@ -16,9 +18,11 @@
     assign status = status | strip
     if status == 'active'
       assign end_s = campaign.ends_at.value | date: '%s' | plus: 0
-      if shown == '' or end_s < shown_end
+      assign priority = campaign.priority.value | plus: 0
+      if shown == '' or priority > shown_priority or priority == shown_priority and end_s < shown_end
         assign shown = campaign.system.handle
         assign shown_end = end_s
+        assign shown_priority = priority
       endif
     endif
   endfor

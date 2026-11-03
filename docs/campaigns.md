@@ -475,6 +475,16 @@ changes mid-campaign (the flag is sticky per visitor, and the cart carries
 it); and every arm's terms are on the campaign page, so shoppers comparing
 notes see why they differ.
 
+## Overlaps
+
+A product points to one campaign, so two campaigns never discount the same
+item. What overlaps is the site-wide part: the banner and the home hero show
+one campaign. The one with the highest `priority` leads (an optional whole
+number, empty is 0), then the one ending first. `campaigns calendar` names
+overlapping campaigns and which one leads, and says when they're at the same
+priority, so a flash sale inside a longer campaign can be put in front on
+purpose.
+
 ## Housekeeping
 
 Once a campaign has ended, `campaigns tidy <handle> --apply` takes it off its

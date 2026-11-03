@@ -864,6 +864,10 @@ export const CampaignBadgeFields = graphql(`
 export const CampaignFields = graphql(`
   fragment CampaignFields on Metaobject {
     ...CampaignBadgeFields
+    # Which campaign shows site-wide when two run at once (activeCampaign).
+    priority: field(key: "priority") {
+      value
+    }
     headline: field(key: "headline") {
       value
     }
