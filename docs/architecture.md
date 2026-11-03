@@ -119,7 +119,10 @@ small. The rules are the same on all three:
   removed before sending);
 - off when no DSN is set.
 
-Details live in each surface's doc and, for the Worker, in `apps/api/src/index.ts`.
+Details live in each surface's doc. The Worker has no Sentry SDK: it holds
+the Klaviyo key and keeps no dependencies, so `apps/api/src/sentry.ts` sends
+Sentry's envelope format itself with `fetch`, from a message, an exception
+and status codes only, with email-shaped text removed.
 
 ## CI
 

@@ -11,8 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@formulate/analytics": "workspace:*",
-    "@sentry/cloudflare": "10.75.3"
+    "@formulate/analytics": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",

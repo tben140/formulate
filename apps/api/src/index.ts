@@ -1,6 +1,5 @@
-import * as Sentry from "@sentry/cloudflare";
-
 import type { RateLimiter } from "./rate-limiter";
+import { reportError } from "./sentry";
 
 export { RateLimiter } from "./rate-limiter";
 
@@ -94,7 +93,11 @@ const json = (body: Outcome, status: number): Response =>
   });
 
 const handler = {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: Pick<ExecutionContext, "waitUntil">,
+  ): Promise<Response> {
     if (request.method !== "POST") {
       return json({ ok: false, reason: "rejected" }, 405);
     }
@@ -172,7 +175,8 @@ const handler = {
         detail: (await response.text()).slice(0, 500),
       });
       // Sentry gets the status only. Klaviyo's message can quote the address.
-      Sentry.captureMessage("Klaviyo subscribe failed", {
+      reportError(env.SENTRY_DSN, ctx, {
+        message: "Klaviyo subscribe failed",
         level: "error",
         extra: { status: response.status },
       });
@@ -191,32 +195,21 @@ const handler = {
 
 /**
  * Uncaught errors go to Sentry (EU region, project `worker`), plus the
- * Klaviyo failure above. Errors only, no tracing.
- *
- * ⚠️ No personal data. sendDefaultPii is off, and beforeSend drops the
- * request entirely, so headers (including CF-Connecting-IP), cookies, the
- * body and the query string never leave the Worker. The body is where the
- * email address is. Console breadcrumbs are dropped too: the Klaviyo
- * failure log carries Klaviyo's message, which can quote the address.
- *
- * The request body is never read by Sentry (`maxRequestBodySize: "none"`),
- * so the handler's checks still run before anything reads it.
+ * Klaviyo failure above. Errors only, no tracing, and no dependency: see
+ * src/sentry.ts for exactly what is sent (never the request or the user).
+ * The caller gets a bare 500, no error detail.
  */
-export default Sentry.withSentry<Env, unknown, unknown, typeof handler>(
-  (env: Env) => ({
-    dsn: env.SENTRY_DSN,
-    enabled: Boolean(env.SENTRY_DSN),
-    environment: "production",
-    sendDefaultPii: false,
-    integrations: [Sentry.httpServerIntegration({ maxRequestBodySize: "none" })],
-    beforeBreadcrumb: (breadcrumb) =>
-      breadcrumb.category === "console" ? null : breadcrumb,
-    beforeSend: (event) => {
-      delete event.request;
-      delete event.user;
-      delete event.breadcrumbs;
-      return event;
-    },
-  }),
-  handler,
-);
+export default {
+  async fetch(request, env, ctx) {
+    try {
+      return await handler.fetch(request, env, ctx);
+    } catch (error) {
+      reportError(env.SENTRY_DSN, ctx, {
+        message: "Uncaught error",
+        level: "error",
+        error,
+      });
+      return json({ ok: false, reason: "rejected" }, 500);
+    }
+  },
+} satisfies ExportedHandler<Env>;
