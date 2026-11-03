@@ -1,4 +1,4 @@
-import { formatMoney } from "@formulate/shopify";
+import { formatMoney, RENEWAL_SHORT } from "@formulate/shopify";
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, Pressable, View } from "react-native";
 
@@ -61,7 +61,8 @@ export const StickyAddToCart = ({
   readonly onAdded: () => void;
 }) => {
   const reduceMotion = useReduceMotion();
-  const { variant, displayPrice, disabled, label, add, addToCart } = purchase;
+  const { variant, displayPrice, disabled, label, add, addToCart, effectivePlanId } =
+    purchase;
 
   // 0 = off screen below, 1 = in place. Starts where `visible` says, so the
   // first render never animates. Held in state rather than a ref, so render
@@ -176,6 +177,11 @@ export const StickyAddToCart = ({
             <Text className="text-sm font-semibold text-surface">{label}</Text>
           </Pressable>
         </View>
+        {effectivePlanId ? (
+          // This button buys too, so the renewal terms come with it, in brief
+          // (the full terms are beside the main button).
+          <Text className="text-xs text-foreground-muted">{RENEWAL_SHORT}</Text>
+        ) : null}
       </View>
     </Animated.View>
   );
