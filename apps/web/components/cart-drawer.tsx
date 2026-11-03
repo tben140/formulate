@@ -45,12 +45,13 @@ const QuantityInput = ({
   id,
   quantity,
   max,
-  title,
+  describedBy,
 }: {
   id: string;
   quantity: number;
   max?: number;
-  title?: string;
+  /** The id of the visible limit message, when the line is at its limit. */
+  describedBy?: string;
 }) => {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -64,7 +65,7 @@ const QuantityInput = ({
       type="number"
       min={0}
       max={max}
-      title={title}
+      aria-describedby={describedBy}
       defaultValue={quantity}
       className="w-16 rounded-md border border-border px-2 py-1 text-sm"
     />
@@ -252,7 +253,11 @@ export const CartDrawer = ({
                             // real rule). The browser refuses a higher number
                             // with its own message before anything is sent.
                             max={maxQuantityForLine(lines, line.id)}
-                            title={limitMessage(variant.product.title)}
+                            describedBy={
+                              line.quantity >= maxQuantityForLine(lines, line.id)
+                                ? `limit-${line.id}`
+                                : undefined
+                            }
                           />
                           <button
                             type="submit"
@@ -266,6 +271,16 @@ export const CartDrawer = ({
                           {formatMoney(line.cost.totalAmount)}
                         </p>
                       </div>
+                      {/* Visible, not a tooltip: touch and keyboard users can't
+                          reach a title, and the field stops without saying why. */}
+                      {line.quantity >= maxQuantityForLine(lines, line.id) ? (
+                        <p
+                          id={`limit-${line.id}`}
+                          className="mt-1 text-xs text-foreground-muted"
+                        >
+                          {limitMessage(variant.product.title)}
+                        </p>
+                      ) : null}
                     </div>
 
                     <form action={changeLine}>

@@ -249,17 +249,19 @@ export const CartSheet = ({
                         >
                           <Text className="text-foreground">+</Text>
                         </Pressable>
-                        {atLimit ? (
-                          <Text className="text-xs text-foreground-muted">
-                            6 per order
-                          </Text>
-                        ) : null}
                       </View>
 
                       <Text className="text-sm text-foreground">
                         {formatMoney(line.cost.totalAmount)}
                       </Text>
                     </View>
+                    {/* Under the row, not in it: beside the controls it pushed
+                        the price off narrow screens and large text sizes. */}
+                    {atLimit ? (
+                      <Text className="mt-1 text-xs text-foreground-muted">
+                        {limitMessage(variant.product.title)}
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
               );
