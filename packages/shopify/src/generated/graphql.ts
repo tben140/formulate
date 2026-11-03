@@ -1657,7 +1657,7 @@ export type RoutineGoalsQuery = { metaobjects: { nodes: Array<{ handle: string, 
 export type PaymentSettingsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type PaymentSettingsQuery = { shop: { paymentSettings: { acceptedCardBrands: Array<CardBrand>, supportedDigitalWallets: Array<DigitalWallet> } } };
+export type PaymentSettingsQuery = { shop: { paymentSettings: { acceptedCardBrands: Array<CardBrand>, supportedDigitalWallets: Array<DigitalWallet> }, payLater: { value: string } | null } };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -2732,6 +2732,9 @@ export const PaymentSettingsDocument = new TypedDocumentString(`
     paymentSettings {
       acceptedCardBrands
       supportedDigitalWallets
+    }
+    payLater: metafield(namespace: "double_helix", key: "pay_later") {
+      value
     }
   }
 }
