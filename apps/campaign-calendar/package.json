@@ -11,7 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@formulate/campaigns": "workspace:*"
+    "@formulate/campaigns": "workspace:*",
+    "@formulate/shopify": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",

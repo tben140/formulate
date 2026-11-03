@@ -36,6 +36,7 @@ import { cohort, cohortMarkdown } from "./cohort";
 import { earnedRewards, planReferralCodes, REFERRAL_PREFIX } from "./referrals";
 import { reportHtml } from "./dashboard";
 import { campaignReport, reportMarkdown } from "./report";
+import { syncCampaign } from "./run-sync";
 import { campaignTerms } from "./terms";
 import {
   addRedeemCodes,
@@ -55,8 +56,6 @@ import {
   tagCustomers,
   tidyCampaign,
   upsertFunctionDiscount,
-  upsertShippingDiscount,
-  deactivateAutomatic,
   writePriceHistories,
 } from "./shopify-data";
 import { campaignDiscounts, discountConfig, usedTag } from "./sync";
@@ -232,48 +231,10 @@ Next:
       if (!handle) break;
       const admin = await adminFromEnv();
       const data = await snapshot(admin, handle);
-      const campaign = campaignOf(data.entry, data.collection?.handle);
-      if (!campaign) throw new Error("The campaign can't be shown; run check for why.");
-      const result = discountConfig(data.entry, data.collection, data.products);
-      if ("error" in result) throw new Error(`Can't sync: ${result.error}.`);
-      const existing = campaignDiscounts(data.entry, data.discounts).find(
-        (d) => d.kind === "app" && !isPersonalPool(d.config),
-      );
-      const id = await upsertFunctionDiscount(admin, {
-        existingId: existing?.id ?? null,
-        title: `${campaign.title} (campaign)`,
-        code: campaign.discountCode,
-        startsAt: campaign.startsAt.toISOString(),
-        endsAt: campaign.endsAt.toISOString(),
-        config: result.config,
+      for (const line of await syncCampaign(admin, data, {
         activate: rest.includes("--activate"),
-      });
-      console.log(
-        existing
-          ? `Updated ${id}.${rest.includes("--activate") ? " Updating doesn't switch it on: activate it in the admin." : ""}`
-          : `Created ${id}${rest.includes("--activate") ? "" : ", switched off: activate it in the admin, and switch off any plain discount it replaces"}.`,
-      );
-      const rules = parseOfferRules(data.entry.fields.offer_rules);
-      if (rules?.shipping) {
-        const ship = campaignDiscounts(data.entry, data.discounts).find(
-          (d) => d.kind === "shipping",
-        );
-        const shipId = await upsertShippingDiscount(admin, {
-          existingId: ship?.id ?? null,
-          title: `${campaign.title} (free delivery)`,
-          startsAt: campaign.startsAt.toISOString(),
-          endsAt: campaign.endsAt.toISOString(),
-          minSubtotal: rules.shipping.minSubtotal.amount,
-          maxRate: rules.shipping.maxRate?.amount ?? null,
-        });
-        if (!ship && !rest.includes("--activate"))
-          await deactivateAutomatic(admin, shipId);
-        console.log(
-          ship
-            ? `Updated free delivery ${shipId}.`
-            : `Created free delivery ${shipId}${rest.includes("--activate") ? "" : ", switched off"}.`,
-        );
-      }
+      }))
+        console.log(line);
       return 0;
     }
 
