@@ -35,6 +35,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLElement} [price]
  * @property {HTMLElement} [perDay]
  * @property {HTMLElement} [renewal]
+ * @property {HTMLElement} [express]
  * @property {HTMLButtonElement} [submit]
  * @property {HTMLElement} [status]
  * @property {HTMLInputElement | HTMLInputElement[]} [optionInput]
@@ -246,8 +247,10 @@ class ProductForm extends Component {
         );
       }
     }
-    // The renewal terms only while a subscription is selected.
+    // The renewal terms only while a subscription is selected; express
+    // checkout only while it isn't (packages/shopify/src/express-checkout.ts).
     if (renewal) renewal.hidden = !effectivePlan;
+    if (this.refs.express) this.refs.express.hidden = Boolean(effectivePlan);
 
     const label = !match
       ? (submit?.dataset.unavailableLabel ?? "Unavailable")

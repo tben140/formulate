@@ -489,6 +489,14 @@ export const CartFields = graphql(`
               value
             }
           }
+          # Per unit. A second adjustment is an introductory plan's later
+          # price, for the cart's renewal terms (cartRenewalTerms).
+          priceAdjustments {
+            price {
+              amount
+              currencyCode
+            }
+          }
         }
       }
     }

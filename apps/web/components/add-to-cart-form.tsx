@@ -17,12 +17,14 @@ import {
   SUBSCRIPTION_BENEFITS,
   deliveryPromise,
   deliveryQuote,
+  expressCheckoutOnProduct,
   supplyLabel,
   selectionStatus,
   withOption,
   type ProductByHandleResult,
   type SelectedOption,
 } from "@formulate/shopify";
+import { ShopPayButton } from "@shopify/hydrogen/react";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
@@ -323,6 +325,23 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       >
         {buttonLabel}
       </button>
+
+      {variant && !unavailable && expressCheckoutOnProduct(effectivePlanId) ? (
+        // Express checkout, one-time purchases only: Shop Pay can skip
+        // checkout, where the subscription terms are shown, and its cart
+        // permalink can't carry a plan (packages/shopify/src/express-checkout.ts).
+        // The permalink is this site's own /cart/{id}:{qty} (app/cart/[lines]).
+        <div className="mt-2">
+          <ShopPayButton
+            variants={[{ id: variant.id, quantity: quote?.units ?? 1 }]}
+            // Not while an add is in flight: a second, separate checkout
+            // mid-update would confuse which purchase happened.
+            disabled={pending}
+            width="100%"
+            borderRadius="8px"
+          />
+        </div>
+      ) : null}
 
       {effectivePlanId && displayPrice && planName ? (
         // The renewal terms, before purchase and next to the button

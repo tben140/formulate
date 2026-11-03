@@ -27,8 +27,14 @@
       {% endfor %}
     </table>
 
+    {%- render 'cart-renewal-terms', cart: cart -%}
     <input type="submit" name="checkout" value="{{ 'cart.checkout' | t }}">
   </form>
+
+  {%- comment -%} Express checkout; the renewal terms above cover it. {%- endcomment -%}
+  {%- if additional_checkout_buttons -%}
+    <div class="cart-drawer__express">{{ content_for_additional_checkout_buttons }}</div>
+  {%- endif -%}
 </div>
 
 {% schema %}
