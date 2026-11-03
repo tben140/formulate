@@ -36,6 +36,18 @@ describe("createStorefrontClient", () => {
     });
   });
 
+  it("settles at the timeout even if the request ignores the abort", async () => {
+    // A fetch that never settles, abort or not: the iOS stuck-body case.
+    vi.stubGlobal("fetch", () => new Promise(() => {}));
+    const result = await createStorefrontClient({ ...config, timeoutMs: 20 }).request(
+      ShopNameQuery,
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: "network", message: "Storefront request timed out after 20 ms" },
+    });
+  });
+
   it("returns the data when the answer comes in time", async () => {
     vi.stubGlobal("fetch", async () =>
       Response.json({

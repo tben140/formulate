@@ -63,12 +63,31 @@ export const createStorefrontClient = (
     const url = `https://${domain}/api/${apiVersion}/graphql.json`;
 
     // AbortController and a timer rather than AbortSignal.timeout, which
-    // Hermes doesn't have. The timer covers reading the body too.
+    // Hermes doesn't have. The timer covers reading the body too, and it
+    // settles the request itself rather than relying on the abort: on iOS a
+    // buffered body read can stay pending after abort(), so `send` alone
+    // might never return.
     const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<StorefrontResult<TResult>>((resolve) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        resolve({
+          ok: false,
+          error: {
+            kind: "network",
+            message: `Storefront request timed out after ${timeoutMs} ms`,
+            cause: null,
+          },
+        });
+      }, timeoutMs);
+    });
     try {
-      return await send(url, token, document, variables, controller.signal, timeoutMs);
+      return await Promise.race([
+        send(url, token, document, variables, controller.signal, timeoutMs),
+        timedOut,
+      ]);
     } finally {
       clearTimeout(timer);
     }
