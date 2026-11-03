@@ -349,6 +349,14 @@ at the end**; it has no dates of its own. Add the email's body in Klaviyo
 (the last-day campaign's template fits) and it sends from the account's
 default sender. Black Friday 2026's is `VwNnXJ` (draft).
 
+### Terms from the rules
+
+`campaigns terms <handle>` writes the terms from `offer_rules`: the dates in
+UK time, the offer and what it reaches, limits, audience, what it won't
+combine with, the subscriber perk as `campaigns perks` gives it, and the
+demo-store note. `--apply` saves them (then approve again). `check` warns
+when the saved terms say something else, so an edit to either side shows.
+
 ### Stock
 
 `check` reads each variant's stock (where Shopify tracks it) and warns about
