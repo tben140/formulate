@@ -1,0 +1,50 @@
+{
+  "payload": {
+    "export": "cart-lines-discounts-generate-run",
+    "target": "cart.lines.discounts.generate.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1",
+            "parentRelationship": null,
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "freeGift": null,
+              "product": {
+                "freeGift": {
+                  "value": "gid://shopify/ProductVariant/900"
+                }
+              }
+            }
+          },
+          {
+            "id": "gid://shopify/CartLine/2",
+            "parentRelationship": {
+              "parent": {
+                "id": "gid://shopify/CartLine/1"
+              }
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/900",
+              "freeGift": null,
+              "product": {
+                "freeGift": null
+              }
+            }
+          }
+        ]
+      },
+      "discount": {
+        "discountClasses": [
+          "ORDER"
+        ]
+      }
+    },
+    "output": {
+      "operations": []
+    }
+  }
+}

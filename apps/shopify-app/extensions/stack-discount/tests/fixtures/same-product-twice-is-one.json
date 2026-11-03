@@ -13,7 +13,8 @@
               "product": {
                 "id": "gid://shopify/Product/1"
               }
-            }
+            },
+            "parentRelationship": null
           },
           {
             "id": "gid://shopify/CartLine/2",
@@ -23,7 +24,8 @@
               "product": {
                 "id": "gid://shopify/Product/1"
               }
-            }
+            },
+            "parentRelationship": null
           },
           {
             "id": "gid://shopify/CartLine/3",
@@ -33,12 +35,15 @@
               "product": {
                 "id": "gid://shopify/Product/2"
               }
-            }
+            },
+            "parentRelationship": null
           }
         ]
       },
       "discount": {
-        "discountClasses": ["ORDER"]
+        "discountClasses": [
+          "ORDER"
+        ]
       }
     },
     "output": {
