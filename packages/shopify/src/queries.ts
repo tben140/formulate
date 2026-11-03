@@ -697,3 +697,23 @@ export const ProductRecommendationsQuery = graphql(`
     }
   }
 `);
+
+/**
+ * The payment methods Shopify reports the store accepts, for the footer's
+ * payment icons (see paymentIconIds).
+ */
+export const PaymentSettingsQuery = graphql(`
+  query PaymentSettings {
+    shop {
+      paymentSettings {
+        acceptedCardBrands
+        supportedDigitalWallets
+      }
+      # Klarna and Clearpay, which paymentSettings doesn't report: a list set
+      # by hand (src/payment-icons.ts).
+      payLater: metafield(namespace: "double_helix", key: "pay_later") {
+        value
+      }
+    }
+  }
+`);
