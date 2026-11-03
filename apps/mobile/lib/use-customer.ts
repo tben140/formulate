@@ -15,6 +15,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
+import { deleteAccount, previewDeletion } from "./account-deletion";
 import { clearCartId, readCartId } from "./cart-storage";
 import {
   clearCustomerTokens,
@@ -188,3 +189,43 @@ export const useSubscription = (id: string) =>
     queryFn: () => loadSubscription(id),
     enabled: isCustomerAccountAvailable && isRechargeConfigured,
   });
+
+/** What deleting the account would cancel (SHO-90). Fresh each visit: no caching. */
+export const useDeletionPreview = () =>
+  useQuery({
+    queryKey: [...CUSTOMER_KEY, "deletion-preview"],
+    queryFn: previewDeletion,
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+/**
+ * Deletes the account through the Worker. On success, everything sign-out
+ * forgets is forgotten here too: tokens, Recharge session and the cart. No
+ * Shopify logout request: the account it would end is being erased.
+ */
+export const useDeleteAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const result = await deleteAccount();
+      if (!result.ok) return { result, cleanupFailed: false };
+      // The account is gone whatever happens next, so that result stands.
+      // Every cleanup step is tried even if one fails (SecureStore can reject),
+      // and a failure is reported alongside, never instead.
+      const steps = await Promise.allSettled([
+        clearCustomerTokens(),
+        Promise.resolve().then(clearRechargeSession),
+        clearCartId(),
+      ]);
+      const cleanupFailed = steps.some((step) => step.status === "rejected");
+      if (cleanupFailed && __DEV__) console.warn("deletion cleanup failed", steps);
+      return { result, cleanupFailed };
+    },
+    onSuccess: async ({ result }) => {
+      if (!result.ok) return;
+      await queryClient.resetQueries({ queryKey: CUSTOMER_KEY });
+      await queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+};

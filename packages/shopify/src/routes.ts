@@ -37,6 +37,8 @@ export const SHARED_ROUTES = [
   // The subscription portal (SHO-72).
   "/account/subscriptions",
   "/account/subscriptions/[id]",
+  // Account deletion's confirmation (SHO-90).
+  "/account/delete",
   // The app has drawn the store's policies itself since #166.
   "/policies/[handle]",
 ] as const;
@@ -46,7 +48,13 @@ export const SHARED_ROUTES = [
  * here or in SHARED_ROUTES fails the parity test.
  */
 export const SURFACE_ONLY_ROUTES = {
-  web: {},
+  web: {
+    // Account deletion (SHO-90): the app shows its result in place, and the
+    // help page must work for someone without the app (app store rule). The
+    // confirm route is a POST handler, not a page.
+    "/account/deleted": "where web's deletion form lands; the app shows it in place",
+    "/account/delete-help": "public instructions for people without the app",
+  },
   mobile: {
     // Not a page: the Cart tab opens the cart sheet (app/(tabs)/_layout.tsx).
     // Web's cart is a drawer with no route either.
