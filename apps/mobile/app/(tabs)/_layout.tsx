@@ -3,8 +3,8 @@ import { Tabs } from "expo-router";
 import type { ColorValue } from "react-native";
 
 import { useCartUi } from "../../components/cart-provider";
-import { useCart } from "../../lib/use-cart";
 import { fontFor } from "../../lib/fonts";
+import { useOptimisticCart } from "../../lib/use-cart";
 
 /**
  * React Native 0.88's ColorValue also allows numbers and null, which the icon
@@ -34,7 +34,9 @@ export const unstable_settings = { initialRouteName: "(shop)" };
  */
 const TabsLayout = () => {
   const { openCart } = useCartUi();
-  const { data: cart } = useCart();
+  // The optimistic cart, as the sheet uses, so the badge moves the moment a
+  // quantity changes rather than when Shopify answers (SHO-52).
+  const { cart } = useOptimisticCart();
   const count = cart?.totalQuantity ?? 0;
 
   return (
