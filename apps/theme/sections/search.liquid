@@ -19,16 +19,42 @@
   <form class="search-page__form" action="{{ routes.search_url }}" method="get" role="search">
     <input type="hidden" name="type" value="product">
     <label class="visually-hidden" for="search-term-{{ section.id }}">{{ 'search.label' | t }}</label>
-    <input
-      id="search-term-{{ section.id }}"
-      class="search-page__input"
-      type="search"
-      name="q"
-      value="{{ search.terms | escape }}"
-      placeholder="{{ 'search.label' | t }}"
-      autocomplete="off"
-      enterkeyhint="search"
+    {% comment %}
+      Suggestions as you type (SHO-103): assets/predictive-search.js. Without
+      it, this is the plain search box it always was.
+    {% endcomment %}
+    <predictive-search
+      class="predictive-search"
+      data-suggest-url="{{ routes.predictive_search_url }}"
+      data-none-text="{{ 'search.suggestions_none' | t }}"
+      data-one-text="{{ 'search.suggestions_one' | t }}"
+      data-many-text="{{ 'search.suggestions_many' | t }}"
     >
+      <input
+        ref="input"
+        id="search-term-{{ section.id }}"
+        class="search-page__input"
+        type="search"
+        name="q"
+        value="{{ search.terms | escape }}"
+        placeholder="{{ 'search.label' | t }}"
+        autocomplete="off"
+        enterkeyhint="search"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded="false"
+        aria-controls="predictive-search-list-{{ section.id }}"
+      >
+      <div
+        ref="list"
+        id="predictive-search-list-{{ section.id }}"
+        class="predictive-search__list"
+        role="listbox"
+        aria-label="{{ 'search.suggestions_label' | t }}"
+        hidden
+      ></div>
+      <p ref="status" class="visually-hidden" role="status"></p>
+    </predictive-search>
     <button class="search-page__submit" type="submit">{{ 'search.submit' | t }}</button>
   </form>
 
@@ -71,16 +97,23 @@
     letter-spacing: -0.02em;
   }
 
+  /* The suggestion list is placed against the whole form, button included,
+     so a product name has room at phone width. */
   .search-page__form {
+    position: relative;
     display: flex;
     gap: var(--spacing-2);
     max-inline-size: 36rem;
     margin-block: var(--spacing-6) var(--spacing-8);
   }
 
-  .search-page__input {
+  .predictive-search {
     flex: 1;
     min-inline-size: 0;
+  }
+
+  .search-page__input {
+    inline-size: 100%;
     padding: var(--spacing-2) var(--spacing-3);
     border: 1px solid var(--color-ink-400);
     border-radius: var(--radius-md);
@@ -100,6 +133,19 @@
 
   .search-page__submit:hover {
     background: var(--color-brand-700);
+  }
+
+  /* Matches apps/web's suggestion list. */
+  .predictive-search__list {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: calc(100% + var(--spacing-1));
+    z-index: 20;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   }
 
   .search-page__empty {

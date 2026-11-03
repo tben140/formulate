@@ -113,7 +113,11 @@
     "results_for_html": "{{ count }} results found for {{ terms }}",
     "label": "Search products",
     "results": "Results",
-    "no_products": "No products match “{{ terms }}”. Try a different word, or browse the collections."
+    "no_products": "No products match “{{ terms }}”. Try a different word, or browse the collections.",
+    "suggestions_label": "Suggested products",
+    "suggestions_none": "No suggestions. Press Enter to search.",
+    "suggestions_one": "1 suggestion. Use the up and down arrows to choose.",
+    "suggestions_many": "[count] suggestions. Use the up and down arrows to choose."
   },
   "general": {
     "breadcrumb": "Breadcrumb",

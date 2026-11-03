@@ -1,4 +1,4 @@
-import { formatMoney } from "@formulate/shopify";
+import { formatMoney, PREDICTIVE_SEARCH, suggestionTerm } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
@@ -6,9 +6,6 @@ import { ActivityIndicator, FlatList, Text, TextInput, View } from "react-native
 
 import { CollectionFilters } from "../components/collection-filters";
 import { useSearch } from "../lib/queries";
-
-/** How long typing must pause before a search runs. */
-const DEBOUNCE_MS = 300;
 
 /**
  * Product search (SHO-153), matching the web and theme search pages: results
@@ -18,6 +15,13 @@ const DEBOUNCE_MS = 300;
  * Searches as you type, once typing pauses, rather than on submit: on a phone
  * that's the expected behaviour, and the previous results stay up while the
  * next ones load. The keyboard's search key runs it straight away.
+ *
+ * This is the app's predictive search (SHO-103). Web and the theme show a
+ * short suggestion list under their search box because their full results
+ * wait for Enter; here the full results already update as you type (Shopify's
+ * search matches a half-typed word, "magn" finds Magnesium Glycinate), so a
+ * second list on top would repeat them. What all three share is when they
+ * respond: PREDICTIVE_SEARCH's minimum length and pause.
  */
 const SearchScreen = () => {
   const [text, setText] = useState("");
@@ -25,7 +29,7 @@ const SearchScreen = () => {
   const [filterQuery, setFilterQuery] = useState("");
 
   useEffect(() => {
-    const timer = setTimeout(() => setTerm(text.trim()), DEBOUNCE_MS);
+    const timer = setTimeout(() => setTerm(text.trim()), PREDICTIVE_SEARCH.debounceMs);
     return () => clearTimeout(timer);
   }, [text]);
 
@@ -33,7 +37,7 @@ const SearchScreen = () => {
   const products = (data?.nodes ?? []).flatMap((node) =>
     node.__typename === "Product" ? [node] : [],
   );
-  const searching = term.length >= 2;
+  const searching = suggestionTerm(term) !== null;
 
   return (
     <FlatList
