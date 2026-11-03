@@ -44,7 +44,7 @@ export const POST = async (request: Request): Promise<Response> => {
   // An update whose query failed carries `errors` and no usable data, so
   // there's no handle to clear. Not acknowledged: a 5xx makes Shopify retry,
   // and if the query keeps failing the hourly backstop still applies.
-  if (queryFailed(action, payload.errors)) {
+  if (queryFailed(topic, action, payload.errors, payload.data)) {
     console.error(
       `[shopify-events] ${topic}/${action} ${request.headers.get("shopify-webhook-id") ?? ""}: query failed, asking Shopify to retry`,
     );

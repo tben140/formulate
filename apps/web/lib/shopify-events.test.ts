@@ -68,14 +68,30 @@ describe("tagsForDelivery", () => {
 });
 
 describe("queryFailed", () => {
+  const product = { product: { handle: "magnesium-glycinate" } };
+
   it("is true for an update whose query returned errors", () => {
-    expect(queryFailed("update", [{ message: "Field doesn't exist" }])).toBe(true);
+    expect(
+      queryFailed("Product", "update", [{ message: "Field doesn't exist" }], product),
+    ).toBe(true);
   });
 
-  it("is false without errors, and for create and delete, which need no data", () => {
-    expect(queryFailed("update", undefined)).toBe(false);
-    expect(queryFailed("update", [])).toBe(false);
-    expect(queryFailed("delete", [{ message: "gone" }])).toBe(false);
-    expect(queryFailed("create", [{ message: "x" }])).toBe(false);
+  it("is true for an update whose resource came back null, without errors", () => {
+    expect(queryFailed("Product", "update", undefined, { product: null })).toBe(true);
+    expect(
+      queryFailed("InventoryItem", "update", undefined, {
+        inventoryItem: { variant: null },
+      }),
+    ).toBe(true);
+    expect(queryFailed("Collection", "update", [], {})).toBe(true);
+  });
+
+  it("is false with usable data, and for create and delete, which need none", () => {
+    expect(queryFailed("Product", "update", undefined, product)).toBe(false);
+    expect(
+      queryFailed("Collection", "update", [], { collection: { handle: "best-sellers" } }),
+    ).toBe(false);
+    expect(queryFailed("Product", "delete", [{ message: "gone" }], null)).toBe(false);
+    expect(queryFailed("Product", "create", undefined, null)).toBe(false);
   });
 });

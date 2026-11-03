@@ -67,8 +67,9 @@ const CartBadge = async () => {
 
 const CartDrawerArea = async () => {
   const cart = await getCart();
-  // Needs the cart's lines. Empty carts make no request at all.
-  const suggestions = await getCartSuggestions(cart);
+  // Needs the cart's lines; empty carts make no request at all. Passed
+  // unawaited: the drawer renders now, and suggestions follow (CartDrawer).
+  const suggestions = getCartSuggestions(cart);
   return <CartDrawer cart={cart} suggestions={suggestions} />;
 };
 

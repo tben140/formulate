@@ -56,12 +56,31 @@ const productTags = (product: ProductData | null | undefined): string[] => {
 };
 
 /**
- * Whether a delivery is an update whose query failed: Shopify sends `errors`
- * and no usable data, so there's no handle to clear. The route answers 503
- * so Shopify retries; create and delete need no data, so they never count.
+ * Whether a delivery is an update whose query gave nothing usable: GraphQL
+ * `errors`, or the queried resource came back null or without its handle
+ * (Shopify allows that without errors). Either way there's no tag to clear,
+ * so the route answers 503 and Shopify retries. Create and delete need no
+ * data, so they never count.
  */
-export const queryFailed = (action: string, errors: readonly unknown[] | undefined) =>
-  action === "update" && Boolean(errors?.length);
+export const queryFailed = (
+  topic: string,
+  action: string,
+  errors: readonly unknown[] | undefined,
+  data: EventData | null | undefined,
+): boolean => {
+  if (action !== "update") return false;
+  if (errors?.length) return true;
+  switch (topic) {
+    case "Product":
+      return !data?.product?.handle;
+    case "InventoryItem":
+      return !data?.inventoryItem?.variant?.product?.handle;
+    case "Collection":
+      return !data?.collection?.handle;
+    default:
+      return false;
+  }
+};
 
 /**
  * The tags one delivery clears.
