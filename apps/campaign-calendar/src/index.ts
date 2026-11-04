@@ -6,6 +6,7 @@ import {
   offerPreview,
   resultsFor,
   saveOffer,
+  segmentsFor,
   signOff,
   stockFor,
   TEMPLATE_NAMES,
@@ -28,7 +29,9 @@ import { offlineAdmin, staffName } from "./shopify";
  * - `POST /api/campaigns/<handle>/offer` saves the offer, updates its discounts;
  * - `POST /api/campaigns/new` a draft copied from a campaign, or a template;
  * - `GET /api/campaigns/<handle>/stock` stock against the plan;
- * - `GET /api/campaigns/<handle>/results` after it ends: its report;
+ * - `GET /api/segments` customer segment sizes, from the settings record;
+ * - `GET /api/campaigns/<handle>/results` after it ends: its report, cohort
+ *   and referral rewards;
  * - `POST /api/campaigns/<handle>/tidy` after it ends: `campaigns tidy`.
  *
  * ⚠️ Every /api call needs a valid App Bridge session token for this app and
@@ -128,6 +131,15 @@ export const handle = async (request: Request, env: Env): Promise<Response> => {
       );
       const result = await newCampaign(admin, body);
       return json(result, "error" in result ? 400 : 201);
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/segments") {
+      const admin = await offlineAdmin(
+        who,
+        env.SHOPIFY_APP_CLIENT_ID,
+        env.SHOPIFY_APP_CLIENT_SECRET,
+      );
+      return json(await segmentsFor(admin));
     }
 
     const offer = /^\/api\/campaigns\/([^/]+)\/offer(\/preview)?$/.exec(url.pathname);

@@ -2,7 +2,9 @@ import { calendar } from "@formulate/campaigns/calendar";
 import { checkCampaign } from "@formulate/campaigns/check";
 import { duplicateFields, previewOffer } from "@formulate/campaigns/offer-preview";
 import { campaignOf } from "@formulate/campaigns/campaign-node";
-import { campaignReport } from "@formulate/campaigns/report";
+import { cohort } from "@formulate/campaigns/cohort";
+import { earnedRewards, REFERRAL_PREFIX } from "@formulate/campaigns/referrals";
+import { campaignReport, type ReportOrder } from "@formulate/campaigns/report";
 import { syncCampaign } from "@formulate/campaigns/run-sync";
 import {
   BASELINE_DAYS,
@@ -24,6 +26,7 @@ import {
   getCollection,
   getDiscounts,
   getEntries,
+  getBuyerContacts,
   getEntry,
   getOrders,
   getRecentSales,
@@ -256,7 +259,34 @@ export const stockFor = async (admin: Admin, handle: string, now: Date = new Dat
   };
 };
 
-/** After a campaign: its results, as `campaigns report`. */
+/**
+ * Referral rewards earned (`campaigns referrals --rewards`), as counts: who
+ * referred whom stays in the CLI, which is where a reward is issued.
+ */
+export const referralSummary = (
+  orders: readonly ReportOrder[],
+  contacts: readonly { customerId: string; code: string | null }[],
+): { referrers: number; orders: number } => {
+  const owners = new Map(
+    contacts.filter((c) => c.code).map((c) => [c.code!.toUpperCase(), c.customerId]),
+  );
+  const uses = orders.flatMap((o) =>
+    o.discounts
+      .filter((d) => d.toUpperCase().startsWith(`${REFERRAL_PREFIX}-`))
+      .map((code) => ({ order: o.name, code, friendCustomerId: o.customerId ?? null })),
+  );
+  const rewards = earnedRewards(uses, owners);
+  return {
+    referrers: rewards.length,
+    orders: rewards.reduce((sum, r) => sum + r.orders.length, 0),
+  };
+};
+
+/**
+ * After a campaign: its results, as `campaigns report`, and what happened
+ * next: did its buyers come back (`campaigns cohort`), and did their
+ * referral codes bring friends (`campaigns referrals --rewards`).
+ */
 export const resultsFor = async (
   admin: Admin,
   handle: string,
@@ -272,21 +302,86 @@ export const resultsFor = async (
     ...d.codes,
   ]);
   if (campaign.discountCode) titles.push(campaign.discountCode);
+  let orders: ReportOrder[];
   try {
-    const orders = await getOrders(
+    // 90 days on, for the cohort; the report keeps to its usual week after.
+    orders = await getOrders(
       admin,
       campaign.startsAt.toISOString(),
-      campaign.endsAt.toISOString(),
+      new Date(campaign.endsAt.getTime() + 90 * DAY).toISOString(),
       titles,
     );
-    return { report: campaignReport(orders, { handle, discountTitles: titles }) };
   } catch {
-    // Orders with customer fields need the app's protected customer data access.
-    return {
-      error:
-        "Couldn't read the orders. The app may still need protected customer data access (Partner Dashboard).",
-    };
+    return { error: "Couldn't read the orders." };
   }
+  const reportUntil = campaign.endsAt.getTime() + 7 * DAY;
+  const report = campaignReport(
+    orders.filter((o) => new Date(o.createdAt).getTime() < reportUntil),
+    { handle, discountTitles: titles },
+  );
+  const followUp = cohort(
+    orders,
+    {
+      handle,
+      discountTitles: titles,
+      startsAt: campaign.startsAt,
+      endsAt: campaign.endsAt,
+    },
+    now,
+  );
+  const buyers = [
+    ...new Set(
+      orders
+        .filter(
+          (o) =>
+            o.customerId &&
+            new Date(o.createdAt) < campaign.endsAt &&
+            o.campaignDiscount > 0,
+        )
+        .map((o) => o.customerId!),
+    ),
+  ];
+  const referrals = referralSummary(orders, await getBuyerContacts(admin, buyers));
+  return { report, cohort: followUp, referrals };
+};
+
+/** The customer segments' sizes, as `campaigns segments --apply` stored them. */
+export const parseSegmentCounts = (
+  value: string | null | undefined,
+): { syncedAt: string; counts: Record<string, number> } | null => {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as { syncedAt?: unknown; counts?: unknown };
+    if (typeof parsed.syncedAt !== "string" || typeof parsed.counts !== "object")
+      return null;
+    const counts = Object.fromEntries(
+      Object.entries(parsed.counts ?? {}).filter(
+        ([key, n]) =>
+          /^[a-z_]{1,20}$/.test(key) && Number.isInteger(n) && (n as number) >= 0,
+      ),
+    ) as Record<string, number>;
+    return { syncedAt: parsed.syncedAt, counts };
+  } catch {
+    return null;
+  }
+};
+
+/** Segment counts from the Campaign settings record (SHO-207). */
+export const segmentsFor = async (admin: Admin) => {
+  const data = await admin.request<{
+    metaobjectByHandle: { field: { value: string | null } | null } | null;
+  }>(
+    `query Segments {
+      metaobjectByHandle(handle: { type: "campaign_config", handle: "settings" }) {
+        field(key: "segment_counts") { value }
+      }
+    }`,
+  );
+  return (
+    parseSegmentCounts(data.metaobjectByHandle?.field?.value) ?? {
+      error: "Not counted yet: run pnpm campaigns segments --apply.",
+    }
+  );
 };
 
 /**

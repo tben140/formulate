@@ -60,6 +60,7 @@ export const page = (clientId: string): string => `<!doctype html>
 <section><h2>Calendar</h2><div class="months" id="months"></div>
   <p class="muted">Bars are campaigns, by state: <span class="pill state-live">live</span> <span class="pill state-upcoming">upcoming</span> <span class="pill state-draft">draft</span> <span class="pill state-ended">ended</span>. Italics are UK retail days.</p></section>
 <section><h2>Campaigns</h2><table class="list"><thead><tr><th>Campaign</th><th>State</th><th>Runs (UK)</th><th></th></tr></thead><tbody id="rows"></tbody></table></section>
+<section><h2>Customer segments</h2><p class="muted" id="segments-status">Loading…</p><table class="margins" id="segments" hidden><thead><tr><th>Segment</th><th>Customers</th></tr></thead><tbody id="segment-rows"></tbody></table></section>
 <section><h2>New campaign</h2>
   <form class="grid" id="new-form">
     <label>Start from<select name="source" id="new-source"></select></label>
@@ -316,6 +317,33 @@ const showStock = async (row) => {
   } catch (error) { body.replaceChildren(el("p", { class: "finding-error" }, "The forecast couldn't run: " + error.message)); }
 };
 
+/** Did the campaign's buyers come back: 30, 60 and 90 days on. */
+const cohortPart = (c) => {
+  if (!c || !c.buyers) return [el("p", { class: "muted" }, "No signed-in buyers to follow" + (c && c.guests ? " (" + c.guests + " guest orders can't be)" : "") + ".")];
+  return [
+    el("p", {}, c.buyers + " buyers followed, " + c.firstTime + " of them new" + (c.guests ? "; " + c.guests + " guest orders can't be followed" : "") + "."),
+    el("table", { class: "margins" },
+      el("thead", {}, el("tr", {}, el("th", {}, "After"), el("th", {}, "Ordered again"), el("th", {}, "Subscribed"))),
+      el("tbody", {}, ...c.windows.map((w) => el("tr", {},
+        el("td", {}, w.days + " days" + (w.days > c.daysSoFar ? " (so far)" : "")),
+        el("td", {}, w.returned + " of " + c.buyers),
+        el("td", {}, w.subscribed + " of " + c.buyers))))),
+  ];
+};
+
+/** Who's in each customer segment (SHO-207), as last counted. */
+const SEGMENT_NAMES = { active: "Active subscribers", lapsed: "Lapsed subscribers", at_risk: "At risk", one_time: "One-time buyers", dormant: "Dormant", best: "Best customers" };
+const showSegments = async () => {
+  const status = document.getElementById("segments-status");
+  try {
+    const data = await api("/api/segments");
+    if (data.error) { status.textContent = data.error; return; }
+    status.textContent = "Counted " + new Date(data.syncedAt).toLocaleString("en-GB", { timeZone: "Europe/London", dateStyle: "medium", timeStyle: "short" }) + ". Thresholds are on the Campaign settings record.";
+    document.getElementById("segment-rows").replaceChildren(...Object.entries(data.counts).map(([key, n]) => el("tr", {}, el("td", {}, SEGMENT_NAMES[key] ?? key), el("td", {}, String(n)))));
+    document.getElementById("segments").hidden = false;
+  } catch (error) { status.textContent = "Segments couldn't load: " + error.message; }
+};
+
 /** After a campaign (SHO-209): its results, and tidying up. */
 const showResults = async (row) => {
   const detail = document.getElementById("detail");
@@ -340,6 +368,10 @@ const showResults = async (row) => {
         el("li", {}, r.firstOrders + " first orders, " + r.subscriptionsStarted + " subscriptions started")),
       el("p", { class: "muted" }, "Top products:"),
       el("ol", {}, ...r.topProducts.slice(0, 5).map((p) => el("li", {}, p.title + " × " + p.quantity))),
+      ...cohortPart(data.cohort),
+      el("p", {}, data.referrals.referrers
+        ? data.referrals.referrers + " referrer" + (data.referrals.referrers === 1 ? "" : "s") + " brought " + data.referrals.orders + " order" + (data.referrals.orders === 1 ? "" : "s") + ". Rewards are issued from the CLI (campaigns referrals --rewards)."
+        : "No referral orders yet."),
       tidy);
   } catch (error) { body.replaceChildren(el("p", { class: "finding-error" }, "Results couldn't load: " + error.message)); }
 };
@@ -375,6 +407,7 @@ try {
   renderMonths(data);
   renderRows(data);
   setUpNewForm(data);
+  showSegments();
 } catch (error) {
   document.getElementById("status").textContent = "Couldn't load the campaigns: " + error.message;
 }
