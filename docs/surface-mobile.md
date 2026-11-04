@@ -105,21 +105,29 @@ discovered.
 
 ## Error monitoring
 
-**Sentry** (EU region, project `app`) receives JavaScript errors.
+**Sentry** (EU region, project `app`) receives JavaScript errors and traces.
 `lib/sentry.ts` starts it at module scope in `app/_layout.tsx`, beside
 Klaviyo, so errors during the first render are caught. It's off without
 `EXPO_PUBLIC_SENTRY_DSN`, which `eas.json` sets for preview and production
 builds (a DSN is public by design: it can only submit events). Local runs
-stay off unless you put it in `.env.local`. There's no tracing and no replay. `beforeSend`
+stay off unless you put it in `.env.local`. There's no replay. `beforeSend`
 removes the user and any request details, console breadcrumbs are dropped
 (a log line can carry an email), and other breadcrumbs keep URLs without
 their query strings. `EXPO_PUBLIC_SENTRY_ENVIRONMENT`, set per profile in
 `eas.json`, keeps preview builds' errors out of production's.
 
+Traces cover app start, screen changes (named by route, such as
+`products/[handle]`, never with their params) and network requests.
+`EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` sets the share of sessions traced:
+`eas.json` uses 1 for preview builds and 0.1 for production. No request
+carries trace headers, so Shopify and Klaviyo never see them; the Worker
+reports errors only, so a trace ends at the app. `beforeSendTransaction` runs `scrubTransaction` from
+`@formulate/analytics`, which applies the same rules to traces.
+
 Native crashes need the native layer, so they're only reported from a
 development or store build. Expo Go reports JavaScript errors only. The app
 uses `@sentry/react-native` 8.28.0, the version Expo SDK 58 expects. Release
-health sessions are off (`enableAutoSessionTracking: false`): errors only.
+health sessions are off (`enableAutoSessionTracking: false`).
 
 ## Known constraints
 
