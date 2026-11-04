@@ -34,8 +34,8 @@ test("the cart survives a reload", async ({ page }) => {
 
 test("the variant chosen is the variant added", async ({ page }) => {
   await openProduct(page, "whey-protein");
-  await page.locator("label", { hasText: "Chocolate" }).click();
-  await page.locator("label", { hasText: "Unsweetened" }).click();
+  await page.getByText("Chocolate", { exact: true }).click();
+  await page.getByText("Unsweetened", { exact: true }).click();
   await addToCart(page);
   const line = drawer(page)
     .getByRole("listitem")
