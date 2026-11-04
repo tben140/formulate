@@ -72,8 +72,8 @@ const SuggestionsWhenReady = ({ suggestions }: { suggestions: Suggestions }) => 
 
 /**
  * `suggestions` may be a promise: the layout passes the Storefront request
- * unawaited, so the page and the drawer (and checkout) are usable as soon as
- * the cart is known, and the optional suggestions fill in when they arrive.
+ * unawaited, so the drawer (and checkout) is usable as soon as the cart is
+ * known, and the optional suggestions fill in when they arrive.
  */
 export const CartDrawer = ({
   cart,
