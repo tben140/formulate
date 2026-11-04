@@ -48,6 +48,22 @@ describe("createStorefrontClient", () => {
     });
   });
 
+  it("settles at the timeout while reading a response body", async () => {
+    // Headers arrive in time, the body never does.
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        ({ ok: true, json: () => new Promise(() => {}) }) as unknown as Response,
+    );
+    const result = await createStorefrontClient({ ...config, timeoutMs: 20 }).request(
+      ShopNameQuery,
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: "network", message: "Storefront request timed out after 20 ms" },
+    });
+  });
+
   it("returns the data when the answer comes in time", async () => {
     vi.stubGlobal("fetch", async () =>
       Response.json({
