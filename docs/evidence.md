@@ -125,6 +125,9 @@ Counted with `vitest run` / `jest` at the commit named; coverage not re-measured
 | `stack-discount` Function | 9 fixtures, run as WebAssembly | `9abf721` (#145)                |
 | `packages/shopify`        | 168                            | `3122967` (#148)                |
 | Checkout extensions       | 14                             | `a92961b` (#149), new           |
+| `apps/api` (the Worker)   | 26, Sentry reporter included   | `1851d48` (#98)                 |
+| `packages/campaigns`      | 97                             | `e725adc` (#237)                |
+| Campaign Calendar Worker  | 16                             | `6211019` (#236), new           |
 
 The app's Jest suite (new in #137) was checked against its own bugs: putting
 back two issues the reviewer had found on #136, and removing the cart sheet's
