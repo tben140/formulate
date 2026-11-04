@@ -36,7 +36,18 @@ Guests who don't come through a link or code see the **public** offer only. The 
 | `never_bought` | Email subscriber or account with no order                | Klaviyo ("Placed Order zero times")              | no (Klaviyo-side)             |
 | `app`          | Used the app in the last 90 days                         | Klaviyo app events (waits for #107)              | no                            |
 
-Three segments read Shopify customer data, so they wait for the app's **protected customer data** access (Partner Dashboard; Ben's request is open). The Recharge segments can start now.
+Three segments read Shopify customer data. The app already has it: as a custom-distribution app it reads customers, emails included (checked on 3 Nov), so no protected customer data request is needed.
+
+## Settings
+
+Thresholds live on the **Campaign settings** record (metaobject type `campaign_config`, handle `settings`, admin only), so they change without a release:
+
+| Field                | Holds                                                                                                                                                                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `segment_thresholds` | JSON overrides: `lapsedMonths` (12), `atRiskMisses` (2), `atRiskDays` (90), `dormantFromDays` (90), `dormantToDays` (180), `bestTopPercent` (10), `bestSubscribedMonths` (12). A missing or bad key keeps its default, and the CLI says which. |
+| `segment_counts`     | Written by `campaigns segments --apply`: each segment's size and when it was counted. The calendar shows it.                                                                                                                                   |
+
+(The type is `campaign_config` because Shopify reserves `campaign_settings`.)
 
 ## How membership is kept
 
@@ -79,16 +90,16 @@ The campaign record gains an optional **`offers`** JSON field next to `offer_rul
 
 ## Order of work
 
-1. **Now, no new access:** the `segments` module with `active`, `lapsed` and `at_risk` from Recharge; `segments sync` writing Shopify tags (plan first); the calendar's segment counts.
+1. **Built (#235):** the `segments` module with every segment above except `never_bought` and `app`; `pnpm campaigns segments` shows sizes and the tags a sync would add and remove, and `--apply` stores the counts. **It writes no tags yet:** that waits for question 2.
 2. **With Ben's OK on Klaviyo lists:** the Klaviyo half of the sync.
 3. **`offers`:** the field, sync, terms, check and editor tabs.
-4. **After protected customer data:** `one_time`, `dormant`, `best`.
+4. ~~After protected customer data~~ `one_time`, `dormant`, `best`: built with step 1, since the app already reads customer data.
 5. **After sign-in (#76) and app events (#107):** showing segment offers on site, and the `app` segment.
 
 ## Questions for Ben
 
 1. **Klaviyo lists:** may the nightly job create and update one static list per segment? Nothing is sent; emails stay drafts.
 2. **Shopify tags:** may it add and remove `segment:<key>` tags on customers nightly?
-3. **Protected customer data:** the Partner Dashboard request unlocks three segments and the after-campaign cohort and referrals (#229).
+3. ~~Protected customer data~~: not needed (see Segments).
 4. **First segments:** I'd start with `lapsed` (win-back) and `at_risk` (a "keep your plan" perk, not a discount). Agree?
-5. **Thresholds:** 12 months for lapsed, 90–180 days for dormant, top 10% for best. Change any?
+5. **Thresholds:** 12 months for lapsed, 90–180 days for dormant, top 10% for best. Adjustable on the Campaign settings record (see Settings).

@@ -1,4 +1,5 @@
 import type { CancelledSubscription } from "./audience";
+import type { MissedCharge, SegmentSubscription } from "./segments";
 import { PERK_PROPERTY, type PerkOnetime, type PerkSubscription } from "./perks";
 
 /**
@@ -139,4 +140,58 @@ export const shopifyCustomerIds = async (
     }
   }
   return ids;
+};
+
+/** Every subscription, in any status, for customer segments. */
+export const allSubscriptions = async (token: string): Promise<SegmentSubscription[]> =>
+  (
+    await all<{
+      customer_id: number;
+      status: string;
+      created_at: string | null;
+      cancelled_at: string | null;
+    }>(token, "/subscriptions", "subscriptions")
+  ).map((s) => ({
+    customerId: s.customer_id,
+    status: s.status,
+    createdAt: s.created_at,
+    cancelledAt: s.cancelled_at,
+  }));
+
+/** Skipped and failed charges scheduled since `since` ("2026-08-06"). */
+export const missedCharges = async (
+  token: string,
+  since: string,
+): Promise<MissedCharge[]> => {
+  const charges: MissedCharge[] = [];
+  for (const status of ["skipped", "error"]) {
+    const page = await all<{ customer?: { id?: number }; scheduled_at: string | null }>(
+      token,
+      `/charges?status=${status}&scheduled_at_min=${since}`,
+      "charges",
+    );
+    for (const charge of page)
+      if (charge.customer?.id)
+        charges.push({
+          customerId: charge.customer.id,
+          scheduledAt: charge.scheduled_at,
+        });
+  }
+  return charges;
+};
+
+/** Recharge customer id → Shopify customer GID, for every Recharge customer. */
+export const shopifyIdsByRechargeId = async (
+  token: string,
+): Promise<Map<number, string>> => {
+  const map = new Map<number, string>();
+  const customers = await all<{
+    id: number;
+    external_customer_id?: { ecommerce?: string | null };
+  }>(token, "/customers", "customers");
+  for (const customer of customers) {
+    const id = customer.external_customer_id?.ecommerce;
+    if (id && /^\d+$/.test(id)) map.set(customer.id, `gid://shopify/Customer/${id}`);
+  }
+  return map;
 };

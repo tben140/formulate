@@ -17,6 +17,9 @@ import {
   activeCustomerIds,
   activeSubscriptions,
   addPerk,
+  allSubscriptions,
+  missedCharges,
+  shopifyIdsByRechargeId,
   cancelledSubscriptions,
   perkOnetimes,
   shopifyCustomerIds,
@@ -36,6 +39,15 @@ import { cohort, cohortMarkdown } from "./cohort";
 import { earnedRewards, planReferralCodes, REFERRAL_PREFIX } from "./referrals";
 import { reportHtml } from "./dashboard";
 import { campaignReport, reportMarkdown } from "./report";
+import {
+  describeSegment,
+  parseThresholds,
+  SEGMENT_KEYS,
+  segmentCounts,
+  segmentMembers,
+  segmentTag,
+  tagPlan,
+} from "./segments";
 import { campaignTerms } from "./terms";
 import {
   addRedeemCodes,
@@ -43,6 +55,10 @@ import {
   createCampaign,
   createReferralDiscount,
   getBuyerContacts,
+  getCampaignSettings,
+  getSegmentCustomers,
+  getTaggedCustomers,
+  setSegmentCounts,
   saveReferralCodes,
   getCollection,
   getDiscounts,
@@ -108,10 +124,13 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns audience lapsed --tag <tag> [--within 180] [--apply]
                                               tags lapsed subscribers (all cancelled, the
                                               last within N days) for a win-back offer
+  pnpm campaigns segments [--apply]           each customer segment's size and the tags a
+                                              sync would add and remove (SHO-207); --apply
+                                              stores the counts for the calendar, no tags
 
 Reads SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET (and KLAVIYO_PRIVATE_KEY,
 optional) from the environment or ~/.config/formulate/shopify-app.env, and
-RECHARGE_API_TOKEN (perks only) from ~/.config/formulate/recharge.env.`;
+RECHARGE_API_TOKEN (perks, audience and segments) from ~/.config/formulate/recharge.env.`;
 
 const flag = (args: string[], name: string) => {
   const index = args.indexOf(`--${name}`);
@@ -709,6 +728,59 @@ Next:
       }
       await tagCustomers(await adminFromEnv(), customers, tag);
       console.log("Tagged.");
+      return 0;
+    }
+
+    case "segments": {
+      const token = process.env.RECHARGE_API_TOKEN;
+      if (!token)
+        throw new Error("Set RECHARGE_API_TOKEN (~/.config/formulate/recharge.env).");
+      const admin = await adminFromEnv();
+      const now = new Date();
+      const settings = await getCampaignSettings(admin);
+      const { thresholds, problems } = parseThresholds(settings?.segmentThresholds);
+      console.log(
+        settings
+          ? "Thresholds from the Campaign settings record."
+          : "No Campaign settings record: default thresholds.",
+      );
+      for (const problem of problems) console.log(`  ignored: ${problem}`);
+      const since = new Date(now.getTime() - thresholds.atRiskDays * 24 * 60 * 60 * 1000);
+      const segments = segmentMembers(
+        {
+          subscriptions: await allSubscriptions(token),
+          missed: await missedCharges(token, since.toISOString().slice(0, 10)),
+          customers: await getSegmentCustomers(admin),
+          shopifyIdOf: await shopifyIdsByRechargeId(token),
+        },
+        thresholds,
+        now,
+      );
+      for (const key of SEGMENT_KEYS) {
+        const members = segments.members[key];
+        const plan = tagPlan(members, await getTaggedCustomers(admin, segmentTag(key)));
+        console.log(
+          `${key.padEnd(9)} ${String(members.length).padStart(5)}  ${describeSegment(key, thresholds)}` +
+            `  (sync: +${plan.add.length} -${plan.remove.length} ${segmentTag(key)})`,
+        );
+      }
+      if (segments.unmatched)
+        console.log(
+          `${segments.unmatched} Recharge customers have no Shopify customer: left out.`,
+        );
+      console.log(
+        "Tags are planned only: tagging waits for Ben's OK (docs/campaign-segments.md).",
+      );
+      if (!rest.includes("--apply")) {
+        console.log("Run with --apply to store the counts for the calendar.");
+        return 0;
+      }
+      if (!settings)
+        throw new Error(
+          "Create the Campaign settings record first (docs/campaign-segments.md, Settings).",
+        );
+      await setSegmentCounts(admin, segmentCounts(segments, now));
+      console.log("Counts stored on the Campaign settings record.");
       return 0;
     }
 
