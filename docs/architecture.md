@@ -115,20 +115,20 @@ Sentry, in the EU region, with one project per runtime: `web`, `app` and
 `worker`. The theme has no project: Shopify hosts it and its JavaScript is
 small. The rules are the same on all three:
 
-- errors everywhere; traces from the app and the Worker, at a low sample
-  rate (10% in production). Web server tracing comes separately (#105);
+- errors everywhere; traces from the app only, at a low sample rate (10% in
+  production). Web server tracing comes separately (#105);
 - no personal data (user, headers, cookies, bodies and query strings are
   removed before sending, from traces as well as errors);
 - off when no DSN is set.
 
-Traces are distributed: the app adds trace headers to its calls to the
-Worker, so one trace shows the screen, the request and the Worker's call to
-Klaviyo, with timings. Trace headers go only to our own services, never to
-Shopify, Klaviyo or ad platforms. Traces are scrubbed by `scrubTransaction`
-in `@formulate/analytics`, so the app and the Worker follow the same tested
-rules.
+App traces show app start, screen changes and requests, with timings. They
+carry no trace headers to anyone, our Worker included, and are scrubbed by
+`scrubTransaction` in `@formulate/analytics` (tested).
 
-Details live in each surface's doc and, for the Worker, in `apps/api/src/index.ts`.
+Details live in each surface's doc. The Worker has no Sentry SDK: it holds
+the Klaviyo key and keeps no dependencies, so `apps/api/src/sentry.ts` sends
+Sentry's envelope format itself with `fetch`, from a message, an exception
+and status codes only, with email-shaped text removed.
 
 ## CI
 

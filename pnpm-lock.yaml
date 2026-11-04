@@ -46,9 +46,6 @@ importers:
       '@formulate/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
-      '@sentry/cloudflare':
-        specifier: 10.75.3
-        version: 10.75.3(@cloudflare/workers-types@4.20260702.1)(wrangler@4.120.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.1.1))
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -2636,28 +2633,12 @@ packages:
     engines: {node: '>= 18'}
     hasBin: true
 
-  '@sentry/cloudflare@10.75.3':
-    resolution: {integrity: sha512-3FIokLHRTkP7g23gW6kyoshkrdVA740J016wsUhUQxL8blWVB4kRT9QmfIXHlKxgztQk8o17p82Nnjt5013i+A==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@cloudflare/workers-types': ^4.x || ^5.x
-      wrangler: ^4.x
-    peerDependenciesMeta:
-      '@cloudflare/workers-types':
-        optional: true
-      wrangler:
-        optional: true
-
   '@sentry/conventions@0.16.0':
     resolution: {integrity: sha512-fO9PLmHdVURcSPUpWCItWAtgKiMwGdJHbovoSEyLplX5sxs2ugvI4CBPTrkkgqhObnZOD0CnWBKDzSVQYBKEyQ==}
     engines: {node: '>=14'}
 
   '@sentry/core@10.75.2':
     resolution: {integrity: sha512-KXzNf2c430cJIOMv84+MKpkXgave1DBNMNNwn073olVD773NME5IhDv/9VQyiFM2wIU+6bm4FEBVEVSuzqgjJw==}
-    engines: {node: '>=18'}
-
-  '@sentry/core@10.75.3':
-    resolution: {integrity: sha512-QHgzobetM4UgEVbyqx9WPJzRq0YzyNg2CeeoM1Bf84ivYJXXiiVWxjzc0RHk3c0DHY5/6O6nJqos1xVL55dgZA==}
     engines: {node: '>=18'}
 
   '@sentry/expo-upload-sourcemaps@8.28.0':
@@ -2739,10 +2720,6 @@ packages:
 
   '@sentry/replay@10.75.2':
     resolution: {integrity: sha512-cCfdPt892S+rrAFOuUvbwR318/ZPFfBFvVkMlL3goktAnbECAGy6comAxLQEalyp22Ee67bEqYQN7RdNuRHIJw==}
-    engines: {node: '>=18'}
-
-  '@sentry/server-utils@10.75.3':
-    resolution: {integrity: sha512-PG3a+3GxurYYipLykRM3qezWjkIBYuqBjn8EuXzzlG6mpucMVtU8SRgr3EB0wdVaj1Pz+mhz+MLh8CGnLfKhCQ==}
     engines: {node: '>=18'}
 
   '@shopify/checkout-sheet-kit@3.9.1':
@@ -8792,7 +8769,8 @@ snapshots:
   '@noxcturnal/noxcturnal-win32-x64-msvc@0.1.5':
     optional: true
 
-  '@opentelemetry/api@1.10.0': {}
+  '@opentelemetry/api@1.10.0':
+    optional: true
 
   '@oxc-project/types@0.139.0': {}
 
@@ -9278,23 +9256,9 @@ snapshots:
       '@sentry/cli-win32-i686': 3.8.0
       '@sentry/cli-win32-x64': 3.8.0
 
-  '@sentry/cloudflare@10.75.3(@cloudflare/workers-types@4.20260702.1)(wrangler@4.120.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.1.1))':
-    dependencies:
-      '@opentelemetry/api': 1.10.0
-      '@sentry/core': 10.75.3
-      '@sentry/server-utils': 10.75.3
-      magic-string: 0.30.21
-    optionalDependencies:
-      '@cloudflare/workers-types': 4.20260702.1
-      wrangler: 4.120.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.1.1)
-
   '@sentry/conventions@0.16.0': {}
 
   '@sentry/core@10.75.2':
-    dependencies:
-      '@sentry/conventions': 0.16.0
-
-  '@sentry/core@10.75.3':
     dependencies:
       '@sentry/conventions': 0.16.0
 
@@ -9354,11 +9318,6 @@ snapshots:
     dependencies:
       '@sentry/browser-utils': 10.75.2
       '@sentry/core': 10.75.2
-
-  '@sentry/server-utils@10.75.3':
-    dependencies:
-      '@sentry/conventions': 0.16.0
-      '@sentry/core': 10.75.3
 
   '@shopify/checkout-sheet-kit@3.9.1(react-native@0.88.0(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)':
     dependencies:

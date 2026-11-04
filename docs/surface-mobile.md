@@ -119,15 +119,15 @@ their query strings. `EXPO_PUBLIC_SENTRY_ENVIRONMENT`, set per profile in
 Traces cover app start, screen changes (named by route, such as
 `products/[handle]`, never with their params) and network requests.
 `EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` sets the share of sessions traced:
-`eas.json` uses 1 for preview builds and 0.1 for production. Calls to the
-Worker carry trace headers, so the Worker's spans join the same trace. No
-other host gets them. `beforeSendTransaction` runs `scrubTransaction` from
+`eas.json` uses 1 for preview builds and 0.1 for production. No request
+carries trace headers, so Shopify and Klaviyo never see them; the Worker
+reports errors only, so a trace ends at the app. `beforeSendTransaction` runs `scrubTransaction` from
 `@formulate/analytics`, which applies the same rules to traces.
 
 Native crashes need the native layer, so they're only reported from a
-development or store build. Expo Go reports JavaScript errors only. The
-version follows Expo's own recommendation for SDK 57 (`~7.11.0`), not the
-newest Sentry release.
+development or store build. Expo Go reports JavaScript errors only. The app
+uses `@sentry/react-native` 8.28.0, the version Expo SDK 58 expects. Release
+health sessions are off (`enableAutoSessionTracking: false`).
 
 ## Known constraints
 

@@ -44,10 +44,10 @@ const stubKlaviyo = (response: Partial<Response>) => {
   return mock;
 };
 
-// withSentry's wrapper also takes the execution context, which the handler's
-// own type omits. Nothing here waits on it.
+// The Worker takes the execution context for Sentry reports (ctx.waitUntil).
+// Nothing here waits on it.
 const ctx = { waitUntil: () => {}, passThroughOnException: () => {}, props: {} };
-const fetchWithContext = worker.fetch as (
+const fetchWithContext = worker.fetch as unknown as (
   request: Request,
   env: unknown,
   context: typeof ctx,

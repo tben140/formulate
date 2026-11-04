@@ -18,14 +18,6 @@ const tracesSampleRate = (() => {
 })();
 
 /**
- * Our Worker (apps/api), the one service that continues the app's traces.
- *
- * ⚠️ The only place trace headers go. The SDK's default is every request, which
- * would send `sentry-trace` and `baggage` to Shopify and Klaviyo too.
- */
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
-
-/**
  * Screen changes become spans named after the route ("products/[handle]"),
  * never its params. Registered with Expo Router's container in
  * app/_layout.tsx.
@@ -38,7 +30,8 @@ export const navigationIntegration = Sentry.reactNavigationIntegration();
  * them apart, and they share the DSN.
  */
 const environment =
-  process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? (__DEV__ ? "development" : "production");
+  // `||`, not `??`: a copied .env.example leaves it empty, which means unset.
+  process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT || (__DEV__ ? "development" : "production");
 
 /**
  * Sentry for the Expo app (EU region, project `app`).
@@ -61,8 +54,14 @@ export const initSentry = () => {
     environment,
     sendDefaultPii: false,
     tracesSampleRate,
-    tracePropagationTargets: API_BASE_URL ? [API_BASE_URL] : [],
+    // ⚠️ No trace headers on any request. The SDK's default is every request,
+    // which would send `sentry-trace` and `baggage` to Shopify and Klaviyo. Our
+    // Worker reports errors only (apps/api/src/sentry.ts), so a trace ends at
+    // the app.
+    tracePropagationTargets: [],
     integrations: [navigationIntegration],
+    // No release-health sessions, which the SDK sends by default.
+    enableAutoSessionTracking: false,
     beforeSend: (event) => {
       delete event.user;
       if (event.request) {

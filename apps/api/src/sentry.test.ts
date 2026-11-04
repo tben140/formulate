@@ -1,116 +1,108 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import worker from "./index";
+import { envelope, parseDsn, reportError, scrub } from "./sentry";
 
-/**
- * ⚠️ What the Worker sends to Sentry when tracing.
- *
- * The real Worker runs with a (fake) DSN. Sentry posts its envelopes through
- * the same global fetch as the Klaviyo call, so one mock sees both.
- *
- * In its own file, with one fetch mock for the whole file: the SDK wraps the
- * global fetch the first time it starts, and only then. Swapping the mock
- * per test (as index.test.ts does) would drop the wrapper.
- */
+const DSN = "https://abc123@o1.ingest.de.sentry.io/42";
 
-const TRACE_ID = "0af7651916cd43dd8448eb211c80319c";
-const IP = "203.0.113.7";
-const EMAIL = "ben@example-domain.co.uk";
-
-const env = {
-  KLAVIYO_PRIVATE_KEY: "pk_not_a_real_key",
-  KLAVIYO_LIST_ID: "XPJ8ic",
-  RATE_LIMITER: {
-    idFromName: (name: string) => name,
-    get: () => ({ limit: () => Promise.resolve({ success: true }) }),
-  },
-  SENTRY_DSN: "https://public@o1.ingest.de.sentry.io/1",
-};
-
-const sent = vi.fn((url: string, init?: RequestInit) => {
-  void url;
-  void init;
-  return Promise.resolve(new Response(null, { status: 202 }));
-});
-// Sentry only wraps a fetch that looks native ("[native code]"), so the mock
-// says it is. Without this the SDK leaves fetch alone, no outgoing span or
-// header is ever made, and the propagation test passes whatever the config.
-Object.defineProperty(sent, "toString", {
-  value: () => "function fetch() { [native code] }",
-});
-vi.stubGlobal("fetch", sent);
-
-beforeEach(() => {
-  sent.mockClear();
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
-const fromTheApp = () =>
-  new Request("https://api.example/", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "sentry-trace": `${TRACE_ID}-b7ad6b7169203331-1`,
-      baggage: `sentry-trace_id=${TRACE_ID},sentry-sampled=true`,
-      "CF-Connecting-IP": IP,
-      "user-agent": "DoubleHelix/1.0 iPhone",
-    },
-    body: JSON.stringify({ email: EMAIL }),
+describe("parseDsn", () => {
+  it("finds the envelope endpoint and key", () => {
+    expect(parseDsn(DSN)).toEqual({
+      endpoint: "https://o1.ingest.de.sentry.io/api/42/envelope/",
+      key: "abc123",
+    });
   });
 
-type Context = {
-  waitUntil: (p: Promise<unknown>) => void;
-  passThroughOnException: () => void;
-  props: object;
-};
-const fetchWithContext = worker.fetch as (
-  request: Request,
-  env: unknown,
-  context: Context,
-) => Promise<Response>;
-
-/** Runs one request and waits for Sentry to flush. */
-const run = async () => {
-  const pending: Promise<unknown>[] = [];
-  const res = await fetchWithContext(fromTheApp(), env, {
-    waitUntil: (p) => void pending.push(p),
-    passThroughOnException: () => {},
-    props: {},
+  it("refuses anything else", () => {
+    expect(parseDsn(undefined)).toBeNull();
+    expect(parseDsn("http://abc@host/42")).toBeNull();
+    expect(parseDsn("https://host/42")).toBeNull();
+    expect(parseDsn("not a url")).toBeNull();
   });
-  await Promise.all(pending);
-  const calls = sent.mock.calls.map(([url, init]) => ({ url: String(url), init }));
-  return {
-    res,
-    envelopes: calls
-      .filter(({ url }) => url.includes("ingest.de.sentry.io"))
-      .map(({ init }) => String(init?.body)),
-    klaviyo: calls.find(({ url }) => url.includes("klaviyo")),
-  };
-};
+});
 
-describe("⚠️ Sentry traces", () => {
-  it("joins the app's trace, following its sampling decision", async () => {
-    const { res, envelopes } = await run();
-    expect(res.status).toBe(202);
-    const transaction = envelopes.find((body) => body.includes('"type":"transaction"'));
-    expect(transaction).toContain(TRACE_ID);
+describe("envelope", () => {
+  const now = new Date("2026-11-03T12:00:00Z");
+
+  it("carries the message, level, exception and extras, and nothing about the request", () => {
+    const error = new TypeError("boom");
+    const body = envelope(
+      { message: "Uncaught error", level: "error", error, extra: { status: 502 } },
+      DSN,
+      now,
+      "e".repeat(32),
+    );
+    const [header, item, eventLine] = body.split("\n");
+    expect(JSON.parse(header!)).toMatchObject({ event_id: "e".repeat(32), dsn: DSN });
+    expect(JSON.parse(item!)).toEqual({ type: "event" });
+    const event = JSON.parse(eventLine!);
+    expect(event).toMatchObject({
+      level: "error",
+      environment: "production",
+      message: { formatted: "Uncaught error" },
+      extra: { status: 502 },
+    });
+    expect(event.exception.values[0]).toMatchObject({ type: "TypeError", value: "boom" });
+    expect(event.exception.values[0].stacktrace.frames.length).toBeGreaterThan(0);
+    for (const key of ["request", "user", "breadcrumbs", "contexts"])
+      expect(event[key]).toBeUndefined();
   });
 
-  it("sends no email, IP address or user agent", async () => {
-    const { envelopes } = await run();
-    expect(envelopes.length).toBeGreaterThan(0);
-    for (const body of envelopes) {
-      expect(body).not.toContain(EMAIL);
-      expect(body).not.toContain(IP);
-      expect(body).not.toContain("DoubleHelix/1.0");
-    }
+  it("never carries an email address, even inside an error message", () => {
+    const body = envelope(
+      {
+        message: "failed for ada@example.com",
+        level: "error",
+        error: new SyntaxError('Unexpected token, "ada@example.com" is not valid JSON'),
+        extra: { detail: "ada@example.com" },
+      },
+      DSN,
+      now,
+      "e".repeat(32),
+    );
+    expect(body).not.toContain("ada@example.com");
+    expect(body).toContain("[email]");
+    expect(scrub("x".repeat(1000)).length).toBe(300);
+  });
+});
+
+describe("reportError", () => {
+  it("posts the envelope in the background, with Sentry's auth header", async () => {
+    const fetch = vi.fn(() => Promise.resolve(new Response(null, { status: 200 })));
+    vi.stubGlobal("fetch", fetch);
+    const pending: Promise<unknown>[] = [];
+    reportError(
+      DSN,
+      { waitUntil: (p) => pending.push(p) },
+      { message: "m", level: "error" },
+    );
+    await Promise.all(pending);
+    expect(fetch).toHaveBeenCalledOnce();
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://o1.ingest.de.sentry.io/api/42/envelope/");
+    expect((init.headers as Record<string, string>)["x-sentry-auth"]).toContain(
+      "sentry_key=abc123",
+    );
   });
 
-  it("adds no trace headers to the Klaviyo call", async () => {
-    const { klaviyo } = await run();
-    expect(klaviyo).toBeDefined();
-    const headers = new Headers(klaviyo?.init?.headers);
-    expect(headers.get("sentry-trace")).toBeNull();
-    expect(headers.get("baggage")).toBeNull();
-    expect(headers.get("traceparent")).toBeNull();
+  it("does nothing without a DSN, and ignores a failed send", async () => {
+    const fetch = vi.fn(() => Promise.reject(new Error("offline")));
+    vi.stubGlobal("fetch", fetch);
+    const pending: Promise<unknown>[] = [];
+    reportError(
+      undefined,
+      { waitUntil: (p) => pending.push(p) },
+      { message: "m", level: "error" },
+    );
+    expect(fetch).not.toHaveBeenCalled();
+    reportError(
+      DSN,
+      { waitUntil: (p) => pending.push(p) },
+      { message: "m", level: "error" },
+    );
+    await expect(Promise.all(pending)).resolves.toBeDefined();
   });
 });
