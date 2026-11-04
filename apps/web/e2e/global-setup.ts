@@ -4,6 +4,24 @@ import { chromium } from "@playwright/test";
 export const VERCEL_AUTH_STATE = "e2e/.auth/vercel.json";
 
 /**
+ * The only hosts the bypass secret may be sent to: this project's Vercel
+ * deployments (production web-six-murex-18.vercel.app and previews such as
+ * web-git-<branch>-<team>.vercel.app). A manual run takes any URL, so without
+ * this a typo or a hostile input would hand the secret to another site.
+ */
+const VERCEL_PROJECT_HOST = /^web-[a-z0-9-]+\.vercel\.app$/;
+
+/** Whether a base URL is one of this project's Vercel deployments, over https. */
+export const isVercelProjectUrl = (baseURL: string): boolean => {
+  try {
+    const target = new URL(baseURL);
+    return target.protocol === "https:" && VERCEL_PROJECT_HOST.test(target.hostname);
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Gets past Vercel Deployment Protection once, before any test runs (SHO-140).
  *
  * Only does anything when E2E_BASE_URL points at a deployment and
@@ -20,6 +38,16 @@ const globalSetup = async () => {
   const baseURL = process.env.E2E_BASE_URL;
   const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   if (!baseURL || !secret) return;
+
+  // Anywhere else (a manual run against another URL) runs unprotected: the
+  // secret is never sent, and the tests start without the bypass cookie
+  // (playwright.config.ts asks the same question).
+  if (!isVercelProjectUrl(baseURL)) {
+    console.info(
+      `[e2e] ${new URL(baseURL).origin} isn't one of this project's Vercel deployments: running without the bypass.`,
+    );
+    return;
+  }
 
   const browser = await chromium.launch();
   try {
@@ -49,7 +77,9 @@ const globalSetup = async () => {
     }
 
     // Fail here, once and clearly, rather than in every test with a login page.
-    if (!response?.ok() || new URL(page.url()).hostname.endsWith("vercel.com")) {
+    // vercel.com itself or a subdomain, never a host that merely ends in it.
+    const host = new URL(page.url()).hostname;
+    if (!response?.ok() || host === "vercel.com" || host.endsWith(".vercel.com")) {
       throw new Error(
         `Vercel bypass failed: ${response?.status() ?? "no response"} at ${new URL(page.url()).origin}. ` +
           "Check VERCEL_AUTOMATION_BYPASS_SECRET matches the project's Protection Bypass for Automation secret.",

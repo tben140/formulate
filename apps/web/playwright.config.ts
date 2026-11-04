@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { VERCEL_AUTH_STATE } from "./e2e/global-setup";
+import { isVercelProjectUrl, VERCEL_AUTH_STATE } from "./e2e/global-setup";
 
 /**
  * End-to-end tests for apps/web, against the real store.
@@ -24,7 +24,9 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
  * and every test starts from it. See .github/workflows/e2e.yml.
  */
 const behindVercelProtection = Boolean(
-  process.env.E2E_BASE_URL && process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
+  process.env.E2E_BASE_URL &&
+  process.env.VERCEL_AUTOMATION_BYPASS_SECRET &&
+  isVercelProjectUrl(process.env.E2E_BASE_URL),
 );
 
 export default defineConfig({
