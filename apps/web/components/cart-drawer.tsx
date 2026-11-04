@@ -11,7 +11,7 @@ import {
   type CartChange,
   type CartSuggestion,
 } from "@formulate/shopify";
-import { useEffect, useOptimistic, useRef, useState } from "react";
+import { Suspense, use, useEffect, useOptimistic, useRef, useState } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
@@ -57,12 +57,30 @@ const QuantityInput = ({ id, quantity }: { id: string; quantity: number }) => {
   );
 };
 
+type Suggestions = readonly CartSuggestion[] | Promise<readonly CartSuggestion[]>;
+
+/** Suggestions given as a promise render when it settles, never holding the drawer. */
+const SuggestionsWhenReady = ({ suggestions }: { suggestions: Suggestions }) => (
+  <CartSuggestions
+    suggestions={
+      Array.isArray(suggestions)
+        ? suggestions
+        : use(suggestions as Promise<readonly CartSuggestion[]>)
+    }
+  />
+);
+
+/**
+ * `suggestions` may be a promise: the layout passes the Storefront request
+ * unawaited, so the page and the drawer (and checkout) are usable as soon as
+ * the cart is known, and the optional suggestions fill in when they arrive.
+ */
 export const CartDrawer = ({
   cart,
   suggestions = [],
 }: {
   cart: Cart | null;
-  suggestions?: readonly CartSuggestion[];
+  suggestions?: Suggestions;
 }) => {
   const { open, closeCart, storeDomain } = useCartUi();
   const ref = useRef<HTMLDialogElement>(null);
@@ -262,7 +280,9 @@ export const CartDrawer = ({
                 );
               })}
             </ul>
-            <CartSuggestions suggestions={suggestions} />
+            <Suspense fallback={null}>
+              <SuggestionsWhenReady suggestions={suggestions} />
+            </Suspense>
           </div>
         )}
 
