@@ -236,10 +236,19 @@ export const segmentMembers = (
   };
 };
 
+/**
+ * The static Klaviyo list a segment will be kept in (SHO-208): a list, not a
+ * Klaviyo segment, so membership is exactly ours.
+ */
+export const segmentListName = (key: SegmentKey): string => `Segment: ${key}`;
+
 /** The tag the discount Function reads (`audienceTags`). */
 export const segmentTag = (key: SegmentKey): string => `segment:${key}`;
 
-/** Who a sync would tag and untag, from members and who has the tag now. */
+/**
+ * Who a sync would add and remove, from members and who's there now: tags
+ * by customer GID, Klaviyo lists by email.
+ */
 export const tagPlan = (
   members: readonly string[],
   tagged: readonly string[],

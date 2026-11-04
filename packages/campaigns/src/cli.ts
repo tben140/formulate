@@ -30,6 +30,8 @@ import {
   createFlow,
   createPushDraft,
   getEmails,
+  getListByName,
+  getListEmails,
   getPushNames,
   setProfileProperty,
   shopifyFlowMetrics,
@@ -44,6 +46,7 @@ import {
   parseThresholds,
   SEGMENT_KEYS,
   segmentCounts,
+  segmentListName,
   segmentMembers,
   segmentTag,
   tagPlan,
@@ -124,9 +127,11 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns audience lapsed --tag <tag> [--within 180] [--apply]
                                               tags lapsed subscribers (all cancelled, the
                                               last within N days) for a win-back offer
-  pnpm campaigns segments [--apply]           each customer segment's size and the tags a
+  pnpm campaigns segments [--apply] [--klaviyo]
+                                              each customer segment's size and the tags a
                                               sync would add and remove (SHO-207); --apply
-                                              stores the counts for the calendar, no tags
+                                              stores the counts for the calendar, no tags;
+                                              --klaviyo plans each segment's list (SHO-208)
 
 Reads SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET (and KLAVIYO_PRIVATE_KEY,
 optional) from the environment or ~/.config/formulate/shopify-app.env, and
@@ -763,6 +768,33 @@ Next:
           `${key.padEnd(9)} ${String(members.length).padStart(5)}  ${describeSegment(key, thresholds)}` +
             `  (sync: +${plan.add.length} -${plan.remove.length} ${segmentTag(key)})`,
         );
+      }
+      // SHO-208, planned only: what each segment's Klaviyo list would gain and lose.
+      if (rest.includes("--klaviyo")) {
+        const key = process.env.KLAVIYO_PRIVATE_KEY;
+        if (!key) throw new Error("--klaviyo needs KLAVIYO_PRIVATE_KEY.");
+        const everyone = [...new Set(SEGMENT_KEYS.flatMap((k) => segments.members[k]))];
+        const emailOf = new Map(
+          (await getBuyerContacts(admin, everyone)).map((c) => [
+            c.customerId,
+            c.email?.toLowerCase() ?? null,
+          ]),
+        );
+        for (const segmentKey of SEGMENT_KEYS) {
+          const name = segmentListName(segmentKey);
+          const emails = segments.members[segmentKey].flatMap(
+            (id) => emailOf.get(id) ?? [],
+          );
+          const list = await getListByName(key, name);
+          const plan = tagPlan(emails, list ? await getListEmails(key, list.id) : []);
+          console.log(
+            `"${name}": ${list ? "exists" : "would be created"}, +${plan.add.length} -${plan.remove.length}` +
+              (emails.length < segments.members[segmentKey].length
+                ? ` (${segments.members[segmentKey].length - emails.length} without an email)`
+                : ""),
+          );
+        }
+        console.log("Klaviyo lists are planned only: nothing is created or changed.");
       }
       if (segments.unmatched)
         console.log(

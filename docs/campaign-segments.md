@@ -91,7 +91,7 @@ The campaign record gains an optional **`offers`** JSON field next to `offer_rul
 ## Order of work
 
 1. **Built (#235):** the `segments` module with every segment above except `never_bought` and `app`; `pnpm campaigns segments` shows sizes and the tags a sync would add and remove, and `--apply` stores the counts. `.github/workflows/segment-counts.yml` runs it nightly once the `RECHARGE_API_TOKEN` repository secret is set (it skips with a notice until then). **It writes no tags yet:** that waits for question 2.
-2. **With Ben's OK on Klaviyo lists:** the Klaviyo half of the sync.
+2. **With Ben's OK on Klaviyo lists:** the Klaviyo half of the sync. **Planned (#239):** `campaigns segments --klaviyo` says, per segment, whether its list ("Segment: lapsed") exists and how many emails it would gain and lose. Read only, counts only: no list is created or changed, and no address is printed.
 3. **`offers`:** the field, sync, terms, check and editor tabs.
 4. ~~After protected customer data~~ `one_time`, `dormant`, `best`: built with step 1, since the app already reads customer data.
 5. **After sign-in (#76) and app events (#107):** showing segment offers on site, and the `app` segment.
