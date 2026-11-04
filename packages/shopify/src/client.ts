@@ -87,7 +87,21 @@ export const createStorefrontClient = (
       };
     }
 
-    const body = (await response.json()) as GraphQLResponseBody<TResult>;
+    // A 2xx whose body isn't JSON (cut off mid-stream, or a proxy's HTML page)
+    // is a transport failure like any other, and as worth retrying.
+    let body: GraphQLResponseBody<TResult>;
+    try {
+      body = (await response.json()) as GraphQLResponseBody<TResult>;
+    } catch (cause) {
+      return {
+        ok: false,
+        error: {
+          kind: "network",
+          message: "Shopify's response wasn't valid JSON",
+          cause,
+        },
+      };
+    }
 
     if (body.errors?.length) {
       return { ok: false, error: { kind: "graphql", errors: body.errors } };
