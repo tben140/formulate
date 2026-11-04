@@ -140,7 +140,13 @@ class ProductForm extends Component {
 
     const resize = new ResizeObserver(pad);
     resize.observe(stickyBar);
-    small.addEventListener("change", pad, { signal: this.signal });
+    // From 48rem up CSS hides the bar, which drops focus to <body> if its
+    // button had it. Hand focus to the main button, scrolling to it.
+    const breakpoint = () => {
+      if (!small.matches && stickyBar.contains(document.activeElement)) submit.focus();
+      pad();
+    };
+    small.addEventListener("change", breakpoint, { signal: this.signal });
 
     this.signal.addEventListener("abort", () => {
       observer.disconnect();
