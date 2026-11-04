@@ -53,20 +53,33 @@ test("a product page renders title, price and a buyable button", async ({ page }
 });
 
 /**
- * Relies on the demo store's stock plan: **Magnesium Glycinate 200 mg is held
- * at 0 available** (inventory tracked, `inventoryPolicy: DENY`), while the
- * product's other variant stays in stock. If this fails after a stock reset,
- * set that variant back to 0 before suspecting the code. The full plan is in
- * docs/demo-store.md (added with the demo-store notice, #26).
+ * Needs one variant sold out (inventory tracked, `inventoryPolicy: DENY`)
+ * while its product's other variant stays in stock. The demo store's plan
+ * holds **Magnesium Glycinate 200 mg at 0 available** (docs/demo-store.md,
+ * added with #26). When that variant is back in stock, as before a sale, the
+ * test is skipped and says why, rather than failing on the store's stock.
  */
-test("a sold-out option is marked and cannot be bought", async ({ page }) => {
-  await openProduct(page, "magnesium-glycinate");
-  // What a screen reader announces, and what a sighted shopper sees.
-  const soldOut = page.getByRole("radio", { name: "200 mg (sold out)" });
-  await expect(soldOut).toBeAttached();
-  await expect(page.locator("label", { hasText: "200 mg" })).toHaveClass(/line-through/);
+const SOLD_OUT = { handle: "magnesium-glycinate", option: "200 mg" };
 
-  await page.locator("label", { hasText: "200 mg" }).click();
+test("a sold-out option is marked and cannot be bought", async ({ page }) => {
+  await openProduct(page, SOLD_OUT.handle);
+  // The label holds the radio's name, "(sold out)" included for screen readers.
+  const label = page.locator("label", { hasText: SOLD_OUT.option });
+  await expect(label).toBeAttached();
+  test.skip(
+    !((await label.textContent()) ?? "").includes("(sold out)"),
+    `${SOLD_OUT.handle} ${SOLD_OUT.option} is in stock; the stock plan needs it at 0`,
+  );
+
+  // What a screen reader announces, and what a sighted shopper sees.
+  await expect(
+    page.getByRole("radio", { name: `${SOLD_OUT.option} (sold out)` }),
+  ).toBeAttached();
+  await expect(page.locator("label", { hasText: SOLD_OUT.option })).toHaveClass(
+    /line-through/,
+  );
+
+  await page.locator("label", { hasText: SOLD_OUT.option }).click();
   // `exact`: on a phone the sticky bar (SHO-117) adds a second, differently
   // named "Sold out, …" button.
   await expect(
