@@ -168,6 +168,29 @@ Klaviyo's API can't mint Shopify codes, so the codes are created on a Shopify
 discount and loaded into a Klaviyo coupon. Rejected: one shared code, which
 leaks onto voucher sites.
 
+**Errors from the Worker without Sentry's SDK** (#98). The Worker holds the
+Klaviyo and Recharge keys and had no runtime dependencies, deliberately.
+Sentry's Cloudflare SDK would have been its first, and by default it reads the
+request body into the error report, even with personal data switched off, and
+that body holds the shopper's email address. The Worker instead sends Sentry's
+envelope format itself with `fetch`: a message, an exception and status codes,
+with anything shaped like an email address removed. It's 2.9 KiB gzipped and
+has its own tests. Rejected: the SDK with body capture turned off (one setting
+away from leaking again). The price: no tracing from the Worker, so the app's
+traces stop at the app. _Would change:_ the Worker needing traces more than it
+needs to stay dependency-free.
+
+**Campaigns run from the Shopify admin** (#188, #227). A campaign is one
+Shopify record that all three surfaces read. Managing it is a page inside the
+admin, served by its own Worker: a calendar, a checklist that must pass before
+go-live, an offer editor with a preview, stock against the plan, and results
+afterwards. Every command that changes the store plans first and acts only
+when told to. Customer segments follow the same pattern (#235): thresholds
+live on a settings record so they change without a release, and the first
+version only counts. It writes no tags until that has been agreed. Rejected:
+a separate dashboard with its own sign-in. _Would change:_ more than one
+store, where the admin page would need to know which one it's in.
+
 **Performance on iOS in CI** (SHO-26) was dropped for v1. Lighthouse gates web
 and the theme; the app's tests cover behaviour, not speed.
 
@@ -368,6 +391,25 @@ quietly shown the previous version. Restarting the server with its cache
 cleared fixed it, and the preview script now has a command for exactly that.
 The general point: when a check is done on a phone, first make sure the phone
 is running the code under review.
+
+**A safeguard that blocked its own pull request.** Moving CI's secrets into
+a GitHub environment (#161) restricted it to named branches. Pull request
+runs check out `refs/pull/<n>/merge`, which matches none of them, so GitHub
+rejected the job in two seconds with no log at all. The first fix that seemed
+right, a `pull/*/merge` rule, matched nothing either; `refs/pull/*/merge` did.
+The lesson: a check that fails before it starts says nothing useful, so read
+the annotations, not the logs.
+
+**A test that failed on stock, not code.** The end-to-end suite checked that
+a sold-out option can't be bought, using a variant the demo store kept at
+zero. It was restocked for Black Friday, and the test went red on every pull
+request. It now reads the option first, and skips with the reason when the
+variant is in stock (#232).
+
+**Every page waited for an extra.** The layout waited for the cart drawer's
+product suggestions before rendering any page, a second request that can
+only start once the cart has loaded. They now stream into the drawer when
+ready, and every Storefront request gives up after ten seconds (#233).
 
 > **TODO (Ben):** the worktree bug and anything from the lab notebook. Add
 > them here in the same form: what was assumed, what was measured, what
