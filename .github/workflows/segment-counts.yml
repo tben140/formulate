@@ -1,0 +1,61 @@
+name: Segment counts
+
+# Counts each customer segment once a day (SHO-207, docs/campaign-segments.md)
+# and stores the counts on the Campaign settings record, for the calendar.
+# Counts only: it writes no customer tags and touches no Klaviyo lists.
+#
+# Signs in as the Double Helix app (client credentials) and reads Recharge.
+# Needs three repository secrets, SHOPIFY_STORE_DOMAIN,
+# SHOPIFY_APP_CLIENT_SECRET and RECHARGE_API_TOKEN; without them the run
+# skips with a notice. The secrets reach only the counting step.
+on:
+  schedule:
+    # 02:47 UTC: after price history, away from the hour.
+    - cron: "47 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: segment-counts
+  cancel-in-progress: false
+
+jobs:
+  count:
+    name: Count segments
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HAS_SECRETS: ${{ secrets.SHOPIFY_STORE_DOMAIN != '' && secrets.SHOPIFY_APP_CLIENT_SECRET != '' && secrets.RECHARGE_API_TOKEN != '' }}
+    steps:
+      - name: Skip without the credentials
+        if: env.HAS_SECRETS != 'true'
+        run: echo "::notice::Segment counts skipped - SHOPIFY_STORE_DOMAIN, SHOPIFY_APP_CLIENT_SECRET and RECHARGE_API_TOKEN secrets are not all set."
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        if: env.HAS_SECRETS == 'true'
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        if: env.HAS_SECRETS == 'true'
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        if: env.HAS_SECRETS == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - if: env.HAS_SECRETS == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Count the segments
+        if: env.HAS_SECRETS == 'true'
+        env:
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_APP_CLIENT_SECRET: ${{ secrets.SHOPIFY_APP_CLIENT_SECRET }}
+          RECHARGE_API_TOKEN: ${{ secrets.RECHARGE_API_TOKEN }}
+          # No ~/.config file in CI: the environment is the only source.
+          CAMPAIGNS_ENV: /dev/null
+        run: pnpm campaigns segments --apply
