@@ -49,6 +49,13 @@ import {
   tagPlan,
   tagSyncProblem,
 } from "./segments";
+import {
+  parseSegmentOffers,
+  SEGMENT_AUDIENCE,
+  segmentDiscountConfigs,
+  segmentOf,
+  SYNCED_DELIVERIES,
+} from "./offers";
 import { campaignTerms } from "./terms";
 import {
   addRedeemCodes,
@@ -262,7 +269,7 @@ Next:
       const result = discountConfig(data.entry, data.collection, data.products);
       if ("error" in result) throw new Error(`Can't sync: ${result.error}.`);
       const existing = campaignDiscounts(data.entry, data.discounts).find(
-        (d) => d.kind === "app" && !isPersonalPool(d.config),
+        (d) => d.kind === "app" && !isPersonalPool(d.config) && !segmentOf(d.config),
       );
       const id = await upsertFunctionDiscount(admin, {
         existingId: existing?.id ?? null,
@@ -278,6 +285,42 @@ Next:
           ? `Updated ${id}.${rest.includes("--activate") ? " Updating doesn't switch it on: activate it in the admin." : ""}`
           : `Created ${id}${rest.includes("--activate") ? "" : ", switched off: activate it in the admin, and switch off any plain discount it replaces"}.`,
       );
+      // Offers per segment (SHO-207): one Function discount each, for its tag.
+      const segmentOffers = parseSegmentOffers(data.entry.fields.offers);
+      if (segmentOffers.problems.length)
+        throw new Error(
+          `Can't sync the segment offers: ${segmentOffers.problems.join("; ")}.`,
+        );
+      const segmentConfigs = segmentDiscountConfigs(
+        data.entry,
+        data.collection,
+        data.products,
+        segmentOffers.offers,
+      );
+      if ("error" in segmentConfigs)
+        throw new Error(`Can't sync: ${segmentConfigs.error}.`);
+      for (const { segment, config } of segmentConfigs.configs) {
+        const found = campaignDiscounts(data.entry, data.discounts).find(
+          (d) => d.kind === "app" && segmentOf(d.config) === segment,
+        );
+        const segmentId = await upsertFunctionDiscount(admin, {
+          existingId: found?.id ?? null,
+          title: `${campaign.title} (${SEGMENT_AUDIENCE[segment].toLowerCase()})`,
+          code: null,
+          startsAt: campaign.startsAt.toISOString(),
+          endsAt: campaign.endsAt.toISOString(),
+          config,
+          activate: rest.includes("--activate"),
+        });
+        console.log(
+          `${found ? "Updated" : "Created"} the ${segment} offer ${segmentId}.`,
+        );
+      }
+      for (const offer of segmentOffers.offers)
+        if (!SYNCED_DELIVERIES.includes(offer.delivery))
+          console.log(
+            `Skipped the ${offer.segment} offer: ${offer.delivery} isn't built yet.`,
+          );
       const rules = parseOfferRules(data.entry.fields.offer_rules);
       if (rules?.shipping) {
         const ship = campaignDiscounts(data.entry, data.discounts).find(
@@ -396,7 +439,9 @@ Next:
       const rules = parseOfferRules(entry?.fields.offer_rules);
       if (!entry || !campaign || !rules)
         throw new Error("The campaign or its offer_rules can't be read; run check.");
-      const terms = campaignTerms(campaign, rules);
+      const terms = campaignTerms(campaign, rules, {
+        offers: parseSegmentOffers(entry.fields.offers).offers,
+      });
       console.log(terms);
       if (rest.includes("--apply") && terms !== entry.fields.terms) {
         await setCampaignField(admin, entry.id, "terms", terms);
