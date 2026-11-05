@@ -67,6 +67,12 @@ describe("request shape", () => {
     expect(res.status).toBe(413);
   });
 
+  it("measures the limit in bytes, not characters", async () => {
+    // 600 three-byte characters: 600 long as a string, about 1.8 KB on the wire.
+    const res = await run(post(`{"email":"${"€".repeat(600)}@b.co"}`));
+    expect(res.status).toBe(413);
+  });
+
   it("rejects malformed JSON without throwing", async () => {
     const res = await run(post("{not json"));
     expect(res.status).toBe(400);

@@ -130,7 +130,10 @@ See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
 ## Vercel
 
 - The Vercel project's root directory is `apps/web`.
-- `vercel.json` sets security headers; keep them.
+- Security headers, including the Content Security Policy, are in
+  `lib/security-headers.ts`, sent by `next.config.ts` (so `next start` and the
+  e2e tests get them too). A new third-party script or endpoint adds its host
+  there, or `e2e/security-headers.spec.ts` fails.
 - `<Analytics />` and `<SpeedInsights />` are mounted last in `app/layout.tsx`,
   after the footer, so they never sit between semantic landmarks. Both render
   `null` outside Vercel.

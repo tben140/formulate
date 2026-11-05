@@ -60,7 +60,10 @@ const MAX_BODY_BYTES = 1024;
  */
 type Outcome =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: "invalid-email" | "rate-limited" | "rejected" };
+  | {
+      readonly ok: false;
+      readonly reason: "invalid-email" | "rate-limited" | "rejected";
+    };
 
 const json = (body: Outcome, status: number): Response =>
   new Response(JSON.stringify(body), {
@@ -111,7 +114,9 @@ export default {
     }
 
     const raw = await request.text();
-    if (raw.length > MAX_BODY_BYTES) {
+    // Bytes, not string length: a body of multi-byte characters is longer on
+    // the wire than its .length says.
+    if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) {
       return json({ ok: false, reason: "rejected" }, 413);
     }
 
