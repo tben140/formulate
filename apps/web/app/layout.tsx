@@ -1,9 +1,10 @@
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
+import { cacheLife } from "next/cache";
 import { cookies } from "next/headers";
 import Link from "@/components/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
@@ -11,7 +12,7 @@ import { CartProvider } from "@/components/cart-provider";
 import { DemoNotice } from "@/components/demo-notice";
 import { EmailCapture } from "@/components/email-capture";
 import { PaymentIcons } from "@/components/payment-icons";
-import { SiteNav } from "@/components/site-nav";
+import { SiteNav, SiteNavFallback } from "@/components/site-nav";
 import { SocialLinks } from "@/components/social-links";
 import {
   CookiePreferencesButton,
@@ -55,22 +56,36 @@ export const metadata: Metadata = {
  * alternative (a client-side fetch on drawer open) trades it for a loading
  * state on the interaction a shopper cares most about.
  */
-const RootLayout = async ({ children }: { children: ReactNode }) => {
-  // In parallel: neither depends on the other, and both are on every page.
-  const [cart, navLinks, legalLinks] = await Promise.all([
-    getCart(),
-    getNavLinks(),
-    getLegalLinks(),
-  ]);
-  // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
-  // no request at all. Passed unawaited: the page renders now and the drawer's
-  // suggestions follow when they arrive (CartDrawer), so an optional extra
-  // never holds every page.
-  const suggestions = getCartSuggestions(cart);
+/*
+ * SHO-150 spike: the per-shopper parts of the layout, each behind its own
+ * Suspense boundary so everything else prerenders as a static shell.
+ */
+const CartBadge = async () => {
+  const cart = await getCart();
+  return <CartButton totalQuantity={cart?.totalQuantity ?? 0} />;
+};
 
-  // Read on the server so the first render is already right: no banner flash
-  // for someone who has decided, and no script tag for someone who declined.
-  const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
+const CartDrawerArea = async () => {
+  const cart = await getCart();
+  // Needs the cart's lines; empty carts make no request at all. Passed
+  // unawaited: the drawer renders now, and suggestions follow (CartDrawer).
+  const suggestions = getCartSuggestions(cart);
+  return <CartDrawer cart={cart} suggestions={suggestions} />;
+};
+
+/** Prerendering can't read the clock directly; a daily-cached year is exact enough. */
+const CopyrightYear = async () => {
+  "use cache";
+  cacheLife("days");
+  return <>{new Date().getFullYear()}</>;
+};
+
+const RootLayout = async ({ children }: { children: ReactNode }) => {
+  // Cached ("use cache"): part of the static shell.
+  const [navLinks, legalLinks] = await Promise.all([getNavLinks(), getLegalLinks()]);
+
+  // A promise, not a value: only the banner waits for the cookie.
+  const consent = cookies().then((jar) => parseConsent(jar.get(CONSENT_COOKIE)?.value));
 
   return (
     <html lang="en-GB">
@@ -114,7 +129,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                 >
                   Double Helix
                 </Link>
-                <SiteNav links={navLinks} />
+                <Suspense fallback={<SiteNavFallback links={navLinks} />}>
+                  <SiteNav links={navLinks} />
+                </Suspense>
                 <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
                   {/* A link to the search page, not an inline field: it works
                       without JavaScript and keeps the header compact on a phone. */}
@@ -135,7 +152,10 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                     </svg>
                     Search
                   </Link>
-                  <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
+                  {/* The fallback is an empty cart; a count appears when it streams in. */}
+                  <Suspense fallback={<CartButton totalQuantity={0} />}>
+                    <CartBadge />
+                  </Suspense>
                 </div>
               </nav>
             </header>
@@ -166,7 +186,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                 */}
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground-muted">
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                    <p>&copy; {new Date().getFullYear()} Double Helix</p>
+                    <p>
+                      &copy; <CopyrightYear /> Double Helix
+                    </p>
                     {legalLinks.length > 0 ? (
                       <nav aria-label="Legal">
                         <ul className="flex flex-wrap gap-x-4 gap-y-1">
@@ -189,7 +211,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
               </div>
             </footer>
 
-            <CartDrawer cart={cart} suggestions={suggestions} />
+            <Suspense fallback={null}>
+              <CartDrawerArea />
+            </Suspense>
           </CartProvider>
         </TrackingConsentProvider>
 
