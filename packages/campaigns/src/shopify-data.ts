@@ -1,6 +1,7 @@
 import type { Admin } from "./admin";
 import { parseHistory, type PriceChange } from "./price-history";
 import type { ReportOrder } from "./report";
+import type { SegmentCounts, SegmentCustomer } from "./segments";
 import type { CampaignEntry, CollectionInfo, DiscountInfo, ProductInfo } from "./types";
 
 /**
@@ -797,6 +798,29 @@ export const tagCustomers = async (
   }
 };
 
+/** Removes a tag from customers, one call each (tagsRemove is idempotent). Needs write_customers. */
+export const untagCustomers = async (
+  admin: Admin,
+  customerIds: readonly string[],
+  tag: string,
+): Promise<void> => {
+  for (const id of customerIds) {
+    const data = await admin.request<{
+      tagsRemove: { userErrors: { message: string }[] };
+    }>(
+      `mutation Untag($id: ID!, $tags: [String!]!) {
+        tagsRemove(id: $id, tags: $tags) { userErrors { message } }
+      }`,
+      { id, tags: [tag] },
+    );
+    const errors = data.tagsRemove.userErrors;
+    if (errors.length > 0)
+      throw new Error(
+        `Untagging ${id} failed: ${errors.map((e) => e.message).join("; ")}`,
+      );
+  }
+};
+
 /**
  * Adds codes to a code discount, 250 at a time (the mutation's limit). Shopify
  * imports them in the background; the result is how many it accepted.
@@ -1119,4 +1143,123 @@ export const saveReferralCodes = async (
     const errors = data.metafieldsSet.userErrors;
     if (errors.length > 0) throw new Error(errors.map((e) => e.message).join("; "));
   }
+};
+
+/** Every customer who has ordered: their order count, spend and last order. */
+export const getSegmentCustomers = async (admin: Admin): Promise<SegmentCustomer[]> => {
+  const customers: SegmentCustomer[] = [];
+  let after: string | null = null;
+  do {
+    const data: {
+      customers: {
+        nodes: {
+          id: string;
+          numberOfOrders: string;
+          amountSpent: { amount: string };
+          lastOrder: { createdAt: string } | null;
+        }[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    } = await admin.request(
+      `query SegmentCustomers($after: String) {
+        customers(first: 250, after: $after, query: "orders_count:>0") {
+          nodes { id numberOfOrders amountSpent { amount } lastOrder { createdAt } }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`,
+      { after },
+    );
+    for (const node of data.customers.nodes)
+      customers.push({
+        id: node.id,
+        orders: Number(node.numberOfOrders),
+        amountSpent: Number(node.amountSpent.amount),
+        lastOrderAt: node.lastOrder?.createdAt ?? null,
+      });
+    after = data.customers.pageInfo.hasNextPage
+      ? data.customers.pageInfo.endCursor
+      : null;
+  } while (after);
+  return customers;
+};
+
+/** Customers carrying a tag now, as GIDs. */
+export const getTaggedCustomers = async (
+  admin: Admin,
+  tag: string,
+): Promise<string[]> => {
+  const ids: string[] = [];
+  let after: string | null = null;
+  do {
+    const data: {
+      customers: {
+        nodes: { id: string }[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    } = await admin.request(
+      `query Tagged($query: String!, $after: String) {
+        customers(first: 250, after: $after, query: $query) {
+          nodes { id }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`,
+      { query: `tag:'${tag}'`, after },
+    );
+    ids.push(...data.customers.nodes.map((node) => node.id));
+    after = data.customers.pageInfo.hasNextPage
+      ? data.customers.pageInfo.endCursor
+      : null;
+  } while (after);
+  return ids;
+};
+
+/**
+ * The Campaign settings record (`campaign_config`, handle `settings`): one
+ * entry for settings that belong to no single campaign. Read here; the
+ * calendar reads `segment_counts` too.
+ */
+export const SETTINGS = { type: "campaign_config", handle: "settings" } as const;
+
+export interface CampaignSettings {
+  readonly segmentThresholds: string | null;
+  readonly segmentCounts: string | null;
+}
+
+export const getCampaignSettings = async (
+  admin: Admin,
+): Promise<CampaignSettings | null> => {
+  const data = await admin.request<{
+    metaobjectByHandle: { fields: { key: string; value: string | null }[] } | null;
+  }>(
+    `query Settings($handle: MetaobjectHandleInput!) {
+      metaobjectByHandle(handle: $handle) { fields { key value } }
+    }`,
+    { handle: SETTINGS },
+  );
+  if (!data.metaobjectByHandle) return null;
+  const field = (key: string) =>
+    data.metaobjectByHandle?.fields.find((f) => f.key === key)?.value ?? null;
+  return {
+    segmentThresholds: field("segment_thresholds"),
+    segmentCounts: field("segment_counts"),
+  };
+};
+
+/** Stores the segment counts snapshot on the settings record. Writes no tags. */
+export const setSegmentCounts = async (
+  admin: Admin,
+  counts: SegmentCounts,
+): Promise<void> => {
+  const data = await admin.request<{
+    metaobjectUpsert: { userErrors: { message: string }[] };
+  }>(
+    `mutation Counts($handle: MetaobjectHandleInput!, $value: String!) {
+      metaobjectUpsert(handle: $handle, metaobject: {
+        fields: [{ key: "segment_counts", value: $value }]
+      }) { userErrors { message } }
+    }`,
+    { handle: SETTINGS, value: JSON.stringify(counts) },
+  );
+  const errors = data.metaobjectUpsert.userErrors;
+  if (errors.length) throw new Error(errors.map((e) => e.message).join("; "));
 };
