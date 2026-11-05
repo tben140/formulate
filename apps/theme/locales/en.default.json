@@ -103,7 +103,8 @@
     "purchase_options": "Purchase options",
     "one_time": "One-time purchase",
     "variant": "Variant",
-    "pairs_well_with": "Pairs well with"
+    "pairs_well_with": "Pairs well with",
+    "rating_label": "{{ average }} out of 5 stars from {{ count }} reviews"
   },
   "search": {
     "title": "Search",
