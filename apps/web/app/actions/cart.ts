@@ -8,6 +8,7 @@ import {
 } from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
 
+import { blendLineAttributes } from "@/lib/blend";
 import {
   cartClient,
   clearCartId,
@@ -93,12 +94,20 @@ export const addToCart = async (
     return { status: "error", message: "Choose an option before adding to the cart." };
   }
 
+  // A custom blend's ingredients, checked and labelled on the server.
+  const blend = await blendLineAttributes(
+    merchandiseId,
+    String(formData.get("blend") ?? ""),
+  );
+  if (!blend.ok) return { status: "error", message: blend.message };
+
   const line: CartLineInput = {
     merchandiseId,
     quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
     // Empty string means one-time purchase. Passing "" through would be read as
     // a selling plan id and rejected.
     ...(sellingPlanId ? { sellingPlanId } : {}),
+    ...(blend.attributes ? { attributes: blend.attributes } : {}),
   };
 
   /*
@@ -131,10 +140,13 @@ export const addToCart = async (
   // The line Shopify actually created for this merchandise + selling plan
   // combination — not necessarily the last one, since adding to an existing
   // line increments it in place rather than appending.
+  const blendValue = blend.attributes?.[0]?.value ?? "";
   const addedLine = result.data.lines.nodes.find(
     (line) =>
       line.merchandise.id === merchandiseId &&
-      (line.sellingPlanAllocation?.sellingPlan.id ?? "") === sellingPlanId,
+      (line.sellingPlanAllocation?.sellingPlan.id ?? "") === sellingPlanId &&
+      // Two blends of the same size are separate lines.
+      (line.attributes.find((a) => a.key === "_blend")?.value ?? "") === blendValue,
   );
 
   return {

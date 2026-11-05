@@ -1,5 +1,5 @@
 import { viewedProduct } from "@formulate/analytics";
-import { breadcrumbCollection } from "@formulate/shopify";
+import { breadcrumbCollection, isBlendProduct } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -11,6 +11,7 @@ import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
+import { getBlendIngredients } from "@/lib/blend";
 import { getProduct } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
 import { baseOpenGraph } from "@/lib/site";
@@ -75,6 +76,7 @@ const ProductPage = async ({ params }: PageProps) => {
 
   // The same trail for people and for search engines.
   const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, navLinks);
+  const blendIngredients = isBlendProduct(product) ? await getBlendIngredients() : [];
 
   return (
     <>
@@ -145,7 +147,7 @@ const ProductPage = async ({ params }: PageProps) => {
           showing the product's `minVariantPrice` alongside it would contradict
           whatever the shopper had chosen.
         */}
-          <AddToCartForm product={product} />
+          <AddToCartForm product={product} blendIngredients={blendIngredients} />
 
           {/* No fallback: nothing at all is better than a loading box here. */}
           <Suspense fallback={null}>

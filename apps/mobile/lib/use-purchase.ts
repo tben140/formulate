@@ -1,12 +1,20 @@
 import {
+  MIN_BLEND_SIZE,
+  blendAttributes,
+  blendSize,
+  checkBlend,
   defaultSelectedOptions,
   findVariantByOptions,
+  isBlendProduct,
+  maxBlendSize,
   purchasableAllocations,
+  variantForBlend,
   type ProductByHandleResult,
   type SelectedOption,
 } from "@formulate/shopify";
 import { useState } from "react";
 
+import { useBlendIngredients } from "./blend";
 import { useAddToCart } from "./use-cart";
 
 export type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -36,7 +44,21 @@ export const usePurchase = (product: Product) => {
   );
   const [planId, setPlanId] = useState<string>(ONE_TIME);
 
-  const variant = findVariantByOptions(product.variants.nodes, selected);
+  /*
+   * A custom-blend pack: the shopper picks ingredients, and the count picks the
+   * variant (and so the price). See packages/shopify/src/blend.ts.
+   */
+  const isBlend = isBlendProduct(product);
+  const blendQuery = useBlendIngredients(isBlend);
+  const blendIngredients = blendQuery.data ?? [];
+  const [picked, setPicked] = useState<string[]>([]);
+  const blendMax = maxBlendSize(product.variants.nodes);
+  const blendReady =
+    isBlend && Boolean(variantForBlend(product.variants.nodes, picked.length));
+
+  const variant = isBlend
+    ? variantForBlend(product.variants.nodes, Math.max(picked.length, MIN_BLEND_SIZE))
+    : findVariantByOptions(product.variants.nodes, selected);
 
   /*
    * ⚠️ Only plans whose group is owned by an installed app.
@@ -64,7 +86,7 @@ export const usePurchase = (product: Product) => {
     chosenAllocation?.priceAdjustments[0]?.price ?? variant?.price ?? null;
 
   const soldOut = Boolean(variant && !variant.availableForSale);
-  const disabled = !variant || soldOut || addToCart.isPending;
+  const disabled = !variant || soldOut || addToCart.isPending || (isBlend && !blendReady);
 
   const choices = [
     { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
@@ -78,19 +100,29 @@ export const usePurchase = (product: Product) => {
   /** The button's words, identical in both controls. */
   const label = addToCart.isPending
     ? "Adding…"
-    : soldOut
-      ? "Sold out"
-      : !variant
-        ? "Unavailable in this combination"
-        : "Add to cart";
+    : isBlend && !blendReady
+      ? `Choose ${MIN_BLEND_SIZE} to ${blendMax} ingredients`
+      : soldOut
+        ? "Sold out"
+        : !variant
+          ? "Unavailable in this combination"
+          : "Add to cart";
 
   const add = (onAdded: () => void) => {
     if (!variant) return;
+    // The label is built from Shopify's range, never typed.
+    const blend = isBlend
+      ? checkBlend(picked, blendIngredients, blendSize(variant))
+      : null;
+    if (blend && !blend.ok) return;
     addToCart.mutate(
       {
         merchandiseId: variant.id,
         quantity: 1,
         ...(effectivePlanId ? { sellingPlanId: effectivePlanId } : {}),
+        ...(blend?.ok
+          ? { attributes: blendAttributes(blend.codes, blendIngredients) }
+          : {}),
       },
       { onSuccess: onAdded },
     );
@@ -110,6 +142,16 @@ export const usePurchase = (product: Product) => {
     choices,
     label,
     add,
+    isBlend,
+    blendIngredients,
+    // The range is still loading, or failed: the picker shows that instead
+    // of an empty list.
+    blendLoading: isBlend && blendQuery.isPending,
+    blendError: isBlend && blendQuery.isError,
+    retryBlend: () => void blendQuery.refetch(),
+    blendMax,
+    picked,
+    setPicked,
   };
 };
 

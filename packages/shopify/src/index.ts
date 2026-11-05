@@ -42,6 +42,8 @@ export {
 export type { SelectedOption } from "./product-selection";
 
 export {
+  BlendIngredientsQuery,
+  BlendVariantQuery,
   CartBuyerIdentityUpdateMutation,
   CartCreateMutation,
   CartLinesAddMutation,
@@ -119,3 +121,20 @@ export type {
   OptimisticCartLike,
   OptimisticCartState,
 } from "./cart-optimistic";
+
+export {
+  BLEND_ATTRIBUTES,
+  BLEND_PRESETS,
+  MIN_BLEND_SIZE,
+  availablePresets,
+  blendAttributes,
+  blendCodes,
+  blendLabel,
+  blendSize,
+  checkBlend,
+  isBlendProduct,
+  maxBlendSize,
+  toBlendIngredients,
+  variantForBlend,
+} from "./blend";
+export type { BlendCheck, BlendIngredient, BlendIngredientNode } from "./blend";

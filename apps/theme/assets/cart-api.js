@@ -60,7 +60,7 @@ const post = async (url, body) => {
  * @param {string} [sellingPlanId] Omit or pass empty for a one-time purchase.
  * @returns {Promise<CartResponse>}
  */
-export const addItem = (variantId, quantity, sellingPlanId) =>
+export const addItem = (variantId, quantity, sellingPlanId, properties = {}) =>
   post("/cart/add.js", {
     items: [
       {
@@ -69,6 +69,8 @@ export const addItem = (variantId, quantity, sellingPlanId) =>
         // Shopify rejects `selling_plan: ""`, so the key is omitted entirely
         // rather than sent empty.
         ...(sellingPlanId ? { selling_plan: sellingPlanId } : {}),
+        // Line properties, e.g. a custom blend's _blend and Blend.
+        ...(Object.keys(properties).length ? { properties } : {}),
       },
     ],
   });

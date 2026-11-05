@@ -3,6 +3,7 @@
 import { EVENTS, startedCheckout } from "@formulate/analytics";
 import {
   formatMoney,
+  BLEND_ATTRIBUTES,
   initialOptimisticCart,
   optimisticCart,
   optimisticCartReducer,
@@ -230,6 +231,17 @@ export const CartDrawer = ({
                       {variant.title !== "Default Title" ? (
                         <p className="text-xs text-foreground-muted">{variant.title}</p>
                       ) : null}
+                      {/* A custom blend's ingredients, as the order will show them. */}
+                      {line.attributes
+                        .filter((attribute) => attribute.key === BLEND_ATTRIBUTES.label)
+                        .map((attribute) => (
+                          <p
+                            key={attribute.key}
+                            className="text-xs text-foreground-muted"
+                          >
+                            {attribute.value}
+                          </p>
+                        ))}
 
                       {/*
                       The subscription line is the whole reason the selling-plan
