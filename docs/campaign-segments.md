@@ -90,16 +90,16 @@ The campaign record gains an optional **`offers`** JSON field next to `offer_rul
 
 ## Order of work
 
-1. **Built (#235):** the `segments` module with every segment above except `never_bought` and `app`; `pnpm campaigns segments` shows sizes and the tags a sync would add and remove, and `--apply` stores the counts. `.github/workflows/segment-counts.yml` runs it nightly once the `RECHARGE_API_TOKEN` repository secret is set (it skips with a notice until then). **It writes no tags yet:** that waits for question 2.
+1. **Built (#235):** the `segments` module with every segment above except `never_bought` and `app`; `pnpm campaigns segments` shows sizes and the tags a sync would add and remove, and `--apply` stores the counts. `.github/workflows/segment-counts.yml` runs it nightly once the `RECHARGE_API_TOKEN` repository secret is set (it skips with a notice until then). **It writes no tags yet;** Ben approved tag writes on 5 Nov (Decisions, 2), so they come next.
 2. **With Ben's OK on Klaviyo lists:** the Klaviyo half of the sync.
 3. **`offers`:** the field, sync, terms, check and editor tabs.
 4. ~~After protected customer data~~ `one_time`, `dormant`, `best`: built with step 1, since the app already reads customer data.
 5. **After sign-in (#76) and app events (#107):** showing segment offers on site, and the `app` segment.
 
-## Questions for Ben
+## Decisions (Ben, 5 Nov 2026)
 
-1. **Klaviyo lists:** may the nightly job create and update one static list per segment? Nothing is sent; emails stay drafts.
-2. **Shopify tags:** may it add and remove `segment:<key>` tags on customers nightly?
-3. ~~Protected customer data~~: not needed (see Segments).
-4. **First segments:** I'd start with `lapsed` (win-back) and `at_risk` (a "keep your plan" perk, not a discount). Agree?
-5. **Thresholds:** 12 months for lapsed, 90–180 days for dormant, top 10% for best. Adjustable on the Campaign settings record (see Settings).
+1. **Klaviyo lists:** yes. The nightly job may create and update one static list per segment (`Segment: <key>`). It never sends; emails stay drafts until approved.
+2. **Shopify tags:** yes. The nightly job may add and remove `segment:<key>` tags on customers.
+3. **Protected customer data:** not needed; the app already reads customers.
+4. **First segments:** `lapsed` (win-back) and `at_risk` (a "keep your plan" perk, not a discount).
+5. **Thresholds:** 12 months for lapsed, 90–180 days for dormant, top 10% for best, adjustable on the Campaign settings record.
