@@ -798,6 +798,29 @@ export const tagCustomers = async (
   }
 };
 
+/** Removes a tag from customers, one call each (tagsRemove is idempotent). Needs write_customers. */
+export const untagCustomers = async (
+  admin: Admin,
+  customerIds: readonly string[],
+  tag: string,
+): Promise<void> => {
+  for (const id of customerIds) {
+    const data = await admin.request<{
+      tagsRemove: { userErrors: { message: string }[] };
+    }>(
+      `mutation Untag($id: ID!, $tags: [String!]!) {
+        tagsRemove(id: $id, tags: $tags) { userErrors { message } }
+      }`,
+      { id, tags: [tag] },
+    );
+    const errors = data.tagsRemove.userErrors;
+    if (errors.length > 0)
+      throw new Error(
+        `Untagging ${id} failed: ${errors.map((e) => e.message).join("; ")}`,
+      );
+  }
+};
+
 /**
  * Adds codes to a code discount, 250 at a time (the mutation's limit). Shopify
  * imports them in the background; the result is how many it accepted.
