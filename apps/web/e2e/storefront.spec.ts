@@ -65,11 +65,20 @@ const SOLD_OUT = { handle: "magnesium-glycinate", option: "200 mg" };
 
 test("a sold-out option is marked and cannot be bought", async ({ page }) => {
   await openProduct(page, SOLD_OUT.handle);
-  // The label holds the radio's name, "(sold out)" included for screen readers.
-  const label = page.locator("label", { hasText: SOLD_OUT.option });
-  await expect(label).toBeAttached();
+  // Whether it's in stock comes from the page's Product JSON-LD (one Offer per
+  // variant, lib/structured-data.ts), not from the label under test, so a
+  // label that forgets "(sold out)" fails rather than skipping.
+  const jsonLd = await page
+    .locator('script[type="application/ld+json"]')
+    .allTextContents();
+  const offer = jsonLd
+    .map((text) => JSON.parse(text) as { "@type"?: string; offers?: unknown })
+    .filter((data) => data["@type"] === "Product")
+    .flatMap((data) => (data.offers ?? []) as { name?: string; availability?: string }[])
+    .find((o) => o.name === SOLD_OUT.option);
+  expect(offer, `no JSON-LD offer for ${SOLD_OUT.option}`).toBeDefined();
   test.skip(
-    !((await label.textContent()) ?? "").includes("(sold out)"),
+    offer?.availability === "https://schema.org/InStock",
     `${SOLD_OUT.handle} ${SOLD_OUT.option} is in stock; the stock plan needs it at 0`,
   );
 
