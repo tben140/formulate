@@ -40,7 +40,15 @@ const post = async (url, body) => {
   });
 
   /** @type {CartResponse} */
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch (error) {
+    // A failed response with an empty or non-JSON body (a proxy's error
+    // page, say) gets the shopper's message, not the parser's.
+    if (!response.ok) throw new Error("Could not update your cart.");
+    throw error;
+  }
 
   if (!response.ok) {
     /*
