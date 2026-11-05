@@ -261,6 +261,21 @@ export const tagPlan = (
   };
 };
 
+/**
+ * Whether a tag sync looks safe to run unattended: it refuses to take a tag
+ * off more than half of a segment's current members (and more than a few),
+ * since that usually means a read failed, not that half the segment left.
+ * Run by hand with `--force-tags` once the numbers are checked.
+ */
+export const tagSyncProblem = (
+  key: SegmentKey,
+  plan: { add: readonly string[]; remove: readonly string[] },
+  tagged: number,
+): string | null =>
+  plan.remove.length > 10 && plan.remove.length > tagged / 2
+    ? `${segmentTag(key)}: would remove ${plan.remove.length} of ${tagged} tags`
+    : null;
+
 /** The counts snapshot the calendar shows, stored on the settings record. */
 export interface SegmentCounts {
   readonly syncedAt: string;

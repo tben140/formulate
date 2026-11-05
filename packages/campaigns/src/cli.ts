@@ -50,6 +50,7 @@ import {
   segmentMembers,
   segmentTag,
   tagPlan,
+  tagSyncProblem,
 } from "./segments";
 import {
   parseSegmentOffers,
@@ -80,6 +81,7 @@ import {
   setCampaignField,
   tagCustomers,
   tidyCampaign,
+  untagCustomers,
   upsertFunctionDiscount,
   upsertShippingDiscount,
   deactivateAutomatic,
@@ -134,11 +136,14 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns audience lapsed --tag <tag> [--within 180] [--apply]
                                               tags lapsed subscribers (all cancelled, the
                                               last within N days) for a win-back offer
-  pnpm campaigns segments [--apply] [--klaviyo]
+  pnpm campaigns segments [--apply] [--tags] [--force-tags] [--klaviyo]
                                               each customer segment's size and the tags a
                                               sync would add and remove (SHO-207); --apply
-                                              stores the counts for the calendar, no tags;
-                                              --klaviyo plans each segment's list (SHO-208)
+                                              stores the counts for the calendar, and with
+                                              --tags also adds and removes segment:<key>
+                                              tags (refuses a sync that would strip most of
+                                              a segment unless --force-tags); --klaviyo
+                                              plans each segment's list (SHO-208)
 
 Reads SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET (and KLAVIYO_PRIVATE_KEY,
 optional) from the environment or ~/.config/formulate/shopify-app.env, and
@@ -806,9 +811,12 @@ Next:
         thresholds,
         now,
       );
+      const plans = [];
       for (const key of SEGMENT_KEYS) {
         const members = segments.members[key];
-        const plan = tagPlan(members, await getTaggedCustomers(admin, segmentTag(key)));
+        const tagged = await getTaggedCustomers(admin, segmentTag(key));
+        const plan = tagPlan(members, tagged);
+        plans.push({ key, plan, problem: tagSyncProblem(key, plan, tagged.length) });
         console.log(
           `${key.padEnd(9)} ${String(members.length).padStart(5)}  ${describeSegment(key, thresholds)}` +
             `  (sync: +${plan.add.length} -${plan.remove.length} ${segmentTag(key)})`,
@@ -845,17 +853,30 @@ Next:
         console.log(
           `${segments.unmatched} Recharge customers have no Shopify customer: left out.`,
         );
-      console.log(
-        "Tags are planned only: tagging waits for Ben's OK (docs/campaign-segments.md).",
-      );
-      if (!rest.includes("--apply")) {
-        console.log("Run with --apply to store the counts for the calendar.");
+      const apply = rest.includes("--apply");
+      const tags = rest.includes("--tags");
+      if (!apply) {
+        console.log(
+          "Planned only. Run with --apply to store the counts, and --tags to write the tags too.",
+        );
         return 0;
       }
       if (!settings)
         throw new Error(
           "Create the Campaign settings record first (docs/campaign-segments.md, Settings).",
         );
+      if (tags) {
+        const problems = plans.flatMap((p) => p.problem ?? []);
+        if (problems.length && !rest.includes("--force-tags"))
+          throw new Error(
+            `No tags written: ${problems.join("; ")}. Check the counts, then rerun with --force-tags.`,
+          );
+        for (const { key, plan } of plans) {
+          await tagCustomers(admin, plan.add, segmentTag(key));
+          await untagCustomers(admin, plan.remove, segmentTag(key));
+        }
+        console.log("Tags written.");
+      }
       await setSegmentCounts(admin, segmentCounts(segments, now));
       console.log("Counts stored on the Campaign settings record.");
       return 0;

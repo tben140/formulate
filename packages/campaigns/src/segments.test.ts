@@ -6,6 +6,7 @@ import {
   segmentCounts,
   segmentMembers,
   tagPlan,
+  tagSyncProblem,
   type SegmentInputs,
 } from "./segments";
 
@@ -181,6 +182,22 @@ describe("tagPlan", () => {
       add: [gid(1)],
       remove: [gid(3)],
     });
+  });
+});
+
+describe("tagSyncProblem", () => {
+  const ids = (n: number) => Array.from({ length: n }, (_, i) => gid(i + 1));
+
+  it("lets ordinary churn through", () => {
+    expect(tagSyncProblem("lapsed", { add: ids(40), remove: ids(30) }, 100)).toBeNull();
+    // Small segments can change wholesale.
+    expect(tagSyncProblem("best", { add: [], remove: ids(3) }, 3)).toBeNull();
+  });
+
+  it("stops a sync that would strip most of a segment", () => {
+    expect(tagSyncProblem("active", { add: [], remove: ids(60) }, 100)).toBe(
+      "segment:active: would remove 60 of 100 tags",
+    );
   });
 });
 
