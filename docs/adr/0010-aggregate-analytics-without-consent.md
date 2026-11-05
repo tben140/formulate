@@ -84,18 +84,29 @@ data, which fits. Three things don't:
   closed or restarted (`memory`). A new tab or a restarted app gets a new id.
   Funnels are counted per session, which is enough to see where shoppers drop
   off.
-- **No person profiles, and raw events kept only as long as the aggregates
-  need them.** `$process_person_profile: false` stops profiles, but PostHog
-  still stores each event under its session id, and that isn't aggregate data
-  just because no profile exists. Before the tier goes live: a retention
-  period for exempt-tier events (proposed: 3 months, enough to produce and
-  check monthly figures), enforced by PostHog's retention setting or a
-  scheduled deletion. Insights are computed from the raw events, so deleting
-  those empties them: a monthly job first exports the month's aggregate
-  figures (counts by page, step and funnel stage, nothing per id) to a
-  durable store of our own, checks the export matches PostHog's totals, and
-  only then may that month's raw events be deleted. The exported aggregates
-  are what's kept. Exempt-tier ids are never aliased or identified later.
+- **No person profiles, and raw events deleted once aggregated.**
+  `$process_person_profile: false` stops profiles, but PostHog still stores
+  each event under its session id, and that isn't aggregate data just because
+  no profile exists. The ICO's guidance is that keeping individual-level data
+  after aggregation falls outside the exception, so raw exempt-tier events are
+  kept only until their month's figures are safe:
+  1. **A monthly job, early in the next month** (by the 7th), exports the
+     month's aggregate figures (counts by page, step and funnel stage, nothing
+     per id) to a durable store of our own.
+  2. It checks the export against PostHog's totals for that month.
+  3. **Only when the check passes**, it deletes that month's raw exempt-tier
+     events. So raw events live about five weeks at most: the month itself
+     plus the days to the job.
+  4. If the check fails, nothing is deleted, the job alerts, and it retries
+     daily.
+  - **PostHog's retention setting is a backstop only**, at 3 months. It
+    deletes on its own clock, regardless of the job, so it never stands in for
+    the gated deletion. It only bounds how long raw events can survive a job
+    that keeps failing. If it fires first, that month's aggregates are lost;
+    privacy wins over the figures.
+  - Insights computed from raw events empty as they're deleted. The exported
+    aggregates are what's kept. Exempt-tier ids are never aliased or
+    identified later.
 - **Device details.** Paragraph 5(2) means the exception doesn't cover
   collecting what the device emits on its own, so the project discards client
   IP addresses (and with them IP-based location). Beyond what the law
@@ -107,7 +118,7 @@ data, which fits. Three things don't:
   screen and the step.
 - **Objecting** stops future capture: storage is cleared and nothing more is
   sent from that browser or app. Events already sent before the objection
-  aren't deleted on the spot; they follow the retention rule above, and carry
+  aren't deleted on the spot; they follow the deletion rule above, and carry
   only a session id that can't be traced back to the shopper.
 - **Upgrading.** When a shopper accepts the marketing tier, the client first
   calls `posthog.reset()`, which discards the session-scoped id, then switches
