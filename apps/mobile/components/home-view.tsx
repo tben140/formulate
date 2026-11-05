@@ -2,12 +2,12 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-import { campaignFirst, campaignPath } from "@formulate/shopify";
+import { campaignFirst } from "@formulate/shopify";
 
 import { useActiveCampaign } from "../lib/campaign";
+import { useHeroSlides } from "../lib/hero";
 import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
-import { CampaignBadge } from "./campaign-badge";
-import { CampaignEnds } from "./campaign-ends";
+import { HeroPager } from "./hero-pager";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
 
@@ -27,6 +27,7 @@ export const HomeView = () => {
   const { data: navLinks } = useNavLinks();
   const { data: cards } = useCollectionCards();
   const campaign = useActiveCampaign();
+  const slides = useHeroSlides();
 
   const menuCollections = navLinks?.filter((link) => link.kind === "collection") ?? [];
   const featuredLink = menuCollections[0];
@@ -48,46 +49,10 @@ export const HomeView = () => {
       automaticallyAdjustKeyboardInsets
       keyboardDismissMode="on-drag"
     >
-      {campaign ? (
-        // The hero while a campaign is live (SHO-169 merchandising), in place
-        // of the everyday introduction, as on web and the theme. Text is
-        // foreground, not foreground-muted: on brand-50 muted is 4.35:1.
-        <View className="gap-3 rounded-xl border border-brand-300 bg-brand-50 p-6">
-          {campaign.image ? (
-            <Image
-              source={{ uri: campaign.image.url }}
-              accessibilityLabel={campaign.image.altText ?? ""}
-              style={{
-                width: "100%",
-                aspectRatio:
-                  campaign.image.width && campaign.image.height
-                    ? campaign.image.width / campaign.image.height
-                    : 16 / 9,
-                borderRadius: 8,
-              }}
-              contentFit="cover"
-            />
-          ) : null}
-          <CampaignBadge label={campaign.badge} />
-          <Text
-            accessibilityRole="header"
-            className="text-3xl font-semibold text-foreground"
-          >
-            {campaign.headline}
-          </Text>
-          <Text className="text-base text-foreground">{campaign.offer}</Text>
-          <CampaignEnds campaign={campaign} className="text-sm text-foreground" />
-          <Link href={campaignPath(campaign.handle)} asChild>
-            <Pressable
-              accessibilityRole="link"
-              className="mt-3 self-start rounded-md bg-brand-600 px-5 py-3"
-            >
-              <Text className="font-semibold text-surface">
-                Shop the {campaign.badge} offer
-              </Text>
-            </Pressable>
-          </Link>
-        </View>
+      {slides.length > 0 ? (
+        // Live campaigns, then the shop's slides (SHO-203), as on web and the
+        // theme; the everyday introduction when there are none.
+        <HeroPager slides={slides} />
       ) : (
         <View className="rounded-xl bg-surface-muted p-6">
           <Text

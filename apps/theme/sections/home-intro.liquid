@@ -4,20 +4,19 @@
   first collection in the Shop menu, as it does on web, unless the merchant
   sets a link.
 
-  While a campaign is live it shows the campaign instead (SHO-169
-  merchandising): badge, headline, offer, the real end time and a way in, as
-  apps/web's CampaignHero. It goes back by itself when the campaign ends.
+  When there are hero slides it shows them instead (SHO-203): live campaigns
+  first (badge, headline, offer, the real end time and a way in), then the
+  shop's `hero_slide`s, as apps/web's HeroSlider. It goes back by itself
+  when nothing is running. The order: snippets/hero-slide-order.liquid.
 {% endcomment %}
 
 {% liquid
-  capture live_handle
-    render 'campaign-live-handle'
+  assign heading_id = 'home-intro-' | append: section.id
+  capture slide_order
+    render 'hero-slide-order'
   endcapture
-  assign live_handle = live_handle | strip
-  assign campaign = nil
-  if live_handle != blank
-    assign campaign = shop.metaobjects.campaign[live_handle]
-  endif
+  assign slide_order = slide_order | strip
+  assign slides = slide_order | split: ','
 
   assign first_link = nil
   for link in linklists.shop.links
@@ -38,23 +37,51 @@
 %}
 
 <div class="container">
-  {% if campaign %}
-  <section class="home-intro home-intro--campaign" aria-labelledby="home-intro-{{ section.id }}">
-    <div class="home-intro__body">
-      <span class="campaign-badge">{{ campaign.badge.value | escape }}</span>
-      <h1 id="home-intro-{{ section.id }}" class="home-intro__heading">{{ campaign.headline.value | escape }}</h1>
-      <p class="home-intro__text">{{ campaign.offer.value | escape }}</p>
-      <p class="home-intro__text">{% render 'campaign-ends', campaign: campaign %}</p>
-      <a class="home-intro__button" href="/pages/campaigns/{{ campaign.system.handle }}">
-        {{- 'campaign.shop_offer' | t: badge: campaign.badge.value -}}
-      </a>
-    </div>
-    {% if campaign.image.value %}
-      <div class="home-intro__media">
-        {{ campaign.image.value | image_url: width: 900 | image_tag: loading: 'eager', fetchpriority: 'high', sizes: '(min-width: 48rem) 45vw, 90vw', alt: campaign.image.value.alt }}
+  {% if slides.size > 0 %}
+  <hero-slider
+    class="home-intro home-intro--campaign"
+    role="region"
+    aria-labelledby="home-intro-{{ section.id }}"
+    {% if slides.size > 1 %}aria-roledescription="{{ 'hero.carousel' | t }}"{% endif %}
+  >
+    {%- for entry in slides -%}
+      {%- assign kind = entry | slice: 0 -%}
+      {%- assign handle = entry | remove_first: 'c:' | remove_first: 's:' -%}
+      {%- if kind == 'c' -%}
+        {% render 'hero-slide',
+          campaign: shop.metaobjects.campaign[handle],
+          index: forloop.index,
+          total: slides.size,
+          heading_id: heading_id
+        %}
+      {%- else -%}
+        {% render 'hero-slide',
+          slide: shop.metaobjects.hero_slide[handle],
+          index: forloop.index,
+          total: slides.size,
+          heading_id: heading_id
+        %}
+      {%- endif -%}
+    {%- endfor -%}
+    {% if slides.size > 1 %}
+      <div class="home-intro__controls" data-controls>
+        <button type="button" class="home-intro__control" data-play data-pause-label="{{ 'hero.pause' | t }}" data-play-label="{{ 'hero.play' | t }}">{{ 'hero.pause' | t }}</button>
+        <button type="button" class="home-intro__control" data-prev>{{ 'hero.previous' | t }}</button>
+        <button type="button" class="home-intro__control" data-next>{{ 'hero.next' | t }}</button>
+        <span class="home-intro__dots">
+          {%- for entry in slides -%}
+            <button
+              type="button"
+              class="home-intro__dot"
+              data-dot
+              aria-label="{{ 'hero.show' | t: index: forloop.index }}"
+              {% if forloop.first %}aria-current="true"{% endif %}
+            ></button>
+          {%- endfor -%}
+        </span>
       </div>
     {% endif %}
-  </section>
+  </hero-slider>
   {% else %}
   <section class="home-intro" aria-labelledby="home-intro-{{ section.id }}">
     <h1 id="home-intro-{{ section.id }}" class="home-intro__heading">{{ section.settings.heading }}</h1>
@@ -114,13 +141,26 @@
     background: var(--color-brand-700);
   }
 
-  /* The campaign hero, matched to apps/web's CampaignHero (bg-brand-50, two
-     columns from md). Text stays foreground: muted is under AA on brand-50. */
+  /* The hero slides (SHO-203), matched to apps/web's HeroSlider: brand-50,
+     each slide two columns from md. Text stays foreground: muted is under AA
+     on brand-50. */
+  hero-slider {
+    display: block;
+  }
+
   .home-intro--campaign {
+    background: var(--color-brand-50);
+  }
+
+  .home-intro__slide {
     display: grid;
     gap: var(--spacing-8);
     align-items: center;
-    background: var(--color-brand-50);
+  }
+
+  /* display: grid would otherwise override the hidden attribute. */
+  .home-intro__slide[hidden] {
+    display: none;
   }
 
   .home-intro--campaign .home-intro__heading {
@@ -132,9 +172,54 @@
   }
 
   @media (min-width: 48rem) {
-    .home-intro--campaign {
+    .home-intro__slide {
       grid-template-columns: 1fr 1fr;
     }
+  }
+
+  .home-intro__controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    align-items: center;
+    margin-block-start: var(--spacing-8);
+  }
+
+  /* Laid out from the first paint, so revealing them moves nothing (CLS);
+     only shown once assets/hero-slider.js has wired them up. */
+  hero-slider:not([data-ready]) .home-intro__controls {
+    visibility: hidden;
+  }
+
+  .home-intro__control {
+    padding: 0.375rem var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .home-intro__dots {
+    display: flex;
+    gap: var(--spacing-2);
+    margin-inline-start: auto;
+  }
+
+  .home-intro__dot {
+    inline-size: 0.75rem;
+    block-size: 0.75rem;
+    padding: 0;
+    border: 1px solid var(--color-brand-700);
+    border-radius: 9999px;
+    background: var(--color-surface);
+    cursor: pointer;
+  }
+
+  .home-intro__dot[aria-current="true"] {
+    background: var(--color-brand-700);
   }
 
   .home-intro__media img {

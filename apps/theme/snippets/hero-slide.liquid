@@ -1,0 +1,86 @@
+{% doc %}
+  One slide of the home hero (SHO-203), from a live campaign or a
+  `hero_slide`. Matches a slide of apps/web's HeroSlider.
+
+  @param {object} [campaign] - A live `campaign` metaobject.
+  @param {object} [slide] - A `hero_slide` metaobject.
+  @param {number} index - This slide's position, from 1.
+  @param {number} total - How many slides there are.
+  @param {string} heading_id - The id the hero is labelled by; only the first slide uses it.
+{% enddoc %}
+{%- liquid
+  if campaign
+    assign headline = campaign.headline.value | default: campaign.title.value
+    assign text = campaign.offer.value
+    assign href = '/pages/campaigns/' | append: campaign.system.handle
+    assign label = 'campaign.shop_offer' | t: badge: campaign.badge.value
+    assign image = campaign.image.value
+    assign mobile = nil
+  else
+    assign headline = slide.headline.value
+    assign text = slide.text.value
+    assign href = slide.link.value | strip
+    assign label = slide.button_label.value
+    if label == blank
+      assign label = 'hero.shop_now' | t
+    endif
+    assign image = slide.image.value.preview_image | default: slide.image.value
+    assign mobile = slide.mobile_image.value.preview_image | default: slide.mobile_image.value
+  endif
+  if image == blank and mobile != blank
+    assign image = mobile
+    assign mobile = nil
+  endif
+-%}
+<div
+  class="home-intro__slide"
+  {% if total > 1 %}
+    role="group"
+    aria-roledescription="{{ 'hero.slide' | t }}"
+    aria-label="{{ 'hero.position' | t: index: index, total: total }}"
+    data-slide
+  {% endif %}
+  {% if index > 1 %}
+    hidden
+  {% endif %}
+>
+  <div class="home-intro__body">
+    {% if campaign %}
+      <span class="campaign-badge">{{ campaign.badge.value | escape }}</span>
+    {% endif %}
+    {% if index == 1 %}
+      <h1 id="{{ heading_id }}" class="home-intro__heading">{{ headline | escape }}</h1>
+    {% else %}
+      <h2 class="home-intro__heading">{{ headline | escape }}</h2>
+    {% endif %}
+    {% if text != blank %}
+      <p class="home-intro__text">{{ text | escape | newline_to_br }}</p>
+    {% endif %}
+    {% if campaign %}
+      <p class="home-intro__text">{% render 'campaign-ends', campaign: campaign %}</p>
+    {% endif %}
+    {% if href != blank %}
+      <a class="home-intro__button" href="{{ href | escape }}">{{ label | escape }}</a>
+    {% endif %}
+  </div>
+  {% if image != blank %}
+    <div class="home-intro__media">
+      <picture>
+        {% if mobile != blank %}
+          <source
+            media="(max-width: 47.99rem)"
+            srcset="{{ mobile | image_url: width: 600 }} 600w, {{ mobile | image_url: width: 900 }} 900w"
+            sizes="90vw"
+          >
+        {% endif %}
+        {%- liquid
+          if index == 1
+            echo image | image_url: width: 900 | image_tag: loading: 'eager', fetchpriority: 'high', sizes: '(min-width: 48rem) 45vw, 90vw', alt: image.alt
+          else
+            echo image | image_url: width: 900 | image_tag: loading: 'lazy', sizes: '(min-width: 48rem) 45vw, 90vw', alt: image.alt
+          endif
+        -%}
+      </picture>
+    </div>
+  {% endif %}
+</div>
