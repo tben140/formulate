@@ -36,7 +36,7 @@ One campaign, a different offer for different people. For Black Friday, for exam
 | `dormant`      | Last order 90–180 days ago                               | Shopify orders                                   | Shopify customers |
 | `best`         | Top 10% by spend, or subscribed 12+ months               | Shopify `amountSpent`, Recharge                  | Shopify customers |
 | `never_bought` | Email subscriber or account with no order                | Klaviyo ("Placed Order zero times")              | Klaviyo profiles  |
-| `app`          | Used the app in the last 90 days                         | Klaviyo app events (waits for #107)              | Klaviyo profiles  |
+| `app`          | Used the app in the last 90 days                         | Klaviyo app events                               | Klaviyo profiles  |
 
 **Access:** the Shopify segments read each customer's order count, spend, last order and email. The app's approved scopes (`read_orders`, `write_customers`) already return those fields on this store; checked 5 Nov 2026 with the app's own token. No extra protected-customer-data request is needed.
 
@@ -62,7 +62,10 @@ A nightly job, `pnpm campaigns segments --apply --tags` (`.github/workflows/segm
 3. **In Klaviyo (SHO-208):** keeps a static list per segment ("Segment: lapsed") in step, by the Shopify customer's email. A member with no email is counted and left out. These are **lists, not segments**, so membership is exactly the job's, never Klaviyo's own logic.
    - **Adding someone to a list can send a message** if a live flow is triggered by that list. So before changing a list, the sync looks up the flows it triggers (Klaviyo's flows-triggered-by-list). **If any flow is live, it changes nothing for that list and reports it.** Draft and manual flows are allowed. Every list the sync creates is new, so it starts with no flows.
    - Campaign emails to a list stay drafts until Ben approves them, as always.
+   - `campaigns segments --klaviyo` plans this: per segment, whether its list exists and how many emails it would gain and lose. Counts only; no address is printed.
 4. Plans unless `--apply`, like every other command, and writes tags only with `--tags`. The calendar shows each segment's count and when it was last synced.
+   - **A run that would take a tag off more than half of a segment (and more than 10 people) is refused**, since that's usually a failed read. Check, then rerun by hand with `--force-tags`.
+   - The nightly workflow skips with a notice until the `RECHARGE_API_TOKEN` repository secret is set.
 
 ## Offers per segment
 
@@ -93,14 +96,6 @@ The campaign record gains an optional **`offers`** JSON field next to `offer_rul
   - the margin floor holds for the deepest offer.
 - **The calendar's offer editor (#228)** gets a tab per segment, with the same side-by-side preview.
 - **Surfaces:** a signed-in shopper sees their segment's offer on the campaign page and product pages. This needs their tags, which the storefront can't read with the public Storefront token. It goes through the Customer Account API session (#76), so it lands after sign-in does. Until then, segment offers are told by email and applied at checkout.
-
-## Order of work
-
-1. **Built (#235):** the `segments` module with every segment above except `never_bought` and `app`; `pnpm campaigns segments` shows sizes and the tags a sync would add and remove, and `--apply` stores the counts. `.github/workflows/segment-counts.yml` runs it nightly once the `RECHARGE_API_TOKEN` repository secret is set (it skips with a notice until then). With `--tags` it also adds and removes the `segment:<key>` tags (Decisions, 2), and the nightly run does both. It refuses a run that would take a tag off more than half of a segment (and more than 10 people), since that's usually a failed read; check, then rerun by hand with `--force-tags`.
-2. **Klaviyo lists (approved 5 Nov):** the Klaviyo half of the sync. **Planned (#239):** `campaigns segments --klaviyo` says, per segment, whether its list ("Segment: lapsed") exists and how many emails it would gain and lose. Read only, counts only: no list is created or changed, and no address is printed.
-3. **`offers` (#237, code only):** parsing, sync (`sign_in` offers; `codes` and `email_link` are parsed and checked but skipped by sync until built), a terms sentence per offer, and check (parse, delivery, margin, each segment discount's config). **Still to do:** the offer editor's tabs (calendar), and the calendar's own sync.
-4. `one_time`, `dormant`, `best`: built with step 1, from Shopify customer data (no extra access; see Segments).
-5. **After sign-in (#76) and app events (#107):** showing segment offers on site, and the `app` segment.
 
 ## Decisions (Ben, 5 Nov 2026)
 
