@@ -37,6 +37,7 @@ export const CampaignHero = ({
         <CampaignEnds
           endsAt={campaign.endsAt.toISOString()}
           label={campaignEndsLabel(campaign)}
+          countdown={campaign.countdown}
           now={now}
           clockPreview={clockPreview}
         />

@@ -8,7 +8,13 @@
  * decides what shoppers are told.
  */
 
-import { campaignUnitPrice, parseOfferRules, type OfferRules } from "./campaign-offer";
+import {
+  campaignUnitPrice,
+  parseCountdownWindow,
+  parseOfferRules,
+  type CountdownWindow,
+  type OfferRules,
+} from "./campaign-offer";
 import type { MoneyLike } from "./format-money";
 
 /** A metaobject field as the Storefront API returns it (`field(key:)`). */
@@ -35,6 +41,8 @@ export interface CampaignNode {
   readonly priority?: FieldValue | null;
   readonly offerRules?: FieldValue | null;
   readonly earlyAccessStartsAt?: FieldValue | null;
+  /** `none`, `24h`, `48h` or `always`; see CountdownWindow. */
+  readonly countdown?: FieldValue | null;
   readonly image?: {
     readonly reference?: {
       readonly image?: CampaignImage | null;
@@ -79,6 +87,8 @@ export interface Campaign {
    * (`access`), or null. Only kept when it's before `startsAt`.
    */
   readonly earlyAccessStartsAt: Date | null;
+  /** When the end time becomes a countdown (SHO-201). */
+  readonly countdown: CountdownWindow;
 }
 
 /**
@@ -143,6 +153,7 @@ export const toCampaign = (node: CampaignNode | null | undefined): Campaign | nu
       const early = date(node.earlyAccessStartsAt);
       return early && early < startsAt ? early : null;
     })(),
+    countdown: parseCountdownWindow(text(node.countdown)),
   };
 };
 

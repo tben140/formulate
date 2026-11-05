@@ -1488,7 +1488,7 @@ export type CollectionProductsQueryVariables = Exact<{
 
 
 export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, campaign: { reference:
-            | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+            | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null }
             | Record<PropertyKey, never>
            | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
                 | { handle: string }
@@ -1507,7 +1507,7 @@ export type ProductByHandleQuery = { product: { id: string, handle: string, titl
              | null } | null, collection: { reference:
               | { handle: string }
               | Record<PropertyKey, never>
-             | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+             | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null }
         | Record<PropertyKey, never>
        | null } | null, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, campaign: { reference:
             | { handle: string }
@@ -1517,7 +1517,7 @@ export type ProductByHandleQuery = { product: { id: string, handle: string, titl
 export type FilterFieldsFragment = { id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> };
 
 export type ProductCardFieldsFragment = { id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
-      | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+      | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null }
       | Record<PropertyKey, never>
      | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
           | { handle: string }
@@ -1535,7 +1535,7 @@ export type SearchProductsQuery = { search: { totalCount: number, productFilters
       | { __typename: 'Article' }
       | { __typename: 'Page' }
       | { __typename: 'Product', id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
-            | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+            | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null }
             | Record<PropertyKey, never>
            | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
                 | { handle: string }
@@ -1550,7 +1550,7 @@ export type PredictiveSearchQueryVariables = Exact<{
 
 
 export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text: string, styledText: string }>, products: Array<{ id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
-          | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+          | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null }
           | Record<PropertyKey, never>
          | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
               | { handle: string }
@@ -1563,7 +1563,7 @@ export type ComplementaryProductsQueryVariables = Exact<{
 
 
 export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
-        | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+        | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null }
         | Record<PropertyKey, never>
        | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
             | { handle: string }
@@ -1753,7 +1753,7 @@ export type PaymentSettingsQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type PaymentSettingsQuery = { shop: { paymentSettings: { acceptedCardBrands: Array<CardBrand>, supportedDigitalWallets: Array<DigitalWallet> }, payLater: { value: string } | null } };
 
-export type CampaignBadgeFieldsFragment = { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null };
+export type CampaignBadgeFieldsFragment = { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null };
 
 export type CampaignFieldsFragment = { handle: string, priority: { value: string | null } | null, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
       | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
@@ -1761,7 +1761,7 @@ export type CampaignFieldsFragment = { handle: string, priority: { value: string
      | null } | null, collection: { reference:
       | { handle: string }
       | Record<PropertyKey, never>
-     | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null };
+     | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null };
 
 export type CartAttributesUpdateMutationVariables = Exact<{
   cartId: string | number;
@@ -1790,7 +1790,7 @@ export type CampaignsQuery = { metaobjects: { nodes: Array<{ handle: string, pri
          | null } | null, collection: { reference:
           | { handle: string }
           | Record<PropertyKey, never>
-         | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }> } };
+         | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null }> } };
 
 export type CampaignByHandleQueryVariables = Exact<{
   handle: string;
@@ -1799,7 +1799,7 @@ export type CampaignByHandleQueryVariables = Exact<{
 
 export type CampaignByHandleQuery = { metaobject: { handle: string, products: { reference:
         | { products: { nodes: Array<{ id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
-                  | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+                  | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null }
                   | Record<PropertyKey, never>
                  | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
                       | { handle: string }
@@ -1812,7 +1812,7 @@ export type CampaignByHandleQuery = { metaobject: { handle: string, products: { 
        | null } | null, collection: { reference:
         | { handle: string }
         | Record<PropertyKey, never>
-       | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null } | null };
+       | null } | null, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null, countdown: { value: string | null } | null } | null };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -1873,6 +1873,9 @@ export const CampaignBadgeFieldsFragmentDoc = new TypedDocumentString(`
     value
   }
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
+    value
+  }
+  countdown: field(key: "countdown") {
     value
   }
 }
@@ -1943,6 +1946,9 @@ export const ProductCardFieldsFragmentDoc = new TypedDocumentString(`
     value
   }
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
+    value
+  }
+  countdown: field(key: "countdown") {
     value
   }
 }`, {"fragmentName":"ProductCardFields"}) as unknown as TypedDocumentString<ProductCardFieldsFragment, unknown>;
@@ -2099,6 +2105,9 @@ export const CampaignFieldsFragmentDoc = new TypedDocumentString(`
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
     value
   }
+  countdown: field(key: "countdown") {
+    value
+  }
 }`, {"fragmentName":"CampaignFields"}) as unknown as TypedDocumentString<CampaignFieldsFragment, unknown>;
 export const CollectionProductsDocument = new TypedDocumentString(`
     query CollectionProducts($handle: String!, $first: Int!, $filters: [ProductFilter!]) {
@@ -2192,6 +2201,9 @@ fragment CampaignBadgeFields on Metaobject {
     value
   }
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
+    value
+  }
+  countdown: field(key: "countdown") {
     value
   }
 }`) as unknown as TypedDocumentString<CollectionProductsQuery, CollectionProductsQueryVariables>;
@@ -2348,6 +2360,9 @@ export const ProductByHandleDocument = new TypedDocumentString(`
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
     value
   }
+  countdown: field(key: "countdown") {
+    value
+  }
 }
 fragment CampaignFields on Metaobject {
   ...CampaignBadgeFields
@@ -2482,6 +2497,9 @@ fragment CampaignBadgeFields on Metaobject {
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
     value
   }
+  countdown: field(key: "countdown") {
+    value
+  }
 }`) as unknown as TypedDocumentString<SearchProductsQuery, SearchProductsQueryVariables>;
 export const PredictiveSearchDocument = new TypedDocumentString(`
     query PredictiveSearch($query: String!, $limit: Int!) {
@@ -2571,6 +2589,9 @@ fragment CampaignBadgeFields on Metaobject {
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
     value
   }
+  countdown: field(key: "countdown") {
+    value
+  }
 }`) as unknown as TypedDocumentString<PredictiveSearchQuery, PredictiveSearchQueryVariables>;
 export const ComplementaryProductsDocument = new TypedDocumentString(`
     query ComplementaryProducts($productId: ID!) {
@@ -2643,6 +2664,9 @@ fragment CampaignBadgeFields on Metaobject {
     value
   }
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
+    value
+  }
+  countdown: field(key: "countdown") {
     value
   }
 }`) as unknown as TypedDocumentString<ComplementaryProductsQuery, ComplementaryProductsQueryVariables>;
@@ -3598,6 +3622,9 @@ export const CampaignsDocument = new TypedDocumentString(`
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
     value
   }
+  countdown: field(key: "countdown") {
+    value
+  }
 }
 fragment CampaignFields on Metaobject {
   ...CampaignBadgeFields
@@ -3721,6 +3748,9 @@ fragment CampaignBadgeFields on Metaobject {
     value
   }
   earlyAccessStartsAt: field(key: "early_access_starts_at") {
+    value
+  }
+  countdown: field(key: "countdown") {
     value
   }
 }

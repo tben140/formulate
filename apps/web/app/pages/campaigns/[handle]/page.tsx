@@ -97,6 +97,7 @@ const CampaignPage = async ({ params }: PageProps) => {
               <CampaignEnds
                 endsAt={campaign.endsAt.toISOString()}
                 label={campaignEndsLabel(campaign)}
+                countdown={campaign.countdown}
                 now={view.now.getTime()}
                 clockPreview={view.clockPreview}
               />

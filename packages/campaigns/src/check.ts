@@ -1,4 +1,9 @@
-import { campaignParagraphs, offerPercents, parseOfferRules } from "@formulate/shopify";
+import {
+  campaignParagraphs,
+  offerPercents,
+  parseCountdownWindow,
+  parseOfferRules,
+} from "@formulate/shopify";
 
 import { campaignOf } from "./campaign-node";
 import { isPersonalPool, PERSONAL_POOL } from "./codes";
@@ -56,6 +61,19 @@ export const checkCampaign = (
     return findings;
   }
   ok(`Runs ${campaign.startsAt.toISOString()} to ${campaign.endsAt.toISOString()}.`);
+  const countdown = entry.fields.countdown?.trim();
+  if (countdown && parseCountdownWindow(countdown) !== countdown)
+    warn(
+      `countdown "${countdown}" isn't none, 24h, 48h or always, so the last 24 hours count down.`,
+    );
+  else
+    ok(
+      campaign.countdown === "none"
+        ? "No countdown: the end shows as a date throughout."
+        : campaign.countdown === "always"
+          ? "Counts down to the end for the whole campaign."
+          : `Counts down to the end in its last ${campaign.countdown.replace("h", " hours")}.`,
+    );
   if (!entry.published)
     warn("It's a draft: no surface shows it until it's published (Active).");
   if (campaign.endsAt <= now)

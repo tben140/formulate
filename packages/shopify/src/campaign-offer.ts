@@ -425,15 +425,57 @@ export const offerPercents = (rules: OfferRules): number[] =>
       : [];
 
 /**
- * "Ends in 5h 12m" in the last day of a campaign, else null (the date label
- * says it then). Counts down to the real end time, so it can't drift from
- * the offer, as the Digital Markets, Competition and Consumers Act requires.
+ * How long before the end a campaign counts down (SHO-201), from the
+ * record's `countdown` field: never, in its last 24 or 48 hours, or for the
+ * whole campaign. Unset or unknown is `24h`, the behaviour before the field.
  */
-export const campaignCountdown = (endsAt: Date, now: Date): string | null => {
+export type CountdownWindow = "none" | "24h" | "48h" | "always";
+
+export const COUNTDOWN_WINDOWS: readonly CountdownWindow[] = [
+  "none",
+  "24h",
+  "48h",
+  "always",
+];
+
+export const parseCountdownWindow = (value: string | null | undefined): CountdownWindow =>
+  COUNTDOWN_WINDOWS.find((window) => window === value?.trim()) ?? "24h";
+
+const HOUR = 60 * 60 * 1000;
+const WINDOW_MS: Readonly<Record<CountdownWindow, number>> = {
+  none: 0,
+  "24h": 24 * HOUR,
+  "48h": 48 * HOUR,
+  always: Number.POSITIVE_INFINITY,
+};
+
+/**
+ * When the countdown starts showing, or null when it never does. A surface
+ * that renders before then can wake at this time instead of polling.
+ */
+export const countdownStartsAt = (endsAt: Date, window: CountdownWindow): Date | null =>
+  window === "none" || window === "always"
+    ? null
+    : new Date(endsAt.getTime() - WINDOW_MS[window]);
+
+/**
+ * "Ends in 5h 12m" (or "Ends in 2d 4h" past a day) within the campaign's
+ * countdown window, else null (the date label says it then). Counts down to
+ * the real end time, so it can't drift from the offer or reset, as the
+ * Digital Markets, Competition and Consumers Act requires. Callers only ask
+ * while the campaign is live, so it never counts down to a start.
+ */
+export const campaignCountdown = (
+  endsAt: Date,
+  now: Date,
+  window: CountdownWindow = "24h",
+): string | null => {
   const left = endsAt.getTime() - now.getTime();
-  if (left <= 0 || left > 24 * 60 * 60 * 1000) return null;
+  if (left <= 0 || left > WINDOW_MS[window]) return null;
   const minutes = Math.floor(left / 60_000);
   if (minutes < 1) return "Ends in under a minute";
   const hours = Math.floor(minutes / 60);
+  // Days only past a full day, so the last day still reads "Ends in 24h 0m".
+  if (hours > 24) return `Ends in ${Math.floor(hours / 24)}d ${hours % 24}h`;
   return hours > 0 ? `Ends in ${hours}h ${minutes % 60}m` : `Ends in ${minutes}m`;
 };

@@ -4,6 +4,8 @@ import {
   campaignCartProgress,
   campaignShippingThreshold,
   campaignCountdown,
+  countdownStartsAt,
+  parseCountdownWindow,
   campaignUnitPrice,
   offerLimits,
   offerLines,
@@ -303,6 +305,34 @@ describe("campaignCountdown", () => {
 
   it("says nothing once it has ended", () => {
     expect(campaignCountdown(end, end)).toBeNull();
+  });
+
+  it("follows the campaign's countdown window", () => {
+    const at36h = before(36 * 3_600_000);
+    expect(campaignCountdown(end, at36h, "24h")).toBeNull();
+    expect(campaignCountdown(end, at36h, "48h")).toBe("Ends in 1d 12h");
+    expect(campaignCountdown(end, before(49 * 3_600_000), "48h")).toBeNull();
+    expect(campaignCountdown(end, before(4 * 24 * 3_600_000 + 3_600_000), "always")).toBe(
+      "Ends in 4d 1h",
+    );
+    expect(campaignCountdown(end, before(60_000 * 5), "none")).toBeNull();
+  });
+});
+
+describe("parseCountdownWindow and countdownStartsAt", () => {
+  const end = new Date("2026-12-01T00:00:00Z");
+
+  it("defaults to the last 24 hours for unset or unknown values", () => {
+    expect(parseCountdownWindow(null)).toBe("24h");
+    expect(parseCountdownWindow("weekly")).toBe("24h");
+    expect(parseCountdownWindow(" 48h ")).toBe("48h");
+    expect(parseCountdownWindow("always")).toBe("always");
+  });
+
+  it("says when the countdown starts, or null when that's never or always", () => {
+    expect(countdownStartsAt(end, "48h")).toEqual(new Date("2026-11-29T00:00:00Z"));
+    expect(countdownStartsAt(end, "none")).toBeNull();
+    expect(countdownStartsAt(end, "always")).toBeNull();
   });
 });
 

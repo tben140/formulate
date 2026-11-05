@@ -15,6 +15,6 @@ export const CampaignEnds = ({
   readonly className?: string;
 }) => (
   <Text className={className}>
-    {useCampaignEnds(campaign.endsAt, campaignEndsLabel(campaign))}
+    {useCampaignEnds(campaign.endsAt, campaignEndsLabel(campaign), campaign.countdown)}
   </Text>
 );

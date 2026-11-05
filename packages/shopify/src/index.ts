@@ -164,10 +164,13 @@ export {
   campaignCartProgress,
   campaignShippingThreshold,
   campaignCountdown,
+  COUNTDOWN_WINDOWS,
+  countdownStartsAt,
+  parseCountdownWindow,
   campaignUnitPrice,
   offerLimits,
   offerLines,
   offerPercents,
   parseOfferRules,
 } from "./campaign-offer";
-export type { AppliesTo, OfferLine, OfferRules } from "./campaign-offer";
+export type { AppliesTo, CountdownWindow, OfferLine, OfferRules } from "./campaign-offer";
