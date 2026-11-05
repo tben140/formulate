@@ -136,7 +136,8 @@ export const TrackingConsentProvider = ({
       {/*
         `afterInteractive` rather than `beforeInteractive`: tracking must not
         block first paint, and lib/klaviyo.ts queues events that fire before
-        the script arrives. Mounting it later, on Accept, drains that queue.
+        the script arrives. Mounting it later, on Accept, drains that queue
+        (events from before the choice are only held for US visitors).
 
         Omitted entirely when the key is unset, so local dev and CI without
         Klaviyo credentials render a clean page.

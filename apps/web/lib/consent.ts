@@ -31,8 +31,8 @@ const CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 180;
  * `unset` is a real state, not a default for `denied`.
  *
  * Both send nothing. They differ in what happens to events fired meanwhile:
- * `unset` holds them in memory in case the shopper accepts on this page, the
- * same as the theme; `denied` drops them. See `track` in lib/klaviyo.ts.
+ * `unset` holds them in memory in case the shopper accepts on this page (US
+ * visitors only); `denied` drops them. See `push` in lib/klaviyo.ts.
  */
 export type TrackingConsent = "granted" | "denied" | "unset";
 
