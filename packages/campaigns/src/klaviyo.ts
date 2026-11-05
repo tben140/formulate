@@ -292,3 +292,36 @@ export const setProfileProperty = async (
   if (!response.ok)
     throw new Error(`Klaviyo: HTTP ${response.status} updating a profile`);
 };
+
+/** A list by its exact name, or null when there's none. Read only. */
+export const getListByName = async (
+  key: string,
+  name: string,
+): Promise<{ id: string } | null> => {
+  const filter = `equals(name,${JSON.stringify(name)})`;
+  const response = await fetch(`${BASE}/lists?filter=${encodeURIComponent(filter)}`, {
+    headers: headers(key),
+  });
+  if (!response.ok) throw new Error(`Klaviyo: HTTP ${response.status}`);
+  const body = (await response.json()) as { data: { id: string }[] };
+  return body.data[0] ? { id: body.data[0].id } : null;
+};
+
+/** Every email address on a list, lower-cased. Read only. */
+export const getListEmails = async (key: string, listId: string): Promise<string[]> => {
+  const emails: string[] = [];
+  let url: string | null =
+    `${BASE}/lists/${encodeURIComponent(listId)}/profiles?fields[profile]=email&page[size]=100`;
+  while (url) {
+    const response = await fetch(url, { headers: headers(key) });
+    if (!response.ok) throw new Error(`Klaviyo: HTTP ${response.status}`);
+    const body = (await response.json()) as {
+      data: { attributes: { email?: string | null } }[];
+      links?: { next?: string | null };
+    };
+    for (const profile of body.data)
+      if (profile.attributes.email) emails.push(profile.attributes.email.toLowerCase());
+    url = body.links?.next ?? null;
+  }
+  return emails;
+};

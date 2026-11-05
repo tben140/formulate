@@ -62,6 +62,7 @@ A nightly job, `pnpm campaigns segments --apply --tags` (`.github/workflows/segm
 3. **In Klaviyo (SHO-208):** keeps a static list per segment ("Segment: lapsed") in step, by the Shopify customer's email. A member with no email is counted and left out. These are **lists, not segments**, so membership is exactly the job's, never Klaviyo's own logic.
    - **Adding someone to a list can send a message** if a live flow is triggered by that list. So before changing a list, the sync looks up the flows it triggers (Klaviyo's flows-triggered-by-list). **If any flow is live, it changes nothing for that list and reports it.** Draft and manual flows are allowed. Every list the sync creates is new, so it starts with no flows.
    - Campaign emails to a list stay drafts until Ben approves them, as always.
+   - `campaigns segments --klaviyo` plans this: per segment, whether its list exists and how many emails it would gain and lose. Counts only; no address is printed.
 4. Plans unless `--apply`, like every other command, and writes tags only with `--tags`. The calendar shows each segment's count and when it was last synced.
    - **A run that would take a tag off more than half of a segment (and more than 10 people) is refused**, since that's usually a failed read. Check, then rerun by hand with `--force-tags`.
    - The nightly workflow skips with a notice until the `RECHARGE_API_TOKEN` repository secret is set.
