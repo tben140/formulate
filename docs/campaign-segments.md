@@ -36,7 +36,7 @@ One campaign, a different offer for different people. For Black Friday, for exam
 | `dormant`      | Last order 90–180 days ago                               | Shopify orders                                   | Shopify customers |
 | `best`         | Top 10% by spend, or subscribed 12+ months               | Shopify `amountSpent`, Recharge                  | Shopify customers |
 | `never_bought` | Email subscriber or account with no order                | Klaviyo ("Placed Order zero times")              | Klaviyo profiles  |
-| `app`          | Used the app in the last 90 days                         | Klaviyo app events (waits for #107)              | Klaviyo profiles  |
+| `app`          | Used the app in the last 90 days                         | Klaviyo app events                               | Klaviyo profiles  |
 
 **Access:** the Shopify segments read each customer's order count, spend, last order and email. The app's approved scopes (`read_orders`, `write_customers`) already return those fields on this store; checked 5 Nov 2026 with the app's own token. No extra protected-customer-data request is needed.
 
@@ -82,14 +82,6 @@ The campaign record gains an optional **`offers`** JSON field next to `offer_rul
   - the margin floor holds for the deepest offer.
 - **The calendar's offer editor (#228)** gets a tab per segment, with the same side-by-side preview.
 - **Surfaces:** a signed-in shopper sees their segment's offer on the campaign page and product pages. This needs their tags, which the storefront can't read with the public Storefront token. It goes through the Customer Account API session (#76), so it lands after sign-in does. Until then, segment offers are told by email and applied at checkout.
-
-## Order of work
-
-1. **Now, no new access:** the `segments` module with `active`, `lapsed` and `at_risk` from Recharge; `segments sync` writing Shopify tags (plan first); the calendar's segment counts.
-2. **With Ben's OK on Klaviyo lists:** the Klaviyo half of the sync.
-3. **`offers`:** the field, sync, terms, check and editor tabs.
-4. **Then:** `one_time`, `dormant`, `best`, from Shopify customer data (no extra access; see Segments).
-5. **After sign-in (#76) and app events (#107):** showing segment offers on site, and the `app` segment.
 
 ## Decisions (Ben, 5 Nov 2026)
 
