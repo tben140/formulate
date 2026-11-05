@@ -187,6 +187,7 @@ every override is listed here with its reason. An unlisted gap is a bug.
 | Feature                                          | Surfaces   | Why not everywhere                                                                                                                                                                                                                                       |
 | ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SEO: metadata, structured data, sitemap (SHO-64) | Web, theme | A native app has no crawlable pages. The theme already gets it from Shopify (`structured_data`, `canonical_url`, the platform sitemap), so only `apps/web` needs code. Its routes are in `app/robots.ts`, `app/sitemap.ts` and `lib/structured-data.ts`. |
+| Back-in-stock alerts (SHO-118)                   | Web, theme | Temporary. The app can't call Klaviyo's client endpoint (Cloudflare blocks native requests), so it goes through the Worker, as consent does (ADR 0007). #72 adds it to the app and removes this row.                                                     |
 
 ## The shared package rule
 
