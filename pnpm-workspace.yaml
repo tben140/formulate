@@ -1,10 +1,15 @@
 packages:
   - "apps/*"
+  # Shopify Functions and checkout extensions, each its own package.
+  - "apps/shopify-app/extensions/*"
   - "packages/*"
 
 # Native resolver used by eslint-import-resolver-typescript (pulled in by
 # eslint-config-expo). It ships a Rust binary and needs its postinstall step.
 allowBuilds:
+  # Pulled in by Shopify's function tooling. Its postinstall only prints a
+  # donation message, so it stays off.
+  core-js: false
   # Bundler used by @shopify/cli; ships prebuilt platform binaries.
   esbuild: true
   # Image processing used by Next.js and Expo tooling; ships prebuilt binaries.
@@ -47,6 +52,16 @@ trustPolicyExclude:
   - ua-parser-js@1.0.41 # its author (faisalman), 2025; 1.x under Expo
   - undici-types@6.21.0 # undici lead (matteo.collina), 2024; under @types/node 22
   - eslint-import-resolver-typescript@3.10.1 # its maintainer (jounqin), 2025; 3.x under eslint-config-expo
+  # The Guild's GraphQL tools (dotansimha, Apr 2025), pinned by Shopify's
+  # function tooling (@shopify/shopify_function 2.0.1 via url-loader 8.0.16).
+  # Checked 28 Oct 2026; allowed by the owner 29 Oct. Remove when
+  # shopify_function moves to releases published with provenance.
+  - "@graphql-tools/executor-http@1.3.3"
+  - "@graphql-tools/executor-graphql-ws@2.0.7"
+  - "@graphql-tools/executor-graphql-ws@1.3.7"
+  - "@graphql-tools/wrap@10.1.4"
+  - "@graphql-tools/delegate@10.2.23"
+  - "@graphql-tools/batch-execute@9.0.19"
 
 # Dependencies of dependencies must come from the registry, never from a git
 # URL or a tarball, where neither the age rule nor the trust policy applies.
@@ -113,5 +128,6 @@ overrides:
   "@fastify/busboy@<3.2.3": 3.2.3 # DoS, CRLF injection (GraphQL codegen)
   "@graphql-tools/utils@<12.0.2": 12.0.4 # prototype pollution (GraphQL codegen)
   "@graphql-tools/executor-legacy-ws@<1.1.36": 1.1.36 # GHSA-6fw5-9hq8-w87g (TLS validation disabled, fixed 1.1.35), GHSA-434m-5hcj-pxf3 (connection params leak, fixed 1.1.36) (GraphQL codegen)
+  "lodash@<4.17.24": 4.18.1 # code injection in _.template (GraphQL codegen, function package)
   "zod@>=4.0.0 <4.6.6": 4.6.7 # memory exhaustion (Expo CLI, react-hooks lint)
   "node-forge@<1.4.1": 1.4.1 # ten advisories, five high (Expo CLI code signing); fast-tracked above
