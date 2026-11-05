@@ -6,6 +6,7 @@ import Link from "@/components/link";
 import type { ReactNode } from "react";
 
 import { CartButton } from "@/components/cart-button";
+import { AgentTools } from "@/components/agent-tools";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
 import { DemoNotice } from "@/components/demo-notice";
@@ -190,6 +191,8 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             </footer>
 
             <CartDrawer cart={cart} suggestions={suggestions} />
+            {/* WebMCP tools for AI agents in the shopper's browser. */}
+            <AgentTools />
           </CartProvider>
         </TrackingConsentProvider>
 
