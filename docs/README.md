@@ -12,15 +12,16 @@ vault to browse it as a graph; it is plain markdown either way.
 
 ## Start here
 
-| Note                              | What it covers                                                                                 |
-| --------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [Architecture](architecture.md)   | The three surfaces, what they share, and where they deliberately diverge                       |
-| [Domain model](domain-model.md)   | Customer, product, cart, order, subscription — and where Shopify's shape and ours disagree     |
-| [Decision records](adr/README.md) | Why things are the way they are, with alternatives                                             |
-| [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
-| [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
-| [Campaigns](campaigns.md)         | Promotions as one Shopify record that all three surfaces read, starting with Black Friday      |
-| [Compliance](compliance.md)       | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open |
+| Note                                      | What it covers                                                                                 |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [Architecture](architecture.md)           | The three surfaces, what they share, and where they deliberately diverge                       |
+| [Domain model](domain-model.md)           | Customer, product, cart, order, subscription — and where Shopify's shape and ours disagree     |
+| [Decision records](adr/README.md)         | Why things are the way they are, with alternatives                                             |
+| [The demo store](demo-store.md)           | What visitors are told, how the store is configured to behave like a real one, resetting stock |
+| [Security](security.md)                   | Supply-chain and CI defences, and the record of each dependency audit                          |
+| [Campaigns](campaigns.md)                 | Promotions as one Shopify record that all three surfaces read, starting with Black Friday      |
+| [Campaign segments](campaign-segments.md) | Design: an offer per customer segment, and the same segments in Klaviyo (SHO-207, SHO-208)     |
+| [Compliance](compliance.md)               | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open |
 
 ## Surfaces
 

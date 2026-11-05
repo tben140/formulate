@@ -475,6 +475,22 @@ changes mid-campaign (the flag is sticky per visitor, and the cart carries
 it); and every arm's terms are on the campaign page, so shoppers comparing
 notes see why they differ.
 
+## Refer a friend
+
+`campaigns referrals <handle> --friend 15 --apply` gives each signed-in buyer
+of the campaign a code of their own (`REF-7KQ2MZ9P`) for a friend: 15% off,
+once per customer, for 30 days after the campaign. One code discount,
+"<title> (referral)", holds them all; each code is saved on the buyer's
+customer record and, with `KLAVIYO_PRIVATE_KEY`, on their Klaviyo profile as
+`referral_code`, for a post-purchase email to show. Run it again to give
+codes to newer buyers. `--rewards` lists each referrer whose code a friend
+has used, with the orders; what they get, and giving it, is up to you.
+
+Reading buyers' emails needs the app's protected customer data access
+(Partner Dashboard → API access). Shopify can't limit a code discount to a
+first order without a customer segment, so "once per customer" is what's
+enforced; say that in the email.
+
 ## Overlaps
 
 A product points to one campaign, so two campaigns never discount the same
