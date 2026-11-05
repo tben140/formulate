@@ -1,9 +1,21 @@
 import {
+  CollectionCardsQuery,
   CollectionProductsQuery,
+  LEGAL_MENU_HANDLE,
+  NAV_MENU_HANDLE,
+  NavMenuQuery,
+  PaymentSettingsQuery,
+  ComplementaryProductsQuery,
   ProductByHandleQuery,
+  SearchProductsQuery,
+  ShopPoliciesQuery,
   describeError,
+  payLaterIds,
+  paymentIconIds,
+  productFiltersFromParams,
+  toNavLinks,
 } from "@formulate/shopify";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { storefront } from "./storefront";
 
@@ -28,11 +40,30 @@ const unwrap = <T>(
   return result.data;
 };
 
-export const useCollection = (handle: string) =>
+/**
+ * A collection's products, filtered by a Liquid-style filter query string
+ * (`filter.v.option.flavour=Vanilla`), the same format web and the theme use.
+ * The previous results stay on screen while a new filter loads, rather than
+ * the list flashing to a spinner on every change.
+ */
+export const useCollection = (
+  handle: string,
+  options: { enabled?: boolean; filterQuery?: string } = {},
+) =>
   useQuery({
-    queryKey: ["collection", handle],
+    queryKey: ["collection", handle, options.filterQuery ?? ""],
     queryFn: async () =>
-      unwrap(await storefront.request(CollectionProductsQuery, { handle, first: 24 })),
+      unwrap(
+        await storefront.request(CollectionProductsQuery, {
+          handle,
+          first: 24,
+          filters: productFiltersFromParams(
+            new URLSearchParams(options.filterQuery ?? ""),
+          ),
+        }),
+      ),
+    enabled: options.enabled ?? true,
+    placeholderData: keepPreviousData,
   });
 
 export const useProduct = (handle: string) =>
@@ -41,4 +72,111 @@ export const useProduct = (handle: string) =>
     queryFn: async () =>
       unwrap(await storefront.request(ProductByHandleQuery, { handle })),
     enabled: handle.length > 0,
+  });
+
+/**
+ * The collection links from the Shopify menu (SHO-60), the same menu the web
+ * header and the theme read. The menu changes rarely, so it stays fresh for
+ * ten minutes rather than refetching on every screen.
+ */
+export const useNavLinks = () =>
+  useQuery({
+    queryKey: ["nav", NAV_MENU_HANDLE],
+    queryFn: async () =>
+      toNavLinks(
+        unwrap(await storefront.request(NavMenuQuery, { handle: NAV_MENU_HANDLE })).menu
+          ?.items,
+      ),
+    staleTime: 10 * 60_000,
+  });
+
+/**
+ * The footer's policy links, from the Shopify menu "Legal", the one the web
+ * and theme footers read.
+ */
+export const useLegalLinks = () =>
+  useQuery({
+    queryKey: ["nav", LEGAL_MENU_HANDLE],
+    queryFn: async () =>
+      toNavLinks(
+        unwrap(await storefront.request(NavMenuQuery, { handle: LEGAL_MENU_HANDLE })).menu
+          ?.items,
+      ).filter((link) => link.kind === "policy"),
+    staleTime: 10 * 60_000,
+  });
+
+/**
+ * The footer's payment icons: what Shopify says the store accepts, or the
+ * planned methods while it reports none (paymentIconIds), plus Klarna and
+ * Clearpay from the shop's `double_helix.pay_later` metafield.
+ */
+export const usePaymentIconIds = () =>
+  useQuery({
+    queryKey: ["payment-settings"],
+    queryFn: async () => unwrap(await storefront.request(PaymentSettingsQuery, {})).shop,
+    select: (shop) =>
+      paymentIconIds(shop.paymentSettings, payLaterIds(shop.payLater?.value)),
+    staleTime: 60 * 60_000,
+  });
+
+/** One store policy by handle, or null when the store hasn't written it. */
+export const usePolicy = (handle: string) =>
+  useQuery({
+    queryKey: ["policies"],
+    queryFn: async () => unwrap(await storefront.request(ShopPoliciesQuery, {})).shop,
+    select: (shop) =>
+      [
+        shop.privacyPolicy,
+        shop.refundPolicy,
+        shop.termsOfService,
+        shop.shippingPolicy,
+        shop.subscriptionPolicy,
+      ].find((policy) => policy?.handle === handle) ?? null,
+    staleTime: 10 * 60_000,
+  });
+
+/** Collections with an image each, for the home screen's category cards. */
+export const useCollectionCards = () =>
+  useQuery({
+    queryKey: ["collection-cards"],
+    queryFn: async () =>
+      unwrap(await storefront.request(CollectionCardsQuery, {})).collections.nodes,
+    staleTime: 10 * 60_000,
+  });
+
+/**
+ * "Pairs well with": the complementary products set in Search & Discovery.
+ * Slow to change, so cached for ten minutes.
+ */
+export const useComplementaryProducts = (productId: string | undefined) =>
+  useQuery({
+    queryKey: ["complementary", productId],
+    queryFn: async () =>
+      unwrap(
+        await storefront.request(ComplementaryProductsQuery, {
+          productId: productId ?? "",
+        }),
+      ).productRecommendations ?? [],
+    enabled: Boolean(productId),
+    staleTime: 10 * 60_000,
+  });
+
+/**
+ * Product search, as Search & Discovery tunes it, with the same filter query
+ * string as collections. Off until the term is at least two characters, and
+ * previous results stay on screen while the next ones load.
+ */
+export const useSearch = (term: string, filterQuery = "") =>
+  useQuery({
+    queryKey: ["search", term, filterQuery],
+    queryFn: async () =>
+      unwrap(
+        await storefront.request(SearchProductsQuery, {
+          query: term,
+          first: 24,
+          filters: productFiltersFromParams(new URLSearchParams(filterQuery)),
+        }),
+      ).search,
+    enabled: term.trim().length >= 2,
+    placeholderData: keepPreviousData,
   });

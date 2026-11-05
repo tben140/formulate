@@ -1,0 +1,156 @@
+name: Lighthouse (theme)
+
+# Lighthouse CI for apps/theme (SHO-174). Pushes the PR's theme to the store as
+# a temporary unpublished theme, audits the home, collection and product pages
+# through the storefront password with apps/theme/lighthouserc.cjs (the same
+# budgets shape as web's), then deletes the theme.
+#
+# Until 2026-10 this used Shopify's lighthouse-ci-action. It took minimum
+# scores only, judged one "median run", timed out on the password step now and
+# then, uploaded reports to public storage, and never deleted its theme.
+
+on:
+  # Every PR, not only theme PRs: this is a required check on main (SHO-68),
+  # and a required check that never starts blocks a PR forever. PRs that don't
+  # touch the theme finish in seconds; see the "Decide" step.
+  pull_request:
+  # Weekly run against main, so the theme is still measured when nobody is
+  # changing it (app embeds, store content and Shopify itself all move).
+  schedule:
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse (theme)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # A Theme Access password (the `shptka_` token from Shopify's Theme
+      # Access app), not Dev Dashboard app credentials. This job pushes and
+      # deletes a temporary theme with the Shopify CLI, and Shopify refuses
+      # themeCreate to an app without a theme-editing exemption (tried
+      # 2026-10-01: "Access denied for themeCreate field ... needs write_themes
+      # and an exemption"). Theme Access passwords carry that exemption; they
+      # exist for exactly this. The Admin API is never called.
+      # All empty on forks and until they are added, and the job then skips
+      # rather than failing.
+      SHOP_STORE: ${{ secrets.SHOP_STORE }}
+      SHOP_THEME_ACCESS_PASSWORD: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+      # Development stores are always password protected, so without this the
+      # audit reaches the password page and fails rather than skipping.
+      SHOP_PASSWORD: ${{ secrets.SHOP_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          # No token left in .git/config for later steps to read.
+          persist-credentials: false
+          # The PR's base commit too, to see whether the theme changed.
+          fetch-depth: 0
+
+      # Whether there's anything to audit. Pull requests that don't touch the
+      # theme (or this workflow) pass at once; scheduled and manual runs always
+      # audit. Without credentials (forks, before secrets exist) it skips too.
+      - name: Decide whether to audit
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -z "$SHOP_THEME_ACCESS_PASSWORD" ] || [ -z "$SHOP_STORE" ] || [ -z "$SHOP_PASSWORD" ]; then
+            echo "::notice::Theme Lighthouse skipped - SHOP_STORE, SHOP_THEME_ACCESS_PASSWORD and SHOP_PASSWORD secrets are not all set."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BASE...$HEAD" | grep -qE '^(apps/theme/|\.github/workflows/lighthouse-theme\.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No theme changes in this PR - nothing to audit."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 22
+          # Only npx is used; no pnpm install to cache.
+          package-manager-cache: false
+
+      # An unpublished theme named after this run, so the delete step below can
+      # only ever remove the theme this run made.
+      - name: Push the theme
+        id: push
+        if: steps.gate.outputs.run == 'true'
+        env:
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+          SHOPIFY_FLAG_STORE: ${{ secrets.SHOP_STORE }}
+          SHOPIFY_CLI_NO_ANALYTICS: "1"
+        run: |
+          npx --yes @shopify/cli@4.9.4 theme push --path apps/theme --unpublished \
+            --theme "LHCI ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --json > "$RUNNER_TEMP/push.json"
+          id=$(jq -r '.theme.id' "$RUNNER_TEMP/push.json")
+          if [ -z "$id" ] || [ "$id" = null ]; then
+            echo "::error::Theme push returned no theme id"; cat "$RUNNER_TEMP/push.json"; exit 1
+          fi
+          echo "theme_id=$id" >> "$GITHUB_OUTPUT"
+
+      # Chrome is preinstalled on ubuntu-latest; puppeteer (for the password
+      # step, apps/theme/scripts/lighthouse-login.cjs) uses it rather than
+      # downloading its own. Both pinned, so a release can't move the scores
+      # between two runs of one PR.
+      - name: Collect (3 runs per page)
+        if: steps.gate.outputs.run == 'true'
+        env:
+          THEME_ID: ${{ steps.push.outputs.theme_id }}
+          PUPPETEER_SKIP_DOWNLOAD: "1"
+        # One retry, 30 seconds later. Collect fails outright when a page
+        # doesn't load (ERRORED_DOCUMENT_REQUEST), which happens when many PRs
+        # hit the store at once (twice on 30 Oct 2026, both passing on re-run).
+        # Budgets are judged in "Assert budgets", so a retry can't hide a slow
+        # page: only one that didn't load.
+        run: |
+          export CHROME_PATH="$(command -v google-chrome)"
+          for attempt in 1 2; do
+            if npx --yes -p @lhci/cli@0.15.1 -p puppeteer@25.12.0 lhci collect --config=apps/theme/lighthouserc.cjs; then
+              exit 0
+            fi
+            if [ "$attempt" = 2 ]; then exit 1; fi
+            echo "::warning::Lighthouse couldn't load a page; retrying once in 30 seconds"
+            rm -rf .lighthouseci
+            sleep 30
+          done
+
+      - name: Save reports
+        if: always() && steps.gate.outputs.run == 'true'
+        run: npx --yes @lhci/cli@0.15.1 upload --config=apps/theme/lighthouserc.cjs
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && steps.gate.outputs.run == 'true'
+        with:
+          name: lighthouse-theme
+          path: .lighthouseci/reports
+          retention-days: 14
+
+      # Last but one, so the reports exist even when a budget fails.
+      - name: Assert budgets
+        if: steps.gate.outputs.run == 'true'
+        run: npx --yes @lhci/cli@0.15.1 assert --config=apps/theme/lighthouserc.cjs
+
+      - name: Delete the temporary theme
+        if: always() && steps.push.outputs.theme_id != ''
+        env:
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
+          SHOPIFY_FLAG_STORE: ${{ secrets.SHOP_STORE }}
+          SHOPIFY_CLI_NO_ANALYTICS: "1"
+          THEME_ID: ${{ steps.push.outputs.theme_id }}
+        run: npx --yes @shopify/cli@4.9.4 theme delete --theme "$THEME_ID" --force

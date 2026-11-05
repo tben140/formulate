@@ -1,0 +1,24 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+#
+# The Double Helix app in Shopify's Dev Dashboard: the home for Shopify
+# Functions, checkout extensions and Events subscriptions (SHO-171).
+# The client id is public. The client secret never belongs in this repository:
+# it stays in the Dev Dashboard and, when needed, goes into Vercel as Sensitive.
+# Access scopes start empty; each feature adds only the scopes it needs.
+
+client_id = "25a2aa35a50545b4b2146c5162def482"
+name = "Double Helix"
+application_url = "https://example.com"
+embedded = true
+
+[webhooks]
+api_version = "2026-10"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = ""
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [ ]

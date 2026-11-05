@@ -1,5 +1,5 @@
 import { Component } from "@theme/component";
-import { changeItem } from "@theme/cart-api";
+import { addItem, changeItem } from "@theme/cart-api";
 
 /**
  * @typedef {Object} CartDrawerRefs
@@ -7,6 +7,22 @@ import { changeItem } from "@theme/cart-api";
  */
 
 const DRAWER_SECTION = "cart-drawer";
+const SUGGESTIONS_SECTION = "cart-recommendations";
+
+/** The storefront's root, "/" or a locale prefix such as "/fr/". */
+const ROOT =
+  /** @type {{ Shopify?: { routes?: { root?: string } } }} */ (window).Shopify?.routes
+    ?.root ?? "/";
+
+/**
+ * The free-delivery sentence in rendered drawer markup, or "" when the bar is
+ * not showing.
+ *
+ * @param {ParentNode | null} root
+ * @returns {string}
+ */
+const freeShippingMessage = (root) =>
+  root?.querySelector("[data-free-shipping-message]")?.textContent?.trim() ?? "";
 
 /**
  * The slide-in cart.
@@ -24,14 +40,39 @@ class CartDrawer extends Component {
   /** @type {HTMLDialogElement | null} */
   #dialog = null;
 
+  /**
+   * A polite live region that lives for as long as the drawer does.
+   *
+   * The drawer's contents are replaced wholesale on every change, and a live
+   * region that arrives already filled in is often not announced. So the
+   * free-delivery sentence is copied into this one, which is never replaced,
+   * and only its text changes.
+   *
+   * @type {HTMLParagraphElement | null}
+   */
+  #announcer = null;
+
   /** @override */
   connectedCallback() {
     super.connectedCallback();
 
     this.#dialog = this.querySelector("dialog");
 
+    // Inside the dialog, not beside it: a modal dialog makes everything outside
+    // it inert, live regions included.
+    this.#announcer = document.createElement("p");
+    this.#announcer.className = "visually-hidden";
+    this.#announcer.setAttribute("role", "status");
+    this.#dialog?.prepend(this.#announcer);
+
+    // Seeded silently from the first render, so only a later *change* is
+    // announced — never the message that was already there on page load.
+    this.#lastAnnounced = freeShippingMessage(this.#dialog);
+
     this.addEventListener("click", this.#onClick, { signal: this.signal });
     this.addEventListener("submit", this.#onSubmit, { signal: this.signal });
+
+    void this.#loadSuggestions();
 
     // A click landing on the dialog element itself is a click on the backdrop:
     // the element fills the viewport, the visible panel is a child of it.
@@ -45,7 +86,21 @@ class CartDrawer extends Component {
   }
 
   open() {
-    if (this.#dialog && !this.#dialog.open) this.#dialog.showModal();
+    if (!this.#dialog || this.#dialog.open) return;
+    this.#dialog.showModal();
+
+    // A change made while the drawer was closed (the product page updates it
+    // and then opens it) is spoken now. Cleared and set a frame later, so the
+    // live region sees a real change once the dialog is in the
+    // accessibility tree.
+    const pending = this.#pendingAnnouncement;
+    if (pending === null || !this.#announcer) return;
+    this.#pendingAnnouncement = null;
+    const announcer = this.#announcer;
+    announcer.textContent = "";
+    requestAnimationFrame(() => {
+      announcer.textContent = pending;
+    });
   }
 
   close() {
@@ -83,8 +138,14 @@ class CartDrawer extends Component {
 
     // The dialog element itself survives, so its open state, its position in
     // the top layer and any running transition are all preserved — only the
-    // contents change.
-    dialog.replaceChildren(document.importNode(next, true));
+    // section changes. The announcer beside it is left alone on purpose.
+    const current = dialog.querySelector(".cart-drawer-section");
+    const imported = document.importNode(next, true);
+    if (current) current.replaceWith(imported);
+    else dialog.append(imported);
+
+    this.#announce(freeShippingMessage(imported));
+    void this.#loadSuggestions();
 
     // The count lives in the swapped markup, so the header updates from the
     // same response. No second request for a number already in hand.
@@ -95,6 +156,79 @@ class CartDrawer extends Component {
       );
     }
   }
+
+  /** @type {string} */
+  #lastAnnounced = "";
+
+  /** Bumped per request, so a slow response for an older cart is dropped. */
+  #suggestionsRequest = 0;
+
+  /**
+   * Fills the drawer's suggestions slot from sections/cart-recommendations.liquid
+   * (SHO-116), rendered by Shopify's recommendations endpoint for the cart's
+   * first line.
+   *
+   * Markup still comes from Liquid, as everywhere else in this file: the
+   * response is parsed inertly and its nodes adopted. A failed request leaves
+   * the slot empty. Suggestions are an extra, and must never break the cart.
+   */
+  async #loadSuggestions() {
+    const section = this.#dialog?.querySelector(".cart-drawer-section");
+    const slot = section?.querySelector("[data-cart-suggestions]");
+    const productId = section?.getAttribute("data-recommend-from");
+    if (!slot || !productId) return;
+
+    const request = ++this.#suggestionsRequest;
+    const params = new URLSearchParams({
+      product_id: productId,
+      limit: "10",
+      intent: "related",
+      section_id: SUGGESTIONS_SECTION,
+    });
+
+    try {
+      const response = await fetch(`${ROOT}recommendations/products?${params}`);
+      if (!response.ok) return;
+      const html = await response.text();
+      if (request !== this.#suggestionsRequest) return;
+
+      const parsed = new DOMParser().parseFromString(html, "text/html");
+      const content = parsed.querySelector(".cart-suggestions");
+      slot.replaceChildren(...(content ? [document.importNode(content, true)] : []));
+    } catch {
+      // Leave the slot as it is; see above.
+    }
+  }
+
+  /**
+   * An empty message (the cart was emptied, so the bar is gone) clears the
+   * region without announcing anything. Otherwise the old sentence would linger
+   * for a screen reader moving through the drawer.
+   *
+   * @param {string} message
+   */
+  #announce(message) {
+    if (!this.#announcer || message === this.#lastAnnounced) return;
+    this.#lastAnnounced = message;
+
+    // A closed dialog is hidden, so a live region inside it isn't announced,
+    // and the message would then count as said (review of #27). Held until
+    // open() instead.
+    if (!this.#dialog?.open) {
+      this.#pendingAnnouncement = message;
+      return;
+    }
+    this.#pendingAnnouncement = null;
+    this.#announcer.textContent = message;
+  }
+
+  /**
+   * A message from a change made while the drawer was closed, waiting for
+   * open().
+   *
+   * @type {string | null}
+   */
+  #pendingAnnouncement = null;
 
   /** @param {Event} event */
   #onClick = (event) => {
@@ -120,6 +254,11 @@ class CartDrawer extends Component {
 
     event.preventDefault();
 
+    if (form.hasAttribute("data-cart-suggestion-add")) {
+      await this.#addSuggestion(form);
+      return;
+    }
+
     const data = new FormData(form);
     const key = String(data.get("id") ?? "");
     if (!key) return;
@@ -133,6 +272,53 @@ class CartDrawer extends Component {
       // worse: it would close the drawer and lose the shopper's place.
     }
   };
+
+  /**
+   * One-tap add from a suggestion. The drawer stays open and is re-rendered
+   * in place, which also refreshes the suggestions without the one just added.
+   *
+   * The button stays focusable while the add runs (aria-disabled, not
+   * disabled) for the reason given in product-form.js (SHO-134).
+   *
+   * @param {HTMLFormElement} form
+   */
+  async #addSuggestion(form) {
+    const button = form.querySelector("button");
+    if (button?.getAttribute("aria-disabled") === "true") return;
+    button?.setAttribute("aria-disabled", "true");
+
+    const variantId = String(new FormData(form).get("id") ?? "");
+    try {
+      const result = await addItem(variantId, 1, "");
+      this.replace(result.sections?.[DRAWER_SECTION] ?? "");
+      // The re-render replaced the button that had focus, which would leave
+      // focus nowhere inside the modal. The drawer's heading takes it: it
+      // states the new count, which is also the confirmation a screen reader
+      // needs. Matches apps/web's cart-suggestions.tsx.
+      const title = this.querySelector(".cart-drawer__title");
+      if (title instanceof HTMLElement) {
+        title.tabIndex = -1;
+        title.focus();
+      }
+    } catch (error) {
+      // The drawer still shows the true state, but the shopper needs to know
+      // the tap failed (sold out, a quantity rule): Shopify's description is
+      // written for shoppers, as on the product page.
+      button?.removeAttribute("aria-disabled");
+      const body = form.closest(".cart-suggestion")?.querySelector(".cart-suggestion__body");
+      if (body) {
+        let message = body.querySelector(".cart-suggestion__error");
+        if (!message) {
+          message = document.createElement("p");
+          message.className = "cart-suggestion__error";
+          message.setAttribute("role", "alert");
+          body.append(message);
+        }
+        message.textContent =
+          error instanceof Error ? error.message : "Could not add this to your cart.";
+      }
+    }
+  }
 }
 
 customElements.define("cart-drawer", CartDrawer);

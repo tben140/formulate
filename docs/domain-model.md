@@ -28,8 +28,12 @@ A product is not simply "in the store". It is published to specific _sales
 channels_, and each surface sees a different catalogue as a result. This is the
 single most surprising thing about the store, so it is worth stating precisely.
 
-The storefront opens on `automated-collection`, a smart collection with the rule
-`variant price > 200 AND < 800`. Shopify's admin counts **8** products in it:
+The storefront now opens on `best-sellers`, from the Double Helix catalogue. Its
+per-channel counts have not been re-measured. The table below is the original
+measurement, taken on 2026-08-05 against the snowboard seed catalogue, when the
+storefront opened on `automated-collection`, a smart collection with the rule
+`variant price > 200 AND < 800` that is now empty. Shopify's admin counted **8**
+products in it:
 
 | Product                            | Online Store  | Headless | Visible in        |
 | ---------------------------------- | ------------- | -------- | ----------------- |
@@ -42,8 +46,8 @@ The storefront opens on `automated-collection`, a smart collection with the rule
 | The Hidden Snowboard               | **no**        | yes      | web + mobile only |
 | The Archived Snowboard             | no (archived) | no       | nowhere           |
 
-So the Liquid theme renders **6** products and the two headless surfaces render
-**7**, from the same collection handle. That is correct behaviour, not drift —
+So the Liquid theme rendered **6** products and the two headless surfaces
+rendered **7**, from the same collection handle. That is correct behaviour, not drift —
 see [ADR 0005](adr/0005-parity-means-design-not-data.md).
 
 Anyone comparing the surfaces side by side will notice this within seconds, so
@@ -60,6 +64,27 @@ Two kinds, and the difference matters for anything cache-flavoured.
 
 Because smart collections re-evaluate server-side, a storefront cannot treat
 collection membership as stable between requests.
+
+### Sort order is the merchant's
+
+Every surface shows a collection in the order set on the collection in the
+Shopify admin, and none of them sorts on its own:
+
+| Surface     | How                                                             |
+| ----------- | --------------------------------------------------------------- |
+| Web, mobile | `products(sortKey: COLLECTION_DEFAULT)` in `CollectionProducts` |
+| Theme       | `collection.products`, which follows the collection's sort      |
+
+`COLLECTION_DEFAULT` is also the Storefront API's default. It is written out
+anyway so the order is a decision rather than an accident (SHO-111).
+
+Changing the order is therefore a merchant task: admin → Collections → Sort.
+As of 2026-09-27, Best Sellers sorts by best selling and the other Double Helix
+collections are manual.
+
+A collection can still differ in _which_ products it shows, because each
+surface sees only products published to its own sales channel (see
+[ADR 0005](adr/0005-parity-means-design-not-data.md)).
 
 ## Cart
 
@@ -109,6 +134,28 @@ country.
 
 `DEFAULT_COUNTRY_CODE` in `packages/shopify/src/config.ts` is the single place
 that decision lives.
+
+### Free delivery threshold
+
+Every cart drawer shows how far the cart is from free standard delivery (£40 in
+the UK zone). Three decisions sit behind it:
+
+- **Subtotal, not total.** The total includes delivery, so a free-delivery
+  threshold measured against it is circular. Shopify gives the same advice.
+- **After line discounts, before cart-level codes.** This is the subtotal every
+  drawer already displays: Storefront `cost.subtotalAmount`, and Liquid
+  `cart.items_subtotal_price`. Subscription savings count, because they are
+  line-level. No surface accepts a discount code before checkout, so nothing is
+  left out in practice. A code entered _at_ checkout can take an order back under
+  £40, and there Shopify's rate rules decide.
+- **Money, not a number.** The threshold carries its currency, and a cart in any
+  other currency shows no bar rather than comparing 40 of something else.
+
+The rule itself is a price condition on the store's "Free standard delivery"
+rate, which the Storefront API cannot read. So it is copied, in
+`FREE_SHIPPING_THRESHOLD` (`packages/shopify/src/free-shipping.ts`) for web and
+mobile and in the theme's `cart-drawer` section settings. Change all three
+together.
 
 ## Order
 

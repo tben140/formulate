@@ -35,7 +35,7 @@ Consequences, all intentional:
 ## Structure
 
 ```
-assets/     tokens.css (generated), critical.css, component.js, media-gallery.js
+assets/     tokens.css, fonts.css and the DM Sans/Mono .woff2 files (all synced), critical.css, component.js, …
 blocks/     group, text — nestable theme blocks
 config/     settings_schema.json, settings_data.json
 layout/     theme.liquid, password.liquid
@@ -112,7 +112,7 @@ missing.
 
 ```bash
 pnpm --filter @formulate/theme lint     # shopify theme check — no store access needed
-pnpm --filter @formulate/theme build    # regenerate assets/tokens.css
+pnpm --filter @formulate/theme build    # regenerate assets/tokens.css, fonts.css and font files
 pnpm --filter @formulate/theme dev      # shopify theme dev  (needs the password)
 pnpm --filter @formulate/theme push     # shopify theme push --unpublished
 ```
@@ -135,6 +135,48 @@ password belongs to _one store_, not to a machine. A shell profile would make it
 global state leaking into every project, and would need permanently excluding
 from synced dotfiles.
 
+### Lighthouse in CI
+
+`.github/workflows/lighthouse-theme.yml` runs on PRs that touch `apps/theme/`
+and weekly on main (SHO-174). It pushes the theme as a temporary unpublished
+theme named after the run, audits the home, `best-sellers` and
+`magnesium-glycinate` pages with `apps/theme/lighthouserc.cjs`, then deletes
+that theme by id.
+
+The config has web's shape: three runs per page, and a budget on each metric's
+median (performance, accessibility, LCP, CLS, TBT), not one "median run".
+`apps/theme/scripts/lighthouse-login.cjs` gets past the storefront password
+with three tries and a clear failure message, sets the preview cookie for the
+theme under test, and fails if the store doesn't then show that theme. Reports
+are a workflow artifact, never public storage.
+
+Budgets (medians of 3 runs per page): performance ≥ 0.75, accessibility ≥
+0.95, LCP ≤ 4 s, CLS ≤ 0.05, TBT ≤ 600 ms. Set from the first two CI runs
+(2026-10-28, #178): per-page medians of performance 0.83–0.98, LCP 2.0–3.3 s,
+CLS 0–0.025 and TBT 68–326 ms. TBT varied about 3× between the two runs on
+the same code, so the budgets leave room for a slow runner. A budget set from
+one run failed the next. On the droplet the pages scored 0.67–0.74 with TBT
+0.8–1.5 s: its CPU is slower than Lighthouse expects, so judge budgets from CI
+only. Ratchet them as web's were (SHO-68).
+
+This replaced Shopify's `lighthouse-ci-action`, which took minimum scores
+only, judged one representative run (so one noisy run could fail a PR), timed
+out on the password step now and then (#65, #96), uploaded reports to public
+storage, and never deleted its theme.
+
+It needs three repository secrets, and skips with a notice until they exist:
+`SHOP_STORE` (`<store>.myshopify.com`), `SHOP_PASSWORD` (the storefront
+password) and `SHOP_THEME_ACCESS_PASSWORD`, a password from Shopify's **Theme
+Access** app.
+
+Not Dev Dashboard app credentials, though Shopify's old action recommended
+them. With those the token is valid, but Shopify refuses `themeCreate` to any
+app without a theme-editing exemption ("needs write_themes and an exemption
+from Shopify to modify themes"), which a new app doesn't have. Theme Access
+passwords are Shopify's sanctioned route for CI theme pushes, and because the
+workflow names the pages to audit, nothing needs the Admin API, which a Theme
+Access password can't reach.
+
 ## Scope
 
 Read-only browse, matching the other two surfaces. No add-to-cart yet — cart
@@ -146,7 +188,9 @@ experience is worse than no icon.
 
 ## Not built yet
 
-Cart drawer (AJAX Cart API), add-to-cart, Klaviyo onsite tracking.
+Nothing from the original list: the cart drawer (AJAX Cart API), add to cart and
+Klaviyo onsite tracking (Klaviyo's app embed) are built. Customer accounts are
+Shopify's own on this surface, so there's nothing to build for them here.
 
 ## Related
 

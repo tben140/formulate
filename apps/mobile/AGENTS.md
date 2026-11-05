@@ -7,8 +7,19 @@ Background: [`docs/surface-mobile.md`](../../docs/surface-mobile.md).
 
 ## The Expo Go ceiling
 
-`@shopify/checkout-sheet-kit` is a **native module**. Anything that touches
-checkout requires a **development build** — Expo Go cannot load it.
+`@shopify/checkout-sheet-kit` and `klaviyo-react-native-sdk` are **native
+modules** that Expo Go does not include. Real checkout and Klaviyo tracking need
+a **development build**.
+
+The app still runs in Expo Go, for checking screens on a real phone without a
+native build. `lib/expo-go.ts` detects it. Checkout then opens in the browser
+(`lib/checkout.tsx`) and the Klaviyo SDK is skipped (`lib/klaviyo.ts`); consent
+still works, because it goes through `apps/api`.
+
+⚠️ Never import `@shopify/checkout-sheet-kit` directly. It throws at import time
+without its native module, so a static import anywhere crashes Expo Go on
+launch. Use `CheckoutProvider` and `useCheckout` from `lib/checkout.tsx`. Every
+new `Klaviyo.*` call needs the same `isExpoGo` guard as the existing ones.
 
 Autolinking picks the module up through `expo prebuild`; no config plugin is
 needed. iOS builds need CocoaPods installed locally, because `pod install` links
@@ -44,12 +55,17 @@ deserialises its output inside `react-native-css`, and any newer version fails
 names deserialisation rather than versions. See
 [ADR 0004](../../docs/adr/0004-pin-lightningcss-to-1-30-1.md).
 
-NativeWind is pinned exactly at `5.0.0-preview.4`, no range, because preview
-releases can break between versions —
+NativeWind is pinned exactly at `5.0.0-rc.0` (with `react-native-css`
+`3.1.0-rc.0`), no range, because pre-releases can break between versions —
 [ADR 0003](../../docs/adr/0003-nativewind-v5-and-tailwind-v4.md).
 
-React is pinned to `19.2.3` workspace-wide. Under the hoisted node linker a
-second React copy would break hooks here.
+React is pinned to `19.3.0` workspace-wide (Expo SDK 58's version). Under the
+hoisted node linker a second React copy would break hooks here.
+
+`metro.config.js` sends expo-asset's `react-native` import to the real module.
+NativeWind's runtime swaps `react-native` for a stand-in everywhere, and that
+stand-in has no `AssetRegistry`, so without the rule every icon font fails to
+load. See ADR 0003, "Update, October 2026".
 
 ## Environment variables
 
@@ -58,7 +74,6 @@ EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN
 EXPO_PUBLIC_SHOPIFY_STOREFRONT_TOKEN
 EXPO_PUBLIC_SHOPIFY_API_VERSION
 EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY
-EXPO_PUBLIC_KLAVIYO_LIST_ID
 EXPO_PUBLIC_API_BASE_URL
 ```
 
@@ -107,8 +122,9 @@ Style props that Tailwind cannot express — `aspectRatio`, `borderRadius` on
 
 ## Klaviyo
 
-Env: `EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY`, `EXPO_PUBLIC_KLAVIYO_LIST_ID`. Both are
-public by design. A Klaviyo **private** key must never appear here — there is
+Env: `EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY`, which is public by design. There is no
+list id: the consent worker (`apps/api`) chooses the list, so a caller can't.
+A Klaviyo **private** key must never appear here — there is
 no server to hide it behind, so it would ship to every device.
 
 ⚠️ **Identity works differently here, and it is the only real divergence.**
@@ -206,6 +222,29 @@ visually as well as announced.
 Any screen with a text input near the bottom of a scroll container needs
 `automaticallyAdjustKeyboardInsets` on that container. A browser scrolls a
 focused input into view for free; nothing here does.
+
+## Accessibility in tests
+
+There are no component tests yet (SHO-17 sets them up). When there are, they
+find elements **the way VoiceOver does**, so a test that can't find a control
+has found an accessibility bug rather than a testing inconvenience.
+
+React Native Testing Library, in this order of preference:
+
+1. `getByRole("button", { name: "Add to cart" })`. Needs `accessibilityRole`
+   on the element, which every `Pressable` here should have anyway.
+2. `getByLabelText(...)`, for elements named by `accessibilityLabel`.
+3. `getByText(...)`, for static text.
+4. `getByTestId(...)` only when nothing a user perceives identifies the
+   element, with a comment saying why.
+
+Maestro flows follow the same rule: select by the text or accessibility label a
+user would hear (`tapOn: "Add to cart"`), and use `id:` (a `testID`) only as a
+last resort.
+
+On web the same rule is enforced two ways: `eslint-plugin-jsx-a11y` at lint time
+(shared config), and role-based Playwright specs with axe scans in
+`apps/web/e2e`.
 
 ## Verification
 

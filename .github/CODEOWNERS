@@ -1,0 +1,11 @@
+# The files an attacker would change to get code into CI or the dependency
+# tree. A PR touching them asks the owner for a review, which matters most
+# for PRs from bots (Renovate) and anyone else. Enforcement ("Require review
+# from Code Owners" in branch protection) stays off while the owner is the
+# only maintainer, because GitHub doesn't let authors approve their own PRs.
+# See docs/security.md.
+/.github/ @tben140
+/pnpm-workspace.yaml @tben140
+/renovate.json @tben140
+/.coderabbit.yaml @tben140
+/AGENTS.md @tben140
