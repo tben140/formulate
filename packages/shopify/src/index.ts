@@ -18,6 +18,45 @@ export type {
   UserErrorShape,
 } from "./errors";
 
+export {
+  CUSTOMER_ACCOUNT_SCOPE,
+  base64Url,
+  codeChallengeFor,
+  createAuthorizationRequest,
+  customerAccountEndpoints,
+  customerAccountRequest,
+  decodeIdTokenClaims,
+  describeCustomerAccountError,
+  exchangeCode,
+  isTokenExpiring,
+  logoutUrl,
+  refreshTokens,
+  validateIdToken,
+} from "./customer-account";
+export type {
+  AuthCrypto,
+  AuthorizationRequest,
+  CustomerAccountConfig,
+  CustomerAccountError,
+  CustomerAccountResult,
+  CustomerTokens,
+} from "./customer-account";
+
+export {
+  CUSTOMER_ORDERS_QUERY,
+  CUSTOMER_ORDER_QUERY,
+  orderGid,
+  orderPathId,
+  orderStatusLabel,
+} from "./customer-orders";
+export type {
+  CustomerOrderDetail,
+  CustomerOrderLine,
+  CustomerOrderResult,
+  CustomerOrderSummary,
+  CustomerOrdersResult,
+} from "./customer-orders";
+
 export { formatMoney } from "./format-money";
 
 export {
