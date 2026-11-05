@@ -1,6 +1,6 @@
 # Campaign segments: an offer per customer segment (design)
 
-SHO-207 (offers per segment) and SHO-208 (Klaviyo segment sync), designed together because they share one idea: **a segment is defined once, and both checkout and Klaviyo use that definition.** This is the design for review; the build follows Ben's answers to the questions at the end.
+SHO-207 (offers per segment) and SHO-208 (Klaviyo segment sync), designed together because they share one idea: **a segment is defined once, and both checkout and Klaviyo use that definition.** This is the design for review; Ben's decisions are at the end.
 
 ## What it's for
 
@@ -15,28 +15,32 @@ One campaign, a different offer for different people. For Black Friday, for exam
 
 **Shopify only knows who a shopper is at checkout if they're signed in, or they arrive with a code.** A discount Function can read a signed-in customer's tags; it can't see anything about a guest. So every segment offer needs a **delivery route**:
 
-| Route        | How the shopper gets it                                                  | Built                 |
-| ------------ | ------------------------------------------------------------------------ | --------------------- |
-| `sign_in`    | The Function checks the customer's `segment:<key>` tag (`audienceTags`)  | Function side in #205 |
-| `email_link` | The link in the segment's email opens the offer (`audience: email_link`) | #188                  |
-| `codes`      | A personal single-use code per member, sent by email                     | #208                  |
+| Route        | How the shopper gets it                                                                                    | Gate                     | Built                 |
+| ------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------ | --------------------- |
+| `sign_in`    | A Function discount that only applies to customers tagged `segment:<key>` (`audienceTags`)                 | the tag: signed in only  | Function side in #205 |
+| `email_link` | A personal single-use code per member, put on the cart by the email's `/discount/<code>` link (as in #188) | the code: guests qualify | #188                  |
+| `codes`      | The same personal single-use codes, sent for typing at checkout                                            | the code: guests qualify | #208                  |
 
-Guests who don't come through a link or code see the **public** offer only. The terms say "signed in" where it applies; `campaigns check` already insists on that.
+**`audienceTags` is only for `sign_in`.** A guest can never meet a tag gate, so `email_link` and `codes` offers carry no tags: the single-use code is the gate. Guests who don't come through a link or code get the **public** offer only.
+
+**Segment offers are never advertised to everyone.** The public offer is what the banner, badges and campaign page show. A segment offer is told by its email, and shown on site only to a signed-in member once sign-in lands (#76). So `campaigns check`'s rule that a tag-gated offer be `audience: email_link` applies to the campaign's own `offer_rules`, not to `offers`; check enforces instead that no segment offer is shown on public surfaces. The terms say "signed in" for `sign_in` offers.
 
 ## Segments
 
-| Key            | Who                                                      | Source                                           | Needs protected customer data |
-| -------------- | -------------------------------------------------------- | ------------------------------------------------ | ----------------------------- |
-| `active`       | An active Recharge subscription                          | Recharge API                                     | no                            |
-| `lapsed`       | Cancelled in the last 12 months, no active subscription  | Recharge API (`campaigns audience lapsed`, #206) | no                            |
-| `at_risk`      | 2+ skipped or failed deliveries in 90 days, still active | Recharge charges                                 | no                            |
-| `one_time`     | Ordered, never subscribed                                | Shopify orders minus Recharge customers          | **yes**                       |
-| `dormant`      | Last order 90–180 days ago                               | Shopify orders                                   | **yes**                       |
-| `best`         | Top 10% by spend, or subscribed 12+ months               | Shopify `amountSpent`, Recharge                  | **yes** (spend)               |
-| `never_bought` | Email subscriber or account with no order                | Klaviyo ("Placed Order zero times")              | no (Klaviyo-side)             |
-| `app`          | Used the app in the last 90 days                         | Klaviyo app events (waits for #107)              | no                            |
+| Key            | Who                                                      | Source                                           | Members are       |
+| -------------- | -------------------------------------------------------- | ------------------------------------------------ | ----------------- |
+| `active`       | An active Recharge subscription                          | Recharge API                                     | Shopify customers |
+| `lapsed`       | Cancelled in the last 12 months, no active subscription  | Recharge API (`campaigns audience lapsed`, #206) | Shopify customers |
+| `at_risk`      | 2+ skipped or failed deliveries in 90 days, still active | Recharge charges                                 | Shopify customers |
+| `one_time`     | Ordered, never subscribed                                | Shopify orders minus Recharge customers          | Shopify customers |
+| `dormant`      | Last order 90–180 days ago                               | Shopify orders                                   | Shopify customers |
+| `best`         | Top 10% by spend, or subscribed 12+ months               | Shopify `amountSpent`, Recharge                  | Shopify customers |
+| `never_bought` | Email subscriber or account with no order                | Klaviyo ("Placed Order zero times")              | Klaviyo profiles  |
+| `app`          | Used the app in the last 90 days                         | Klaviyo app events (waits for #107)              | Klaviyo profiles  |
 
-Three segments read Shopify customer data. The app already has it: as a custom-distribution app it reads customers, emails included (checked on 3 Nov), so no protected customer data request is needed.
+**Access:** the Shopify segments read each customer's order count, spend, last order and email. The app's approved scopes (`read_orders`, `write_customers`) already return those fields on this store; checked 5 Nov 2026 with the app's own token. No extra protected-customer-data request is needed.
+
+**Klaviyo-only segments** (`never_bought`, `app`) are Klaviyo profiles, many with no Shopify customer behind them. They live only in Klaviyo, as Klaviyo's own segments, and the sync neither reads nor tags them. They get no `segment:` tag, so their offers can only use `email_link` or `codes`.
 
 ## Settings
 
@@ -51,12 +55,14 @@ Thresholds live on the **Campaign settings** record (metaobject type `campaign_c
 
 ## How membership is kept
 
-A nightly job, `pnpm campaigns segments sync [--apply]`, run by a scheduled workflow like price history:
+A nightly job, `pnpm campaigns segments --apply --tags` (`.github/workflows/segment-counts.yml`), like price history:
 
-1. Works out each segment's members from the sources above, as Shopify customer IDs. Recharge gives `external_customer_id` without a Shopify lookup.
-2. **In Shopify:** adds `segment:<key>` to members, and removes it from people who've left. Uses `tagsAdd` and `tagsRemove`, in batches. This is the tag the Function's `audienceTags` reads.
-3. **In Klaviyo (SHO-208):** keeps a static list per segment ("Segment: lapsed") in step, by Shopify customer email. These are **lists, not segments**, so membership is exactly the job's, never Klaviyo's own logic. Nothing is sent: list membership is data. Emails to a list stay drafts until Ben approves them, as always.
-4. Plans unless `--apply`, like every other command. The calendar shows each segment's count and when it was last synced.
+1. Works out each Shopify segment's members from the sources above, as Shopify customer IDs. Recharge customers map through Recharge's `external_customer_id`; one with no Shopify customer is counted and left out.
+2. **In Shopify:** reads who has each tag now (`customers(query: "tag:'segment:<key>'")`), then adds `segment:<key>` to new members (`tagsAdd`) and removes it from tagged customers who are no longer members (`tagsRemove`). Shopify is the record of who's tagged, so nothing else is stored. This is the tag the Function's `audienceTags` reads.
+3. **In Klaviyo (SHO-208):** keeps a static list per segment ("Segment: lapsed") in step, by the Shopify customer's email. A member with no email is counted and left out. These are **lists, not segments**, so membership is exactly the job's, never Klaviyo's own logic.
+   - **Adding someone to a list can send a message** if a live flow is triggered by that list. So before changing a list, the sync looks up the flows it triggers (Klaviyo's flows-triggered-by-list). **If any flow is live, it changes nothing for that list and reports it.** Draft and manual flows are allowed. Every list the sync creates is new, so it starts with no flows.
+   - Campaign emails to a list stay drafts until Ben approves them, as always.
+4. Plans unless `--apply`, like every other command, and writes tags only with `--tags`. The calendar shows each segment's count and when it was last synced.
 
 ## Offers per segment
 
@@ -78,7 +84,7 @@ The campaign record gains an optional **`offers`** JSON field next to `offer_rul
 ```
 
 - **Validated by the same parser** as `offer_rules` (`parseOfferRules`), plus a known segment and delivery.
-- **Sync** makes one Function discount per segment offer, with `audienceTags: ["segment:<key>"]`, alongside the public discount. Discounts don't combine, so a shopper in a segment gets the better of their offer and the public one; Shopify picks the larger.
+- **Sync** makes one discount per segment offer, alongside the public discount: for `sign_in`, a Function discount with `audienceTags: ["segment:<key>"]`; for `email_link` and `codes`, a code discount with one single-use code per member, loaded into a Klaviyo coupon as #208 does. Discounts don't combine, so a shopper in a segment gets the better of their offer and the public one; Shopify picks the larger.
 - **Terms:** a sentence per segment offer ("Lapsed subscribers, signed in: 30% off one-time purchases").
 - **Check:**
   - every segment offer parses;
@@ -93,13 +99,14 @@ The campaign record gains an optional **`offers`** JSON field next to `offer_rul
 1. **Built (#235):** the `segments` module with every segment above except `never_bought` and `app`; `pnpm campaigns segments` shows sizes and the tags a sync would add and remove, and `--apply` stores the counts. `.github/workflows/segment-counts.yml` runs it nightly once the `RECHARGE_API_TOKEN` repository secret is set (it skips with a notice until then). With `--tags` it also adds and removes the `segment:<key>` tags (Decisions, 2), and the nightly run does both. It refuses a run that would take a tag off more than half of a segment (and more than 10 people), since that's usually a failed read; check, then rerun by hand with `--force-tags`.
 2. **With Ben's OK on Klaviyo lists:** the Klaviyo half of the sync.
 3. **`offers`:** the field, sync, terms, check and editor tabs.
-4. ~~After protected customer data~~ `one_time`, `dormant`, `best`: built with step 1, since the app already reads customer data.
+4. `one_time`, `dormant`, `best`: built with step 1, from Shopify customer data (no extra access; see Segments).
 5. **After sign-in (#76) and app events (#107):** showing segment offers on site, and the `app` segment.
 
 ## Decisions (Ben, 5 Nov 2026)
 
 1. **Klaviyo lists:** yes. The nightly job may create and update one static list per segment (`Segment: <key>`). It never sends; emails stay drafts until approved.
 2. **Shopify tags:** yes. The nightly job may add and remove `segment:<key>` tags on customers.
-3. **Protected customer data:** not needed; the app already reads customers.
+3. **Protected customer data:** not needed; the approved scopes return every field the segments read (see Segments).
 4. **First segments:** `lapsed` (win-back) and `at_risk` (a "keep your plan" perk, not a discount).
+   - **The `at_risk` perk** uses the existing renewal path: `campaigns perks <handle>` adds a free item to the next Recharge delivery, which the checkout Function can't. It gains a `--segment at_risk` option that limits it to that segment's subscriptions. Without the option it keeps adding the perk to every active subscription, as now.
 5. **Thresholds:** 12 months for lapsed, 90–180 days for dormant, top 10% for best, adjustable on the Campaign settings record.
