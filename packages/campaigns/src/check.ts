@@ -2,6 +2,12 @@ import { campaignParagraphs, offerPercents, parseOfferRules } from "@formulate/s
 
 import { campaignOf } from "./campaign-node";
 import { isPersonalPool, PERSONAL_POOL } from "./codes";
+import {
+  parseSegmentOffers,
+  segmentDiscountConfigs,
+  segmentOf,
+  SYNCED_DELIVERIES,
+} from "./offers";
 import { DEFAULT_MIN_MARGIN, marginRows } from "./margins";
 import { checkReferencePrice, REFERENCE_DAYS } from "./price-history";
 import { campaignTerms } from "./terms";
@@ -121,11 +127,21 @@ export const checkCampaign = (
   )
     warn(`offer doesn't mention ${rules.percent}%.`);
 
+  // Offers per segment (SHO-207): each parses, and is one a sync can make.
+  const segmentOffers = parseSegmentOffers(entry.fields.offers);
+  for (const problem of segmentOffers.problems) error(`offers: ${problem}.`);
+  for (const offer of segmentOffers.offers)
+    if (!SYNCED_DELIVERIES.includes(offer.delivery))
+      warn(
+        `The ${offer.segment} offer's delivery (${offer.delivery}) isn't built yet: campaigns sync skips it.`,
+      );
+
   // The terms as the rules would write them: a difference is worth a look.
   if (
     rules &&
     entry.fields.terms &&
-    campaignTerms(campaign, rules) !== entry.fields.terms
+    campaignTerms(campaign, rules, { offers: segmentOffers.offers }) !==
+      entry.fields.terms
   )
     warn(
       "terms differ from what the offer's rules write: run campaigns terms <handle> to compare.",
@@ -285,6 +301,32 @@ export const checkCampaign = (
       ok(`Every variant keeps at least a ${minMargin}% margin at the campaign price.`);
   }
 
+  // Each segment offer's margin, judged as the public one's.
+  for (const offer of segmentOffers.offers) {
+    const rows = marginRows(
+      offer.rules,
+      onSale.map((v) => ({ title: v.label, price: v.price, cost: v.cost ?? null })),
+    );
+    const loss = rows.filter((row) => row.cost !== null && row.worst < row.cost);
+    const thin = rows.filter(
+      (row) => row.margin !== null && row.margin < minMargin && !loss.includes(row),
+    );
+    if (loss.length > 0)
+      error(
+        `The ${offer.segment} offer sells below cost: ${listed(
+          5,
+          loss.map((r) => r.title),
+        )}.`,
+      );
+    else if (thin.length > 0)
+      warn(
+        `The ${offer.segment} offer leaves under a ${minMargin}% margin: ${listed(
+          5,
+          thin.map((r) => `${r.title} (${r.margin}%)`),
+        )}.`,
+      );
+  }
+
   // The discount that charges it.
   const errorsBefore = findings.filter((finding) => finding.level === "error").length;
   const mine = campaignDiscounts(entry, discounts);
@@ -402,7 +444,25 @@ export const checkCampaign = (
         if (collection && !discount.collectionIds.includes(collection.id))
           error(`${name} isn't on the campaign's collection.`);
       }
-      if (discount.kind === "app") {
+      if (discount.kind === "app" && segmentOf(discount.config)) {
+        // A segment offer's discount: checked against its own offer.
+        const expected = segmentDiscountConfigs(
+          entry,
+          collection,
+          products,
+          segmentOffers.offers,
+        );
+        const mine =
+          "configs" in expected
+            ? expected.configs.find((c) => c.segment === segmentOf(discount.config))
+            : undefined;
+        if (!mine)
+          error(
+            `${name} is for the ${segmentOf(discount.config)} segment, which has no offer now: delete it.`,
+          );
+        else if (!sameConfig(discount.config, mine.config))
+          error(`${name}'s config is out of date: run campaigns sync ${entry.handle}.`);
+      } else if (discount.kind === "app") {
         const expected = discountConfig(entry, collection, products);
         if ("error" in expected) error(`${name}: ${expected.error}.`);
         else if (

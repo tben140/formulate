@@ -21,6 +21,8 @@ export interface DiscountConfig {
   readonly usedTags: readonly string[];
   /** Only customers with one of these tags get it; empty for everyone. */
   readonly audienceTags: readonly string[];
+  /** A segment offer's segment (offers.ts); the Function ignores it. */
+  readonly segment?: string;
 }
 
 /** The tag `campaigns tag-buyers` gives a customer who's had a campaign. */
