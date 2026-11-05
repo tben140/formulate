@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
   "scripts": {
     "campaigns": "jiti src/cli.ts",
     "typecheck": "tsc --noEmit",

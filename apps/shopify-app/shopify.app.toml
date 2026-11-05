@@ -8,7 +8,10 @@
 
 client_id = "25a2aa35a50545b4b2146c5162def482"
 name = "Double Helix"
-application_url = "https://example.com"
+# The Campaign Calendar (SHO-205, apps/campaign-calendar): the app's page in
+# the admin. Live only once that Worker is deployed with its secrets; until
+# then, deploying this config would open an empty page.
+application_url = "https://formulate-campaign-calendar.tben140-6bc.workers.dev"
 embedded = true
 
 [webhooks]
