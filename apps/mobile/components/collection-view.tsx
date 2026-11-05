@@ -1,8 +1,8 @@
 import { Stack } from "expo-router";
 import { useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 
-import { useCollection } from "../lib/queries";
+import { useCollectionPages } from "../lib/queries";
 import { CollectionFilters } from "./collection-filters";
 import { CollectionNav } from "./collection-nav";
 import { ProductRow } from "./product-row";
@@ -27,9 +27,16 @@ export const CollectionView = ({
 }) => {
   // The same filter query string web and the theme keep in the URL.
   const [filterQuery, setFilterQuery] = useState("");
-  const { data, isPending, isError, error, isPlaceholderData } = useCollection(handle, {
-    filterQuery,
-  });
+  const {
+    data,
+    isPending,
+    isError,
+    error,
+    isPlaceholderData,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useCollectionPages(handle, { filterQuery });
   const list = useRef<FlatList>(null);
 
   const selectCollection = onSelectCollection
@@ -48,7 +55,9 @@ export const CollectionView = ({
     );
   }
 
-  if (isError) {
+  // Only when nothing has loaded. A failed next page keeps the products already
+  // on screen (TanStack keeps `data`), and the footer offers a retry instead.
+  if (isError && !data) {
     return (
       <View className="flex-1 items-center justify-center p-6">
         <Text className="text-base font-semibold text-danger">
@@ -61,7 +70,10 @@ export const CollectionView = ({
     );
   }
 
-  const collection = data.collection;
+  // The first page carries the collection's details and filters; every page
+  // adds its products.
+  const collection = data.pages[0]?.collection;
+  const products = data.pages.flatMap((page) => page.collection?.products.nodes ?? []);
 
   if (!collection) {
     return (
@@ -76,7 +88,7 @@ export const CollectionView = ({
   return (
     <FlatList
       ref={list}
-      data={collection.products.nodes}
+      data={products}
       keyExtractor={(product) => product.id}
       contentContainerClassName="p-4 gap-3"
       /*
@@ -103,7 +115,7 @@ export const CollectionView = ({
               filters={collection.products.filters}
               query={filterQuery}
               onChange={setFilterQuery}
-              productCount={collection.products.nodes.length}
+              productCount={products.length}
             />
           </View>
         </View>
@@ -113,7 +125,37 @@ export const CollectionView = ({
           No products match these filters.
         </Text>
       }
-      ListFooterComponent={<SiteFooter />}
+      // Infinite scroll (SHO-45): the next page loads as the end of the list
+      // comes within half a screen. The guard stops a fast fling from asking
+      // for the same page twice.
+      onEndReached={() => {
+        if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+      }}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={
+        <>
+          {isFetchingNextPage ? (
+            <ActivityIndicator
+              className="py-4"
+              accessibilityLabel="Loading more products"
+            />
+          ) : isError ? (
+            <View className="items-center py-4">
+              <Text className="text-sm text-foreground-muted">
+                {"Couldn't load more products."}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void fetchNextPage()}
+                className="mt-2 rounded-md border border-border px-4 py-2"
+              >
+                <Text className="text-sm font-medium text-foreground">Try again</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          <SiteFooter />
+        </>
+      }
       renderItem={({ item }) => (
         <View className={isPlaceholderData ? "opacity-50" : undefined}>
           <ProductRow product={item} />

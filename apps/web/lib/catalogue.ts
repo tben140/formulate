@@ -1,5 +1,6 @@
 import {
   CollectionProductsQuery,
+  pageVariables,
   productFiltersFromParams,
   ProductByHandleQuery,
 } from "@formulate/shopify";
@@ -20,17 +21,19 @@ export const getProduct = cache(async (handle: string) =>
   storefront.request(ProductByHandleQuery, { handle }),
 );
 
-/** How many products a collection page shows. Pagination is SHO-44. */
+/** Products per page, the same as the theme's `paginate ... by 24`. */
 export const COLLECTION_PAGE_SIZE = 24;
 
 /**
- * `filterQuery` is the Liquid-style filter query string (SHO-153). A string,
- * not the parsed filters, so React's per-render cache can match it.
+ * `filterQuery` is the Liquid-style filter query string (SHO-153) and
+ * `pageQuery` the cursor (`after=…` or `before=…`, SHO-44). Strings, not
+ * parsed values, so React's per-render cache can match them.
  */
-export const getCollection = cache(async (handle: string, filterQuery = "") =>
-  storefront.request(CollectionProductsQuery, {
-    handle,
-    first: COLLECTION_PAGE_SIZE,
-    filters: productFiltersFromParams(new URLSearchParams(filterQuery)),
-  }),
+export const getCollection = cache(
+  async (handle: string, filterQuery = "", pageQuery = "") =>
+    storefront.request(CollectionProductsQuery, {
+      handle,
+      ...pageVariables(new URLSearchParams(pageQuery), COLLECTION_PAGE_SIZE),
+      filters: productFiltersFromParams(new URLSearchParams(filterQuery)),
+    }),
 );

@@ -10,12 +10,13 @@ import {
   SearchProductsQuery,
   ShopPoliciesQuery,
   describeError,
+  nextCursor,
   payLaterIds,
   paymentIconIds,
   productFiltersFromParams,
   toNavLinks,
 } from "@formulate/shopify";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import { storefront } from "./storefront";
 
@@ -63,6 +64,38 @@ export const useCollection = (
         }),
       ),
     enabled: options.enabled ?? true,
+    placeholderData: keepPreviousData,
+  });
+
+/** Products per page, as on web and in the theme. */
+export const COLLECTION_PAGE_SIZE = 24;
+
+/**
+ * A collection's products a page at a time, for the collection screen's
+ * infinite scroll (SHO-45). Pages follow the API's cursors (see
+ * packages/shopify pagination.ts); a filter change starts again from the first
+ * page, while the previous results stay on screen until it arrives.
+ */
+export const useCollectionPages = (
+  handle: string,
+  options: { filterQuery?: string } = {},
+) =>
+  useInfiniteQuery({
+    queryKey: ["collection-pages", handle, options.filterQuery ?? ""],
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) =>
+      unwrap(
+        await storefront.request(CollectionProductsQuery, {
+          handle,
+          first: COLLECTION_PAGE_SIZE,
+          ...(pageParam ? { after: pageParam } : {}),
+          filters: productFiltersFromParams(
+            new URLSearchParams(options.filterQuery ?? ""),
+          ),
+        }),
+      ),
+    getNextPageParam: (page) =>
+      page.collection ? nextCursor(page.collection.products.pageInfo) : undefined,
     placeholderData: keepPreviousData,
   });
 
