@@ -169,8 +169,8 @@ importers:
   apps/shopify-app:
     devDependencies:
       '@shopify/cli':
-        specifier: 4.9.4
-        version: 4.9.4
+        specifier: 5.0.0
+        version: 5.0.0
 
   apps/theme:
     devDependencies:
@@ -181,8 +181,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@shopify/cli':
-        specifier: 4.9.4
-        version: 4.9.4
+        specifier: 5.0.0
+        version: 5.0.0
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -2508,8 +2508,8 @@ packages:
       react: 19.3.0
       react-native: '*'
 
-  '@shopify/cli@4.9.4':
-    resolution: {integrity: sha512-Zisisi5gbpzD8OVTav+k6FPqoA6jp7sgaM0sr5DSze2oJ7KSAKaP+8dPcSIy5h4Oe+19EVYJGard9cqBKNmfbA==}
+  '@shopify/cli@5.0.0':
+    resolution: {integrity: sha512-RdXZOQiWDZjXu71UOwJMnSRSAwdNAJTxq7berHbQKTgD7yB53YUdvZbWLaflhJOO5Jdw50KKP8jchmJTBDp2hA==}
     engines: {node: '>=22.12.0'}
     os: [darwin, linux, win32]
     hasBin: true
@@ -8908,7 +8908,7 @@ snapshots:
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/metro-config@0.86.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
 
-  '@shopify/cli@4.9.4':
+  '@shopify/cli@5.0.0':
     dependencies:
       '@ast-grep/napi': 0.43.0
       clipboardy: 4.0.0

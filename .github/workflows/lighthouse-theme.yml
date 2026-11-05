@@ -96,9 +96,16 @@ jobs:
           SHOPIFY_FLAG_STORE: ${{ secrets.SHOP_STORE }}
           SHOPIFY_CLI_NO_ANALYTICS: "1"
         run: |
-          npx --yes @shopify/cli@4.9.4 theme push --path apps/theme --unpublished \
-            --theme "LHCI ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --json > "$RUNNER_TEMP/push.json"
-          id=$(jq -r '.theme.id' "$RUNNER_TEMP/push.json")
+          # CLI 5: the result is one JSON document on stdout ({status, theme:
+          # {id}, ...}, the id a decimal string); progress goes to stderr. If
+          # the CLI wants a browser identity check it stops here and prints a
+          # verification link (SHO-196).
+          if ! npx --yes @shopify/cli@5.0.0 theme push --path apps/theme --unpublished --no-input \
+            --theme "LHCI ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --json > "$RUNNER_TEMP/push.json"; then
+            echo "::error::Theme push failed (an identity verification link above means CLI 5 can't push from CI; see SHO-196)"
+            cat "$RUNNER_TEMP/push.json"; exit 1
+          fi
+          id=$(jq -r 'select(.status == "success") | .theme.id' "$RUNNER_TEMP/push.json")
           if [ -z "$id" ] || [ "$id" = null ]; then
             echo "::error::Theme push returned no theme id"; cat "$RUNNER_TEMP/push.json"; exit 1
           fi
@@ -153,4 +160,4 @@ jobs:
           SHOPIFY_FLAG_STORE: ${{ secrets.SHOP_STORE }}
           SHOPIFY_CLI_NO_ANALYTICS: "1"
           THEME_ID: ${{ steps.push.outputs.theme_id }}
-        run: npx --yes @shopify/cli@4.9.4 theme delete --theme "$THEME_ID" --force
+        run: npx --yes @shopify/cli@5.0.0 theme delete --theme "$THEME_ID" --force --no-input
