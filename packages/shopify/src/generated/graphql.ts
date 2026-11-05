@@ -1493,7 +1493,16 @@ export type CollectionProductsQuery = { collection: { id: string, title: string,
            | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
                 | { handle: string }
                 | Record<PropertyKey, never>
-               | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } } | null };
+               | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, campaignMedia: { references: { nodes: Array<
+              | { campaign: { reference:
+                    | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+                    | Record<PropertyKey, never>
+                   | null } | null, images: { references: { nodes: Array<
+                      | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+                      | Record<PropertyKey, never>
+                    > } | null } | null }
+              | Record<PropertyKey, never>
+            > } | null } | null }> } } | null };
 
 export type ProductByHandleQueryVariables = Exact<{
   handle: string;
@@ -1512,9 +1521,29 @@ export type ProductByHandleQuery = { product: { id: string, handle: string, titl
        | null } | null, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, campaign: { reference:
             | { handle: string }
             | Record<PropertyKey, never>
-           | null } | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
+           | null } | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> }, campaignMedia: { references: { nodes: Array<
+          | { campaign: { reference:
+                | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+                | Record<PropertyKey, never>
+               | null } | null, images: { references: { nodes: Array<
+                  | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+                  | Record<PropertyKey, never>
+                > } | null } | null }
+          | Record<PropertyKey, never>
+        > } | null } | null } | null };
 
 export type FilterFieldsFragment = { id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> };
+
+export type ProductCampaignMediaFieldsFragment = { campaignMedia: { references: { nodes: Array<
+        | { campaign: { reference:
+              | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+              | Record<PropertyKey, never>
+             | null } | null, images: { references: { nodes: Array<
+                | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+                | Record<PropertyKey, never>
+              > } | null } | null }
+        | Record<PropertyKey, never>
+      > } | null } | null };
 
 export type ProductCardFieldsFragment = { id: string, handle: string, title: string, availableForSale: boolean, campaign: { reference:
       | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
@@ -1522,7 +1551,16 @@ export type ProductCardFieldsFragment = { id: string, handle: string, title: str
      | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
           | { handle: string }
           | Record<PropertyKey, never>
-         | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } };
+         | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, campaignMedia: { references: { nodes: Array<
+        | { campaign: { reference:
+              | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+              | Record<PropertyKey, never>
+             | null } | null, images: { references: { nodes: Array<
+                | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+                | Record<PropertyKey, never>
+              > } | null } | null }
+        | Record<PropertyKey, never>
+      > } | null } | null };
 
 export type SearchProductsQueryVariables = Exact<{
   query: string;
@@ -1540,7 +1578,16 @@ export type SearchProductsQuery = { search: { totalCount: number, productFilters
            | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
                 | { handle: string }
                 | Record<PropertyKey, never>
-               | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }
+               | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, campaignMedia: { references: { nodes: Array<
+              | { campaign: { reference:
+                    | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+                    | Record<PropertyKey, never>
+                   | null } | null, images: { references: { nodes: Array<
+                      | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+                      | Record<PropertyKey, never>
+                    > } | null } | null }
+              | Record<PropertyKey, never>
+            > } | null } | null }
     > } };
 
 export type PredictiveSearchQueryVariables = Exact<{
@@ -1555,7 +1602,16 @@ export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text:
          | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
               | { handle: string }
               | Record<PropertyKey, never>
-             | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }>, collections: Array<{ id: string, handle: string, title: string }> } | null };
+             | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, campaignMedia: { references: { nodes: Array<
+            | { campaign: { reference:
+                  | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+                  | Record<PropertyKey, never>
+                 | null } | null, images: { references: { nodes: Array<
+                    | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+                    | Record<PropertyKey, never>
+                  > } | null } | null }
+            | Record<PropertyKey, never>
+          > } | null } | null }>, collections: Array<{ id: string, handle: string, title: string }> } | null };
 
 export type ComplementaryProductsQueryVariables = Exact<{
   productId: string | number;
@@ -1568,7 +1624,16 @@ export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: s
        | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
             | { handle: string }
             | Record<PropertyKey, never>
-           | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> | null };
+           | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, campaignMedia: { references: { nodes: Array<
+          | { campaign: { reference:
+                | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+                | Record<PropertyKey, never>
+               | null } | null, images: { references: { nodes: Array<
+                  | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+                  | Record<PropertyKey, never>
+                > } | null } | null }
+          | Record<PropertyKey, never>
+        > } | null } | null }> | null };
 
 export type NavMenuQueryVariables = Exact<{
   handle: string;
@@ -1804,7 +1869,16 @@ export type CampaignByHandleQuery = { metaobject: { handle: string, products: { 
                  | null } | null, cardVariants: { nodes: Array<{ price: { amount: string, currencyCode: CurrencyCode }, campaign: { reference:
                       | { handle: string }
                       | Record<PropertyKey, never>
-                     | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } }
+                     | null } | null }> }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, campaignMedia: { references: { nodes: Array<
+                    | { campaign: { reference:
+                          | { handle: string, title: { value: string | null } | null, startsAt: { value: string | null } | null, endsAt: { value: string | null } | null, badge: { value: string | null } | null, offer: { value: string | null } | null, terms: { value: string | null } | null, audience: { value: string | null } | null, offerRules: { value: string | null } | null, earlyAccessStartsAt: { value: string | null } | null }
+                          | Record<PropertyKey, never>
+                         | null } | null, images: { references: { nodes: Array<
+                            | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
+                            | Record<PropertyKey, never>
+                          > } | null } | null }
+                    | Record<PropertyKey, never>
+                  > } | null } | null }> } }
         | Record<PropertyKey, never>
        | null } | null, priority: { value: string | null } | null, headline: { value: string | null } | null, bannerText: { value: string | null } | null, discountCode: { value: string | null } | null, subscriberPerk: { value: string | null } | null, body: { value: string | null } | null, image: { reference:
         | { image: { url: string, altText: string | null, width: number | null, height: number | null } | null }
@@ -1877,11 +1951,72 @@ export const CampaignBadgeFieldsFragmentDoc = new TypedDocumentString(`
   }
 }
     `, {"fragmentName":"CampaignBadgeFields"}) as unknown as TypedDocumentString<CampaignBadgeFieldsFragment, unknown>;
+export const ProductCampaignMediaFieldsFragmentDoc = new TypedDocumentString(`
+    fragment ProductCampaignMediaFields on Product {
+  campaignMedia: metafield(namespace: "double_helix", key: "campaign_media") {
+    references(first: 5) {
+      nodes {
+        ... on Metaobject {
+          campaign: field(key: "campaign") {
+            reference {
+              ...CampaignBadgeFields
+            }
+          }
+          images: field(key: "images") {
+            references(first: 10) {
+              nodes {
+                ... on MediaImage {
+                  image {
+                    url
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+    fragment CampaignBadgeFields on Metaobject {
+  handle
+  title: field(key: "title") {
+    value
+  }
+  startsAt: field(key: "starts_at") {
+    value
+  }
+  endsAt: field(key: "ends_at") {
+    value
+  }
+  badge: field(key: "badge") {
+    value
+  }
+  offer: field(key: "offer") {
+    value
+  }
+  terms: field(key: "terms") {
+    value
+  }
+  audience: field(key: "audience") {
+    value
+  }
+  offerRules: field(key: "offer_rules") {
+    value
+  }
+  earlyAccessStartsAt: field(key: "early_access_starts_at") {
+    value
+  }
+}`, {"fragmentName":"ProductCampaignMediaFields"}) as unknown as TypedDocumentString<ProductCampaignMediaFieldsFragment, unknown>;
 export const ProductCardFieldsFragmentDoc = new TypedDocumentString(`
     fragment ProductCardFields on Product {
   id
   handle
   title
+  ...ProductCampaignMediaFields
   availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {
@@ -1916,7 +2051,36 @@ export const ProductCardFieldsFragmentDoc = new TypedDocumentString(`
     }
   }
 }
-    fragment CampaignBadgeFields on Metaobject {
+    fragment ProductCampaignMediaFields on Product {
+  campaignMedia: metafield(namespace: "double_helix", key: "campaign_media") {
+    references(first: 5) {
+      nodes {
+        ... on Metaobject {
+          campaign: field(key: "campaign") {
+            reference {
+              ...CampaignBadgeFields
+            }
+          }
+          images: field(key: "images") {
+            references(first: 10) {
+              nodes {
+                ... on MediaImage {
+                  image {
+                    url
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+fragment CampaignBadgeFields on Metaobject {
   handle
   title: field(key: "title") {
     value
@@ -2118,6 +2282,7 @@ export const CollectionProductsDocument = new TypedDocumentString(`
         id
         handle
         title
+        ...ProductCampaignMediaFields
         campaign: metafield(namespace: "double_helix", key: "campaign") {
           reference {
             ...CampaignBadgeFields
@@ -2165,6 +2330,35 @@ export const CollectionProductsDocument = new TypedDocumentString(`
     input
   }
 }
+fragment ProductCampaignMediaFields on Product {
+  campaignMedia: metafield(namespace: "double_helix", key: "campaign_media") {
+    references(first: 5) {
+      nodes {
+        ... on Metaobject {
+          campaign: field(key: "campaign") {
+            reference {
+              ...CampaignBadgeFields
+            }
+          }
+          images: field(key: "images") {
+            references(first: 10) {
+              nodes {
+                ... on MediaImage {
+                  image {
+                    url
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 fragment CampaignBadgeFields on Metaobject {
   handle
   title: field(key: "title") {
@@ -2202,6 +2396,7 @@ export const ProductByHandleDocument = new TypedDocumentString(`
     handle
     title
     description
+    ...ProductCampaignMediaFields
     campaign: metafield(namespace: "double_helix", key: "campaign") {
       reference {
         ...CampaignFields
@@ -2319,7 +2514,36 @@ export const ProductByHandleDocument = new TypedDocumentString(`
     }
   }
 }
-    fragment CampaignBadgeFields on Metaobject {
+    fragment ProductCampaignMediaFields on Product {
+  campaignMedia: metafield(namespace: "double_helix", key: "campaign_media") {
+    references(first: 5) {
+      nodes {
+        ... on Metaobject {
+          campaign: field(key: "campaign") {
+            reference {
+              ...CampaignBadgeFields
+            }
+          }
+          images: field(key: "images") {
+            references(first: 10) {
+              nodes {
+                ... on MediaImage {
+                  image {
+                    url
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+fragment CampaignBadgeFields on Metaobject {
   handle
   title: field(key: "title") {
     value
@@ -2415,10 +2639,40 @@ export const SearchProductsDocument = new TypedDocumentString(`
     input
   }
 }
+fragment ProductCampaignMediaFields on Product {
+  campaignMedia: metafield(namespace: "double_helix", key: "campaign_media") {
+    references(first: 5) {
+      nodes {
+        ... on Metaobject {
+          campaign: field(key: "campaign") {
+            reference {
+              ...CampaignBadgeFields
+            }
+          }
+          images: field(key: "images") {
+            references(first: 10) {
+              nodes {
+                ... on MediaImage {
+                  image {
+                    url
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 fragment ProductCardFields on Product {
   id
   handle
   title
+  ...ProductCampaignMediaFields
   availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {
@@ -2504,10 +2758,40 @@ export const PredictiveSearchDocument = new TypedDocumentString(`
     }
   }
 }
-    fragment ProductCardFields on Product {
+    fragment ProductCampaignMediaFields on Product {
+  campaignMedia: metafield(namespace: "double_helix", key: "campaign_media") {
+    references(first: 5) {
+      nodes {
+        ... on Metaobject {
+          campaign: field(key: "campaign") {
+            reference {
+              ...CampaignBadgeFields
+            }
+          }
+          images: field(key: "images") {
+            references(first: 10) {
+              nodes {
+                ... on MediaImage {
+                  image {
+                    url
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+fragment ProductCardFields on Product {
   id
   handle
   title
+  ...ProductCampaignMediaFields
   availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {
@@ -2578,10 +2862,40 @@ export const ComplementaryProductsDocument = new TypedDocumentString(`
     ...ProductCardFields
   }
 }
-    fragment ProductCardFields on Product {
+    fragment ProductCampaignMediaFields on Product {
+  campaignMedia: metafield(namespace: "double_helix", key: "campaign_media") {
+    references(first: 5) {
+      nodes {
+        ... on Metaobject {
+          campaign: field(key: "campaign") {
+            reference {
+              ...CampaignBadgeFields
+            }
+          }
+          images: field(key: "images") {
+            references(first: 10) {
+              nodes {
+                ... on MediaImage {
+                  image {
+                    url
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+fragment ProductCardFields on Product {
   id
   handle
   title
+  ...ProductCampaignMediaFields
   availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {
@@ -3656,10 +3970,40 @@ export const CampaignByHandleDocument = new TypedDocumentString(`
     }
   }
 }
-    fragment ProductCardFields on Product {
+    fragment ProductCampaignMediaFields on Product {
+  campaignMedia: metafield(namespace: "double_helix", key: "campaign_media") {
+    references(first: 5) {
+      nodes {
+        ... on Metaobject {
+          campaign: field(key: "campaign") {
+            reference {
+              ...CampaignBadgeFields
+            }
+          }
+          images: field(key: "images") {
+            references(first: 10) {
+              nodes {
+                ... on MediaImage {
+                  image {
+                    url
+                    altText
+                    width
+                    height
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+fragment ProductCardFields on Product {
   id
   handle
   title
+  ...ProductCampaignMediaFields
   availableForSale
   campaign: metafield(namespace: "double_helix", key: "campaign") {
     reference {

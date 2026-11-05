@@ -33,6 +33,8 @@ export const CollectionProductsQuery = graphql(`
           id
           handle
           title
+          # A live campaign's first image replaces the card's (SHO-204).
+          ...ProductCampaignMediaFields
           # Campaign badge (SHO-169); the dates decide whether it shows.
           campaign: metafield(namespace: "double_helix", key: "campaign") {
             reference {
@@ -81,6 +83,8 @@ export const ProductByHandleQuery = graphql(`
       handle
       title
       description
+      # Campaign imagery leads the gallery while its campaign is live (SHO-204).
+      ...ProductCampaignMediaFields
       # The campaign this product is in (SHO-169), whole, for the product page.
       campaign: metafield(namespace: "double_helix", key: "campaign") {
         reference {
@@ -251,12 +255,50 @@ export const FilterFields = graphql(`
   }
 `);
 
+/**
+ * A product's campaign imagery (SHO-204): each entry's campaign, for its
+ * dates, and its images. `campaignImages` picks the live one.
+ */
+export const ProductCampaignMediaFields = graphql(`
+  fragment ProductCampaignMediaFields on Product {
+    campaignMedia: metafield(namespace: "double_helix", key: "campaign_media") {
+      references(first: 5) {
+        nodes {
+          ... on Metaobject {
+            campaign: field(key: "campaign") {
+              reference {
+                ...CampaignBadgeFields
+              }
+            }
+            images: field(key: "images") {
+              references(first: 10) {
+                nodes {
+                  ... on MediaImage {
+                    image {
+                      url
+                      altText
+                      width
+                      height
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
 /** The fields a product card needs, shared by search and recommendations. */
 export const ProductCardFields = graphql(`
   fragment ProductCardFields on Product {
     id
     handle
     title
+    # A live campaign's first image replaces the card's (SHO-204).
+    ...ProductCampaignMediaFields
     # Sold-out products go last on a campaign's page (availableFirst).
     availableForSale
     # Campaign badge (SHO-169); the dates decide whether it shows.

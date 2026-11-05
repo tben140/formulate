@@ -1,5 +1,9 @@
 import { viewedProduct } from "@formulate/analytics";
-import { breadcrumbCollection, campaignForVariant } from "@formulate/shopify";
+import {
+  breadcrumbCollection,
+  campaignForVariant,
+  campaignImages,
+} from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -80,6 +84,9 @@ const ProductPage = async ({ params }: PageProps) => {
 
   // The campaign, if live for any variant; named variants when it's narrowed.
   const view = await campaignView();
+  // A live campaign's imagery leads (SHO-204); its own image otherwise.
+  const leadImage =
+    campaignImages(product.campaignMedia, view)[0] ?? product.featuredImage;
   const variantCampaigns = product.variants.nodes.map((variant) => variant.campaign);
   const covered = product.variants.nodes.filter((variant) =>
     campaignForVariant(product.campaign, variant, variantCampaigns, view),
@@ -128,9 +135,9 @@ const ProductPage = async ({ params }: PageProps) => {
           scroll past.
         */}
         <div className="self-start overflow-hidden rounded-lg border border-border bg-surface-muted md:sticky md:top-6">
-          {product.featuredImage ? (
+          {leadImage ? (
             <Image
-              data={product.featuredImage}
+              data={leadImage}
               sizes="(min-width: 768px) 45vw, 90vw"
               className="h-auto w-full"
               // The page's Largest Contentful Paint. Hydrogen's Image defaults

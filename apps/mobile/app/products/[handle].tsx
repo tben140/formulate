@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { campaignForVariant } from "@formulate/shopify";
+import { campaignForVariant, campaignImages } from "@formulate/shopify";
 
 import { AddToCart } from "../../components/add-to-cart";
 import { CampaignOffer } from "../../components/campaign-offer";
@@ -173,7 +173,13 @@ const ProductBody = ({ product }: { product: Product }) => {
         <Stack.Screen options={{ title: product.title }} />
 
         <Image
-          source={product.featuredImage?.url}
+          // A live campaign's imagery leads (SHO-204); its own image otherwise.
+          source={
+            (
+              campaignImages(product.campaignMedia, campaignView)[0] ??
+              product.featuredImage
+            )?.url
+          }
           contentFit="cover"
           transition={150}
           style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}

@@ -33,17 +33,47 @@
   {% render 'breadcrumbs', current: product.title, parent: crumb_collection %}
 </div>
 
+{%- liquid
+  comment
+    A live campaign's imagery leads (SHO-204): the first entry in the
+    product's campaign_media whose campaign is live, as campaignImages in
+    packages/shopify/src/campaign-media.ts.
+  endcomment
+  assign campaign_images = blank
+  for entry in product.metafields.double_helix.campaign_media.value
+    assign entry_campaign = entry.campaign.value
+    if entry_campaign == blank or entry.images.value == blank
+      continue
+    endif
+    capture media_status
+      render 'campaign-status', campaign: entry_campaign
+    endcapture
+    assign media_status = media_status | strip
+    if media_status == 'active'
+      assign campaign_images = entry.images.value
+      break
+    endif
+  endfor
+-%}
+{%- liquid
+  assign lead = product.featured_image
+  assign gallery_size = product.images.size
+  if campaign_images != blank
+    assign lead = campaign_images.first.preview_image | default: campaign_images.first
+    assign gallery_size = gallery_size | plus: campaign_images.size
+  endif
+-%}
 <article class="container product">
   <media-gallery class="product__gallery">
     <div class="product__media">
-      {% if product.featured_image %}
+      {% if lead %}
         <img
           ref="mainImage"
           class="product__image"
-          src="{{ product.featured_image | image_url: width: 1200 }}"
-          alt="{{ product.featured_image.alt | escape }}"
-          width="{{ product.featured_image.width }}"
-          height="{{ product.featured_image.height }}"
+          src="{{ lead | image_url: width: 1200 }}"
+          alt="{{ lead.alt | escape }}"
+          width="{{ lead.width }}"
+          height="{{ lead.height }}"
           loading="eager"
           fetchpriority="high"
         >
@@ -52,8 +82,27 @@
       {% endif %}
     </div>
 
-    {% if product.images.size > 1 %}
+    {% if gallery_size > 1 %}
       <div class="product__thumbnails" role="group" aria-label="Product images">
+        {% for file in campaign_images %}
+          {% assign image = file.preview_image | default: file %}
+          <button
+            ref="thumbnail"
+            type="button"
+            class="product__thumbnail"
+            data-src="{{ image | image_url: width: 1200 }}"
+            data-alt="{{ image.alt | escape }}"
+            aria-label="Show image {{ forloop.index }} of {{ gallery_size }}"
+          >
+            <img
+              src="{{ image | image_url: width: 160, height: 160, crop: 'center' }}"
+              alt=""
+              width="80"
+              height="80"
+              loading="lazy"
+            >
+          </button>
+        {% endfor %}
         {% for image in product.images %}
           <button
             ref="thumbnail"
@@ -61,7 +110,7 @@
             class="product__thumbnail"
             data-src="{{ image | image_url: width: 1200 }}"
             data-alt="{{ image.alt | escape }}"
-            aria-label="Show image {{ forloop.index }} of {{ product.images.size }}"
+            aria-label="Show image {{ forloop.index | plus: campaign_images.size }} of {{ gallery_size }}"
           >
             <img
               src="{{ image | image_url: width: 160, height: 160, crop: 'center' }}"
