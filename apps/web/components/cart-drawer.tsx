@@ -4,6 +4,8 @@ import { EVENTS, startedCheckout } from "@formulate/analytics";
 import {
   formatMoney,
   initialOptimisticCart,
+  limitMessage,
+  maxQuantityForLine,
   optimisticCart,
   optimisticCartReducer,
   pendingLineIds,
@@ -39,7 +41,18 @@ import { CartSuggestions } from "./cart-suggestions";
  * shopper who pressed Enter keeps focus; a rolled-back change still resets
  * what it shows.
  */
-const QuantityInput = ({ id, quantity }: { id: string; quantity: number }) => {
+const QuantityInput = ({
+  id,
+  quantity,
+  max,
+  describedBy,
+}: {
+  id: string;
+  quantity: number;
+  max?: number;
+  /** The id of the visible limit message, when the line is at its limit. */
+  describedBy?: string;
+}) => {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.value = String(quantity);
@@ -51,6 +64,8 @@ const QuantityInput = ({ id, quantity }: { id: string; quantity: number }) => {
       name="quantity"
       type="number"
       min={0}
+      max={max}
+      aria-describedby={describedBy}
       defaultValue={quantity}
       className="w-16 rounded-md border border-border px-2 py-1 text-sm"
     />
@@ -248,7 +263,20 @@ export const CartDrawer = ({
                           <label htmlFor={`qty-${line.id}`} className="sr-only">
                             Quantity for {variant.product.title}
                           </label>
-                          <QuantityInput id={`qty-${line.id}`} quantity={line.quantity} />
+                          <QuantityInput
+                            id={`qty-${line.id}`}
+                            quantity={line.quantity}
+                            // At most 6 of a product per order, counting its
+                            // other lines (MAX_PER_PRODUCT; the Function is the
+                            // real rule). The browser refuses a higher number
+                            // with its own message before anything is sent.
+                            max={maxQuantityForLine(lines, line.id)}
+                            describedBy={
+                              line.quantity >= maxQuantityForLine(lines, line.id)
+                                ? `limit-${line.id}`
+                                : undefined
+                            }
+                          />
                           <button
                             type="submit"
                             className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
@@ -261,6 +289,16 @@ export const CartDrawer = ({
                           {formatMoney(line.cost.totalAmount)}
                         </p>
                       </div>
+                      {/* Visible, not a tooltip: touch and keyboard users can't
+                          reach a title, and the field stops without saying why. */}
+                      {line.quantity >= maxQuantityForLine(lines, line.id) ? (
+                        <p
+                          id={`limit-${line.id}`}
+                          className="mt-1 text-xs text-foreground-muted"
+                        >
+                          {limitMessage(variant.product.title)}
+                        </p>
+                      ) : null}
                     </div>
 
                     <form action={changeLine}>

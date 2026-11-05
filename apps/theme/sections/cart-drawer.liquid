@@ -144,6 +144,21 @@
                   method="post"
                 >
                   <input type="hidden" name="id" value="{{ item.key }}">
+                  {%- comment -%}
+                    At most 6 of a product per order, counting its other lines
+                    (another size, or a subscription beside a one-off). Mirrors
+                    MAX_PER_PRODUCT in packages/shopify; the Shopify Function is
+                    the real rule. The browser refuses a higher number first.
+                  {%- endcomment -%}
+                  {%- liquid
+                    assign product_total = 0
+                    for other in cart.items
+                      if other.product_id == item.product_id
+                        assign product_total = product_total | plus: other.quantity
+                      endif
+                    endfor
+                    assign line_max = 6 | minus: product_total | plus: item.quantity
+                  -%}
                   <label class="visually-hidden" for="qty-{{ item.key }}">
                     {{ 'cart.quantity_for' | t: title: item.product.title }}
                   </label>
@@ -154,6 +169,8 @@
                     name="quantity"
                     value="{{ item.quantity }}"
                     min="0"
+                    max="{{ line_max }}"
+                    title="{{ 'cart.limit_per_order' | t: title: item.product.title }}"
                     inputmode="numeric"
                   >
                   <button type="submit" class="cart-line__update">
