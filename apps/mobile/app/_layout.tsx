@@ -9,6 +9,7 @@ import { CartProvider } from "../components/cart-provider";
 import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
 import { initKlaviyo } from "../lib/klaviyo";
+import { initSentry } from "../lib/sentry";
 
 import "../global.css";
 
@@ -21,6 +22,7 @@ import "../global.css";
  * this integration keeps producing. Module scope runs before any render.
  */
 initKlaviyo();
+initSentry();
 
 const RootLayout = () => {
   // Created in state so the client survives Fast Refresh but is never shared
