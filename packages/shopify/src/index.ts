@@ -55,6 +55,7 @@ export {
   CartLinesRemoveMutation,
   CartLinesUpdateMutation,
   CampaignByHandleQuery,
+  BadgesQuery,
   CampaignsQuery,
   CartAttributesUpdateMutation,
   CartDiscountCodesUpdateMutation,
@@ -171,3 +172,13 @@ export {
   parseOfferRules,
 } from "./campaign-offer";
 export type { AppliesTo, OfferLine, OfferRules } from "./campaign-offer";
+
+export { BADGE_TONES, MAX_BADGES, productBadges, toBadge, toBadges } from "./badges";
+export type {
+  Badge,
+  BadgeNode,
+  BadgeProduct,
+  BadgeRule,
+  BadgeTone,
+  ShownBadge,
+} from "./badges";

@@ -1,5 +1,9 @@
 import { viewedProduct } from "@formulate/analytics";
-import { breadcrumbCollection, campaignForVariant } from "@formulate/shopify";
+import {
+  breadcrumbCollection,
+  campaignForVariant,
+  productBadges,
+} from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -10,8 +14,10 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CampaignOffer } from "@/components/campaign-offer";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
+import { ProductBadges } from "@/components/product-badges";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
+import { getBadges } from "@/lib/badges";
 import { campaignView } from "@/lib/campaign";
 import { getProduct } from "@/lib/catalogue";
 import { getNavLinks } from "@/lib/nav";
@@ -80,6 +86,8 @@ const ProductPage = async ({ params }: PageProps) => {
 
   // The campaign, if live for any variant; named variants when it's narrowed.
   const view = await campaignView();
+  // The campaign's own badge is in its offer box below, so not repeated here.
+  const badges = productBadges(product, await getBadges(), view.now);
   const variantCampaigns = product.variants.nodes.map((variant) => variant.campaign);
   const covered = product.variants.nodes.filter((variant) =>
     campaignForVariant(product.campaign, variant, variantCampaigns, view),
@@ -150,6 +158,7 @@ const ProductPage = async ({ params }: PageProps) => {
         </div>
 
         <div>
+          <ProductBadges badges={badges} />
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
 
           {campaign ? (

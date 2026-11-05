@@ -77,6 +77,7 @@
   </media-gallery>
 
   <div class="product__info">
+    {% render 'product-badges', product: product, campaign: false %}
     <h1 class="product__title">{{ product.title }}</h1>
 
     {% render 'campaign-offer', product: product %}

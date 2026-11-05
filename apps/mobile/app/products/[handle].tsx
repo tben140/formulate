@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { campaignForVariant } from "@formulate/shopify";
+import { campaignForVariant, productBadges } from "@formulate/shopify";
 
 import { AddToCart } from "../../components/add-to-cart";
 import { CampaignOffer } from "../../components/campaign-offer";
 import { useCartUi } from "../../components/cart-provider";
 import { PairsWellWith } from "../../components/pairs-well-with";
+import { ProductBadges } from "../../components/product-badges";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
+import { useBadges } from "../../lib/badges";
 import { useCampaignView } from "../../lib/campaign";
 import { useProduct } from "../../lib/queries";
 import { usePurchase, type Product } from "../../lib/use-purchase";
@@ -81,6 +83,7 @@ const ProductBody = ({ product }: { product: Product }) => {
 
   // The campaign, if live for any variant; named variants when it's narrowed.
   const campaignView = useCampaignView();
+  const badgeDefs = useBadges();
   const variantCampaigns = product.variants.nodes.map((variant) => variant.campaign);
   const covered = product.variants.nodes.filter((variant) =>
     campaignForVariant(product.campaign, variant, variantCampaigns, campaignView),
@@ -180,7 +183,9 @@ const ProductBody = ({ product }: { product: Product }) => {
           accessibilityIgnoresInvertColors
         />
 
-        <View>
+        <View className="gap-2">
+          {/* The campaign's own badge is in its offer box below. */}
+          <ProductBadges badges={productBadges(product, badgeDefs, campaignView.now)} />
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
         </View>
 

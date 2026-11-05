@@ -33,6 +33,8 @@ export const CollectionProductsQuery = graphql(`
           id
           handle
           title
+          # Badges (SHO-202): the rule reads these.
+          ...ProductBadgeFields
           # Campaign badge (SHO-169); the dates decide whether it shows.
           campaign: metafield(namespace: "double_helix", key: "campaign") {
             reference {
@@ -81,6 +83,8 @@ export const ProductByHandleQuery = graphql(`
       handle
       title
       description
+      # Badges by the title (SHO-202).
+      ...ProductBadgeFields
       # The campaign this product is in (SHO-169), whole, for the product page.
       campaign: metafield(namespace: "double_helix", key: "campaign") {
         reference {
@@ -251,12 +255,74 @@ export const FilterFields = graphql(`
   }
 `);
 
+/** A `badge` metaobject (SHO-202), as `toBadge` reads it. */
+export const BadgeFields = graphql(`
+  fragment BadgeFields on Metaobject {
+    handle
+    label: field(key: "label") {
+      value
+    }
+    tone: field(key: "tone") {
+      value
+    }
+    rule: field(key: "rule") {
+      value
+    }
+    ruleValue: field(key: "rule_value") {
+      value
+    }
+    priority: field(key: "priority") {
+      value
+    }
+    startsAt: field(key: "starts_at") {
+      value
+    }
+    endsAt: field(key: "ends_at") {
+      value
+    }
+  }
+`);
+
+/** What a product brings to the badge rule (`productBadges`). */
+export const ProductBadgeFields = graphql(`
+  fragment ProductBadgeFields on Product {
+    publishedAt
+    tags
+    requiresSellingPlan
+    chosenBadges: metafield(namespace: "double_helix", key: "badges") {
+      references(first: 10) {
+        nodes {
+          ... on Metaobject {
+            ...BadgeFields
+          }
+        }
+      }
+    }
+  }
+`);
+
+/**
+ * Every badge, for the rule badges (new, tag, subscription only). Few and
+ * shop-wide, so each surface fetches them once and caches them.
+ */
+export const BadgesQuery = graphql(`
+  query Badges {
+    metaobjects(type: "badge", first: 50) {
+      nodes {
+        ...BadgeFields
+      }
+    }
+  }
+`);
+
 /** The fields a product card needs, shared by search and recommendations. */
 export const ProductCardFields = graphql(`
   fragment ProductCardFields on Product {
     id
     handle
     title
+    # Badges (SHO-202): the rule reads these.
+    ...ProductBadgeFields
     # Sold-out products go last on a campaign's page (availableFirst).
     availableForSale
     # Campaign badge (SHO-169); the dates decide whether it shows.
