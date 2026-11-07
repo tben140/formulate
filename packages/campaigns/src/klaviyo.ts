@@ -292,3 +292,144 @@ export const setProfileProperty = async (
   if (!response.ok)
     throw new Error(`Klaviyo: HTTP ${response.status} updating a profile`);
 };
+
+/** A list by its exact name, or null when there's none. Read only. */
+export const getListByName = async (
+  key: string,
+  name: string,
+): Promise<{ id: string } | null> => {
+  const filter = `equals(name,${JSON.stringify(name)})`;
+  const response = await fetch(`${BASE}/lists?filter=${encodeURIComponent(filter)}`, {
+    headers: headers(key),
+  });
+  if (!response.ok) throw new Error(`Klaviyo: HTTP ${response.status}`);
+  const body = (await response.json()) as { data: { id: string }[] };
+  return body.data[0] ? { id: body.data[0].id } : null;
+};
+
+/** A list's members: profile id and email (lower-cased, or null). Read only. */
+export const getListMembers = async (
+  key: string,
+  listId: string,
+): Promise<{ id: string; email: string | null }[]> => {
+  const members: { id: string; email: string | null }[] = [];
+  let url: string | null =
+    `${BASE}/lists/${encodeURIComponent(listId)}/profiles?fields[profile]=email&page[size]=100`;
+  while (url) {
+    const response = await fetch(url, { headers: headers(key) });
+    if (!response.ok) throw new Error(`Klaviyo: HTTP ${response.status}`);
+    const body = (await response.json()) as {
+      data: { id: string; attributes: { email?: string | null } }[];
+      links?: { next?: string | null };
+    };
+    for (const profile of body.data)
+      members.push({
+        id: profile.id,
+        email: profile.attributes.email?.toLowerCase() ?? null,
+      });
+    url = body.links?.next ?? null;
+  }
+  return members;
+};
+
+/** Every email address on a list, lower-cased. Read only. */
+export const getListEmails = async (key: string, listId: string): Promise<string[]> =>
+  (await getListMembers(key, listId)).flatMap((member) => member.email ?? []);
+
+/**
+ * The flows a list triggers, with their status. Adding someone to a list that
+ * triggers a live flow can send them a message, so the segment sync changes
+ * no list that does (docs/campaign-segments.md, How membership is kept).
+ */
+export const getListFlows = async (
+  key: string,
+  listId: string,
+): Promise<{ id: string; name: string; status: string }[]> => {
+  const response = await fetch(
+    `${BASE}/lists/${encodeURIComponent(listId)}/flow-triggers?fields[flow]=name,status`,
+    { headers: headers(key) },
+  );
+  if (!response.ok)
+    throw new Error(`Klaviyo: HTTP ${response.status} reading a list's flows`);
+  const body = (await response.json()) as {
+    data: { id: string; attributes: { name: string; status: string } }[];
+  };
+  return body.data.map((flow) => ({
+    id: flow.id,
+    name: flow.attributes.name,
+    status: flow.attributes.status,
+  }));
+};
+
+/** Creates a static list. A new list triggers no flow, so this sends nothing. */
+export const createList = async (key: string, name: string): Promise<string> => {
+  const response = await fetch(`${BASE}/lists`, {
+    method: "POST",
+    headers: headers(key),
+    body: JSON.stringify({ data: { type: "list", attributes: { name } } }),
+  });
+  if (!response.ok)
+    throw new Error(`Klaviyo: HTTP ${response.status} creating "${name}"`);
+  return ((await response.json()) as { data: { id: string } }).data.id;
+};
+
+/**
+ * Adds people to a list by email, through a bulk profile import (10,000 per
+ * job, Klaviyo's limit). It creates any profile that doesn't exist and leaves
+ * marketing consent as it is: being on a list doesn't subscribe anyone, and
+ * campaigns still go only to the subscribed. Returns the number of jobs.
+ */
+export const addEmailsToList = async (
+  key: string,
+  listId: string,
+  emails: readonly string[],
+): Promise<number> => {
+  let jobs = 0;
+  for (let i = 0; i < emails.length; i += 10_000) {
+    const response = await fetch(`${BASE}/profile-bulk-import-jobs`, {
+      method: "POST",
+      headers: headers(key),
+      body: JSON.stringify({
+        data: {
+          type: "profile-bulk-import-job",
+          attributes: {
+            profiles: {
+              data: emails
+                .slice(i, i + 10_000)
+                .map((email) => ({ type: "profile", attributes: { email } })),
+            },
+          },
+          relationships: { lists: { data: [{ type: "list", id: listId }] } },
+        },
+      }),
+    });
+    if (!response.ok)
+      throw new Error(`Klaviyo: HTTP ${response.status} adding profiles to ${listId}`);
+    jobs++;
+  }
+  return jobs;
+};
+
+/** Takes profiles off a list (1,000 per request, Klaviyo's limit). Deletes no profile. */
+export const removeFromList = async (
+  key: string,
+  listId: string,
+  profileIds: readonly string[],
+): Promise<void> => {
+  for (let i = 0; i < profileIds.length; i += 1000) {
+    const response = await fetch(
+      `${BASE}/lists/${encodeURIComponent(listId)}/relationships/profiles`,
+      {
+        method: "DELETE",
+        headers: headers(key),
+        body: JSON.stringify({
+          data: profileIds.slice(i, i + 1000).map((id) => ({ type: "profile", id })),
+        }),
+      },
+    );
+    if (!response.ok)
+      throw new Error(
+        `Klaviyo: HTTP ${response.status} removing profiles from ${listId}`,
+      );
+  }
+};

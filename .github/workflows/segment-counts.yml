@@ -3,14 +3,18 @@ name: Segment sync
 # Works out each customer segment once a day (SHO-207, docs/campaign-segments.md):
 # adds and removes the segment:<key> customer tags the segment discounts read
 # (approved by Ben, 5 Nov 2026), and stores the counts on the Campaign
-# settings record, for the calendar. It touches no Klaviyo lists. It refuses
-# to strip most of a segment's tags in one run (a failed read, usually); a
-# person checks and reruns with --force-tags.
+# settings record, for the calendar. With KLAVIYO_PRIVATE_KEY set it also
+# keeps one static Klaviyo list per segment ("Segment: lapsed"; approved by
+# Ben, 5 Nov 2026), leaving alone any list that triggers a live flow, so the
+# sync can't send anything. It refuses to strip most of a segment's tags or
+# list in one run (a failed read, usually); a person checks and reruns with
+# --force-tags or --force-lists.
 #
 # Signs in as the Double Helix app (client credentials) and reads Recharge.
 # Needs three repository secrets, SHOPIFY_STORE_DOMAIN,
 # SHOPIFY_APP_CLIENT_SECRET and RECHARGE_API_TOKEN; without them the run
-# skips with a notice. The secrets reach only the counting step.
+# skips with a notice. KLAVIYO_PRIVATE_KEY is optional: without it the lists
+# are left out. The secrets reach only the sync step.
 on:
   schedule:
     # 02:47 UTC: after price history, away from the hour.
@@ -59,6 +63,12 @@ jobs:
           SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
           SHOPIFY_APP_CLIENT_SECRET: ${{ secrets.SHOPIFY_APP_CLIENT_SECRET }}
           RECHARGE_API_TOKEN: ${{ secrets.RECHARGE_API_TOKEN }}
+          KLAVIYO_PRIVATE_KEY: ${{ secrets.KLAVIYO_PRIVATE_KEY }}
           # No ~/.config file in CI: the environment is the only source.
           CAMPAIGNS_ENV: /dev/null
-        run: pnpm campaigns segments --apply --tags
+        run: |
+          if [ -n "$KLAVIYO_PRIVATE_KEY" ]; then
+            pnpm campaigns segments --apply --tags --klaviyo
+          else
+            pnpm campaigns segments --apply --tags
+          fi

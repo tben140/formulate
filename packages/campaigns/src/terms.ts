@@ -1,5 +1,7 @@
 import { formatMoney, type Campaign, type OfferRules } from "@formulate/shopify";
 
+import { SEGMENT_AUDIENCE, type SegmentOffer } from "./offers";
+
 /**
  * A campaign's terms, written from its rules (SHO-169), so the wording can't
  * drift from what checkout charges: the dates in UK time, the offer, who and
@@ -72,10 +74,35 @@ const reach = (rules: OfferRules): string =>
       ? "the first delivery of a new subscription"
       : "one-time purchases and subscriptions";
 
+/** How a segment's members get their offer, in the terms. */
+const DELIVERY_WORDS = {
+  sign_in: "signed in to their account",
+  email_link: "through the link in our email",
+  codes: "with the personal code we email them",
+} as const;
+
+/**
+ * "Past subscribers, signed in to their account: 30% off one-time purchases
+ * instead, up to 2 of each product per order, once per customer." The limits
+ * are the ones the Function enforces for the offer, so the terms must say them.
+ */
+export const segmentOfferSentence = (offer: SegmentOffer): string => {
+  const limits = [
+    offer.rules.maxUnits !== null
+      ? `up to ${offer.rules.maxUnits} of each product per order`
+      : null,
+    offer.rules.oncePerCustomer ? "once per customer" : null,
+  ].filter((limit): limit is string => limit !== null);
+  return `${SEGMENT_AUDIENCE[offer.segment]}, ${DELIVERY_WORDS[offer.delivery]}: ${offerInWords(offer.rules)}${joiner(offer.rules)}${reach(offer.rules)} instead${limits.length ? `, ${limits.join(", ")}` : ""}.`;
+};
+
 export const campaignTerms = (
   campaign: Campaign,
   rules: OfferRules,
-  { demo = true }: { readonly demo?: boolean } = {},
+  {
+    demo = true,
+    offers = [],
+  }: { readonly demo?: boolean; readonly offers?: readonly SegmentOffer[] } = {},
 ): string => {
   // ends_at is the first moment it's over; the last one covered is a minute before.
   const lastMinute = new Date(campaign.endsAt.getTime() - 60_000);
@@ -103,6 +130,10 @@ export const campaignTerms = (
     // How campaigns perks gives it: one per active subscription, next delivery after the end.
     campaign.subscriberPerk
       ? `Subscribers: ${campaign.subscriberPerk.replace(/[.,]\s*$/, "")}; one per active subscription, added to the next delivery after ${ukDate(lastMinute)}`
+      : null,
+    ...offers.map(segmentOfferSentence),
+    offers.length > 0
+      ? "Anyone who qualifies for more than one offer gets the larger, once"
       : null,
     demo ? DEMO_NOTE : null,
   ];
