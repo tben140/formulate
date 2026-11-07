@@ -55,16 +55,16 @@ Thresholds live on the **Campaign settings** record (metaobject type `campaign_c
 
 ## How membership is kept
 
-A nightly job, `pnpm campaigns segments --apply --tags` (`.github/workflows/segment-counts.yml`), like price history:
+A nightly job, `pnpm campaigns segments --apply --tags` (`.github/workflows/segment-counts.yml`), like price history. It does steps 1, 2 and 4 today; step 3 is planned:
 
 1. Works out each Shopify segment's members from the sources above, as Shopify customer IDs. Recharge customers map through Recharge's `external_customer_id`; one with no Shopify customer is counted and left out.
 2. **In Shopify:** reads who has each tag now (`customers(query: "tag:'segment:<key>'")`), then adds `segment:<key>` to new members (`tagsAdd`) and removes it from tagged customers who are no longer members (`tagsRemove`). Shopify is the record of who's tagged, so nothing else is stored. This is the tag the Function's `audienceTags` reads.
-3. **In Klaviyo (SHO-208):** keeps a static list per segment ("Segment: lapsed") in step, by the Shopify customer's email. A member with no email is counted and left out. These are **lists, not segments**, so membership is exactly the job's, never Klaviyo's own logic.
+3. **In Klaviyo (planned, SHO-208):** will keep a static list per segment ("Segment: lapsed") in step, by the Shopify customer's email. A member with no email is counted and left out. These are **lists, not segments**, so membership is exactly the job's, never Klaviyo's own logic.
    - **Adding someone to a list can send a message** if a live flow is triggered by that list. So before changing a list, the sync looks up the flows it triggers (Klaviyo's flows-triggered-by-list). **If any flow is live, it changes nothing for that list and reports it.** Draft and manual flows are allowed. Every list the sync creates is new, so it starts with no flows.
    - Campaign emails to a list stay drafts until Ben approves them, as always.
 4. Plans unless `--apply`, like every other command, and writes tags only with `--tags`. The calendar shows each segment's count and when it was last synced.
    - **A run that would take a tag off more than half of a segment (and more than 10 people) is refused**, since that's usually a failed read. Check, then rerun by hand with `--force-tags`.
-   - The nightly workflow skips with a notice until the `RECHARGE_API_TOKEN` repository secret is set.
+   - The nightly workflow skips with a notice until the `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_APP_CLIENT_SECRET` and `RECHARGE_API_TOKEN` repository secrets are all set.
 
 ## Offers per segment
 
