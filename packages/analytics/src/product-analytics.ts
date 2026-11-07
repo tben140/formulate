@@ -85,28 +85,47 @@ export interface ProductEventProperties {
 /** "gid://shopify/Product/123" → "123"; anything else unchanged. */
 export const numericId = (gid: string): string => gid.split("/").pop() ?? gid;
 
-/** A random v4 UUID for an anonymous visitor. Not security: just unique enough. */
+/**
+ * A random v4 UUID for an anonymous visitor, from the platform's secure
+ * random source: `crypto.randomUUID`, or `crypto.getRandomValues` where that
+ * is missing (a page served over plain http). No Math.random fallback. React
+ * Native has neither, so the app passes Expo's native `uuid.v4` instead
+ * (apps/mobile/lib/product-analytics.ts).
+ */
 export const anonymousId = (): string => {
   // Typed here, not from lib.dom: this package also compiles under the
   // Worker's and React Native's type sets, which describe crypto differently.
-  const cryptoApi = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  const cryptoApi = (
+    globalThis as {
+      crypto?: {
+        randomUUID?: () => string;
+        getRandomValues?: (array: Uint8Array) => Uint8Array;
+      };
+    }
+  ).crypto;
   if (typeof cryptoApi?.randomUUID === "function") return cryptoApi.randomUUID();
-  // Hermes may lack crypto; an analytics id doesn't need it.
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
+  if (typeof cryptoApi?.getRandomValues !== "function")
+    throw new Error("No secure random source for an analytics id.");
+  const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80; // RFC 4122 variant
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 };
 
 /**
  * A v7 UUID (time-ordered), the format PostHog's own SDKs use for
  * `$session_id`; Web Analytics derives sessions and their start times from it.
+ * Its random bits come from `random`, a v4 UUID (by default `anonymousId()`).
  */
-export const sessionUuid = (now: number = Date.now()): string => {
+export const sessionUuid = (
+  now: number = Date.now(),
+  random: string = anonymousId(),
+): string => {
   const hex = now.toString(16).padStart(12, "0");
-  const random = anonymousId().replace(/-/g, "").slice(12);
-  const variant = ((parseInt(random.slice(4, 5), 16) & 0x3) | 0x8).toString(16);
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-7${random.slice(0, 3)}-${variant}${random.slice(5, 8)}-${random.slice(8, 20)}`;
+  const bits = random.replace(/-/g, "").slice(12);
+  const variant = ((parseInt(bits.slice(4, 5), 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-7${bits.slice(0, 3)}-${variant}${bits.slice(5, 8)}-${bits.slice(8, 20)}`;
 };
 
 /** A session ends after 30 minutes without an event, as in PostHog's SDKs. */
