@@ -3,6 +3,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { flag } from "./args";
 import { adminFromEnv, type Admin } from "./admin";
 import { AUDIENCE_TAG, lapsedCustomers } from "./audience";
 import { calendar, calendarMarkdown } from "./calendar";
@@ -160,11 +161,6 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
 Reads SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET (and KLAVIYO_PRIVATE_KEY,
 optional) from the environment or ~/.config/formulate/shopify-app.env, and
 RECHARGE_API_TOKEN (perks, audience and segments) from ~/.config/formulate/recharge.env.`;
-
-const flag = (args: string[], name: string) => {
-  const index = args.indexOf(`--${name}`);
-  return index >= 0 ? args[index + 1] : undefined;
-};
 
 const snapshot = async (
   admin: Admin,
