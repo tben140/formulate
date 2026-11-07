@@ -43,6 +43,12 @@ describe("parseThresholds", () => {
     ]);
   });
 
+  it("reports an inherited property name as not a threshold", () => {
+    const { thresholds, problems } = parseThresholds(JSON.stringify({ constructor: 5 }));
+    expect(thresholds).toEqual(DEFAULT_THRESHOLDS);
+    expect(problems).toEqual(["constructor: not a threshold"]);
+  });
+
   it("rejects a dormant window that ends before it starts", () => {
     const { thresholds, problems } = parseThresholds(
       JSON.stringify({ dormantFromDays: 200, dormantToDays: 100 }),
