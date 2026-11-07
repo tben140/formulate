@@ -15,6 +15,8 @@ export const PERK_PROPERTY = "_campaign_perk";
 /** An active Recharge subscription, as far as the perk goes. */
 export interface PerkSubscription {
   readonly id: number;
+  /** Recharge's customer id. */
+  readonly customerId: number;
   readonly addressId: number;
   /** "2026-12-04", or null when nothing is scheduled. */
   readonly nextChargeDate: string | null;
@@ -76,4 +78,22 @@ export const planPerks = (
     }
   }
   return { add, skip };
+};
+
+/**
+ * Only the subscriptions whose customer is in a segment (`--segment`), e.g.
+ * at_risk's "keep your plan" perk (docs/campaign-segments.md, Decisions 4).
+ * `members` are Shopify customer GIDs; a Recharge customer with no Shopify
+ * customer can't be in a segment, so their subscriptions are left out.
+ */
+export const inSegment = (
+  subscriptions: readonly PerkSubscription[],
+  shopifyIdOf: ReadonlyMap<number, string>,
+  members: readonly string[],
+): PerkSubscription[] => {
+  const wanted = new Set(members);
+  return subscriptions.filter((s) => {
+    const id = shopifyIdOf.get(s.customerId);
+    return id !== undefined && wanted.has(id);
+  });
 };

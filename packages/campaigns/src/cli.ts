@@ -11,7 +11,7 @@ import { checkCampaign } from "./check";
 import { generateCodes, isPersonalPool, PERSONAL_POOL } from "./codes";
 import { urgencyFlow, urgencySubject } from "./flows";
 import { plannedEmails, plannedPushes } from "./emails";
-import { perkKey, planPerks } from "./perks";
+import { inSegment, perkKey, planPerks } from "./perks";
 import { recordPrice, ukDay } from "./price-history";
 import {
   activeCustomerIds,
@@ -53,6 +53,7 @@ import {
   listSync,
   segmentListName,
   type ListSync,
+  type SegmentKey,
   segmentMembers,
   segmentTag,
   tagPlan,
@@ -130,8 +131,10 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns report <handle> [--html <file> [--watch <minutes>]]
                                               results, as Markdown, or a dashboard page,
                                               rewritten every N minutes with --watch
-  pnpm campaigns perks <handle> [--apply]     the subscriber perk on each next delivery after
-                                              the campaign; plans unless --apply
+  pnpm campaigns perks <handle> [--segment <key>] [--apply]
+                                              the subscriber perk on each next delivery after
+                                              the campaign, only for a segment's subscribers
+                                              with --segment (at_risk); plans unless --apply
   pnpm campaigns tag-buyers <handle> [--apply]
                                               tags customers who've had the offer, for
                                               oncePerCustomer; plans unless --apply
@@ -181,6 +184,34 @@ const snapshot = async (
     discounts: await getDiscounts(admin, { includeExpired }),
     emails: key && entry.fields.title ? await getEmails(key, entry.fields.title) : null,
   };
+};
+
+/**
+ * Each segment's members now, as the nightly sync works them out, with the
+ * thresholds from the Campaign settings record (or the defaults).
+ */
+const loadSegments = async (admin: Admin, token: string, now: Date) => {
+  const settings = await getCampaignSettings(admin);
+  const { thresholds, problems } = parseThresholds(settings?.segmentThresholds);
+  console.log(
+    settings
+      ? "Thresholds from the Campaign settings record."
+      : "No Campaign settings record: default thresholds.",
+  );
+  for (const problem of problems) console.log(`  ignored: ${problem}`);
+  const since = new Date(now.getTime() - thresholds.atRiskDays * 24 * 60 * 60 * 1000);
+  const shopifyIdOf = await shopifyIdsByRechargeId(token);
+  const segments = segmentMembers(
+    {
+      subscriptions: await allSubscriptions(token),
+      missed: await missedCharges(token, since.toISOString().slice(0, 10)),
+      customers: await getSegmentCustomers(admin),
+      shopifyIdOf,
+    },
+    thresholds,
+    now,
+  );
+  return { settings, thresholds, segments, shopifyIdOf };
 };
 
 const main = async (args: string[]): Promise<number> => {
@@ -801,25 +832,7 @@ Next:
         throw new Error("Set RECHARGE_API_TOKEN (~/.config/formulate/recharge.env).");
       const admin = await adminFromEnv();
       const now = new Date();
-      const settings = await getCampaignSettings(admin);
-      const { thresholds, problems } = parseThresholds(settings?.segmentThresholds);
-      console.log(
-        settings
-          ? "Thresholds from the Campaign settings record."
-          : "No Campaign settings record: default thresholds.",
-      );
-      for (const problem of problems) console.log(`  ignored: ${problem}`);
-      const since = new Date(now.getTime() - thresholds.atRiskDays * 24 * 60 * 60 * 1000);
-      const segments = segmentMembers(
-        {
-          subscriptions: await allSubscriptions(token),
-          missed: await missedCharges(token, since.toISOString().slice(0, 10)),
-          customers: await getSegmentCustomers(admin),
-          shopifyIdOf: await shopifyIdsByRechargeId(token),
-        },
-        thresholds,
-        now,
-      );
+      const { settings, thresholds, segments } = await loadSegments(admin, token, now);
       const plans = [];
       for (const key of SEGMENT_KEYS) {
         const members = segments.members[key];
@@ -969,15 +982,30 @@ Next:
         throw new Error("The campaign has no perk_variant: nothing to add.");
       const variant = await getPerkVariant(admin, variantId);
       if (!variant) throw new Error(`perk_variant ${variantId} doesn't exist.`);
+      const segment = flag(rest, "segment");
+      if (segment !== undefined && !SEGMENT_KEYS.includes(segment as SegmentKey))
+        throw new Error(`--segment is one of ${SEGMENT_KEYS.join(", ")}.`);
+      let subscriptions = await activeSubscriptions(token);
+      if (segment) {
+        const { segments, shopifyIdOf } = await loadSegments(admin, token, new Date());
+        subscriptions = inSegment(
+          subscriptions,
+          shopifyIdOf,
+          segments.members[segment as SegmentKey],
+        );
+      }
       const plan = planPerks(
         handle,
         campaign.endsAt,
-        await activeSubscriptions(token),
+        subscriptions,
         await perkOnetimes(token),
       );
       const apply = rest.includes("--apply");
       console.log(
-        `${variant.title}, free, with the next delivery after ${campaign.endsAt.toISOString()}:`,
+        `${variant.title}, free, with the next delivery after ${campaign.endsAt.toISOString()}` +
+          (segment
+            ? `, for the ${segment} segment (${subscriptions.length} subscriptions):`
+            : ":"),
       );
       for (const item of plan.add) {
         const line = `  subscription ${item.subscriptionId}: address ${item.addressId}, charge ${item.date}`;

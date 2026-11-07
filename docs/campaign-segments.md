@@ -103,5 +103,5 @@ The campaign record gains an optional **`offers`** JSON field next to `offer_rul
 2. **Shopify tags:** yes. The nightly job may add and remove `segment:<key>` tags on customers.
 3. **Protected customer data:** not needed; the approved scopes return every field the segments read (see Segments).
 4. **First segments:** `lapsed` (win-back) and `at_risk` (a "keep your plan" perk, not a discount).
-   - **The `at_risk` perk** uses the existing renewal path: `campaigns perks <handle>` adds a free item to the next Recharge delivery, which the checkout Function can't. It gains a `--segment at_risk` option that limits it to that segment's subscriptions. Without the option it keeps adding the perk to every active subscription, as now.
+   - **The `at_risk` perk** uses the existing renewal path: `campaigns perks <handle>` adds a free item to the next Recharge delivery, which the checkout Function can't. `--segment at_risk` limits it to that segment's subscriptions, worked out as the nightly sync does; without it the perk goes to every active subscription. Any segment key works, though only the subscriber segments (`active`, `at_risk`, `best`) have subscriptions to add to.
 5. **Thresholds:** 12 months for lapsed, 90–180 days for dormant, top 10% for best, adjustable on the Campaign settings record.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { PERK_PROPERTY, perkKey, planPerks } from "./perks";
+import { inSegment, PERK_PROPERTY, perkKey, planPerks } from "./perks";
 
 const END = new Date("2026-12-01T00:00:00Z");
 
@@ -11,8 +11,8 @@ describe("planPerks", () => {
         "black-friday-2026",
         END,
         [
-          { id: 1, addressId: 10, nextChargeDate: "2026-12-04" },
-          { id: 2, addressId: 10, nextChargeDate: "2026-12-01" },
+          { id: 1, customerId: 100, addressId: 10, nextChargeDate: "2026-12-04" },
+          { id: 2, customerId: 100, addressId: 10, nextChargeDate: "2026-12-01" },
         ],
         [],
       ),
@@ -30,9 +30,9 @@ describe("planPerks", () => {
       "black-friday-2026",
       END,
       [
-        { id: 1, addressId: 10, nextChargeDate: "2026-11-30" },
-        { id: 2, addressId: 11, nextChargeDate: null },
-        { id: 3, addressId: 12, nextChargeDate: "2026-12-10" },
+        { id: 1, customerId: 100, addressId: 10, nextChargeDate: "2026-11-30" },
+        { id: 2, customerId: 100, addressId: 11, nextChargeDate: null },
+        { id: 3, customerId: 100, addressId: 12, nextChargeDate: "2026-12-10" },
       ],
       [
         {
@@ -56,7 +56,7 @@ describe("planPerks", () => {
     const plan = planPerks(
       "black-friday-2026",
       END,
-      [{ id: 3, addressId: 12, nextChargeDate: "2026-12-10" }],
+      [{ id: 3, customerId: 100, addressId: 12, nextChargeDate: "2026-12-10" }],
       [
         {
           addressId: 12,
@@ -65,5 +65,30 @@ describe("planPerks", () => {
       ],
     );
     expect(plan.add).toHaveLength(1);
+  });
+});
+
+describe("inSegment", () => {
+  const sub = (id: number, customerId: number) => ({
+    id,
+    customerId,
+    addressId: 10,
+    nextChargeDate: "2026-12-04",
+  });
+
+  it("keeps only subscriptions whose Shopify customer is in the segment", () => {
+    const shopifyIdOf = new Map([
+      [100, "gid://shopify/Customer/1"],
+      [200, "gid://shopify/Customer/2"],
+    ]);
+    expect(
+      inSegment([sub(1, 100), sub(2, 200), sub(3, 300)], shopifyIdOf, [
+        "gid://shopify/Customer/2",
+      ]).map((s) => s.id),
+    ).toEqual([2]);
+  });
+
+  it("leaves out a Recharge customer with no Shopify customer", () => {
+    expect(inSegment([sub(1, 300)], new Map(), ["gid://shopify/Customer/3"])).toEqual([]);
   });
 });
