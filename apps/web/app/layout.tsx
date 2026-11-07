@@ -2,7 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import Link from "next/link";
+import Link from "@/components/link";
 import type { ReactNode } from "react";
 
 import { AnalyticsPageviews } from "@/components/analytics-pageviews";
@@ -64,8 +64,10 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
     getLegalLinks(),
   ]);
   // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
-  // no request at all.
-  const suggestions = await getCartSuggestions(cart);
+  // no request at all. Passed unawaited: the page renders now and the drawer's
+  // suggestions follow when they arrive (CartDrawer), so an optional extra
+  // never holds every page.
+  const suggestions = getCartSuggestions(cart);
 
   // Read on the server so the first render is already right: no banner flash
   // for someone who has decided, and no script tag for someone who declined.

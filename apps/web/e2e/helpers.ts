@@ -29,13 +29,20 @@ export const addToCart = async (page: Page) => {
 /**
  * The product titles of the drawer's lines, top to bottom.
  *
- * A line is a list item with its own Remove button. Matching on that rather
- * than on list position keeps other lists in the drawer (suggestions, SHO-116)
- * out of it.
+ * Read from each line's "Remove … from cart" button, which only cart lines
+ * have: other lists in the drawer (suggestions, SHO-116) stay out of it, and
+ * no styling class is involved.
  */
-export const lineTitles = (page: Page) =>
-  drawer(page)
-    .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: /^Remove .+ from cart$/ }) })
-    .locator("p.truncate")
-    .allTextContents();
+export const lineTitles = async (page: Page) => {
+  const buttons = await drawer(page)
+    .getByRole("button", { name: /^Remove .+ from cart$/ })
+    .all();
+  // The name is the button's text: "Remove", then a screen-reader-only title.
+  const names = await Promise.all(buttons.map((button) => button.textContent()));
+  return names.map((name) =>
+    (name ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/^Remove (.+) from cart$/, "$1"),
+  );
+};
