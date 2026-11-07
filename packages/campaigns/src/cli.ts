@@ -30,8 +30,12 @@ import {
   createFlow,
   createPushDraft,
   getEmails,
+  addEmailsToList,
+  createList,
   getListByName,
-  getListEmails,
+  getListFlows,
+  getListMembers,
+  removeFromList,
   getPushNames,
   setProfileProperty,
   shopifyFlowMetrics,
@@ -46,7 +50,9 @@ import {
   parseThresholds,
   SEGMENT_KEYS,
   segmentCounts,
+  listSync,
   segmentListName,
+  type ListSync,
   segmentMembers,
   segmentTag,
   tagPlan,
@@ -136,14 +142,17 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns audience lapsed --tag <tag> [--within 180] [--apply]
                                               tags lapsed subscribers (all cancelled, the
                                               last within N days) for a win-back offer
-  pnpm campaigns segments [--apply] [--tags] [--force-tags] [--klaviyo]
+  pnpm campaigns segments [--apply] [--tags] [--force-tags] [--klaviyo] [--force-lists]
                                               each customer segment's size and the tags a
                                               sync would add and remove (SHO-207); --apply
                                               stores the counts for the calendar, and with
                                               --tags also adds and removes segment:<key>
                                               tags (refuses a sync that would strip most of
                                               a segment unless --force-tags); --klaviyo
-                                              plans each segment's list (SHO-208)
+                                              plans each segment's Klaviyo list, and with
+                                              --apply keeps it in step (SHO-208; skips a
+                                              list with a live flow, refuses to empty most
+                                              of a list unless --force-lists)
 
 Reads SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET (and KLAVIYO_PRIVATE_KEY,
 optional) from the environment or ~/.config/formulate/shopify-app.env, and
@@ -822,10 +831,11 @@ Next:
             `  (sync: +${plan.add.length} -${plan.remove.length} ${segmentTag(key)})`,
         );
       }
-      // SHO-208, planned only: what each segment's Klaviyo list would gain and lose.
+      // SHO-208: what each segment's Klaviyo list would gain and lose.
+      const listPlans: ListSync[] = [];
+      const klaviyoKey = process.env.KLAVIYO_PRIVATE_KEY;
       if (rest.includes("--klaviyo")) {
-        const key = process.env.KLAVIYO_PRIVATE_KEY;
-        if (!key) throw new Error("--klaviyo needs KLAVIYO_PRIVATE_KEY.");
+        if (!klaviyoKey) throw new Error("--klaviyo needs KLAVIYO_PRIVATE_KEY.");
         const everyone = [...new Set(SEGMENT_KEYS.flatMap((k) => segments.members[k]))];
         const emailOf = new Map(
           (await getBuyerContacts(admin, everyone)).map((c) => [
@@ -838,16 +848,22 @@ Next:
           const emails = segments.members[segmentKey].flatMap(
             (id) => emailOf.get(id) ?? [],
           );
-          const list = await getListByName(key, name);
-          const plan = tagPlan(emails, list ? await getListEmails(key, list.id) : []);
+          const found = await getListByName(klaviyoKey, name);
+          const list = found && {
+            id: found.id,
+            members: await getListMembers(klaviyoKey, found.id),
+            flows: await getListFlows(klaviyoKey, found.id),
+          };
+          const plan = listSync(segmentKey, emails, list);
+          listPlans.push(plan);
+          const noEmail = segments.members[segmentKey].length - emails.length;
           console.log(
-            `"${name}": ${list ? "exists" : "would be created"}, +${plan.add.length} -${plan.remove.length}` +
-              (emails.length < segments.members[segmentKey].length
-                ? ` (${segments.members[segmentKey].length - emails.length} without an email)`
-                : ""),
+            plan.skip
+              ? plan.skip
+              : `"${name}": ${list ? "exists" : "would be created"}, +${plan.add.length} -${plan.remove.length}` +
+                  (noEmail ? ` (${noEmail} without an email)` : ""),
           );
         }
-        console.log("Klaviyo lists are planned only: nothing is created or changed.");
       }
       if (segments.unmatched)
         console.log(
@@ -857,13 +873,19 @@ Next:
       const tags = rest.includes("--tags");
       if (!apply) {
         console.log(
-          "Planned only. Run with --apply to store the counts, and --tags to write the tags too.",
+          "Planned only. Run with --apply to store the counts, adding --tags to write the tags and --klaviyo to keep the lists.",
         );
         return 0;
       }
       if (!settings)
         throw new Error(
           "Create the Campaign settings record first (docs/campaign-segments.md, Settings).",
+        );
+      // Every refusal before any write, so a refused run changes nothing.
+      const listProblems = listPlans.flatMap((p) => p.problem ?? []);
+      if (listProblems.length && !rest.includes("--force-lists"))
+        throw new Error(
+          `Nothing written: ${listProblems.join("; ")}. Check the counts, then rerun with --force-lists.`,
         );
       if (tags) {
         const problems = plans.flatMap((p) => p.problem ?? []);
@@ -876,6 +898,20 @@ Next:
           await untagCustomers(admin, plan.remove, segmentTag(key));
         }
         console.log("Tags written.");
+      }
+      if (klaviyoKey && listPlans.length) {
+        for (const plan of listPlans) {
+          if (plan.skip) continue;
+          if (!plan.listId && !plan.add.length) continue;
+          const listId =
+            plan.listId ?? (await createList(klaviyoKey, segmentListName(plan.key)));
+          // A list made a moment ago has no flows yet, so adding to it sends nothing.
+          if (plan.add.length) await addEmailsToList(klaviyoKey, listId, plan.add);
+          if (plan.remove.length) await removeFromList(klaviyoKey, listId, plan.remove);
+        }
+        console.log(
+          "Klaviyo lists updated (profile imports finish within a few minutes). Nothing was sent.",
+        );
       }
       await setSegmentCounts(admin, segmentCounts(segments, now));
       console.log("Counts stored on the Campaign settings record.");

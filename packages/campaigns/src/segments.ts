@@ -276,6 +276,65 @@ export const tagSyncProblem = (
     ? `${segmentTag(key)}: would remove ${plan.remove.length} of ${tagged} tags`
     : null;
 
+/** A segment's Klaviyo list now: its members and the flows it triggers. */
+export interface CurrentList {
+  readonly id: string;
+  readonly members: readonly { readonly id: string; readonly email: string | null }[];
+  readonly flows: readonly { readonly name: string; readonly status: string }[];
+}
+
+export interface ListSync {
+  readonly key: SegmentKey;
+  /** Why the list is left alone this run (a live flow), if it is. */
+  readonly skip?: string;
+  /** Null: the list doesn't exist yet and is created. */
+  readonly listId: string | null;
+  readonly add: readonly string[];
+  /** Profile ids to take off: no longer members, or with no email. */
+  readonly remove: readonly string[];
+  readonly problem: string | null;
+}
+
+/**
+ * What keeping a segment's list in step would do (SHO-208). A list that
+ * triggers a live flow is left alone, since adding someone to it could send
+ * them a message; draft and manual flows are fine. The same guard as tags
+ * applies to removals.
+ */
+export const listSync = (
+  key: SegmentKey,
+  emails: readonly string[],
+  list: CurrentList | null,
+): ListSync => {
+  const live = (list?.flows ?? []).filter((flow) => flow.status === "live");
+  if (live.length)
+    return {
+      key,
+      skip: `"${segmentListName(key)}" triggers a live flow (${live.map((f) => f.name).join(", ")}): not changed`,
+      listId: list?.id ?? null,
+      add: [],
+      remove: [],
+      problem: null,
+    };
+  const want = new Set(emails.map((email) => email.toLowerCase()));
+  const have = new Set((list?.members ?? []).flatMap((m) => m.email ?? []));
+  const add = [...want].filter((email) => !have.has(email));
+  const remove = (list?.members ?? [])
+    .filter((m) => !m.email || !want.has(m.email))
+    .map((m) => m.id);
+  const current = list?.members.length ?? 0;
+  return {
+    key,
+    listId: list?.id ?? null,
+    add,
+    remove,
+    problem:
+      remove.length > 10 && remove.length > current / 2
+        ? `"${segmentListName(key)}": would remove ${remove.length} of ${current}`
+        : null,
+  };
+};
+
 /** The counts snapshot the calendar shows, stored on the settings record. */
 export interface SegmentCounts {
   readonly syncedAt: string;
