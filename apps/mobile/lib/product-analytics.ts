@@ -40,21 +40,31 @@ const listeners = new Set<() => void>();
 
 const notify = () => listeners.forEach((listener) => listener());
 
+/** Bumped by every choice, so a load that overlaps one can tell. */
+let choices = 0;
+
 /** Reads the stored choice once, at startup (app/_layout.tsx). */
 export const loadAnalyticsConsent = async (): Promise<void> => {
   if (!POSTHOG_KEY) return;
+  const seen = choices;
   const stored = await SecureStore.getItemAsync(CONSENT_KEY).catch(() => null);
-  consent = stored === "granted" || stored === "denied" ? stored : "unset";
-  if (consent === "granted") {
-    const stored = await SecureStore.getItemAsync(ID_KEY).catch(() => null);
-    // The choice can change while the id is read (the banner reopened and
-    // declined); a withdrawal must not get the old id back.
-    if (consent === "granted") distinctId = stored;
-  }
+  const choice = stored === "granted" || stored === "denied" ? stored : "unset";
+  const id =
+    choice === "granted"
+      ? await SecureStore.getItemAsync(ID_KEY).catch(() => null)
+      : null;
+  // A choice made while these were read (the banner, Privacy choices) wins:
+  // a withdrawal must not get the old id back.
+  if (choices !== seen) return;
+  // Published together, after both reads: with consent "granted" and no id
+  // yet, a render in between would make a new id and overwrite the stored one.
+  consent = choice;
+  distinctId = id;
   notify();
 };
 
 export const setAnalyticsConsent = async (next: "granted" | "denied"): Promise<void> => {
+  choices++;
   consent = next;
   await SecureStore.setItemAsync(CONSENT_KEY, next).catch(() => undefined);
   if (next === "denied") {
