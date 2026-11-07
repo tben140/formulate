@@ -281,6 +281,21 @@ Next:
       if (!campaign) throw new Error("The campaign can't be shown; run check for why.");
       const result = discountConfig(data.entry, data.collection, data.products);
       if ("error" in result) throw new Error(`Can't sync: ${result.error}.`);
+      // Every check comes before the first write, so a bad offer leaves
+      // Shopify as it was rather than half synced.
+      const segmentOffers = parseSegmentOffers(data.entry.fields.offers);
+      if (segmentOffers.problems.length)
+        throw new Error(
+          `Can't sync the segment offers: ${segmentOffers.problems.join("; ")}.`,
+        );
+      const segmentConfigs = segmentDiscountConfigs(
+        data.entry,
+        data.collection,
+        data.products,
+        segmentOffers.offers,
+      );
+      if ("error" in segmentConfigs)
+        throw new Error(`Can't sync: ${segmentConfigs.error}.`);
       const existing = campaignDiscounts(data.entry, data.discounts).find(
         (d) => d.kind === "app" && !isPersonalPool(d.config) && !segmentOf(d.config),
       );
@@ -299,19 +314,6 @@ Next:
           : `Created ${id}${rest.includes("--activate") ? "" : ", switched off: activate it in the admin, and switch off any plain discount it replaces"}.`,
       );
       // Offers per segment (SHO-207): one Function discount each, for its tag.
-      const segmentOffers = parseSegmentOffers(data.entry.fields.offers);
-      if (segmentOffers.problems.length)
-        throw new Error(
-          `Can't sync the segment offers: ${segmentOffers.problems.join("; ")}.`,
-        );
-      const segmentConfigs = segmentDiscountConfigs(
-        data.entry,
-        data.collection,
-        data.products,
-        segmentOffers.offers,
-      );
-      if ("error" in segmentConfigs)
-        throw new Error(`Can't sync: ${segmentConfigs.error}.`);
       for (const { segment, config } of segmentConfigs.configs) {
         const found = campaignDiscounts(data.entry, data.discounts).find(
           (d) => d.kind === "app" && segmentOf(d.config) === segment,
@@ -452,9 +454,12 @@ Next:
       const rules = parseOfferRules(entry?.fields.offer_rules);
       if (!entry || !campaign || !rules)
         throw new Error("The campaign or its offer_rules can't be read; run check.");
-      const terms = campaignTerms(campaign, rules, {
-        offers: parseSegmentOffers(entry.fields.offers).offers,
-      });
+      const segmentOffers = parseSegmentOffers(entry.fields.offers);
+      if (segmentOffers.problems.length)
+        throw new Error(
+          `The segment offers can't be read: ${segmentOffers.problems.join("; ")}.`,
+        );
+      const terms = campaignTerms(campaign, rules, { offers: segmentOffers.offers });
       console.log(terms);
       if (rest.includes("--apply") && terms !== entry.fields.terms) {
         await setCampaignField(admin, entry.id, "terms", terms);
