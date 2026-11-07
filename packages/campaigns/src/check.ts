@@ -162,6 +162,20 @@ export const checkCampaign = (
     warn(
       `The offer covers up to ${rules.maxUnits} of each product, but the terms don't say so.`,
     );
+  // The same for each segment offer's own limits.
+  for (const offer of segmentOffers.offers) {
+    if (offer.rules.oncePerCustomer && !/once|one per customer|per customer/.test(terms))
+      warn(
+        `The ${offer.segment} offer is once per customer, but the terms don't say so.`,
+      );
+    if (
+      offer.rules.maxUnits !== null &&
+      !new RegExp(`\\b${offer.rules.maxUnits}\\b|up to|maximum|limit`).test(terms)
+    )
+      warn(
+        `The ${offer.segment} offer covers up to ${offer.rules.maxUnits} of each product, but the terms don't say so.`,
+      );
+  }
   if (rules?.oncePerCustomer || rules?.audienceTags.length)
     ok(
       "Signed-in customers only can be limited or targeted: guests can't be told apart at checkout.",
@@ -456,7 +470,10 @@ export const checkCampaign = (
           "configs" in expected
             ? expected.configs.find((c) => c.segment === segmentOf(discount.config))
             : undefined;
-        if (!mine)
+        // The campaign's own config is broken (no collection, no badge): say
+        // that, not that a live discount has no offer.
+        if ("error" in expected) error(`${name}: ${expected.error}.`);
+        else if (!mine)
           error(
             `${name} is for the ${segmentOf(discount.config)} segment, which has no offer now: delete it.`,
           );
