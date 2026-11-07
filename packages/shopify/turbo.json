@@ -1,0 +1,16 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/theme/sections/featured-collection.liquid",
+        "$TURBO_ROOT$/apps/web/lighthouserc.cjs",
+        "$TURBO_ROOT$/apps/web/playwright.config.ts",
+        "$TURBO_ROOT$/apps/web/e2e/global-setup.ts",
+        "$TURBO_ROOT$/.github/workflows/lighthouse-theme.yml"
+      ]
+    }
+  }
+}
