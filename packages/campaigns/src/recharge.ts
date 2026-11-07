@@ -48,11 +48,13 @@ export const activeSubscriptions = async (token: string): Promise<PerkSubscripti
   (
     await all<{
       id: number;
+      customer_id: number;
       address_id: number;
       next_charge_scheduled_at: string | null;
     }>(token, "/subscriptions?status=active", "subscriptions")
   ).map((s) => ({
     id: s.id,
+    customerId: s.customer_id,
     addressId: s.address_id,
     // A date ("2026-12-04"); some responses add a time.
     nextChargeDate: s.next_charge_scheduled_at?.slice(0, 10) ?? null,
