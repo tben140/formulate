@@ -1145,6 +1145,21 @@ export const saveReferralCodes = async (
   }
 };
 
+/**
+ * The cursor for the next page, or null at the end. Throws when Shopify says
+ * there's another page but doesn't move the cursor: following it would loop
+ * forever, and stopping would quietly truncate the members a tag sync acts on.
+ */
+const nextCursor = (
+  pageInfo: { hasNextPage: boolean; endCursor: string | null },
+  after: string | null,
+): string | null => {
+  if (!pageInfo.hasNextPage) return null;
+  if (!pageInfo.endCursor || pageInfo.endCursor === after)
+    throw new Error("Shopify's customer pages didn't advance.");
+  return pageInfo.endCursor;
+};
+
 /** Every customer who has ordered: their order count, spend and last order. */
 export const getSegmentCustomers = async (admin: Admin): Promise<SegmentCustomer[]> => {
   const customers: SegmentCustomer[] = [];
@@ -1176,9 +1191,7 @@ export const getSegmentCustomers = async (admin: Admin): Promise<SegmentCustomer
         amountSpent: Number(node.amountSpent.amount),
         lastOrderAt: node.lastOrder?.createdAt ?? null,
       });
-    after = data.customers.pageInfo.hasNextPage
-      ? data.customers.pageInfo.endCursor
-      : null;
+    after = nextCursor(data.customers.pageInfo, after);
   } while (after);
   return customers;
 };
@@ -1206,9 +1219,7 @@ export const getTaggedCustomers = async (
       { query: `tag:'${tag}'`, after },
     );
     ids.push(...data.customers.nodes.map((node) => node.id));
-    after = data.customers.pageInfo.hasNextPage
-      ? data.customers.pageInfo.endCursor
-      : null;
+    after = nextCursor(data.customers.pageInfo, after);
   } while (after);
   return ids;
 };
