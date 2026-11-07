@@ -19,6 +19,7 @@ vault to browse it as a graph; it is plain markdown either way.
 | [Decision records](adr/README.md) | Why things are the way they are, with alternatives                                             |
 | [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
 | [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
+| [Compliance](compliance.md)       | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open |
 
 ## Surfaces
 
@@ -30,11 +31,12 @@ vault to browse it as a graph; it is plain markdown either way.
 
 ## Integrations
 
-| Note                                | Status                                                                               |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| [Recharge](integration-recharge.md) | Installed; subscription flows live in Klaviyo. Read-only portal in review (#80)      |
-| [Klaviyo](integration-klaviyo.md)   | Live on web and the theme: email capture, events, flows. App events in review (#107) |
-| [PostHog](integration-posthog.md)   | Web, app and theme, with orders from a Shopify custom pixel                          |
+| Note                                  | Status                                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------------------ |
+| [Recharge](integration-recharge.md)   | Installed; subscription flows live in Klaviyo. Read-only portal in review (#80)      |
+| [Klaviyo](integration-klaviyo.md)     | Live on web and the theme: email capture, events, flows. App events in review (#107) |
+| [PostHog](integration-posthog.md)     | Web, app and theme, with orders from a Shopify custom pixel                          |
+| [Pay later](integration-pay-later.md) | Klarna and Clearpay: storefront side ready; providers not set up yet                 |
 
 ## Out of scope, kept for reference
 
