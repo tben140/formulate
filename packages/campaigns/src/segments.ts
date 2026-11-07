@@ -89,7 +89,7 @@ export const parseThresholds = (
   const problems: string[] = [];
   const thresholds = { ...DEFAULT_THRESHOLDS };
   for (const [key, value] of Object.entries(raw)) {
-    if (!(key in RANGES)) {
+    if (!Object.hasOwn(RANGES, key)) {
       problems.push(`${key}: not a threshold`);
       continue;
     }
