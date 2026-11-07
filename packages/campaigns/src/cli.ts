@@ -17,6 +17,9 @@ import {
   activeCustomerIds,
   activeSubscriptions,
   addPerk,
+  allSubscriptions,
+  missedCharges,
+  shopifyIdsByRechargeId,
   cancelledSubscriptions,
   perkOnetimes,
   shopifyCustomerIds,
@@ -36,6 +39,16 @@ import { cohort, cohortMarkdown } from "./cohort";
 import { earnedRewards, planReferralCodes, REFERRAL_PREFIX } from "./referrals";
 import { reportHtml } from "./dashboard";
 import { campaignReport, reportMarkdown } from "./report";
+import {
+  describeSegment,
+  parseThresholds,
+  SEGMENT_KEYS,
+  segmentCounts,
+  segmentMembers,
+  segmentTag,
+  tagPlan,
+  tagSyncProblem,
+} from "./segments";
 import { campaignTerms } from "./terms";
 import {
   addRedeemCodes,
@@ -43,6 +56,10 @@ import {
   createCampaign,
   createReferralDiscount,
   getBuyerContacts,
+  getCampaignSettings,
+  getSegmentCustomers,
+  getTaggedCustomers,
+  setSegmentCounts,
   saveReferralCodes,
   getCollection,
   getDiscounts,
@@ -54,6 +71,7 @@ import {
   setCampaignField,
   tagCustomers,
   tidyCampaign,
+  untagCustomers,
   upsertFunctionDiscount,
   upsertShippingDiscount,
   deactivateAutomatic,
@@ -108,10 +126,17 @@ const USAGE = `Campaigns (docs/campaigns.md, "The campaigns CLI")
   pnpm campaigns audience lapsed --tag <tag> [--within 180] [--apply]
                                               tags lapsed subscribers (all cancelled, the
                                               last within N days) for a win-back offer
+  pnpm campaigns segments [--apply] [--tags] [--force-tags]
+                                              each customer segment's size and the tags a
+                                              sync would add and remove (SHO-207); --apply
+                                              stores the counts for the calendar, and with
+                                              --tags also adds and removes segment:<key>
+                                              tags (refuses a sync that would strip most of
+                                              a segment unless --force-tags)
 
 Reads SHOPIFY_STORE_DOMAIN and SHOPIFY_APP_CLIENT_SECRET (and KLAVIYO_PRIVATE_KEY,
 optional) from the environment or ~/.config/formulate/shopify-app.env, and
-RECHARGE_API_TOKEN (perks only) from ~/.config/formulate/recharge.env.`;
+RECHARGE_API_TOKEN (perks, audience and segments) from ~/.config/formulate/recharge.env.`;
 
 const flag = (args: string[], name: string) => {
   const index = args.indexOf(`--${name}`);
@@ -709,6 +734,75 @@ Next:
       }
       await tagCustomers(await adminFromEnv(), customers, tag);
       console.log("Tagged.");
+      return 0;
+    }
+
+    case "segments": {
+      const token = process.env.RECHARGE_API_TOKEN;
+      if (!token)
+        throw new Error("Set RECHARGE_API_TOKEN (~/.config/formulate/recharge.env).");
+      const admin = await adminFromEnv();
+      const now = new Date();
+      const settings = await getCampaignSettings(admin);
+      const { thresholds, problems } = parseThresholds(settings?.segmentThresholds);
+      console.log(
+        settings
+          ? "Thresholds from the Campaign settings record."
+          : "No Campaign settings record: default thresholds.",
+      );
+      for (const problem of problems) console.log(`  ignored: ${problem}`);
+      const since = new Date(now.getTime() - thresholds.atRiskDays * 24 * 60 * 60 * 1000);
+      const segments = segmentMembers(
+        {
+          subscriptions: await allSubscriptions(token),
+          missed: await missedCharges(token, since.toISOString().slice(0, 10)),
+          customers: await getSegmentCustomers(admin),
+          shopifyIdOf: await shopifyIdsByRechargeId(token),
+        },
+        thresholds,
+        now,
+      );
+      const plans = [];
+      for (const key of SEGMENT_KEYS) {
+        const members = segments.members[key];
+        const tagged = await getTaggedCustomers(admin, segmentTag(key));
+        const plan = tagPlan(members, tagged);
+        plans.push({ key, plan, problem: tagSyncProblem(key, plan, tagged.length) });
+        console.log(
+          `${key.padEnd(9)} ${String(members.length).padStart(5)}  ${describeSegment(key, thresholds)}` +
+            `  (sync: +${plan.add.length} -${plan.remove.length} ${segmentTag(key)})`,
+        );
+      }
+      if (segments.unmatched)
+        console.log(
+          `${segments.unmatched} Recharge customers have no Shopify customer: left out.`,
+        );
+      const apply = rest.includes("--apply");
+      const tags = rest.includes("--tags");
+      if (!apply) {
+        console.log(
+          "Planned only. Run with --apply to store the counts, and --tags to write the tags too.",
+        );
+        return 0;
+      }
+      if (!settings)
+        throw new Error(
+          "Create the Campaign settings record first (docs/campaign-segments.md, Settings).",
+        );
+      if (tags) {
+        const problems = plans.flatMap((p) => p.problem ?? []);
+        if (problems.length && !rest.includes("--force-tags"))
+          throw new Error(
+            `No tags written: ${problems.join("; ")}. Check the counts, then rerun with --force-tags.`,
+          );
+        for (const { key, plan } of plans) {
+          await tagCustomers(admin, plan.add, segmentTag(key));
+          await untagCustomers(admin, plan.remove, segmentTag(key));
+        }
+        console.log("Tags written.");
+      }
+      await setSegmentCounts(admin, segmentCounts(segments, now));
+      console.log("Counts stored on the Campaign settings record.");
       return 0;
     }
 
