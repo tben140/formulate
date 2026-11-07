@@ -118,10 +118,14 @@ export const anonymousId = (): string => {
  * `$session_id`; Web Analytics derives sessions and their start times from it.
  * Its random bits come from `random`, a v4 UUID (by default `anonymousId()`).
  */
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const sessionUuid = (
   now: number = Date.now(),
   random: string = anonymousId(),
 ): string => {
+  if (!UUID_SHAPE.test(random))
+    throw new Error("sessionUuid needs a UUID for its random bits.");
   const hex = now.toString(16).padStart(12, "0");
   const bits = random.replace(/-/g, "").slice(12);
   const variant = ((parseInt(bits.slice(4, 5), 16) & 0x3) | 0x8).toString(16);

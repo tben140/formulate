@@ -159,6 +159,10 @@ describe("ids", () => {
       sessionUuid(Date.UTC(2026, 9, 9, 10), "00000000-0000-4000-8000-0123456789ab"),
     ).toBe("01a1201a-f500-7400-8000-0123456789ab");
   });
+
+  it("refuses a session id from something that isn't a uuid", () => {
+    expect(() => sessionUuid(Date.UTC(2026, 9, 9, 10), "abc")).toThrow(/needs a UUID/);
+  });
 });
 
 describe("payload builders", () => {
