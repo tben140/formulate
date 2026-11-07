@@ -81,9 +81,20 @@ const DELIVERY_WORDS = {
   codes: "with the personal code we email them",
 } as const;
 
-/** "Past subscribers, signed in to their account: 30% off one-time purchases instead." */
-export const segmentOfferSentence = (offer: SegmentOffer): string =>
-  `${SEGMENT_AUDIENCE[offer.segment]}, ${DELIVERY_WORDS[offer.delivery]}: ${offerInWords(offer.rules)}${joiner(offer.rules)}${reach(offer.rules)} instead.`;
+/**
+ * "Past subscribers, signed in to their account: 30% off one-time purchases
+ * instead, up to 2 of each product per order, once per customer." The limits
+ * are the ones the Function enforces for the offer, so the terms must say them.
+ */
+export const segmentOfferSentence = (offer: SegmentOffer): string => {
+  const limits = [
+    offer.rules.maxUnits !== null
+      ? `up to ${offer.rules.maxUnits} of each product per order`
+      : null,
+    offer.rules.oncePerCustomer ? "once per customer" : null,
+  ].filter((limit): limit is string => limit !== null);
+  return `${SEGMENT_AUDIENCE[offer.segment]}, ${DELIVERY_WORDS[offer.delivery]}: ${offerInWords(offer.rules)}${joiner(offer.rules)}${reach(offer.rules)} instead${limits.length ? `, ${limits.join(", ")}` : ""}.`;
+};
 
 export const campaignTerms = (
   campaign: Campaign,
