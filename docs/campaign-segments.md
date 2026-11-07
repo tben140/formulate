@@ -63,7 +63,7 @@ A nightly job, `pnpm campaigns segments --apply --tags` (`.github/workflows/segm
    - **Adding someone to a list can send a message** if a live flow is triggered by that list. So before changing a list, the sync looks up the flows it triggers (Klaviyo's flows-triggered-by-list). **If any flow is live, it changes nothing for that list and reports it.** Draft and manual flows are allowed. Every list the sync creates is new, so it starts with no flows.
    - Campaign emails to a list stay drafts until Ben approves them, as always.
 4. Plans unless `--apply`, like every other command, and writes tags only with `--tags`. The calendar shows each segment's count and when it was last synced.
-   - **A run that would take a tag off more than half of a segment (and more than 10 people) is refused**, since that's usually a failed read. Check, then rerun by hand with `--force-tags`.
+   - **A run that would take a tag off more than 10 people and more than half of those who have it now is refused**, since that's usually a failed read. It's measured against who has the tag before the run, not the new segment size: taking 11 off 30 tagged is allowed even if the segment is now 19. Check, then rerun by hand with `--force-tags`.
    - The nightly workflow skips with a notice until the `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_APP_CLIENT_SECRET` and `RECHARGE_API_TOKEN` repository secrets are all set.
 
 ## Offers per segment
