@@ -88,6 +88,7 @@ The campaign record gains an optional **`offers`** JSON field next to `offer_rul
 
 - **Validated by the same parser** as `offer_rules` (`parseOfferRules`), plus a known segment and delivery.
 - **Sync** makes one discount per segment offer, alongside the public discount: for `sign_in`, a Function discount with `audienceTags: ["segment:<key>"]`; for `email_link` and `codes`, a code discount with one single-use code per member, loaded into a Klaviyo coupon as #208 does. Discounts don't combine, so a shopper in a segment gets the better of their offer and the public one; Shopify picks the larger.
+  - The code builds `sign_in` offers so far; it parses and checks `codes` and `email_link` offers, but sync leaves them out (`SYNCED_DELIVERIES`).
 - **Terms:** a sentence per segment offer ("Lapsed subscribers, signed in: 30% off one-time purchases").
 - **Check:**
   - every segment offer parses;

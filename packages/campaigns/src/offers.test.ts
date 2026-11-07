@@ -98,6 +98,17 @@ describe("segmentOfferSentence", () => {
       "Past subscribers, signed in to their account: 30% off one-time purchases instead.",
     );
   });
+
+  it("states the limits the Function enforces", () => {
+    const { offers } = parseSegmentOffers(
+      JSON.stringify([
+        { ...LAPSED, rules: { ...LAPSED.rules, maxUnits: 2, oncePerCustomer: true } },
+      ]),
+    );
+    expect(segmentOfferSentence(offers[0]!)).toBe(
+      "Past subscribers, signed in to their account: 30% off one-time purchases instead, up to 2 of each product per order, once per customer.",
+    );
+  });
 });
 
 describe("checkCampaign with segment offers", () => {
@@ -122,6 +133,46 @@ describe("checkCampaign with segment offers", () => {
     expect(messages).toContain(
       "warning: The lapsed offer's delivery (codes) isn't built yet: campaigns sync skips it.",
     );
+  });
+
+  it("warns when the terms leave out a segment offer's limits", () => {
+    const messages = checkCampaign(
+      withOffers(
+        JSON.stringify([
+          { ...LAPSED, rules: { ...LAPSED.rules, maxUnits: 7, oncePerCustomer: true } },
+        ]),
+      ),
+      BEFORE,
+    ).map((f) => f.message);
+    expect(messages).toContain(
+      "The lapsed offer is once per customer, but the terms don't say so.",
+    );
+    expect(messages).toContain(
+      "The lapsed offer covers up to 7 of each product, but the terms don't say so.",
+    );
+  });
+
+  it("reports a broken campaign config on a segment discount, not a missing offer", () => {
+    const snapshot = withOffers(JSON.stringify([LAPSED]));
+    const broken: Snapshot = {
+      ...snapshot,
+      collection: null,
+      discounts: [
+        ...snapshot.discounts,
+        {
+          ...snapshot.discounts[0]!,
+          id: "gid://shopify/DiscountAutomaticNode/9",
+          title: "Black Friday 2026: past subscribers",
+          kind: "app",
+          config: { campaign: live.entry.handle, segment: "lapsed" },
+        },
+      ],
+    };
+    const messages = checkCampaign(broken, BEFORE)
+      .map((f) => f.message)
+      .filter((m) => m.includes("past subscribers"));
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages.some((m) => m.includes("has no offer now"))).toBe(false);
   });
 
   it("checks each offer's margin", () => {
