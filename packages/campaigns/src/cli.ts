@@ -1004,7 +1004,7 @@ Next:
       console.log(
         `${variant.title}, free, with the next delivery after ${campaign.endsAt.toISOString()}` +
           (segment
-            ? `, for the ${segment} segment (${subscriptions.length} subscriptions):`
+            ? `, for the ${segment} segment (${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}):`
             : ":"),
       );
       for (const item of plan.add) {
