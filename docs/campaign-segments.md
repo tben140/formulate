@@ -64,7 +64,7 @@ A nightly job, `pnpm campaigns segments --apply --tags --klaviyo` (`.github/work
    - Campaign emails to a list stay drafts until Ben approves them, as always.
    - `campaigns segments --klaviyo` plans this: per segment, whether its list exists and how many emails it would gain and lose. Counts only; no address is printed. With `--apply` it writes: a list is created when its segment first has members; new members go in through a bulk profile import, which leaves their marketing consent as it is (being on a list subscribes no one); members who left are taken off the list, not deleted.
 4. Plans unless `--apply`, like every other command, and writes tags only with `--tags` and lists only with `--klaviyo`. The calendar shows each segment's count and when it was last synced.
-   - **A run that would take a tag off more than half of a segment (and more than 10 people) is refused**, since that's usually a failed read. Check, then rerun by hand with `--force-tags`. Lists have the same rule and `--force-lists`. A refused run writes nothing.
+   - **A run that would take a tag off more than 10 people and more than half of those who have it now is refused**, since that's usually a failed read. It's measured against who has the tag before the run, not the new segment size: taking 11 off 30 tagged is allowed even if the segment is now 19. Check, then rerun by hand with `--force-tags`. Lists have the same rule, measured against the list's size before the run, and `--force-lists`. A refused run writes nothing.
    - The nightly workflow skips with a notice until the `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_APP_CLIENT_SECRET` and `RECHARGE_API_TOKEN` repository secrets are all set, and leaves the lists out without `KLAVIYO_PRIVATE_KEY`.
 
 ## Offers per segment
