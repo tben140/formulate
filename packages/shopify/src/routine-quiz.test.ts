@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ROUTINE_ATTRIBUTES,
+  groupByRoutine,
+  newRoutineId,
+  routineCartLines,
   dietsFrom,
   formatKind,
   frequencyInDays,
@@ -223,9 +227,10 @@ describe("reading Shopify's data", () => {
         { id: "60", frequencyDays: 60, perDeliveryPrice: 15 },
         { id: "30", frequencyDays: 30, perDeliveryPrice: 15.26 },
       ]),
-    ).toEqual({ id: "30", monthlyPrice: 15.26 });
+    ).toEqual({ id: "30", frequencyDays: 30, monthlyPrice: 15.26 });
     expect(monthlyPlan([{ id: "60", frequencyDays: 60, perDeliveryPrice: 20 }])).toEqual({
       id: "60",
+      frequencyDays: 60,
       monthlyPrice: 10,
     });
     expect(monthlyPlan([])).toBeNull();
@@ -342,5 +347,89 @@ describe("reading Shopify's data", () => {
       ]),
     );
     expect(goals.map((goal) => goal.key)).toEqual(["energy"]);
+  });
+});
+
+describe("one routine, one renewal (SHO-176)", () => {
+  const picks = [
+    {
+      variantId: "gid://shopify/ProductVariant/1",
+      sellingPlanId: "gid://shopify/SellingPlan/30",
+      planDays: 30,
+      title: "Magnesium Glycinate",
+    },
+    {
+      variantId: "gid://shopify/ProductVariant/2",
+      sellingPlanId: "gid://shopify/SellingPlan/30",
+      planDays: 30,
+      title: "Vitamin D3",
+    },
+    { variantId: "gid://shopify/ProductVariant/3", sellingPlanId: null, title: "Shaker" },
+  ];
+
+  it("tags every subscription with the routine id and a readable label", () => {
+    const lines = routineCartLines(picks, "r-test");
+    expect(lines[0]).toEqual({
+      merchandiseId: "gid://shopify/ProductVariant/1",
+      quantity: 1,
+      sellingPlanId: "gid://shopify/SellingPlan/30",
+      attributes: [
+        { key: ROUTINE_ATTRIBUTES.id, value: "r-test" },
+        { key: ROUTINE_ATTRIBUTES.label, value: "Magnesium Glycinate + Vitamin D3" },
+      ],
+    });
+    expect(lines[1]?.attributes).toEqual(lines[0]?.attributes);
+  });
+
+  it("adds a one-off product plain, and doesn't tag a lone subscription", () => {
+    expect(routineCartLines(picks, "r-test")[2]).toEqual({
+      merchandiseId: "gid://shopify/ProductVariant/3",
+      quantity: 1,
+    });
+    const lone = routineCartLines([picks[0]!, picks[2]!], "r-test");
+    expect(lone[0]?.attributes).toBeUndefined();
+  });
+
+  it("doesn't tag subscriptions that would renew on different intervals", () => {
+    const mixed = routineCartLines([picks[0]!, { ...picks[1]!, planDays: 28 }], "r-test");
+    expect(mixed.every((line) => line.attributes === undefined)).toBe(true);
+    const unknown = routineCartLines(
+      [
+        { ...picks[0]!, planDays: null },
+        { ...picks[1]!, planDays: null },
+      ],
+      "r-test",
+    );
+    expect(unknown.every((line) => line.attributes === undefined)).toBe(true);
+  });
+
+  it("gives each routine its own id", () => {
+    expect(newRoutineId()).toMatch(/^r-[a-z0-9]+$/);
+    expect(newRoutineId()).not.toBe(newRoutineId());
+  });
+
+  it("groups subscriptions into routines for the portal", () => {
+    const tagged = (id: number, routine: string) => ({
+      id,
+      properties: [
+        { name: "_routine", value: routine },
+        { name: "Routine", value: "Magnesium Glycinate + Vitamin D3" },
+      ],
+    });
+    const { routines, single } = groupByRoutine([
+      tagged(1, "r-a"),
+      { id: 2, properties: [] },
+      tagged(3, "r-a"),
+      tagged(4, "r-b"),
+    ]);
+    expect(routines).toEqual([
+      {
+        id: "r-a",
+        label: "Magnesium Glycinate + Vitamin D3",
+        subscriptions: [tagged(1, "r-a"), tagged(3, "r-a")],
+      },
+    ]);
+    // r-b has one member left, so it's shown on its own.
+    expect(single.map((subscription) => subscription.id)).toEqual([2, 4]);
   });
 });
