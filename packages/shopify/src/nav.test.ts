@@ -5,6 +5,19 @@ import { breadcrumbCollection, toNavLinks } from "./nav";
 const item = (url: string | null, title = "Item") => ({ id: `id-${title}`, title, url });
 
 describe("toNavLinks", () => {
+  it("drops an item whose URL has a malformed escape, keeping the rest", () => {
+    expect(
+      toNavLinks([
+        { id: "1", title: "Sale", url: "https://shop.example/collections/50%off" },
+        {
+          id: "2",
+          title: "Gut health",
+          url: "https://shop.example/collections/gut-health",
+        },
+      ]).map((link) => link.handle),
+    ).toEqual(["gut-health"]);
+  });
+
   it("turns collection and product URLs on the store domain into app paths", () => {
     expect(
       toNavLinks([
