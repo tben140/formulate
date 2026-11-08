@@ -49,7 +49,7 @@ const globalSetup = async () => {
     }
 
     // Fail here, once and clearly, rather than in every test with a login page.
-    if (!response?.ok() || new URL(page.url()).hostname.endsWith("vercel.com")) {
+    if (!response?.ok() || isVercelLogin(new URL(page.url()).hostname)) {
       throw new Error(
         `Vercel bypass failed: ${response?.status() ?? "no response"} at ${new URL(page.url()).origin}. ` +
           "Check VERCEL_AUTOMATION_BYPASS_SECRET matches the project's Protection Bypass for Automation secret.",
@@ -61,5 +61,9 @@ const globalSetup = async () => {
     await browser.close();
   }
 };
+
+/** Vercel's own login pages: vercel.com or a subdomain, not any host ending in it. */
+const isVercelLogin = (hostname: string) =>
+  hostname === "vercel.com" || hostname.endsWith(".vercel.com");
 
 export default globalSetup;
