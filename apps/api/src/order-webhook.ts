@@ -123,6 +123,7 @@ export const handleOrderWebhook = async (
   try {
     await env.ORDER_BACKUP.get(env.ORDER_BACKUP.idFromName(String(order.id))).schedule(
       event,
+      order.checkout_token ?? null,
     );
     return status(200);
   } catch {

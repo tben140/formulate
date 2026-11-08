@@ -19,9 +19,11 @@ import type { RateLimiter } from "./rate-limiter";
  * it only if no such note arrived. Order of arrival doesn't matter; a note
  * that comes first is remembered.
  *
- * ⚠️ The note is unauthenticated (the pixel holds no secret). Faking one only
- * stops the backup for an order whose id the caller knows: an analytics gap,
- * never a wrong number. It's rate-limited per IP like the subscribe endpoint.
+ * ⚠️ The note is unauthenticated (the pixel holds no secret), so it carries the
+ * order's checkout token as well as its id, and stops the backup only when
+ * the token matches the webhook's `checkout_token`. Order ids are close to
+ * sequential and easy to guess; the token isn't. A note with the wrong token
+ * changes nothing. It's rate-limited per IP like the subscribe endpoint.
  */
 
 /** Long enough for a thank-you page to load and the pixel to report. */
@@ -39,20 +41,40 @@ export const RETRY_FIRST_MS = 60 * 1000;
 export const RETRY_MAX_MS = 60 * 60 * 1000;
 export const MAX_SEND_ATTEMPTS = 54;
 
+/** Each note is kept under its own token, so a wrong one can't hide the right one. */
+const noteKey = (checkoutToken: string) => `counted:${checkoutToken}`;
+
 export class OrderBackup extends DurableObject {
-  /** The pixel's note: this order's event reached PostHog. */
-  async counted(): Promise<void> {
-    await this.ctx.storage.delete("event");
-    await this.ctx.storage.put("counted", true);
+  /**
+   * The pixel's note: this order's event reached PostHog. It stops the backup
+   * only if its checkout token matches the webhook's, whichever comes first.
+   */
+  async counted(checkoutToken: string): Promise<void> {
+    await this.ctx.storage.put(noteKey(checkoutToken), true);
+    const pending = await this.ctx.storage.get<string | null>("token");
+    if (await this.ctx.storage.get("event")) {
+      // A pending backup keeps its timer unless this note is the real one.
+      if (pending !== checkoutToken) return;
+      await this.ctx.storage.delete("event");
+    }
     await this.ctx.storage.setAlarm(Date.now() + FORGET_AFTER_MS);
   }
 
-  /** The webhook's event, sent later unless the pixel reports first. */
-  async schedule(event: CapturedOrderEvent): Promise<"counted" | "scheduled"> {
-    if (await this.ctx.storage.get<boolean>("counted")) return "counted";
+  /**
+   * The webhook's event, sent later unless the pixel reports first. An order
+   * without a checkout token (made in the admin, say) has no pixel to wait for,
+   * and is sent after the same delay.
+   */
+  async schedule(
+    event: CapturedOrderEvent,
+    checkoutToken: string | null,
+  ): Promise<"counted" | "scheduled"> {
+    if (checkoutToken && (await this.ctx.storage.get<boolean>(noteKey(checkoutToken))))
+      return "counted";
     // A retried webhook keeps the first event and its timer.
     if (!(await this.ctx.storage.get("event"))) {
       await this.ctx.storage.put("event", event);
+      await this.ctx.storage.put("token", checkoutToken);
       await this.ctx.storage.setAlarm(Date.now() + BACKUP_DELAY_MS);
     }
     return "scheduled";
@@ -64,9 +86,10 @@ export class OrderBackup extends DurableObject {
    * an analytics gap rather than an alarm that never stops.
    */
   override async alarm(): Promise<void> {
+    // counted() deletes the event when the right note arrives, so an event
+    // still here is owed.
     const event = await this.ctx.storage.get<CapturedOrderEvent>("event");
-    const counted = await this.ctx.storage.get<boolean>("counted");
-    if (event && !counted) {
+    if (event) {
       const sent = await fetch(POSTHOG_CAPTURE_URL, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -96,20 +119,26 @@ export interface OrderCountedEnv {
   readonly RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
 }
 
-/** An order id is a number; anything longer than this isn't one. */
-const MAX_COUNTED_BYTES = 32;
+/** An order id and a checkout token; anything longer isn't one. */
+const MAX_COUNTED_BYTES = 256;
+
+/** The numeric order id, a newline, then the checkout token. */
+const COUNTED_BODY = /^(\d{1,20})\n([\x21-\x7e]{1,200})$/;
 
 /**
- * `POST /orders/counted` from the pixel, body: the numeric order id as plain
- * text. Plain text so the pixel can send it without a CORS preflight. The
- * pixel reads only the status, and retries anything but a 2xx.
+ * `POST /orders/counted` from the pixel, body: the numeric order id and the
+ * checkout token, on two lines of plain text. Plain text so the pixel can send
+ * it without a CORS preflight. The pixel reads only the status, and retries
+ * anything but a 2xx.
  */
 export const handleOrderCounted = async (
   request: Request,
   env: OrderCountedEnv,
 ): Promise<Response> => {
-  // Readable from any origin: the pixel runs in Shopify's sandbox and checks
-  // the status to retry. A status is all there is to read.
+  // ⚠️ The one route with a CORS header, an exception to this Worker's rule
+  // (apps/api/AGENTS.md). The pixel runs in Shopify's sandbox, whose origin we
+  // don't control, and needs the status to know whether to retry. A status is
+  // all there is to read, and the route can only stop a backup, never send.
   const status = (code: number) =>
     new Response(null, {
       status: code,
@@ -124,9 +153,10 @@ export const handleOrderCounted = async (
 
   const body = await readBounded(request, MAX_COUNTED_BYTES);
   if (body === null) return status(413);
-  const orderId = body.trim();
-  if (!/^\d{1,20}$/.test(orderId)) return status(400);
+  const match = COUNTED_BODY.exec(body.trim());
+  if (!match) return status(400);
+  const [, orderId = "", checkoutToken = ""] = match;
 
-  await env.ORDER_BACKUP.get(env.ORDER_BACKUP.idFromName(orderId)).counted();
+  await env.ORDER_BACKUP.get(env.ORDER_BACKUP.idFromName(orderId)).counted(checkoutToken);
   return status(204);
 };

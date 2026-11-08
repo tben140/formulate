@@ -175,28 +175,38 @@ const send = async (
 
 /**
  * Tells the API Worker this order reached PostHog, so the webhook's backup
- * isn't sent (apps/api/src/order-backup.ts). Plain text, so no preflight; the
- * Worker answers with CORS headers so the status can be checked. Anything but
- * a 2xx (a 429 included) is retried, a few times over about 15 seconds: a
- * lost note means the backup sends a second copy of the order.
+ * isn't sent (apps/api/src/order-backup.ts). The checkout token goes with the
+ * order id: the Worker honours the note only if it matches the order's, so
+ * nobody can stop a backup by guessing an order id. Plain text, so no
+ * preflight; the Worker answers with CORS headers so the status can be
+ * checked. Anything but a 2xx (a 429 included), or no answer within
+ * COUNTED_TIMEOUT_MS, is retried a few times over about 15 seconds: a lost
+ * note means the backup sends a second copy of the order.
  */
 const COUNTED_RETRY_DELAYS_MS = [1000, 4000, 10000];
+const COUNTED_TIMEOUT_MS = 5000;
 
 const reportCounted = async (
   orderId,
+  checkoutToken,
   wait = (ms) => new Promise((r) => setTimeout(r, ms)),
 ) => {
-  if (!orderId || API_URL.startsWith("__")) return false;
+  if (!orderId || !checkoutToken || API_URL.startsWith("__")) return false;
   for (let attempt = 0; ; attempt++) {
-    const ok = await fetch(`${API_URL}/orders/counted`, {
-      method: "POST",
-      headers: { "content-type": "text/plain" },
-      body: orderId,
-      keepalive: true,
-    }).then(
-      (response) => response.ok === true,
-      () => false,
-    );
+    // A request that hangs counts as failed, so the retries still run. Raced
+    // rather than aborted: the sandbox may not have AbortSignal.timeout.
+    const ok = await Promise.race([
+      fetch(`${API_URL}/orders/counted`, {
+        method: "POST",
+        headers: { "content-type": "text/plain" },
+        body: `${orderId}\n${checkoutToken}`,
+        keepalive: true,
+      }).then(
+        (response) => response.ok === true,
+        () => false,
+      ),
+      wait(COUNTED_TIMEOUT_MS).then(() => false),
+    ]);
     if (ok) return true;
     if (attempt >= COUNTED_RETRY_DELAYS_MS.length) return false;
     await wait(COUNTED_RETRY_DELAYS_MS[attempt]);
@@ -288,5 +298,5 @@ analytics.subscribe("checkout_completed", (event) => {
     attribute(checkout, ATTRIBUTES.distinctId),
     surfaceOf(checkout),
     orderId ? orderEventUuid(orderId) : undefined,
-  ).then((sent) => (sent ? reportCounted(orderId) : undefined));
+  ).then((sent) => (sent ? reportCounted(orderId, checkout.token) : undefined));
 });

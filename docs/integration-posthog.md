@@ -113,10 +113,11 @@ twice.
 **How it decides** (`apps/api/src/order-backup.ts`): one Durable Object per
 order.
 
-1. After PostHog accepts the pixel's event, the pixel posts the order id to
-   `POST /orders/counted` (plain text, so no CORS preflight; rate-limited per
-   IP). It checks the status and retries anything but a 2xx, a 429 included,
-   three times over about 15 seconds. The order's object remembers the note
+1. After PostHog accepts the pixel's event, the pixel posts the order id and
+   checkout token to `POST /orders/counted` (plain text, so no CORS preflight;
+   rate-limited per IP). It checks the status and retries anything but a 2xx,
+   a 429 included, or no answer in five seconds, three times over about 15
+   seconds. The order's object remembers the note
    for three days, past Shopify's 48 hours of retries.
 2. The webhook stores its event in the same object and sets a ten-minute
    alarm. If the pixel has already reported, it stores nothing.
@@ -137,12 +138,16 @@ first stored event.
   `Content-Length` is refused straight away, and reading stops at the cap
   otherwise (413). A consented order that arrives before `POSTHOG_KEY` is set gets 503,
   so Shopify retries it.
-- **The "counted" note isn't signed.** The pixel can't hold a secret. Faking
-  one only stops the backup for an order whose id the caller knows: a gap in
-  analytics, never a wrong number.
+- **The "counted" note isn't signed.** The pixel can't hold a secret, so the
+  note carries the checkout token, and stops the backup only if it matches
+  the webhook's `checkout_token` (the same value, per Shopify's docs). Order
+  ids are easy to guess; the token isn't. A wrong note changes nothing.
+- **The one CORS header in the Worker** is on this route, so the pixel can
+  read the status: an exception recorded in `apps/api/AGENTS.md`.
 - **Edge cases:** a thank-you page that first loads more than ten minutes
-  after the order (rare), or a note that still fails after its retries, can
-  count the order twice.
+  after the order (rare), a note that still fails after its retries, or a
+  pixel event without a checkout token (not expected on `checkout_completed`),
+  can count the order twice.
 - **The backup's event has no `has_subscription`:** the webhook payload
   doesn't say which lines are on a selling plan.
 

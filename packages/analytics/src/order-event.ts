@@ -49,6 +49,8 @@ export interface WebhookOrder {
   readonly created_at: string;
   readonly currency: string;
   readonly total_price: string;
+  /** The pixel's `checkout.token` for the same checkout; null for admin orders. */
+  readonly checkout_token?: string | null;
   readonly note_attributes?:
     readonly { readonly name: string; readonly value: string }[] | null;
   readonly line_items?: readonly { readonly quantity: number }[] | null;

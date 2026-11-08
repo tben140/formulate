@@ -22,6 +22,7 @@ const order = JSON.stringify({
   created_at: "2026-10-28T19:40:00+00:00",
   currency: "GBP",
   total_price: "39.85",
+  checkout_token: "checkout-token-1",
   note_attributes: [
     { name: "_posthog_id", value: "web-visitor-id" },
     { name: "_surface", value: "web" },
@@ -92,6 +93,7 @@ describe("orders/create webhook", () => {
       timestamp: "2026-10-28T19:40:00.000Z",
       properties: { order_value: 39.85, item_count: 3, surface: "web" },
     });
+    expect(backup("6500000000001").schedule.mock.calls[0]?.[1]).toBe("checkout-token-1");
   });
 
   it("asks Shopify to retry when the backup can't be stored", async () => {

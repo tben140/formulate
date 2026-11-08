@@ -44,6 +44,8 @@ const event: CapturedOrderEvent = {
   properties: { order_id: "6500000000001" },
 };
 
+const TOKEN = "checkout-token-1";
+
 const now = Date.parse("2026-10-29T12:00:00Z");
 
 afterEach(() => {
@@ -59,7 +61,7 @@ describe("OrderBackup", () => {
     vi.stubGlobal("fetch", fetchMock);
     const { backup, alarm, data } = object();
 
-    expect(await backup.schedule(event)).toBe("scheduled");
+    expect(await backup.schedule(event, TOKEN)).toBe("scheduled");
     expect(alarm()).toBe(now + BACKUP_DELAY_MS);
     await backup.alarm();
 
@@ -73,8 +75,8 @@ describe("OrderBackup", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const { backup } = object();
-    await backup.schedule(event);
-    await backup.counted();
+    await backup.schedule(event, TOKEN);
+    await backup.counted(TOKEN);
     await backup.alarm();
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -84,20 +86,53 @@ describe("OrderBackup", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const { backup, alarm } = object();
-    await backup.counted();
+    await backup.counted(TOKEN);
     expect(alarm()).toBe(now + FORGET_AFTER_MS);
-    expect(await backup.schedule(event)).toBe("counted");
+    expect(await backup.schedule(event, TOKEN)).toBe("counted");
     expect(alarm()).toBe(now + FORGET_AFTER_MS);
     await backup.alarm();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("ignores a note whose checkout token isn't the order's, before or after", async () => {
+    vi.useFakeTimers({ now, toFake: ["Date"] });
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })));
+    vi.stubGlobal("fetch", fetchMock);
+    const { backup, alarm } = object();
+    await backup.counted("guessed");
+    expect(await backup.schedule(event, TOKEN)).toBe("scheduled");
+    await backup.counted("guessed-again");
+    expect(alarm()).toBe(now + BACKUP_DELAY_MS);
+    await backup.alarm();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("still honours the real note after a wrong one", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { backup } = object();
+    await backup.schedule(event, TOKEN);
+    await backup.counted("guessed");
+    await backup.counted(TOKEN);
+    await backup.alarm();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sends an order with no checkout token (an admin order) after the delay", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })));
+    vi.stubGlobal("fetch", fetchMock);
+    const { backup } = object();
+    expect(await backup.schedule(event, null)).toBe("scheduled");
+    await backup.alarm();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("keeps the first event and its timer when Shopify retries", async () => {
     vi.useFakeTimers({ now, toFake: ["Date"] });
     const { backup, alarm, data } = object();
-    await backup.schedule(event);
+    await backup.schedule(event, TOKEN);
     vi.setSystemTime(now + 60_000);
-    await backup.schedule({ ...event, timestamp: "changed" });
+    await backup.schedule({ ...event, timestamp: "changed" }, TOKEN);
     expect(alarm()).toBe(now + BACKUP_DELAY_MS);
     expect(data.get("event")).toEqual(event);
   });
@@ -109,7 +144,7 @@ describe("OrderBackup", () => {
       vi.fn(() => Promise.resolve(new Response("", { status: 503 }))),
     );
     const { backup, data, alarm } = object();
-    await backup.schedule(event);
+    await backup.schedule(event, TOKEN);
     await backup.alarm();
     expect(alarm()).toBe(now + RETRY_FIRST_MS);
     await backup.alarm();
@@ -126,7 +161,7 @@ describe("OrderBackup", () => {
       vi.fn(() => Promise.reject(new Error("fetch failed"))),
     );
     const { backup, alarm } = object();
-    await backup.schedule(event);
+    await backup.schedule(event, TOKEN);
     await expect(backup.alarm()).resolves.toBeUndefined();
     expect(alarm()).toBe(now + RETRY_FIRST_MS);
   });
@@ -138,7 +173,7 @@ describe("OrderBackup", () => {
     );
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const { backup, data } = object();
-    await backup.schedule(event);
+    await backup.schedule(event, TOKEN);
     for (let i = 0; i < MAX_SEND_ATTEMPTS; i++) await backup.alarm();
     expect(data.size).toBe(0);
   });
@@ -172,21 +207,23 @@ describe("POST /orders/counted", () => {
     limit.mockClear();
   });
 
-  it("marks the order counted", async () => {
-    const response = await post("6500000000001");
+  it("marks the order counted, passing on the checkout token", async () => {
+    const response = await post("6500000000001\ncheckout-token-1");
     expect(response.status).toBe(204);
-    expect(counted).toHaveBeenCalledOnce();
+    expect(counted).toHaveBeenCalledWith("checkout-token-1");
   });
 
-  it("refuses anything that isn't an order id", async () => {
-    expect((await post("gid://shopify/Order/1")).status).toBe(400);
-    expect((await post("1".repeat(40))).status).toBe(413);
+  it("refuses anything that isn't an order id and a token", async () => {
+    expect((await post("6500000000001")).status).toBe(400);
+    expect((await post("gid://shopify/Order/1\ncheckout-token-1")).status).toBe(400);
+    expect((await post("6500000000001\nhas a space")).status).toBe(400);
+    expect((await post("1".repeat(300))).status).toBe(413);
     expect(counted).not.toHaveBeenCalled();
   });
 
   it("is rate-limited per IP", async () => {
     limit.mockResolvedValueOnce({ success: false });
-    expect((await post("6500000000001")).status).toBe(429);
+    expect((await post("6500000000001\ncheckout-token-1")).status).toBe(429);
     expect(counted).not.toHaveBeenCalled();
   });
 });

@@ -74,7 +74,8 @@ const json = (body: Outcome, status: number): Response =>
     headers: {
       "content-type": "application/json",
       /*
-       * ⚠️ No CORS headers, deliberately. Do not add them.
+       * ⚠️ No CORS headers, deliberately. Do not add them. (The one
+       * exception is /orders/counted, in order-backup.ts: see AGENTS.md.)
        *
        * A native app is not subject to CORS, so this endpoint's only intended
        * caller needs none. Their absence means a browser cannot use this

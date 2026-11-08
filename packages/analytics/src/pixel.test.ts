@@ -79,6 +79,7 @@ const checkout = (attributes: { key: string; value: string }[]) => ({
   subtotalPrice: money(35.9),
   totalPrice: money(39.85),
   order: { id: "gid://shopify/Order/6500000000001" },
+  token: "checkout-token-1",
   lineItems: [
     { quantity: 2, sellingPlanAllocation: { sellingPlan: { name: "30 day" } } },
     { quantity: 1, sellingPlanAllocation: null },
@@ -228,7 +229,7 @@ describe("PostHog custom pixel", () => {
       expect(calls).toHaveLength(2);
       expect(calls[1]).toMatchObject({
         url: "https://api.example/orders/counted",
-        init: { method: "POST", body: "6500000000001" },
+        init: { method: "POST", body: "6500000000001\ncheckout-token-1" },
       });
     });
 
@@ -264,6 +265,32 @@ describe("PostHog custom pixel", () => {
           String(url).endsWith("/orders/counted"),
         );
         expect(counted).toHaveLength(3);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("retries a note that gets no answer", async () => {
+      vi.useFakeTimers();
+      try {
+        const { handlers, fetchMock } = loadPixel("phc_test", "https://api.example");
+        let notes = 0;
+        fetchMock.mockImplementation((url: string) =>
+          url.endsWith("/orders/counted") && notes++ === 0
+            ? new Promise(() => undefined)
+            : Promise.resolve({ ok: true }),
+        );
+        handlers.get("checkout_completed")?.({
+          name: "checkout_completed",
+          clientId: "shopify-client-id",
+          timestamp: "2026-10-15T12:00:00.000Z",
+          context: { document: { location: { href: "https://shop.example/thank-you" } } },
+          data: {
+            checkout: checkout([{ key: CART_ATTRIBUTES.distinctId, value: "web-id" }]),
+          },
+        });
+        await vi.runAllTimersAsync();
+        expect(notes).toBe(2);
       } finally {
         vi.useRealTimers();
       }
