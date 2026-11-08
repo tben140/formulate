@@ -3,7 +3,7 @@ import {
   cartViewedProperties,
   checkoutStartedProperties,
 } from "@formulate/analytics";
-import { formatMoney } from "@formulate/shopify";
+import { formatMoney, limitMessage, maxQuantityForLine } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
@@ -182,6 +182,7 @@ export const CartSheet = ({
           <ScrollView contentContainerClassName="pb-4">
             {lines.map((line) => {
               const variant = line.merchandise;
+              const atLimit = line.quantity >= maxQuantityForLine(lines, line.id);
 
               return (
                 <View
@@ -244,6 +245,9 @@ export const CartSheet = ({
                           {line.quantity}
                         </Text>
 
+                        {/* At most 6 of a product per order, counting its
+                            other lines (MAX_PER_PRODUCT; the Function is the
+                            real rule), so "+" stops before Shopify refuses. */}
                         <Pressable
                           onPress={() =>
                             updateLine.mutate({
@@ -251,10 +255,15 @@ export const CartSheet = ({
                               quantity: line.quantity + 1,
                             })
                           }
+                          disabled={atLimit}
                           accessibilityRole="button"
                           accessibilityLabel={`Increase quantity of ${variant.product.title}`}
+                          accessibilityState={{ disabled: atLimit }}
+                          accessibilityHint={
+                            atLimit ? limitMessage(variant.product.title) : undefined
+                          }
                           hitSlop={8}
-                          className="h-8 w-8 items-center justify-center rounded-md border border-border"
+                          className={`h-8 w-8 items-center justify-center rounded-md border border-border ${atLimit ? "opacity-40" : ""}`}
                         >
                           <Text className="text-foreground">+</Text>
                         </Pressable>
@@ -264,6 +273,13 @@ export const CartSheet = ({
                         {formatMoney(line.cost.totalAmount)}
                       </Text>
                     </View>
+                    {/* Under the row, not in it: beside the controls it pushed
+                        the price off narrow screens and large text sizes. */}
+                    {atLimit ? (
+                      <Text className="mt-1 text-xs text-foreground-muted">
+                        {limitMessage(variant.product.title)}
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
               );
