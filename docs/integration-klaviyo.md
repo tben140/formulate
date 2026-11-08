@@ -3,10 +3,10 @@
 **Status as of 2026-10-01:** onsite tracking, Viewed Product and Added to Cart
 are live on web and theme and verified in Klaviyo's own feed. Started Checkout
 is sent by web only; the theme leaves checkout to Shopify's own Checkout Started
-(see [Which checkout metric](#-which-checkout-metric--and-why-not-ours)). Email
+(see [Which checkout metric](#which-checkout-metric)). Email
 capture ships on web, theme and mobile. Nine lifecycle flows are live (see
-[Flows](#flows)). Mobile sends no events yet, and the Recharge flows wait on
-the Recharge connection (SHO-108).
+[Flows](#flows)). Mobile sends no events yet. The Recharge flows have been
+live since 6 October 2026 ([Recharge](integration-recharge.md#recharge--klaviyo-live)).
 
 ## Why Klaviyo
 
@@ -428,7 +428,8 @@ Design position:
 ## Flows
 
 Nine flows are live, read from the account on 2026-10-01. Each email carries
-the demo-store notice.
+the demo-store notice, except Abandoned checkout and Back in stock
+([demo-store.md](demo-store.md) says why).
 
 | Flow | Trigger | Source of the trigger |
 | --- | --- | --- |
@@ -447,10 +448,12 @@ who added something and never reached checkout; **Abandoned checkout** catches
 one who reached checkout and didn't pay. They use different metrics for the
 reason below.
 
-Still to come: the **Recharge subscription flows** (upcoming order, payment
-failed, cancelled and the rest), triggered from Recharge's own metrics with no
-code of ours in the trigger. The templates exist; the flows need Recharge
-connected first. See SHO-108.
+The **Recharge subscription flows** (upcoming order, payment failed,
+cancelled and the rest) are triggered from Recharge's own metrics, with no code
+of ours in the trigger. Eleven have been live since 6 October 2026; see
+[Recharge → Klaviyo](integration-recharge.md#recharge--klaviyo-live).
+
+<a id="which-checkout-metric"></a>
 
 ### ⚠️ Which checkout metric — and why not ours
 
