@@ -94,7 +94,14 @@ export const toNavLinks = (
     if (!segment || !rawHandle) return [];
 
     const kind = KINDS[segment as keyof typeof KINDS];
-    const handle = decodeURIComponent(rawHandle);
+    // A merchant typo like "/collections/50%off" survives the URL parser and
+    // makes decodeURIComponent throw; drop that item rather than every page.
+    let handle: string;
+    try {
+      handle = decodeURIComponent(rawHandle);
+    } catch {
+      return [];
+    }
     if (kind === "collection" && RESERVED_COLLECTION_PATHS.has(handle)) return [];
     if (kind === "policy" && !isPolicyHandle(handle)) return [];
 
