@@ -3,11 +3,10 @@
  * sites"). Set here rather than in vercel.json so `next start`, the e2e
  * tests and Vercel all send the same ones.
  *
- * The Content Security Policy is **report-only** for now: browsers log what
- * it would block without blocking it. e2e/security-headers.spec.ts fails on
- * any violation on the main pages; once it has held through the batch's
- * analytics PRs (PostHog, Sentry, ad tags), it switches to
- * `Content-Security-Policy`.
+ * The Content Security Policy is **enforced** (SHO-192): a browser blocks
+ * anything it doesn't list. e2e/security-headers.spec.ts fails on any
+ * violation on the main pages, so a new third party must add its host below
+ * in the same PR, or its feature breaks in production.
  *
  * ⚠️ `script-src` allows `'unsafe-inline'`: Next's App Router inlines its
  * hydration data as scripts, and the alternative (a nonce per request) makes
@@ -25,6 +24,10 @@ const policy: Record<string, readonly string[]> = {
     // Klaviyo's onsite script, after consent (components/tracking-consent.tsx).
     "https://static.klaviyo.com",
     "https://static-tracking.klaviyo.com",
+    // Shopify's Shop Pay button (Hydrogen's ShopPayButton loads shop-js).
+    "https://cdn.shopify.com",
+    // PostHog loads optional extensions from its asset host.
+    "https://eu-assets.i.posthog.com",
   ],
   // Klaviyo's forms inject inline styles and their own stylesheets.
   "style-src": ["'self'", "'unsafe-inline'", "https://*.klaviyo.com"],
@@ -36,15 +39,28 @@ const policy: Record<string, readonly string[]> = {
     "https://*.klaviyo.com",
   ],
   "font-src": ["'self'", "data:", "https://*.klaviyo.com"],
-  // Klaviyo's tracking and form submissions.
-  "connect-src": ["'self'", "https://*.klaviyo.com"],
+  "connect-src": [
+    "'self'",
+    // Klaviyo's tracking and form submissions.
+    "https://*.klaviyo.com",
+    // PostHog, EU cloud (packages/analytics).
+    "https://eu.i.posthog.com",
+    "https://eu-assets.i.posthog.com",
+    // Sentry's ingest hosts (o<id>.ingest.<region>.sentry.io).
+    "https://*.sentry.io",
+  ],
   "frame-src": ["'none'"],
   "object-src": ["'none'"],
   "base-uri": ["'self'"],
   // Server Actions post to this site; without JavaScript, the cart's form
   // post redirects to Shopify's checkout, and form-action covers redirects.
-  "form-action": ["'self'", "https://*.myshopify.com", "https://shop.app"],
-  // Ignored in a report-only policy; X-Frame-Options below enforces it.
+  // Signing out posts here, then redirects to Shopify's customer accounts.
+  "form-action": [
+    "'self'",
+    "https://*.myshopify.com",
+    "https://shop.app",
+    "https://shopify.com",
+  ],
   "frame-ancestors": ["'none'"],
 };
 
@@ -63,11 +79,25 @@ const vercelPreviewToolbar: Record<string, readonly string[]> = {
   "frame-src": ["https://vercel.live"],
 };
 
-/** The policy for this build: `VERCEL_ENV` is "preview" on preview builds. */
-export const buildPolicy = (preview: boolean): string =>
+/**
+ * `next dev` only: React rebuilds server error stacks in the browser with
+ * eval, and logs a CSP error without it. Production builds never get this.
+ */
+const development: Record<string, readonly string[]> = {
+  "script-src": ["'unsafe-eval'"],
+};
+
+/**
+ * The policy for this build: `VERCEL_ENV` is "preview" on preview builds, and
+ * `NODE_ENV` "development" under `next dev`.
+ */
+export const buildPolicy = (preview: boolean, dev = false): string =>
   Object.entries(policy)
     .map(([directive, sources]) => {
-      const extra = preview ? (vercelPreviewToolbar[directive] ?? []) : [];
+      const extra = [
+        ...(preview ? (vercelPreviewToolbar[directive] ?? []) : []),
+        ...(dev ? (development[directive] ?? []) : []),
+      ];
       // A source list with 'none' can't take anything else.
       const all =
         extra.length > 0 ? [...sources.filter((s) => s !== "'none'"), ...extra] : sources;
@@ -75,11 +105,15 @@ export const buildPolicy = (preview: boolean): string =>
     })
     .join("; ");
 
-export const contentSecurityPolicy = buildPolicy(process.env.VERCEL_ENV === "preview");
+export const contentSecurityPolicy = buildPolicy(
+  process.env.VERCEL_ENV === "preview",
+  process.env.NODE_ENV === "development",
+);
 
 export const securityHeaders: readonly { key: string; value: string }[] = [
-  { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicy },
-  // Nothing may frame the site (clickjacking).
+  { key: "Content-Security-Policy", value: contentSecurityPolicy },
+  // Nothing may frame the site (clickjacking); frame-ancestors says the same
+  // to browsers that read CSP, this to the ones that don't.
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

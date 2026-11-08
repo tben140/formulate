@@ -4,15 +4,14 @@ import { addToCart, openProduct } from "./helpers";
 
 /**
  * The security headers (lib/security-headers.ts) are sent, and the Content
- * Security Policy, though only report-only, would block nothing the main pages
- * load. A violation here means a new host belongs in the policy, or something
+ * Security Policy, which is enforced, blocks nothing the main pages load. A violation here means a new host belongs in the policy, or something
  * is loading that shouldn't.
  */
 
 test("every page is sent the security headers", async ({ request }) => {
   const response = await request.get("/");
   const headers = response.headers();
-  expect(headers["content-security-policy-report-only"]).toContain("default-src 'self'");
+  expect(headers["content-security-policy"]).toContain("default-src 'self'");
   expect(headers["x-frame-options"]).toBe("DENY");
   expect(headers["x-content-type-options"]).toBe("nosniff");
   expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
