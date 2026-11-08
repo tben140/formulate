@@ -1,5 +1,6 @@
 import {
   CollectionCardsQuery,
+  collectionSort,
   CollectionProductsQuery,
   LEGAL_MENU_HANDLE,
   NAV_MENU_HANDLE,
@@ -46,22 +47,32 @@ const unwrap = <T>(
  * The previous results stay on screen while a new filter loads, rather than
  * the list flashing to a spinner on every change.
  */
+/** How many products a collection screen lists. */
+export const COLLECTION_PAGE_SIZE = 24;
+
+/**
+ * A collection's products. `filterQuery` is the Liquid-style query string web
+ * and the theme keep in the URL: `filter.*` parameters and `sort_by`.
+ */
 export const useCollection = (
   handle: string,
   options: { enabled?: boolean; filterQuery?: string } = {},
 ) =>
   useQuery({
     queryKey: ["collection", handle, options.filterQuery ?? ""],
-    queryFn: async () =>
-      unwrap(
+    queryFn: async () => {
+      const params = new URLSearchParams(options.filterQuery ?? "");
+      const { sortKey, reverse } = collectionSort(params);
+      return unwrap(
         await storefront.request(CollectionProductsQuery, {
           handle,
-          first: 24,
-          filters: productFiltersFromParams(
-            new URLSearchParams(options.filterQuery ?? ""),
-          ),
+          first: COLLECTION_PAGE_SIZE,
+          filters: productFiltersFromParams(params),
+          sortKey,
+          reverse,
         }),
-      ),
+      );
+    },
     enabled: options.enabled ?? true,
     placeholderData: keepPreviousData,
   });

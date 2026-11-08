@@ -22,6 +22,16 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /*
+   * The phone filter sheet (FilteredListing) is the sidebar shown full screen
+   * by #filters:target; the page behind it shouldn't scroll.
+   */
+  @media (max-width: 63.99rem) {
+    html:has(#filters:target) {
+      overflow: hidden;
+    }
+  }
+
   /* WCAG 2.4.7 — never remove focus indication, only restyle it. */
   :focus-visible {
     outline: 2px solid var(--color-brand-600);
