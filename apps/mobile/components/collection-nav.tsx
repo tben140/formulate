@@ -54,6 +54,8 @@ export const CollectionNav = ({
         <Link href="/shop" asChild>
           <Pressable
             accessibilityRole="link"
+            // Without it the › would be read aloud.
+            accessibilityLabel="Shop"
             className="rounded-full border border-border bg-surface px-4 py-2"
           >
             <Text className="text-sm font-medium text-foreground">Shop ›</Text>
