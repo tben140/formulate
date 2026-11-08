@@ -74,8 +74,9 @@ export interface CartActionState {
   /** Line key of the item just added, so the event can name it. */
   readonly addedLineId?: string;
   /**
-   * How many this add added. The line's own quantity also counts earlier adds
-   * of the same product, so analytics can't use it.
+   * How many this add put in, for analytics (not the line's new total). 0 when
+   * stock cut the add short: Shopify doesn't say how many went in, possibly
+   * none, so the add isn't reported rather than over-counted.
    */
   readonly addedQuantity?: number;
 }
@@ -168,7 +169,7 @@ export const addToCart = async (
     token: Date.now(),
     cart: result.data,
     addedLineId: addedLine?.id,
-    addedQuantity: line.quantity ?? 1,
+    addedQuantity: notice ? 0 : (line.quantity ?? 1),
   };
 };
 
