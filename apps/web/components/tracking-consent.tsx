@@ -1,7 +1,15 @@
 "use client";
 
 import Script from "next/script";
-import { createContext, useContext, useId, useState, type ReactNode } from "react";
+import {
+  createContext,
+  Suspense,
+  use,
+  useContext,
+  useId,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
 import { analytics, forgetProductAnalytics, POSTHOG_KEY } from "@/lib/product-analytics";
@@ -89,16 +97,44 @@ const forgetKlaviyo = (): void => {
   }
 };
 
+/**
+ * SHO-150 spike: the provider takes the consent cookie as a *promise*, so the
+ * page around it can prerender. Only the banner and the Klaviyo script wait
+ * for the cookie, inside their own Suspense boundary.
+ */
 export const TrackingConsentProvider = ({
   initialConsent,
   children,
 }: {
-  readonly initialConsent: TrackingConsent;
+  readonly initialConsent: Promise<TrackingConsent>;
   readonly children: ReactNode;
 }) => {
-  const [consent, setConsent] = useState(initialConsent);
   const [reopened, setReopened] = useState(false);
 
+  return (
+    <ConsentContext.Provider value={{ reopen: () => setReopened(true) }}>
+      {children}
+      <Suspense fallback={null}>
+        <ConsentState
+          initialConsent={initialConsent}
+          reopened={reopened}
+          onSettled={() => setReopened(false)}
+        />
+      </Suspense>
+    </ConsentContext.Provider>
+  );
+};
+
+const ConsentState = ({
+  initialConsent,
+  reopened,
+  onSettled,
+}: {
+  readonly initialConsent: Promise<TrackingConsent>;
+  readonly reopened: boolean;
+  readonly onSettled: () => void;
+}) => {
+  const [consent, setConsent] = useState(use(initialConsent));
   const choose = (next: Exclude<TrackingConsent, "unset">) => {
     writeConsent(next);
 
@@ -125,7 +161,7 @@ export const TrackingConsentProvider = ({
     }
 
     setConsent(next);
-    setReopened(false);
+    onSettled();
 
     // Events before Accept were dropped, not queued (lib/product-analytics.ts),
     // so the page the shopper accepted on is counted from here.
@@ -136,8 +172,7 @@ export const TrackingConsentProvider = ({
     Boolean(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY) && (consent === "unset" || reopened);
 
   return (
-    <ConsentContext.Provider value={{ reopen: () => setReopened(true) }}>
-      {children}
+    <>
 
       {showBanner ? (
         <ConsentBanner
@@ -157,9 +192,10 @@ export const TrackingConsentProvider = ({
       {KLAVIYO_PUBLIC_KEY && consent === "granted" ? (
         <Script src={KLAVIYO_SCRIPT_URL} strategy="afterInteractive" />
       ) : null}
-    </ConsentContext.Provider>
+    </>
   );
 };
+
 
 /**
  * Not a modal, and deliberately so.
