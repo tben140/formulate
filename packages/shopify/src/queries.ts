@@ -58,6 +58,9 @@ export const ProductByHandleQuery = graphql(`
       handle
       title
       description
+      # The formatted description, for the product page. The plain one above
+      # is for search engines and the Klaviyo payload.
+      descriptionHtml
       # The merchant's search-engine overrides from the admin. Either can be
       # null, in which case apps/web falls back to the title and description.
       seo {

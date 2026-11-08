@@ -9,6 +9,7 @@ import { AddToCartForm } from "@/components/add-to-cart-form";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
+import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
@@ -136,8 +137,9 @@ const ProductPage = async ({ params }: PageProps) => {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
 
-          {product.description ? (
-            <p className="mt-4 text-foreground-muted">{product.description}</p>
+          {product.descriptionHtml ? (
+            // Its first paragraph's own top margin spaces it from the title.
+            <StoreHtml html={product.descriptionHtml} />
           ) : null}
 
           {/*
