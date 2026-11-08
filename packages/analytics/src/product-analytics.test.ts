@@ -135,6 +135,34 @@ describe("ids", () => {
     );
     expect(early < late).toBe(true);
   });
+
+  it("falls back to getRandomValues, and never to Math.random", () => {
+    const v4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    const random = vi.spyOn(Math, "random");
+    vi.stubGlobal("crypto", {
+      getRandomValues: (array: Uint8Array) => array.fill(0xff),
+    });
+    try {
+      expect(anonymousId()).toBe("ffffffff-ffff-4fff-bfff-ffffffffffff");
+      expect(anonymousId()).toMatch(v4);
+      vi.stubGlobal("crypto", undefined);
+      expect(() => anonymousId()).toThrow(/secure random/);
+      expect(random).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+      random.mockRestore();
+    }
+  });
+
+  it("takes a session id's random bits from the uuid it's given", () => {
+    expect(
+      sessionUuid(Date.UTC(2026, 9, 9, 10), "00000000-0000-4000-8000-0123456789ab"),
+    ).toBe("01a1201a-f500-7400-8000-0123456789ab");
+  });
+
+  it("refuses a session id from something that isn't a uuid", () => {
+    expect(() => sessionUuid(Date.UTC(2026, 9, 9, 10), "abc")).toThrow(/needs a UUID/);
+  });
 });
 
 describe("payload builders", () => {
