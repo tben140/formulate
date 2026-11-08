@@ -38,8 +38,9 @@ const ConsentContext = createContext<ConsentContextValue | null>(null);
 /**
  * Deletes what `klaviyo.js` left behind.
  *
- * Needed only when consent is withdrawn after being given. Declining first time
- * round leaves nothing to delete, because the script never ran.
+ * Run on every refusal. Declining the very first time leaves nothing to
+ * delete, because the script never ran, but a shopper asked again after the
+ * consent cookie expired may still have Klaviyo's cookies from before.
  */
 const forgetKlaviyo = (): void => {
   const expired = "Max-Age=0; Path=/";
@@ -105,16 +106,21 @@ export const TrackingConsentProvider = ({
 
     if (next === "denied") {
       discardQueuedEvents();
+      /*
+       * On every refusal, not only a withdrawal: the consent cookie expires
+       * after six months while localStorage and Klaviyo's cookies don't, so a
+       * shopper asked again ("unset") may still have an old id here.
+       */
+      forgetKlaviyo();
+      forgetProductAnalytics();
 
       /*
        * Withdrawing after accepting. `klaviyo.js` is already running and there
-       * is no API to stop it, so delete what it stored and reload into a page
-       * the server renders without it. Heavy-handed, but it is the only way
-       * the refusal is actually true for the rest of the visit.
+       * is no API to stop it, so reload into a page the server renders without
+       * it. Heavy-handed, but it is the only way the refusal is actually true
+       * for the rest of the visit.
        */
       if (consent === "granted") {
-        forgetKlaviyo();
-        forgetProductAnalytics();
         window.location.reload();
         return;
       }
