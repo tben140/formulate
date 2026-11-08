@@ -39,6 +39,17 @@
     ]
   },
   {
+    "name": "Campaigns",
+    "settings": [
+      {
+        "type": "text",
+        "id": "campaign_preview_at",
+        "label": "Campaign preview time",
+        "info": "Shows campaigns as they'll be at this time, e.g. 2026-11-28T12:00:00Z, to check one before it starts. Leave empty on the live theme."
+      }
+    ]
+  },
+  {
     "name": "Brand",
     "settings": [
       {

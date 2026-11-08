@@ -47,6 +47,9 @@ export {
   CartLinesAddMutation,
   CartLinesRemoveMutation,
   CartLinesUpdateMutation,
+  CampaignByHandleQuery,
+  CampaignsQuery,
+  CartDiscountCodesUpdateMutation,
   CartQuery,
   CollectionCardsQuery,
   CollectionProductsQuery,
@@ -119,3 +122,28 @@ export type {
   OptimisticCartLike,
   OptimisticCartState,
 } from "./cart-optimistic";
+
+export {
+  activeCampaign,
+  campaignBadge,
+  campaignEndsLabel,
+  campaignForVariant,
+  campaignHandleFromPath,
+  campaignNow,
+  campaignParagraphs,
+  campaignPath,
+  campaignStartsLabel,
+  campaignStatus,
+  canSeeCampaign,
+  isCampaignActive,
+  isCampaignLive,
+  safeRedirectPath,
+  toCampaign,
+} from "./campaign";
+export type {
+  Campaign,
+  CampaignImage,
+  CampaignNode,
+  CampaignRef,
+  CampaignView,
+} from "./campaign";

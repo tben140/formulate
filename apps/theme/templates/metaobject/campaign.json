@@ -1,0 +1,9 @@
+{
+  "sections": {
+    "main": {
+      "type": "campaign",
+      "settings": {}
+    }
+  },
+  "order": ["main"]
+}
