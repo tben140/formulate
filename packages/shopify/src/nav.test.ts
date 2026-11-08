@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { breadcrumbCollection, toNavLinks } from "./nav";
+import { breadcrumbCollection, toNavGroup, toNavLinks } from "./nav";
 
 const item = (url: string | null, title = "Item") => ({ id: `id-${title}`, title, url });
 
@@ -111,5 +111,48 @@ describe("breadcrumbCollection", () => {
   it("is null when none match, and never picks a product link", () => {
     expect(breadcrumbCollection([{ handle: "frontpage" }], nav)).toBeNull();
     expect(breadcrumbCollection([{ handle: "fibre" }], nav)).toBeNull();
+  });
+});
+
+describe("toNavGroup", () => {
+  it("names the group without the word Shop, and keeps its links", () => {
+    expect(
+      toNavGroup({
+        title: "Shop by goal",
+        items: [item("/collections/gut-health", "Gut Health")],
+      }),
+    ).toEqual({
+      title: "By goal",
+      links: [
+        {
+          id: "id-Gut Health",
+          title: "Gut Health",
+          kind: "collection",
+          handle: "gut-health",
+          path: "/collections/gut-health",
+        },
+      ],
+    });
+  });
+
+  it("keeps a title that doesn't start with Shop", () => {
+    expect(
+      toNavGroup({ title: "formats", items: [item("/collections/powders", "Powders")] })
+        ?.title,
+    ).toBe("Formats");
+  });
+
+  it("is null for a missing menu, or one with nothing to browse", () => {
+    expect(toNavGroup(null)).toBeNull();
+    expect(toNavGroup({ title: "Shop by goal", items: [] })).toBeNull();
+    expect(
+      toNavGroup({
+        title: "Shop by goal",
+        items: [
+          item("/policies/privacy-policy", "Privacy"),
+          item("/pages/about", "About"),
+        ],
+      }),
+    ).toBeNull();
   });
 });

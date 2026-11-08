@@ -89,6 +89,7 @@ const RootLayout = () => {
             <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
             <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
             <Stack.Screen name="policies/[handle]" options={{ title: "" }} />
+            <Stack.Screen name="shop" options={{ title: "Shop" }} />
             {/* Cart only: a Search button on the search screen goes nowhere. */}
             <Stack.Screen
               name="search"
