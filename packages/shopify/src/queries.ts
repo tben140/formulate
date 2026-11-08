@@ -698,6 +698,90 @@ export const ProductRecommendationsQuery = graphql(`
   }
 `);
 
+/* -------------------------------------------------------------------------- */
+/*  Routine quiz (SHO-161)                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Every `routine_goal` metaobject, with what the quiz's scorer needs from each
+ * product. See `toRoutineGoals` in ./routine-quiz-data.
+ *
+ * Products come from the metaobject's ordered `products` list; the merchant's
+ * order is the relevance order. The quiz offers each product's first size
+ * that's in stock, so up to 10 variants are read.
+ */
+export const RoutineGoalsQuery = graphql(`
+  query RoutineGoals {
+    metaobjects(type: "routine_goal", first: 20, sortKey: "display_name") {
+      nodes {
+        handle
+        key: field(key: "key") {
+          value
+        }
+        label: field(key: "label") {
+          value
+        }
+        products: field(key: "products") {
+          references(first: 10) {
+            nodes {
+              ... on Product {
+                id
+                handle
+                title
+                availableForSale
+                featuredImage {
+                  url
+                  altText
+                }
+                # Diet and format are product tags: "vegan", "vegetarian",
+                # "format-capsule" and so on, the same tags the catalogue's
+                # automated collections use.
+                tags
+                sellingPlanGroups(first: 10) {
+                  nodes {
+                    appName
+                    sellingPlans(first: 20) {
+                      nodes {
+                        id
+                      }
+                    }
+                  }
+                }
+                variants(first: 10) {
+                  nodes {
+                    id
+                    availableForSale
+                    price {
+                      amount
+                      currencyCode
+                    }
+                    sellingPlanAllocations(first: 10) {
+                      nodes {
+                        sellingPlan {
+                          id
+                          options {
+                            name
+                            value
+                          }
+                        }
+                        priceAdjustments {
+                          perDeliveryPrice {
+                            amount
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
 /**
  * The payment methods Shopify reports the store accepts, for the footer's
  * payment icons (see paymentIconIds).

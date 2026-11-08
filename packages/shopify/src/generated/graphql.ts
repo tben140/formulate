@@ -1646,6 +1646,14 @@ export type ProductRecommendationsQueryVariables = Exact<{
 
 export type ProductRecommendationsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, availableForSale: boolean, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, variants: { nodes: Array<{ id: string, availableForSale: boolean }> } }> | null };
 
+export type RoutineGoalsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RoutineGoalsQuery = { metaobjects: { nodes: Array<{ handle: string, key: { value: string | null } | null, label: { value: string | null } | null, products: { references: { nodes: Array<
+            | { id: string, handle: string, title: string, availableForSale: boolean, tags: Array<string>, featuredImage: { url: string, altText: string | null } | null, sellingPlanGroups: { nodes: Array<{ appName: string | null, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, availableForSale: boolean, price: { amount: string, currencyCode: CurrencyCode }, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, options: Array<{ name: string | null, value: string | null }> }, priceAdjustments: Array<{ perDeliveryPrice: { amount: string } }> }> } }> } }
+            | Record<PropertyKey, never>
+          > } | null } | null }> } };
+
 export type PaymentSettingsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -2650,6 +2658,74 @@ export const ProductRecommendationsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<ProductRecommendationsQuery, ProductRecommendationsQueryVariables>;
+export const RoutineGoalsDocument = new TypedDocumentString(`
+    query RoutineGoals {
+  metaobjects(type: "routine_goal", first: 20, sortKey: "display_name") {
+    nodes {
+      handle
+      key: field(key: "key") {
+        value
+      }
+      label: field(key: "label") {
+        value
+      }
+      products: field(key: "products") {
+        references(first: 10) {
+          nodes {
+            ... on Product {
+              id
+              handle
+              title
+              availableForSale
+              featuredImage {
+                url
+                altText
+              }
+              tags
+              sellingPlanGroups(first: 10) {
+                nodes {
+                  appName
+                  sellingPlans(first: 20) {
+                    nodes {
+                      id
+                    }
+                  }
+                }
+              }
+              variants(first: 10) {
+                nodes {
+                  id
+                  availableForSale
+                  price {
+                    amount
+                    currencyCode
+                  }
+                  sellingPlanAllocations(first: 10) {
+                    nodes {
+                      sellingPlan {
+                        id
+                        options {
+                          name
+                          value
+                        }
+                      }
+                      priceAdjustments {
+                        perDeliveryPrice {
+                          amount
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<RoutineGoalsQuery, RoutineGoalsQueryVariables>;
 export const PaymentSettingsDocument = new TypedDocumentString(`
     query PaymentSettings {
   shop {
