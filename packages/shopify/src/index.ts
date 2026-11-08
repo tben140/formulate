@@ -100,6 +100,13 @@ export {
   withValueToggled,
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
+export {
+  nextCursor,
+  nextPageParams,
+  pageVariables,
+  previousPageParams,
+} from "./pagination";
+export type { PageInfoLike, PageVariables } from "./pagination";
 export type { ProductFilter } from "./generated/graphql";
 
 export { policyBlocks } from "./policy-text";

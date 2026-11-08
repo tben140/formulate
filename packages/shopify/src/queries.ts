@@ -10,7 +10,14 @@ import { graphql } from "./generated";
  */
 
 export const CollectionProductsQuery = graphql(`
-  query CollectionProducts($handle: String!, $first: Int!, $filters: [ProductFilter!]) {
+  query CollectionProducts(
+    $handle: String!
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $filters: [ProductFilter!]
+  ) {
     collection(handle: $handle) {
       id
       title
@@ -23,7 +30,22 @@ export const CollectionProductsQuery = graphql(`
       # collection, the same order Liquid's collection.products uses, so the
       # three surfaces agree. It is also the API default: stated here so it is a
       # decision rather than an inheritance (SHO-111).
-      products(first: $first, sortKey: COLLECTION_DEFAULT, filters: $filters) {
+      # Cursor paging (SHO-43): first/after forward, last/before back. See
+      # src/pagination.ts for how the URL maps onto these.
+      products(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        sortKey: COLLECTION_DEFAULT
+        filters: $filters
+      ) {
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
         # The filters Search & Discovery offers for this collection, with counts
         # for the current selection. See src/filters.ts.
         filters {
