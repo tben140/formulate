@@ -1,3 +1,8 @@
+import {
+  PRODUCT_EVENTS,
+  cartViewedProperties,
+  checkoutStartedProperties,
+} from "@formulate/analytics";
 import { formatMoney, BLEND_ATTRIBUTES } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
@@ -11,6 +16,7 @@ import {
 } from "react-native";
 
 import { useCheckout } from "../lib/checkout";
+import { analytics } from "../lib/product-analytics";
 import { useClearCart, useOptimisticCart, useUpdateCartLine } from "../lib/use-cart";
 
 import { FreeShippingBar } from "./free-shipping-bar";
@@ -52,6 +58,18 @@ export const CartSheet = ({
    * that must not re-subscribe, and nothing renders from it.
    */
   const purchased = useRef(false);
+
+  // PostHog's cart_viewed (SHO-87), once per opening.
+  const counted = useRef(false);
+  useEffect(() => {
+    if (!visible) {
+      counted.current = false;
+      return;
+    }
+    if (counted.current || !cart) return;
+    counted.current = true;
+    analytics()?.capture(PRODUCT_EVENTS.cartViewed, cartViewedProperties(cart));
+  }, [visible, cart]);
 
   useEffect(() => {
     /*
@@ -280,7 +298,13 @@ export const CartSheet = ({
 
             {/* Held while a line change is in flight, as on web. */}
             <Pressable
-              onPress={() => checkout.present(cart.checkoutUrl)}
+              onPress={() => {
+                analytics()?.capture(
+                  PRODUCT_EVENTS.checkoutStarted,
+                  checkoutStartedProperties(cart),
+                );
+                checkout.present(cart.checkoutUrl);
+              }}
               disabled={busy.size > 0}
               accessibilityRole="button"
               accessibilityState={{ disabled: busy.size > 0, busy: busy.size > 0 }}

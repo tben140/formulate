@@ -71,6 +71,8 @@ export interface CartActionState {
   readonly cart?: Cart;
   /** Line key of the item just added, so the event can name it. */
   readonly addedLineId?: string;
+  /** How many this add asked for, for analytics (not the line's new total). */
+  readonly addedQuantity?: number;
 }
 
 const revalidate = () => revalidatePath("/", "layout");
@@ -155,6 +157,7 @@ export const addToCart = async (
     token: Date.now(),
     cart: result.data,
     addedLineId: addedLine?.id,
+    addedQuantity: line.quantity ?? 1,
   };
 };
 

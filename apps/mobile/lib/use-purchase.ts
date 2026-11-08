@@ -1,3 +1,4 @@
+import { PRODUCT_EVENTS, addedToCartProperties } from "@formulate/analytics";
 import {
   MIN_BLEND_SIZE,
   blendAttributes,
@@ -15,6 +16,7 @@ import {
 import { useState } from "react";
 
 import { useBlendIngredients } from "./blend";
+import { analytics } from "./product-analytics";
 import { useAddToCart } from "./use-cart";
 
 export type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -124,7 +126,21 @@ export const usePurchase = (product: Product) => {
           ? { attributes: blendAttributes(blend.codes, blendIngredients) }
           : {}),
       },
-      { onSuccess: onAdded },
+      {
+        onSuccess: ({ cart }) => {
+          onAdded();
+          // PostHog's product_added_to_cart (SHO-87): the line this add
+          // landed in, reported as one unit at the price actually charged.
+          const line = cart.lines.nodes.find(
+            (l) =>
+              "id" in l.merchandise &&
+              l.merchandise.id === variant.id &&
+              (l.sellingPlanAllocation?.sellingPlan.id ?? ONE_TIME) === effectivePlanId,
+          );
+          const added = line ? addedToCartProperties(line, 1) : null;
+          if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
+        },
+      },
     );
   };
 
