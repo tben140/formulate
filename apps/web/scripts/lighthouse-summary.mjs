@@ -4,11 +4,26 @@
  * Usage: node apps/web/scripts/lighthouse-summary.mjs .lighthouseci/reports
  *
  * Prints to stdout; the workflow appends it to $GITHUB_STEP_SUMMARY, which is
- * what shows on the PR's check page. Only the representative (median) run for
- * each URL is reported, matching what the assertions judge.
+ * what shows on the PR's check page. The table shows Lighthouse's
+ * representative run for each URL; the assertions judge the median of each
+ * metric across the three runs, so the two can differ slightly.
+ *
+ * The budgets line is read from lighthouserc.cjs, so it can't drift from what
+ * the gate enforces.
  */
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
+
+const { assertions } = createRequire(import.meta.url)("../lighthouserc.cjs").ci.assert;
+const limit = (key, field) => assertions[key]?.[1]?.[field];
+const budgets = [
+  `performance ≥ ${Math.round(limit("categories:performance", "minScore") * 100)}`,
+  `accessibility ≥ ${Math.round(limit("categories:accessibility", "minScore") * 100)}`,
+  `LCP ≤ ${(limit("largest-contentful-paint", "maxNumericValue") / 1000).toFixed(1)} s`,
+  `CLS ≤ ${limit("cumulative-layout-shift", "maxNumericValue")}`,
+  `TBT ≤ ${limit("total-blocking-time", "maxNumericValue")} ms`,
+].join(", ");
 
 const dir = process.argv[2] ?? ".lighthouseci/reports";
 const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
@@ -40,7 +55,7 @@ const lines = [
   "| --- | --: | --: | --: | --: | --: |",
   ...rows.map((r) => `| \`${r[0]}\` | ${r.slice(1).join(" | ")} |`),
   "",
-  "Budgets: performance ≥ 50, accessibility ≥ 95, LCP ≤ 6.0 s, CLS ≤ 0.1, TBT ≤ 1200 ms. Full reports are in the `lighthouse-web` artifact.",
+  `Budgets (median of 3): ${budgets}. Full reports are in the \`lighthouse-web\` artifact.`,
 ];
 
 console.log(lines.join("\n"));
