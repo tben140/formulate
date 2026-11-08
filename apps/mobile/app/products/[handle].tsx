@@ -1,5 +1,5 @@
 import { PRODUCT_EVENTS, productViewedProperties } from "@formulate/analytics";
-import { Image } from "expo-image";
+import { galleryImages } from "@formulate/shopify";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddToCart } from "../../components/add-to-cart";
 import { useCartUi } from "../../components/cart-provider";
 import { PairsWellWith } from "../../components/pairs-well-with";
+import { ProductGallery } from "../../components/product-gallery";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
 import { analytics } from "../../lib/product-analytics";
@@ -151,13 +152,7 @@ const ProductBody = ({ product }: { product: Product }) => {
       >
         <Stack.Screen options={{ title: product.title }} />
 
-        <Image
-          source={product.featuredImage?.url}
-          contentFit="cover"
-          transition={150}
-          style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}
-          accessibilityIgnoresInvertColors
-        />
+        <ProductGallery images={galleryImages(product)} title={product.title} />
 
         <View>
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>

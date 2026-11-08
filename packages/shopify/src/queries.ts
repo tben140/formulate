@@ -94,7 +94,8 @@ export const ProductByHandleQuery = graphql(`
         width
         height
       }
-      images(first: 6) {
+      # GALLERY_LIMIT in gallery.ts: the product page shows up to ten.
+      images(first: 10) {
         nodes {
           url
           altText
