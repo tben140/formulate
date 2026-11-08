@@ -1,10 +1,10 @@
 import {
   SESSION_IDLE_MS,
-  anonymousId,
   createProductAnalytics,
   sessionUuid,
   type ProductAnalytics,
 } from "@formulate/analytics";
+import { uuid } from "expo";
 import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
@@ -70,12 +70,13 @@ subscribeToTrackingConsent(() => {
 
 const identity = () => {
   if (!distinctId) {
-    distinctId = anonymousId();
+    // Expo's native v4 generator: Hermes has no crypto.randomUUID.
+    distinctId = uuid.v4();
     void SecureStore.setItemAsync(ID_KEY, distinctId).catch(() => undefined);
   }
   const now = Date.now();
   if (!session || now - session.lastActive >= SESSION_IDLE_MS) {
-    session = { id: sessionUuid(now), lastActive: now };
+    session = { id: sessionUuid(now, uuid.v4()), lastActive: now };
   }
   session.lastActive = now;
   return { distinctId, sessionId: session.id };
