@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import Link from "@/components/link";
 import type { ReactNode } from "react";
 
+import { AnalyticsPageviews } from "@/components/analytics-pageviews";
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
@@ -203,6 +204,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           — they output no visible markup, but keeping them last leaves the
           document outline clean.
         */}
+        <AnalyticsPageviews />
         <Analytics />
         <SpeedInsights />
       </body>

@@ -1,6 +1,12 @@
 "use client";
 
-import { EVENTS, startedCheckout } from "@formulate/analytics";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  cartViewedProperties,
+  checkoutStartedProperties,
+  startedCheckout,
+} from "@formulate/analytics";
 import {
   formatMoney,
   initialOptimisticCart,
@@ -15,6 +21,7 @@ import { Suspense, use, useEffect, useOptimistic, useRef, useState } from "react
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
+import { analytics } from "@/lib/product-analytics";
 
 import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
 import { FreeShippingBar } from "./free-shipping-bar";
@@ -94,6 +101,18 @@ export const CartDrawer = ({
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
   }, [open]);
+
+  // cart_viewed once per opening (SHO-87), not on every cart update while open.
+  const counted = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      counted.current = false;
+      return;
+    }
+    if (counted.current || !cart) return;
+    counted.current = true;
+    analytics()?.capture(PRODUCT_EVENTS.cartViewed, cartViewedProperties(cart));
+  }, [open, cart]);
 
   /*
    * Quantity changes and removals show at once (SHO-52). The optimistic layer
@@ -324,9 +343,13 @@ export const CartDrawer = ({
                 // cross-origin, so there is no "after" — the page is gone.
                 // Klaviyo's onsite script queues and flushes, which is what makes
                 // a beacon unnecessary here.
-                onClick={() =>
-                  track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain))
-                }
+                onClick={() => {
+                  track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain));
+                  analytics()?.capture(
+                    PRODUCT_EVENTS.checkoutStarted,
+                    checkoutStartedProperties(cart),
+                  );
+                }}
                 className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface hover:bg-brand-700"
               >
                 Checkout
