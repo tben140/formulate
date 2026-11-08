@@ -9,9 +9,14 @@ import {
   productRef,
 } from "@formulate/analytics";
 import {
+  MIN_BLEND_SIZE,
   defaultSelectedOptions,
   findVariantByOptions,
   formatMoney,
+  isBlendProduct,
+  maxBlendSize,
+  variantForBlend,
+  type BlendIngredient,
   purchasableAllocations,
   withOption,
   type ProductByHandleResult,
@@ -23,6 +28,7 @@ import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
 import { analytics } from "@/lib/product-analytics";
 
+import { BlendPicker } from "./blend-picker";
 import { useCartUi } from "./cart-provider";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -43,7 +49,14 @@ const IDLE: CartActionState = { status: "idle" };
  * The selection rules live in `packages/shopify` and are shared with mobile;
  * only the rendering is here. See docs/adr/0005-parity-means-design-not-data.md.
  */
-export const AddToCartForm = ({ product }: { product: Product }) => {
+export const AddToCartForm = ({
+  product,
+  blendIngredients = [],
+}: {
+  product: Product;
+  /** For a custom-blend pack: the range to choose from (see lib/blend.ts). */
+  blendIngredients?: readonly BlendIngredient[];
+}) => {
   const { openCart, storeDomain } = useCartUi();
   const [state, formAction, pending] = useActionState(addToCart, IDLE);
 
@@ -51,7 +64,23 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     defaultSelectedOptions(product.variants.nodes),
   );
 
-  const variant = findVariantByOptions(product.variants.nodes, selected);
+  /*
+   * A custom-blend pack: the shopper picks ingredients, and the count picks the
+   * variant (and so the price). Its size option is never shown as a picker.
+   */
+  const isBlend = isBlendProduct(product);
+  // The range failed to load (or is empty): stay a pack, but nothing can be
+  // added. Falling back to ordinary options would offer a pack with no blend,
+  // which the action rejects.
+  const noIngredients = isBlend && blendIngredients.length === 0;
+  const [picked, setPicked] = useState<string[]>([]);
+  const blendMax = maxBlendSize(product.variants.nodes);
+  const blendReady =
+    isBlend && Boolean(variantForBlend(product.variants.nodes, picked.length));
+
+  const variant = isBlend
+    ? variantForBlend(product.variants.nodes, Math.max(picked.length, MIN_BLEND_SIZE))
+    : findVariantByOptions(product.variants.nodes, selected);
 
   /*
    * Only plans whose group is owned by an installed app.
@@ -122,14 +151,18 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
 
   const buttonLabel = pending
     ? "Adding…"
-    : soldOut
-      ? "Sold out"
-      : !variant
-        ? "Unavailable in this combination"
-        : "Add to cart";
+    : noIngredients
+      ? "Unavailable right now"
+      : isBlend && !blendReady
+        ? `Choose ${MIN_BLEND_SIZE} to ${blendMax} ingredients`
+        : soldOut
+          ? "Sold out"
+          : !variant
+            ? "Unavailable in this combination"
+            : "Add to cart";
 
   // Nothing to add: no variant for this combination, or it's sold out.
-  const unavailable = !variant || soldOut;
+  const unavailable = !variant || soldOut || (isBlend && !blendReady);
 
   const primaryButton = useRef<HTMLButtonElement>(null);
   const stickyVisible = useOffScreen(primaryButton);
@@ -148,8 +181,23 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
+      {isBlend ? <input type="hidden" name="blend" value={picked.join(",")} /> : null}
 
-      {product.options.map((option) =>
+      {noIngredients ? (
+        <p role="alert" className="mb-5 text-sm text-danger">
+          We couldn&apos;t load the ingredients. Please try again in a moment.
+        </p>
+      ) : isBlend ? (
+        <BlendPicker
+          ingredients={blendIngredients}
+          picked={picked}
+          max={blendMax}
+          min={MIN_BLEND_SIZE}
+          onChange={setPicked}
+        />
+      ) : null}
+
+      {(isBlend ? [] : product.options).map((option) =>
         // A single option called "Title" with one value is Shopify's stand-in
         // for "this product has no options". Rendering it produces a pointless
         // one-choice radio group on most products.

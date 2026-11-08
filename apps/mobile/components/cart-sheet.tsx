@@ -3,7 +3,7 @@ import {
   cartViewedProperties,
   checkoutStartedProperties,
 } from "@formulate/analytics";
-import { formatMoney } from "@formulate/shopify";
+import { formatMoney, BLEND_ATTRIBUTES } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
@@ -208,6 +208,18 @@ export const CartSheet = ({
                         {variant.title}
                       </Text>
                     ) : null}
+
+                    {/* A custom blend's ingredients, as the order will show them. */}
+                    {line.attributes
+                      .filter((attribute) => attribute.key === BLEND_ATTRIBUTES.label)
+                      .map((attribute) => (
+                        <Text
+                          key={attribute.key}
+                          className="text-xs text-foreground-muted"
+                        >
+                          {attribute.value}
+                        </Text>
+                      ))}
 
                     {/*
                       The subscription line. This is how a buyer confirms they
