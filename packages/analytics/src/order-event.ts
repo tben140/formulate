@@ -8,10 +8,12 @@ import { CART_ATTRIBUTES, POSTHOG_HOST, PRODUCT_EVENTS } from "./product-analyti
  * doesn't run: analytics declined again in checkout, a blocker, a closed tab.
  * The webhook fills that gap from the server.
  *
- * Both send the **same event id** for an order (`orderEventUuid`), so PostHog
- * keeps one event however many times it's reported: pixel and webhook,
- * Shopify's webhook retries, or a replay. PostHog merges events with the same
- * uuid, distinct id, event and day.
+ * Both use the **same event id** for an order (`orderEventUuid`). That alone
+ * doesn't stop a double count: PostHog merges two events only when their id,
+ * name, distinct id and timestamp all match, and the pixel can't know the
+ * order's `created_at`. So the webhook's event is a backup, held and sent only
+ * if the pixel doesn't report (apps/api/src/order-backup.ts). The shared id
+ * still collapses Shopify's webhook retries and replays of the same sender.
  *
  * Consent: only orders whose cart carries `_posthog_id` are sent. Web and the
  * app add it only for shoppers who allowed analytics; theme carts never have
