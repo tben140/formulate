@@ -113,7 +113,8 @@
     "results_for_html": "{{ count }} results found for {{ terms }}",
     "label": "Search products",
     "results": "Results",
-    "no_products": "No products match “{{ terms }}”. Try a different word, or browse the collections."
+    "no_products": "No products match “{{ terms }}”. Try a different word, or browse the collections.",
+    "show_products": "Show products matching “{{ terms }}”"
   },
   "general": {
     "breadcrumb": "Breadcrumb",
