@@ -92,6 +92,20 @@ describe("createProductAnalytics", () => {
     await Promise.resolve();
   });
 
+  it("never throws when reading the visitor's id or context throws", () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("{}")));
+    const broken = {
+      ...config(fetchMock as unknown as FetchLike),
+      identity: () => {
+        throw new Error("storage blocked");
+      },
+    };
+    const analytics = createProductAnalytics(broken);
+    expect(() => analytics.pageview()).not.toThrow();
+    expect(() => analytics.identify("8812345678")).not.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("identifies from the customer id, naming the anonymous id", () => {
     const fetchMock = vi.fn(() => Promise.resolve(new Response("{}")));
     createProductAnalytics(config(fetchMock as unknown as FetchLike)).identify(

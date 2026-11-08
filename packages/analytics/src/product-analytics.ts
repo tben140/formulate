@@ -201,34 +201,41 @@ export interface ProductAnalytics {
 export const createProductAnalytics = (
   config: ProductAnalyticsConfig,
 ): ProductAnalytics => {
-  const send = (event: string, properties: object) => {
-    const body = captureBody(config, event, properties);
-    const post = config.fetch ?? (globalThis.fetch as unknown as FetchLike);
-    void post(`${config.host ?? POSTHOG_HOST}/i/v0/e/`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-      keepalive: true,
-    }).catch(() => undefined);
-  };
-
-  return {
-    capture: (event, properties) => send(event, properties),
-    pageview: () => send(PAGEVIEW, {}),
-    screen: (name) => send(SCREEN, { $screen_name: name }),
-    identify: (customerId) => {
-      const { distinctId } = config.identity();
-      if (!customerId || customerId === distinctId) return;
-      // PostHog's capture-API identify: the event comes from the known id and
-      // names the anonymous one, which merges the two into one person.
-      const body = captureBody(config, "$identify", { $anon_distinct_id: distinctId });
+  /**
+   * One request, every failure swallowed: the promise's, and a synchronous
+   * throw from `identity`, `context` or a missing `fetch`, since these run in
+   * effects and event handlers.
+   */
+  const deliver = (event: string, properties: object, distinctId?: string) => {
+    try {
+      const body = captureBody(config, event, properties);
       const post = config.fetch ?? (globalThis.fetch as unknown as FetchLike);
       void post(`${config.host ?? POSTHOG_HOST}/i/v0/e/`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...body, distinct_id: customerId }),
+        body: JSON.stringify(distinctId ? { ...body, distinct_id: distinctId } : body),
         keepalive: true,
       }).catch(() => undefined);
+    } catch {
+      // Analytics must never break a page or a purchase.
+    }
+  };
+
+  return {
+    capture: (event, properties) => deliver(event, properties),
+    pageview: () => deliver(PAGEVIEW, {}),
+    screen: (name) => deliver(SCREEN, { $screen_name: name }),
+    identify: (customerId) => {
+      let anonymousId: string;
+      try {
+        anonymousId = config.identity().distinctId;
+      } catch {
+        return;
+      }
+      if (!customerId || customerId === anonymousId) return;
+      // PostHog's capture-API identify: the event comes from the known id and
+      // names the anonymous one, which merges the two into one person.
+      deliver("$identify", { $anon_distinct_id: anonymousId }, customerId);
     },
   };
 };
