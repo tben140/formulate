@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
+import { analytics, forgetProductAnalytics, POSTHOG_KEY } from "@/lib/product-analytics";
 import {
   discardQueuedEvents,
   KLAVIYO_PUBLIC_KEY,
@@ -43,8 +44,9 @@ const ConsentContext = createContext<ConsentContextValue | null>(null);
 /**
  * Deletes what `klaviyo.js` left behind.
  *
- * Needed only when consent is withdrawn after being given. Declining first time
- * round leaves nothing to delete, because the script never ran.
+ * Run on every refusal. Declining the very first time leaves nothing to
+ * delete, because the script never ran, but a shopper asked again after the
+ * consent cookie expired may still have Klaviyo's cookies from before.
  */
 const forgetKlaviyo = (): void => {
   const expired = "Max-Age=0; Path=/";
@@ -138,15 +140,21 @@ const ConsentState = ({
 
     if (next === "denied") {
       discardQueuedEvents();
+      /*
+       * On every refusal, not only a withdrawal: the consent cookie expires
+       * after six months while localStorage and Klaviyo's cookies don't, so a
+       * shopper asked again ("unset") may still have an old id here.
+       */
+      forgetKlaviyo();
+      forgetProductAnalytics();
 
       /*
        * Withdrawing after accepting. `klaviyo.js` is already running and there
-       * is no API to stop it, so delete what it stored and reload into a page
-       * the server renders without it. Heavy-handed, but it is the only way
-       * the refusal is actually true for the rest of the visit.
+       * is no API to stop it, so reload into a page the server renders without
+       * it. Heavy-handed, but it is the only way the refusal is actually true
+       * for the rest of the visit.
        */
       if (consent === "granted") {
-        forgetKlaviyo();
         window.location.reload();
         return;
       }
@@ -154,9 +162,14 @@ const ConsentState = ({
 
     setConsent(next);
     onSettled();
+
+    // Events before Accept were dropped, not queued (lib/product-analytics.ts),
+    // so the page the shopper accepted on is counted from here.
+    if (next === "granted") analytics()?.pageview();
   };
 
-  const showBanner = Boolean(KLAVIYO_PUBLIC_KEY) && (consent === "unset" || reopened);
+  const showBanner =
+    Boolean(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY) && (consent === "unset" || reopened);
 
   return (
     <>
@@ -222,8 +235,9 @@ const ConsentBanner = ({
           </h2>
           <p className="mt-1 text-foreground-muted">
             With your permission, Klaviyo remembers what you browse and add to your basket
-            so we can email you reminders. Nothing is tracked unless you accept. You can
-            change your mind from the footer at any time.
+            so we can email you reminders, and PostHog measures how the shop is used so we
+            can improve it. Nothing is tracked unless you accept. You can change your mind
+            from the footer at any time.
           </p>
         </div>
 
@@ -246,7 +260,9 @@ const ConsentBanner = ({
  */
 export const CookiePreferencesButton = () => {
   const context = useContext(ConsentContext);
-  if (!context || !KLAVIYO_PUBLIC_KEY) return null;
+  // The same condition as the banner: withdrawal must be reachable whenever
+  // there was anything to accept (ADR 0008).
+  if (!context || !(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY)) return null;
 
   return (
     <button
