@@ -123,7 +123,7 @@
           <div class="collection-filters__actions">
             <button type="submit" class="collection-filters__apply">{{ 'collections.apply' | t }}</button>
             {%- if active_count > 0 -%}
-              <a class="collection-filters__clear" href="{{ clear_url }}">{{ 'collections.clear_all' | t }}</a>
+              <a class="collection-filters__clear" href="{{ clear_url | escape }}">{{ 'collections.clear_all' | t }}</a>
             {%- endif -%}
           </div>
         </form>
@@ -163,7 +163,7 @@
           {%- endif -%}
         {%- endfor -%}
         <li>
-          <a class="collection-filters__clear" href="{{ clear_url }}">{{ 'collections.clear_all' | t }}</a>
+          <a class="collection-filters__clear" href="{{ clear_url | escape }}">{{ 'collections.clear_all' | t }}</a>
         </li>
       </ul>
     {%- endif -%}
