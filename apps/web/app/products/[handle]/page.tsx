@@ -1,4 +1,4 @@
-import { viewedProduct } from "@formulate/analytics";
+import { productViewedProperties, viewedProduct } from "@formulate/analytics";
 import { breadcrumbCollection, galleryImages } from "@formulate/shopify";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -101,6 +101,7 @@ const ProductPage = async ({ params }: PageProps) => {
       */}
         <TrackViewedProduct
           payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
+          productViewed={productViewedProperties(product)}
         />
 
         {/*

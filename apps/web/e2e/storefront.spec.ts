@@ -8,10 +8,12 @@ test("a collection renders its products", async ({ page }) => {
     page.getByRole("heading", { level: 1, name: "Best Sellers" }),
   ).toBeVisible();
   // Each product is a link to its page, with a price.
-  const cards = page.locator('main a[href^="/products/"]');
+  // A product card is a link in the page with a price in it, which keeps the
+  // breadcrumb's links out without leaning on markup.
+  const cards = page.getByRole("main").getByRole("link").filter({ hasText: "£" });
   await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThan(0);
-  await expect(cards.first()).toContainText("£");
+  await expect(cards.first()).toHaveAttribute("href", /^\/products\/[^/]+$/);
 });
 
 /**
@@ -53,20 +55,43 @@ test("a product page renders title, price and a buyable button", async ({ page }
 });
 
 /**
- * Relies on the demo store's stock plan: **Magnesium Glycinate 200 mg is held
- * at 0 available** (inventory tracked, `inventoryPolicy: DENY`), while the
- * product's other variant stays in stock. If this fails after a stock reset,
- * set that variant back to 0 before suspecting the code. The full plan is in
- * docs/demo-store.md (added with the demo-store notice, #26).
+ * Needs one variant sold out (inventory tracked, `inventoryPolicy: DENY`)
+ * while its product's other variant stays in stock. The demo store's plan
+ * holds **Magnesium Glycinate 200 mg at 0 available** (docs/demo-store.md,
+ * added with #26). When that variant is back in stock, as before a sale, the
+ * test is skipped and says why, rather than failing on the store's stock.
  */
-test("a sold-out option is marked and cannot be bought", async ({ page }) => {
-  await openProduct(page, "magnesium-glycinate");
-  // What a screen reader announces, and what a sighted shopper sees.
-  const soldOut = page.getByRole("radio", { name: "200 mg (sold out)" });
-  await expect(soldOut).toBeAttached();
-  await expect(page.locator("label", { hasText: "200 mg" })).toHaveClass(/line-through/);
+const SOLD_OUT = { handle: "magnesium-glycinate", option: "200 mg" };
 
-  await page.locator("label", { hasText: "200 mg" }).click();
+test("a sold-out option is marked and cannot be bought", async ({ page }) => {
+  await openProduct(page, SOLD_OUT.handle);
+  // Whether it's in stock comes from the page's Product JSON-LD (one Offer per
+  // variant, lib/structured-data.ts), not from the label under test, so a
+  // label that forgets "(sold out)" fails rather than skipping.
+  const jsonLd = await page
+    .locator('script[type="application/ld+json"]')
+    .allTextContents();
+  const offer = jsonLd
+    .map((text) => JSON.parse(text) as { "@type"?: string; offers?: unknown })
+    .filter((data) => data["@type"] === "Product")
+    .flatMap((data) => (data.offers ?? []) as { name?: string; availability?: string }[])
+    .find((o) => o.name === SOLD_OUT.option);
+  expect(offer, `no JSON-LD offer for ${SOLD_OUT.option}`).toBeDefined();
+  test.skip(
+    offer?.availability === "https://schema.org/InStock",
+    `${SOLD_OUT.handle} ${SOLD_OUT.option} is in stock; the stock plan needs it at 0`,
+  );
+
+  // What a screen reader announces, and what a sighted shopper sees.
+  await expect(
+    page.getByRole("radio", { name: `${SOLD_OUT.option} (sold out)` }),
+  ).toBeAttached();
+  await expect(page.locator("label", { hasText: SOLD_OUT.option })).toHaveClass(
+    /line-through/,
+  );
+
+  // The label's text includes its screen-reader-only "(sold out)".
+  await page.getByText(`${SOLD_OUT.option} (sold out)`, { exact: true }).click();
   // `exact`: on a phone the sticky bar (SHO-117) adds a second, differently
   // named "Sold out, …" button.
   await expect(
