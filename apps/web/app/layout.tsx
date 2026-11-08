@@ -228,7 +228,10 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           — they output no visible markup, but keeping them last leaves the
           document outline clean.
         */}
-        <AnalyticsPageviews />
+        {/* Reads the path, so it needs its own boundary under Cache Components. */}
+        <Suspense fallback={null}>
+          <AnalyticsPageviews />
+        </Suspense>
         <Analytics />
         <SpeedInsights />
       </body>
