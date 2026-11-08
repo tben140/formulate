@@ -183,10 +183,11 @@ const cart = (lines = [line()]) => ({
 
 describe("addedToCart", () => {
   it("carries the cart value and the added line", () => {
-    const payload = addedToCart(cart(), line(), DOMAIN);
+    const payload = addedToCart(cart(), line(), DOMAIN, 1);
     expect(payload.$value).toBe(49.9);
     expect(payload.AddedItemProductID).toBe(52607188009272);
-    expect(payload.AddedItemQuantity).toBe(2);
+    // The line holds 2 after this add, but the add put in 1.
+    expect(payload.AddedItemQuantity).toBe(1);
     expect(payload.AddedItemPrice).toBe("£24.95");
     expect(payload.ItemNames).toEqual(["Selling Plans Ski Wax"]);
   });

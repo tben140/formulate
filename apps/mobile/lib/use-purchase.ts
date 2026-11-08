@@ -102,8 +102,11 @@ export const usePurchase = (product: Product) => {
         ...(effectivePlanId ? { sellingPlanId: effectivePlanId } : {}),
       },
       {
-        onSuccess: ({ cart }) => {
+        onSuccess: ({ cart, notice }) => {
           onAdded();
+          // Stock cut the add short: Shopify doesn't say how many went in,
+          // possibly none, so it isn't reported rather than over-counted.
+          if (notice) return;
           // PostHog's product_added_to_cart (SHO-87): the line this add
           // landed in, reported as one unit at the price actually charged.
           const line = cart.lines.nodes.find(
@@ -116,7 +119,7 @@ export const usePurchase = (product: Product) => {
           if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
           // Klaviyo's Added to Cart (SHO-109), built exactly as web builds it.
           if (line && "product" in line.merchandise)
-            trackEvent(EVENTS.addedToCart, addedToCart(cart, line, STORE_DOMAIN));
+            trackEvent(EVENTS.addedToCart, addedToCart(cart, line, STORE_DOMAIN, 1));
         },
       },
     );

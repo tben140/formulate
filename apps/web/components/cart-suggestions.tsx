@@ -64,10 +64,12 @@ const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
         // The same Klaviyo event as the product page's add, so a drawer add
         // counts as an add.
         const line = next.cart?.lines.nodes.find((l) => l.id === next.addedLineId);
-        if (next.cart && line)
-          track(EVENTS.addedToCart, addedToCart(next.cart, line, storeDomain));
-        const added = line ? addedToCartProperties(line, next.addedQuantity ?? 1) : null;
-        if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
+        const quantity = next.addedQuantity ?? 1;
+        if (next.cart && line && quantity > 0) {
+          track(EVENTS.addedToCart, addedToCart(next.cart, line, storeDomain, quantity));
+          const added = addedToCartProperties(line, quantity);
+          if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
+        }
         // The drawer's heading survives the re-render and announces the new
         // count, which is also the confirmation a screen reader needs. Made
         // focusable only now: a tabindex in the markup would make the heading

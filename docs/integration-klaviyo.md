@@ -5,7 +5,8 @@ are live on web and theme and verified in Klaviyo's own feed. Started Checkout
 is sent by web only; the theme leaves checkout to Shopify's own Checkout Started
 (see [Which checkout metric](#which-checkout-metric)). Email
 capture ships on web, theme and mobile. Nine lifecycle flows are live (see
-[Flows](#flows)). Mobile sends no events yet. The Recharge flows have been
+[Flows](#flows)). The app sends the same three events as web, behind its own
+consent choice ([The app's events](#the-apps-events-sho-109)). The Recharge flows have been
 live since 6 October 2026 ([Recharge](integration-recharge.md#recharge--klaviyo-live)).
 
 ## Why Klaviyo
@@ -68,7 +69,7 @@ server-side `Checkout Started`, not our `Started Checkout`.
 ### ⚠️ Which Added to Cart metric
 
 **`W7zpiE` (API) is canonical.** It is the only Added to Cart metric both
-sending surfaces feed (web and theme; the app sends no events yet), and Cart
+sending surfaces feed (web, theme and the app), and Cart
 abandonment already triggers on it. Build flows and
 segments on it, and never on a sum of the two.
 
@@ -463,7 +464,7 @@ produces a flow that looks correct and covers a third of the traffic.
 
 | | Source | Covers | Reliability |
 | --- | --- | --- | --- |
-| `Started Checkout` (ours) | Client-side, `apps/web` only | **Web only** | Blockable — ad blockers, ITP |
+| `Started Checkout` (ours) | Client-side: `apps/web`, and the app since SHO-109 | **Web and the app**, not the theme | Blockable — ad blockers, ITP; the app's waits for consent |
 | `Checkout Started` (Shopify → Klaviyo) | Server-side, from Shopify | **All three surfaces** | Server-to-server |
 
 **The flow triggers on Shopify's `Checkout Started`.**
