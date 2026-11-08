@@ -99,11 +99,21 @@ data, which fits. Three things don't:
      plus the days to the job.
   4. If the check fails, nothing is deleted, the job alerts, and it retries
      daily.
-  - **PostHog's retention setting is a backstop only**, at 3 months. It
-    deletes on its own clock, regardless of the job, so it never stands in for
-    the gated deletion. It only bounds how long raw events can survive a job
-    that keeps failing. If it fires first, that month's aggregates are lost;
-    privacy wins over the figures.
+  - **PostHog's retention setting is no deadline.** PostHog deletes
+    expired events in batches and says they "may be stored longer than your
+    retention period", with no guaranteed date. On the Free plan the window is
+    fixed at a year and can't be shortened. So it bounds nothing this decision
+    relies on.
+  - **The bound we enforce instead:** if a month's raw events still aren't
+    deleted by the end of the following month, the exempt tier stops
+    collecting (its events are switched off in the app and the site) until
+    they are. Raw events then live about two months at worst, and no new
+    exempt-tier data piles up behind a failing job.
+  - **Open before this is accepted:** confirm how the job deletes a month of
+    anonymous events, and how soon PostHog actually removes them. PostHog
+    documents deleting a person with their events, but these events have no
+    person profiles, and its batch deletions run asynchronously with no stated
+    deadline. If there's no verified way, the exempt tier waits.
   - Insights computed from raw events empty as they're deleted. The exported
     aggregates are what's kept. Exempt-tier ids are never aliased or
     identified later.
