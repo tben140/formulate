@@ -45,6 +45,25 @@ const read = (): Stored | null => {
   }
 };
 
+const idListeners = new Set<() => void>();
+const notifyId = () => idListeners.forEach((listener) => listener());
+
+/**
+ * Calls `listener` when the stored id appears or goes, in this tab (the first
+ * event after consent creates it; withdrawal removes it) or in another.
+ */
+export const subscribeToStoredDistinctId = (listener: () => void): (() => void) => {
+  idListeners.add(listener);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY || event.key === null) listener();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    idListeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+};
+
 /** The visitor's ids, starting a new session after 30 idle minutes. */
 const identity = (): AnalyticsIdentity => {
   const now = Date.now();
@@ -62,6 +81,7 @@ const identity = (): AnalyticsIdentity => {
   } catch {
     // Storage blocked: this event still goes, with ids that won't persist.
   }
+  if (!stored) notifyId();
   return { distinctId, sessionId };
 };
 
@@ -111,4 +131,5 @@ export const forgetProductAnalytics = (): void => {
   } catch {
     // Storage blocked: nothing was kept.
   }
+  notifyId();
 };
