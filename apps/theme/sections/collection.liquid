@@ -22,21 +22,26 @@
     {% endif %}
   </header>
 
+  {%- capture results -%}
+    {% paginate collection.products by 24 %}
+      {% if collection.products.size == 0 and collection.filters.size > 0 %}
+        <p class="collection__empty">{{ 'collections.no_matches' | t }}</p>
+      {% endif %}
+      {% render 'product-grid', products: collection.products, section_index: section.index %}
+      {{ paginate | default_pagination }}
+    {% endpaginate %}
+  {%- endcapture -%}
+
   {% render 'collection-filters',
     filters: collection.filters,
     action: collection.url,
     clear_url: collection.url,
     count: collection.products_count,
-    sort_by: collection.sort_by
+    results: results,
+    section_id: section.id,
+    sort_by: collection.sort_by,
+    sortable: true
   %}
-
-  {% paginate collection.products by 24 %}
-    {% if collection.products.size == 0 and collection.filters.size > 0 %}
-      <p class="collection__empty">{{ 'collections.no_matches' | t }}</p>
-    {% endif %}
-    {% render 'product-grid', products: collection.products, section_index: section.index %}
-    {{ paginate | default_pagination }}
-  {% endpaginate %}
 </div>
 
 {% stylesheet %}

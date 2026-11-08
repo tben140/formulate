@@ -75,27 +75,31 @@
     <section class="search-page__results" aria-labelledby="search-results-{{ section.id }}">
       <h2 id="search-results-{{ section.id }}" class="visually-hidden">{{ 'search.results' | t }}</h2>
 
+      {%- capture results -%}
+        {%- if search.results_count == 0 -%}
+          <p class="search-page__empty">{{ 'search.no_products' | t: terms: search.terms }}</p>
+        {%- else -%}
+          {% paginate search.results by 24 %}
+            {%- comment -%}
+              Read inside paginate: outside it, search.results is the whole list,
+              so every page would repeat the same products.
+            {%- endcomment -%}
+            {%- assign products = search.results | where: 'object_type', 'product' -%}
+            {% render 'product-grid', products: products %}
+            {{ paginate | default_pagination }}
+          {% endpaginate %}
+        {%- endif -%}
+      {%- endcapture -%}
+
       {% render 'collection-filters',
         filters: search.filters,
         action: routes.search_url,
         clear_url: base,
         count: search.results_count,
+        results: results,
+        section_id: section.id,
         terms: raw_terms
       %}
-
-      {%- if search.results_count == 0 -%}
-        <p class="search-page__empty">{{ 'search.no_products' | t: terms: search.terms }}</p>
-      {%- else -%}
-        {% paginate search.results by 24 %}
-          {%- comment -%}
-            Read inside paginate: outside it, search.results is the whole list,
-            so every page would repeat the same products.
-          {%- endcomment -%}
-          {%- assign products = search.results | where: 'object_type', 'product' -%}
-          {% render 'product-grid', products: products %}
-          {{ paginate | default_pagination }}
-        {% endpaginate %}
-      {%- endif -%}
     </section>
   {%- endif -%}
 </div>

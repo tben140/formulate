@@ -57,6 +57,18 @@
     "active_filters": "Active filters",
     "remove_filter": "remove filter",
     "no_matches": "No products match these filters.",
+    "filters": "Filters",
+    "close": "Close",
+    "selected": "selected",
+    "show": "Show",
+    "show_more": "Show {{ count }} more",
+    "show_fewer": "Show fewer",
+    "price_range": "Range {{ min }} – {{ max }}",
+    "sort": "Sort",
+    "sort_featured": "Featured",
+    "sort_price_ascending": "Price, low to high",
+    "sort_price_descending": "Price, high to low",
+    "sort_newest": "Newest",
     "product_count": {
       "one": "{{ count }} product",
       "other": "{{ count }} products"

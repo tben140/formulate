@@ -1419,6 +1419,34 @@ export type PriceRangeFilter = {
 };
 
 /**
+ * Sort options for products within a [`Collection`](https://shopify.dev/docs/api/storefront/current/objects/Collection). Used by the [`products`](https://shopify.dev/docs/api/storefront/current/objects/Collection#field-Collection.fields.products) connection to order results by best-selling, price, title, creation date, or the collection's default and manual ordering.
+ *
+ * > Note: The [`RELEVANCE`](https://shopify.dev/docs/api/storefront/current/enums/ProductCollectionSortKeys#enums-RELEVANCE) key applies only when you specify a search query.
+ *
+ */
+export type ProductCollectionSortKeys =
+  /** Sort by the `best-selling` value. */
+  | 'BEST_SELLING'
+  /** Sort by the `collection-default` value. */
+  | 'COLLECTION_DEFAULT'
+  /** Sort by the `created` value. */
+  | 'CREATED'
+  /** Sort by the `id` value. */
+  | 'ID'
+  /** Sort by the `manual` value. */
+  | 'MANUAL'
+  /** Sort by the `price` value. */
+  | 'PRICE'
+  /**
+   * Sort by relevance to the search terms when the `query` parameter is specified on the connection.
+   * Don't use this sort key when no search query is specified.
+   *
+   */
+  | 'RELEVANCE'
+  /** Sort by the `title` value. */
+  | 'TITLE';
+
+/**
  * The input fields for a filter used to view a subset of products in a collection.
  * By default, the `available` and `price` filters are enabled. Filters are customized with the Shopify Search & Discovery app.
  * Learn more about [customizing storefront filtering](https://help.shopify.com/manual/online-store/themes/customizing-themes/storefront-filters).
@@ -1484,6 +1512,8 @@ export type CollectionProductsQueryVariables = Exact<{
   handle: string;
   first: number;
   filters?: Array<ProductFilter> | ProductFilter | null | undefined;
+  sortKey?: ProductCollectionSortKeys | null | undefined;
+  reverse?: boolean | null | undefined;
 }>;
 
 
@@ -1770,7 +1800,7 @@ export const CartFieldsFragmentDoc = new TypedDocumentString(`
 }
     `, {"fragmentName":"CartFields"}) as unknown as TypedDocumentString<CartFieldsFragment, unknown>;
 export const CollectionProductsDocument = new TypedDocumentString(`
-    query CollectionProducts($handle: String!, $first: Int!, $filters: [ProductFilter!]) {
+    query CollectionProducts($handle: String!, $first: Int!, $filters: [ProductFilter!], $sortKey: ProductCollectionSortKeys = COLLECTION_DEFAULT, $reverse: Boolean = false) {
   collection(handle: $handle) {
     id
     title
@@ -1779,7 +1809,7 @@ export const CollectionProductsDocument = new TypedDocumentString(`
       title
       description
     }
-    products(first: $first, sortKey: COLLECTION_DEFAULT, filters: $filters) {
+    products(first: $first, sortKey: $sortKey, reverse: $reverse, filters: $filters) {
       filters {
         ...FilterFields
       }
