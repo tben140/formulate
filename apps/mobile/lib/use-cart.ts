@@ -16,12 +16,13 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { clearCartId, readCartId, writeCartId } from "./cart-storage";
 import { readIdentifiedEmail } from "./klaviyo";
 import { analyticsDistinctId } from "./product-analytics";
 import { storefront } from "./storefront";
+import { subscribeToTrackingConsent, trackingConsent } from "./tracking-consent";
 
 /**
  * The cart, as TanStack Query state.
@@ -36,10 +37,15 @@ import { storefront } from "./storefront";
  * to invalidate. Same feature, genuinely different machinery.
  */
 
-// No tracking choice in the app yet, so every cart request states "refused"
-// and checkout gets no visitor ids. #107 adds the app's choice: pass it here
-// as `trackingChoice` when it merges.
-const cartClient = createCartClient(storefront);
+// Every cart request states the app's tracking choice (ADR 0008), so checkout
+// gets visitor ids, and the pixel can credit the order, only with consent.
+// Still loading counts as not answered, which Shopify is told is refused.
+const cartClient = createCartClient(storefront, {
+  trackingChoice: () => {
+    const choice = trackingConsent();
+    return choice === "loading" ? "unset" : choice;
+  },
+});
 
 /** The new cart's attributes for the custom pixel, with tracking consent only. */
 const newCartAttributes = () => {
@@ -80,8 +86,18 @@ export interface AddToCartResult {
  * the stored id is cleared here rather than in a checkout callback the web app
  * never receives.
  */
-export const useCart = () =>
-  useQuery({
+export const useCart = () => {
+  const queryClient = useQueryClient();
+  // Shopify rebuilds `checkoutUrl` on every read with the consent stated, so a
+  // changed choice refetches the cart rather than checking out on the old one.
+  useEffect(
+    () =>
+      subscribeToTrackingConsent(
+        () => void queryClient.invalidateQueries({ queryKey: CART_KEY, exact: true }),
+      ),
+    [queryClient],
+  );
+  return useQuery({
     queryKey: CART_KEY,
     queryFn: async (): Promise<Cart | null> => {
       const id = await readCartId();
@@ -97,6 +113,7 @@ export const useCart = () =>
     // never served stale — unlike the product queries, which cache for a minute.
     staleTime: 0,
   });
+};
 
 export const useAddToCart = () => {
   const queryClient = useQueryClient();
