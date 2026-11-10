@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_PACK,
+  packSize,
+  plansForPack,
+  supplyTitle,
   deliveryPromise,
   deliveryQuote,
   planIntervalDays,
@@ -87,6 +91,7 @@ describe("subscribe and save", () => {
     });
     expect(quote).toEqual({
       units: 3,
+      pack: DEFAULT_PACK,
       days: 90,
       price: gbp("40.68"),
       oneTime: gbp("47.85"),
@@ -113,5 +118,86 @@ describe("subscribe and save", () => {
     expect(deliveryPromise()).toBe(
       "Free UK delivery on subscriptions, and on orders over £40",
     );
+  });
+});
+
+describe("pack sizes", () => {
+  const opt = (value: string) => [{ name: "Order Frequency and Unit", value }];
+  const plan = (days: number) => ({
+    sellingPlan: {
+      id: `plan-${days}`,
+      name: `${days} day subscription`,
+      options: opt(`${days}-day`),
+    },
+    priceAdjustments: [{ price: gbp("0") }],
+  });
+  const plans = [plan(30), plan(60), plan(90)];
+  const variant = (...values: string[]) => ({
+    selectedOptions: values.map((value, i) => ({ name: `Option ${i}`, value })),
+  });
+
+  it("reads a pack from its option value, or assumes 30 days", () => {
+    expect(packSize(variant("200 mg", "90 days").selectedOptions)).toEqual({
+      count: 90,
+      unit: "day",
+    });
+    expect(packSize(variant("Vanilla", "60 servings").selectedOptions)).toEqual({
+      count: 60,
+      unit: "serving",
+    });
+    expect(packSize(variant("1 serving").selectedOptions)).toEqual({
+      count: 1,
+      unit: "serving",
+    });
+    expect(packSize(variant("Berry").selectedOptions)).toEqual(DEFAULT_PACK);
+    expect(packSize(undefined)).toEqual(DEFAULT_PACK);
+  });
+
+  it("ships whole packs: a 90-day pack is one unit on the 90-day plan", () => {
+    expect(supplyUnits(opt("90-day"), { count: 90, unit: "day" })).toBe(1);
+    expect(supplyUnits(opt("60-day"), { count: 30, unit: "serving" })).toBe(2);
+  });
+
+  it("lets the pack size set the plan", () => {
+    const small = variant("200 mg", "30 days");
+    const large = variant("200 mg", "90 days");
+    const other = variant("375 mg", "30 days");
+    const all = [small, large, other, variant("375 mg", "90 days")];
+    const ids = (v: ReturnType<typeof variant>) =>
+      plansForPack(plans, v, all).map((a) => a.sellingPlan.id);
+    // The 90-day plan belongs to the 90-day pack.
+    expect(ids(small)).toEqual(["plan-30", "plan-60"]);
+    expect(ids(large)).toEqual(["plan-90"]);
+    // No pack option: every plan, as 1, 2 or 3 packs.
+    expect(plansForPack(plans, variant("Berry"), [variant("Berry")])).toHaveLength(3);
+  });
+
+  it("offers no plan a pack can't fill in whole packs, up to three", () => {
+    const one = variant("Vanilla", "1 serving");
+    const ten = variant("Vanilla", "10 servings");
+    const thirty = variant("Vanilla", "30 servings");
+    const all = [one, ten, thirty];
+    expect(plansForPack(plans, one, all)).toEqual([]);
+    // Ten servings would take three packs for 30 days, but a 30-serving pack exists.
+    expect(plansForPack(plans, ten, all)).toEqual([]);
+    expect(plansForPack(plans, ten, [ten]).map((a) => a.sellingPlan.id)).toEqual([
+      "plan-30",
+    ]);
+    expect(plansForPack(plans, thirty, all)).toHaveLength(3);
+  });
+
+  it("names a supply by days or servings", () => {
+    expect(supplyTitle(3)).toBe("90-day supply");
+    expect(supplyTitle(2, { count: 30, unit: "serving" })).toBe("60 servings");
+    expect(supplyLabel(2, { count: 30, unit: "serving" })).toBe(
+      "60 servings (2 × 30-serving packs)",
+    );
+    expect(pricePerDay(gbp("33.00"), 30, "serving")).toBe("£1.10 a serving");
+    expect(
+      renewalTerms(gbp("40.00"), "Plan", null, 1, { count: 90, unit: "day" }),
+    ).toContain("£40.00 is charged for each delivery,");
+    expect(
+      renewalTerms(gbp("40.00"), "Plan", null, 2, { count: 30, unit: "serving" }),
+    ).toContain("each delivery of 60 servings");
   });
 });

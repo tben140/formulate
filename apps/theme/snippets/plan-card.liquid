@@ -1,0 +1,137 @@
+{%- comment -%}
+  One purchase option as a card: a subscription plan named by the supply it
+  ships ("90-day supply"), or one-time purchase when `allocation` is blank.
+  The Liquid twin of purchaseCards in packages/shopify/src/purchase-cards.ts,
+  as HTML for the form or as JSON for product-form.js, from the same sums.
+
+  Prices are per delivery, at the real interval; no badge that isn't true;
+  nothing is chosen for the shopper (`checked` is set only for one-time).
+
+  Accepts:
+  - variant: {Object}
+  - allocation: {Object} the selling plan allocation; blank for one-time
+  - pack: {String} "count|unit|position", from variant-pack
+  - checked: {Boolean} whether the radio starts checked (html only)
+  - format: {String} 'html' (default) or 'json'
+{%- endcomment -%}
+{%- liquid
+  assign pack = pack | split: '|'
+  assign pack_count = pack[0] | plus: 0
+  assign pack_unit = pack[1]
+
+  assign days = 0
+  assign units = 1
+  if allocation
+    capture days
+      render 'plan-interval-days', selling_plan: allocation.selling_plan
+    endcapture
+    assign days = days | plus: 0
+    capture units
+      render 'plan-supply-units', selling_plan: allocation.selling_plan, pack_days: pack_count
+    endcapture
+    assign units = units | plus: 0
+    assign total = allocation.per_delivery_price | times: units
+  else
+    assign total = variant.price
+  endif
+  assign one_time_total = variant.price | times: units
+  assign supply_count = units | times: pack_count
+
+  if pack_unit == 'serving'
+    assign supply_title = 'product.supply_servings' | t: count: supply_count
+    assign per_suffix = 'product.per_serving' | t
+  else
+    assign supply_title = 'product.supply_days' | t: days: supply_count
+    assign per_suffix = 'product.per_day' | t
+  endif
+
+  if allocation
+    if days > 0
+      assign title = supply_title
+      if units > 1
+        assign pack_label = pack_count | append: '-' | append: pack_unit
+        assign detail = 'product.plan_detail_packs' | t: units: units, pack: pack_label, days: days
+      else
+        assign detail = 'product.plan_detail' | t: days: days
+      endif
+    else
+      assign title = allocation.selling_plan.name
+      assign detail = ''
+    endif
+    assign id = allocation.selling_plan.id
+  else
+    assign title = 'product.one_time' | t
+    assign detail = supply_title
+    assign id = ''
+  endif
+
+  # No saving claim for a plan whose price changes after an introductory
+  # period (isIntroductoryPlan).
+  assign saving = 0
+  if allocation and allocation.price_adjustments.size < 2
+    assign saving = one_time_total | minus: total
+  endif
+  assign percent = 0
+  assign saving_text = ''
+  if saving > 0
+    assign percent = saving | times: 100.0 | divided_by: one_time_total | round
+    assign saving_money = saving | money
+    assign saving_text = 'product.subscription_saving' | t: amount: saving_money, percent: percent
+  endif
+
+  assign per_day = total | times: 1.0 | divided_by: supply_count | round
+  if per_day < 100
+    assign per_day_text = per_day | append: 'p ' | append: per_suffix
+  else
+    assign per_day_text = per_day | money | append: ' ' | append: per_suffix
+  endif
+-%}
+{%- if format == 'json' -%}
+  {
+    "id": {{ id | json }},
+    "title": {{ title | json }},
+    "detail": {{ detail | json }},
+    "perDay": {{ per_day_text | json }},
+    "percent": {% if percent > 0 %}{{ percent }}{% else %}null{% endif %},
+    "units": {{ units }},
+    "price": {{ total | money | json }},
+    "cents": {{ total | json }},
+    "was": {{ one_time_total | money | json }},
+    "saving": {% if saving_text != '' %}{{ saving_text | json }}{% else %}null{% endif %}
+  }
+{%- else -%}
+  <label class="product-form__plan">
+    <span class="product-form__plan-head">
+      <span class="product-form__plan-name">
+        <input type="radio" name="selling_plan" value="{{ id }}" {% if checked %}checked{% endif %}>
+        <span class="product-form__plan-title">{{ title }}</span>
+        {%- if percent > 0 %}
+          <span class="product-form__plan-badge">{{ 'product.save_percent' | t: percent: percent }}</span>
+        {%- endif %}
+      </span>
+      <span class="product-form__plan-price">
+        {%- if saving > 0 -%}
+          {%- comment -%}
+            The one-time price for the same supply, on sale now: a real
+            comparison, not a "was" price (subscribe-and-save.ts).
+          {%- endcomment -%}
+          <s class="product-form__plan-was"><span class="visually-hidden">{{ 'product.one_time_price' | t }} </span>{{ one_time_total | money }}</s>
+          <span class="visually-hidden"> {{ 'product.subscription_price' | t }}</span>
+        {% endif -%}
+        <span class="product-form__plan-now">{{ total | money }}</span>
+      </span>
+    </span>
+    <span class="product-form__plan-detail">
+      <span>{{ detail }}</span>
+      <span class="product-form__plan-per-day"> {{ per_day_text }}</span>
+    </span>
+    {%- if allocation -%}
+      {%- comment -%} What subscribing gives, shown on the chosen plan only (CSS :has). {%- endcomment -%}
+      <ul class="product-form__perks">
+        {%- if saving_text != '' %}<li>{{ saving_text }}</li>{% endif -%}
+        <li>{{ 'product.perk_delivery' | t }}</li>
+        <li>{{ 'product.perk_cancel' | t }}</li>
+      </ul>
+    {%- endif -%}
+  </label>
+{%- endif -%}

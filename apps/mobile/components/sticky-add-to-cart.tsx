@@ -166,11 +166,7 @@ export const StickyAddToCart = ({
             accessibilityState={{ disabled }}
             // Distinct from the in-page button, so a screen reader's list of
             // buttons does not show two identical "Add to cart" entries.
-            accessibilityLabel={
-              label === "Add to cart"
-                ? `Add ${product.title}${variantTitle ? `, ${variantTitle},` : ""} to cart`
-                : label
-            }
+            accessibilityLabel={`${label}: ${product.title}${variantTitle ? `, ${variantTitle}` : ""}`}
             accessibilityHint="Quick add from the bar at the bottom of the screen"
             className={`rounded-md px-5 py-3 ${disabled ? "bg-ink-300" : "bg-brand-600"}`}
           >

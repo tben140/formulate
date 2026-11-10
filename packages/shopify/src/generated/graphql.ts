@@ -1497,7 +1497,12 @@ export type ProductByHandleQueryVariables = Exact<{
 export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, descriptionHtml: string, vendor: string, freeGift: { reference:
         | { id: string, availableForSale: boolean, product: { title: string }, image: { url: string, altText: string | null } | null }
         | Record<PropertyKey, never>
-       | null } | null, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, freeGift: { reference:
+       | null } | null, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string, swatch: { color: string | null, image:
+            | { previewImage: { url: string } | null }
+            | { previewImage: { url: string } | null }
+            | { previewImage: { url: string } | null }
+            | { previewImage: { url: string } | null }
+           | null } | null }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, freeGift: { reference:
             | { id: string, availableForSale: boolean, product: { title: string }, image: { url: string, altText: string | null } | null }
             | Record<PropertyKey, never>
            | null } | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string, options: Array<{ name: string | null, value: string | null }> }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
@@ -1922,6 +1927,14 @@ export const ProductByHandleDocument = new TypedDocumentString(`
       name
       optionValues {
         name
+        swatch {
+          color
+          image {
+            previewImage {
+              url
+            }
+          }
+        }
       }
     }
     sellingPlanGroups(first: 10) {

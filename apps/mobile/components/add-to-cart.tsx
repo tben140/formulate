@@ -7,11 +7,10 @@ import {
   freeGiftMessage,
   findVariantByOptions,
   formatMoney,
-  pricePerDay,
+  ONE_TIME,
   renewalTerms,
   savingMessage,
-  SUBSCRIPTION_BENEFITS,
-  supplyLabel,
+  SUBSCRIPTION_PERKS,
   withOption,
 } from "@formulate/shopify";
 import { Pressable, View, type LayoutChangeEvent } from "react-native";
@@ -50,22 +49,14 @@ export const AddToCart = ({
     effectivePlanId,
     displayPrice,
     quote,
-    quoteFor,
+    cards,
+    chosenCard,
     gift,
     disabled,
-    choices,
     label,
     add,
   } = purchase;
 
-  // What a subscription option saves on one delivery; null for one-time.
-  const saving = (choice: (typeof choices)[number]) =>
-    quoteFor(choice.id)?.saving ?? null;
-  // A 60- or 90-day plan's price is for its whole 60- or 90-day supply.
-  const price = (choice: (typeof choices)[number]) =>
-    quoteFor(choice.id)?.price ?? choice.price;
-  const supply = (choice: (typeof choices)[number]) =>
-    supplyLabel(quoteFor(choice.id)?.units ?? 1);
   const planName =
     allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
     null;
@@ -74,21 +65,31 @@ export const AddToCart = ({
     // No outer margin here: the product screen measures this view's top to
     // place the button, and a margin inside it would put that 8px out.
     <View className="gap-5">
-      {product.options.map((option) =>
+      {product.options.map((option) => {
         // A single option called "Title" with one value is Shopify's stand-in
         // for "this product has no options".
-        option.optionValues.length <= 1 ? null : (
+        if (option.optionValues.length <= 1) return null;
+        const current = selected.find((o) => o.name === option.name)?.value;
+        // Values with a swatch set in the admin show it, above their name.
+        const swatches = option.optionValues.some((value) => value.swatch);
+        return (
           <View key={option.name}>
-            <Text className="mb-2 text-sm font-semibold text-foreground">
+            {/* The choice beside the name, so it reads without scanning. */}
+            <Text className="mb-2 text-xs font-semibold tracking-wide text-foreground uppercase">
               {option.name}
+              {current ? (
+                <Text className="font-normal tracking-normal normal-case">
+                  : {current}
+                </Text>
+              ) : null}
             </Text>
-            <View className="flex-row flex-wrap gap-2">
+            <View className={`flex-row flex-wrap ${swatches ? "gap-3" : "gap-2"}`}>
               {option.optionValues.map((value) => {
                 const candidate = withOption(selected, option.name, value.name);
                 const match = findVariantByOptions(product.variants.nodes, candidate);
-                const checked = selected.some(
-                  (o) => o.name === option.name && o.value === value.name,
-                );
+                const checked = current === value.name;
+                const soldOut = Boolean(match && !match.availableForSale);
+                const image = value.swatch?.image?.previewImage?.url;
 
                 return (
                   <Pressable
@@ -101,20 +102,44 @@ export const AddToCart = ({
                     aria-checked={checked}
                     // Sold-out combinations stay selectable — a shopper who
                     // wants one needs to select it and be told it is gone.
-                    accessibilityLabel={
-                      match && !match.availableForSale
-                        ? `${value.name}, sold out`
-                        : value.name
+                    accessibilityLabel={soldOut ? `${value.name}, sold out` : value.name}
+                    className={
+                      swatches
+                        ? "w-16 items-center gap-1"
+                        : `rounded-md border px-3 py-2 ${
+                            checked ? "border-brand-600 bg-brand-50" : "border-border"
+                          }`
                     }
-                    className={`rounded-md border px-3 py-2 ${
-                      checked ? "border-brand-600 bg-brand-50" : "border-border"
-                    }`}
                   >
+                    {swatches ? (
+                      <View
+                        className={`h-12 w-12 items-center justify-center rounded-full border-2 ${
+                          checked ? "border-brand-600" : "border-transparent"
+                        }`}
+                      >
+                        <View
+                          className={`h-10 w-10 overflow-hidden rounded-full border border-border ${
+                            soldOut ? "opacity-50" : ""
+                          }`}
+                          style={{ backgroundColor: value.swatch?.color ?? undefined }}
+                        >
+                          {image ? (
+                            <ShopImage
+                              url={image}
+                              width={40}
+                              height={40}
+                              transition={0}
+                              style={{ width: 40, height: 40 }}
+                            />
+                          ) : null}
+                        </View>
+                      </View>
+                    ) : null}
                     <Text
-                      className={`text-sm ${
+                      className={`${swatches ? "text-center text-xs" : "text-sm"} ${
                         // Muted grey on the selected brand-50 is 4.34:1,
                         // under AA's 4.5:1: selected keeps full strength.
-                        match && !match.availableForSale
+                        soldOut
                           ? `line-through ${checked ? "text-foreground" : "text-foreground-muted"}`
                           : "text-foreground"
                       } ${checked ? "font-medium" : ""}`}
@@ -126,79 +151,95 @@ export const AddToCart = ({
               })}
             </View>
           </View>
-        ),
-      )}
+        );
+      })}
 
       {allocations.length > 0 ? (
         <View>
-          <Text className="mb-2 text-sm font-semibold text-foreground">
+          <Text className="mb-2 text-xs font-semibold tracking-wide text-foreground uppercase">
             Purchase options
           </Text>
+          {/*
+            Plans first, as cards; one-time last, a card of its own and the
+            default. Nothing is chosen for the shopper (purchase-cards.ts).
+          */}
           <View className="gap-2">
-            {choices.map((choice) => (
-              <Pressable
-                key={choice.id || "one-time"}
-                onPress={() => setPlanId(choice.id)}
-                accessibilityRole="radio"
-                aria-checked={effectivePlanId === choice.id}
-                accessibilityLabel={
-                  price(choice)
-                    ? [
-                        saving(choice)
-                          ? `${choice.label}, ${formatMoney(price(choice)!)} instead of ${formatMoney(quoteFor(choice.id)!.oneTime)}`
-                          : `${choice.label}, ${formatMoney(price(choice)!)}`,
-                        supply(choice) ? `${supply(choice)} every delivery` : null,
-                        saving(choice)
-                          ? `${savingMessage(saving(choice)!)}. ${SUBSCRIPTION_BENEFITS}`
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join(". ")
-                    : choice.label
-                }
-                className={`flex-row items-center justify-between rounded-md border px-3 py-3 ${
-                  effectivePlanId === choice.id
-                    ? "border-brand-600 bg-brand-50"
-                    : "border-border"
-                }`}
-              >
-                <View className="flex-1 pr-3">
-                  <Text className="text-sm text-foreground">{choice.label}</Text>
-                  {supply(choice) ? (
-                    <Text className="mt-0.5 text-xs text-foreground">
-                      {supply(choice)} every delivery
-                    </Text>
-                  ) : null}
-                  {saving(choice) ? (
-                    <Text className="mt-0.5 text-xs text-foreground">
-                      {savingMessage(saving(choice)!)} · {SUBSCRIPTION_BENEFITS}
-                    </Text>
-                  ) : null}
-                </View>
-                {price(choice) ? (
-                  // One right-hand column for every price, as on web and the
-                  // theme: struck-through above, subscription price below.
-                  <View className="items-end">
-                    {saving(choice) ? (
-                      // The one-time price, on sale now: a real comparison
-                      // (packages/shopify/src/subscribe-and-save.ts).
-                      <Text className="font-mono text-sm text-foreground line-through">
-                        {formatMoney(quoteFor(choice.id)!.oneTime)}
+            {cards.map((card) => {
+              const chosen = effectivePlanId === card.id;
+              const plan = card.id !== ONE_TIME;
+              const perks = [
+                ...(card.quote.saving ? [savingMessage(card.quote.saving)] : []),
+                ...SUBSCRIPTION_PERKS,
+              ];
+              return (
+                <Pressable
+                  key={card.id || "one-time"}
+                  onPress={() => setPlanId(card.id)}
+                  accessibilityRole="radio"
+                  aria-checked={chosen}
+                  accessibilityLabel={[
+                    card.title,
+                    card.savePercent ? `save ${card.savePercent}%` : null,
+                    card.quote.saving
+                      ? `${formatMoney(card.quote.price)} instead of ${formatMoney(card.quote.oneTime)}`
+                      : formatMoney(card.quote.price),
+                    card.detail,
+                    card.perDay,
+                    ...(chosen && plan ? perks : []),
+                  ]
+                    .filter(Boolean)
+                    .join(". ")}
+                  className={`rounded-lg border-2 px-4 py-3 ${
+                    chosen ? "border-brand-600 bg-brand-50" : "border-border"
+                  }`}
+                >
+                  <View className="flex-row items-start justify-between gap-3">
+                    <View className="flex-1 flex-row flex-wrap items-center gap-2">
+                      <Text className="text-base font-semibold text-foreground">
+                        {card.title}
+                      </Text>
+                      {card.savePercent ? (
+                        <Text className="overflow-hidden rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-surface">
+                          Save {card.savePercent}%
+                        </Text>
+                      ) : null}
+                    </View>
+                    {/* Full strength: muted grey on brand-50 is under AA. */}
+                    <View className="items-end">
+                      {card.quote.saving ? (
+                        // The one-time price for the same supply, on sale now:
+                        // a real comparison (subscribe-and-save.ts).
+                        <Text className="font-mono text-xs text-foreground line-through">
+                          {formatMoney(card.quote.oneTime)}
+                        </Text>
+                      ) : null}
+                      <Text className="font-mono text-lg text-foreground">
+                        {formatMoney(card.quote.price)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="mt-1 flex-row justify-between gap-3">
+                    <Text className="flex-1 text-xs text-foreground">{card.detail}</Text>
+                    {card.perDay ? (
+                      <Text className="font-mono text-xs text-foreground">
+                        {card.perDay}
                       </Text>
                     ) : null}
-                    <Text
-                      className={`font-mono text-sm ${
-                        effectivePlanId === choice.id
-                          ? "text-foreground"
-                          : "text-foreground-muted"
-                      }`}
-                    >
-                      {formatMoney(price(choice)!)}
-                    </Text>
                   </View>
-                ) : null}
-              </Pressable>
-            ))}
+                  {chosen && plan ? (
+                    // What subscribing gives, on the chosen plan only.
+                    <View className="mt-3 gap-1 border-t border-border pt-3">
+                      {perks.map((perk) => (
+                        <View key={perk} className="flex-row gap-2">
+                          <Text className="text-sm text-brand-600">✓</Text>
+                          <Text className="flex-1 text-sm text-foreground">{perk}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       ) : null}
@@ -235,15 +276,19 @@ export const AddToCart = ({
       ) : null}
 
       {displayPrice ? (
-        <View>
-          {/* pr-3: lined up with the option prices, inside their px-3. */}
-          <Text className="pr-3 text-right text-2xl font-semibold text-foreground font-mono">
-            {formatMoney(displayPrice)}
-          </Text>
-          <Text className="mt-1 text-sm text-foreground-muted">
-            {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
-          </Text>
-        </View>
+        allocations.length > 0 ? (
+          // The cards carry the price; this is what applies to every option.
+          <Text className="text-sm text-foreground-muted">{deliveryPromise()}</Text>
+        ) : (
+          <View>
+            <Text className="text-2xl font-semibold text-foreground font-mono">
+              {formatMoney(displayPrice)}
+            </Text>
+            <Text className="mt-1 text-sm text-foreground-muted">
+              {chosenCard?.perDay} · {deliveryPromise()}
+            </Text>
+          </View>
+        )
       ) : null}
 
       <Pressable
@@ -270,7 +315,7 @@ export const AddToCart = ({
         // The renewal terms, before purchase and next to the button
         // (California's Automatic Renewal Law; the UK's DMCC rules from 2027).
         <Text className="text-xs text-foreground-muted">
-          {renewalTerms(displayPrice, planName, quote?.later, quote?.units)}
+          {renewalTerms(displayPrice, planName, quote?.later, quote?.units, quote?.pack)}
         </Text>
       ) : null}
 

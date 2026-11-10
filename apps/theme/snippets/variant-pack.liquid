@@ -1,0 +1,31 @@
+{%- comment -%}
+  What one unit of a variant holds, from a pack-size option value ("90 days",
+  "60 servings"), or a 30-day pack when no option says. The Liquid twin of
+  packSize in packages/shopify/src/subscribe-and-save.ts.
+
+  Outputs "count|unit|position": e.g. "90|day|2", where position is the
+  option's (1-based; 0 when no option says). Capture it, then split on "|".
+
+  Accepts:
+  - variant: {Object} the variant
+{%- endcomment -%}
+{%- liquid
+  assign pack = '30|day|0'
+  for value in variant.options
+    assign parts = value | strip | downcase | split: ' '
+    if parts.size == 2
+      assign count = parts.first | plus: 0
+      assign unit = parts.last
+      if count > 0
+        if unit == 'day' or unit == 'days'
+          assign pack = count | append: '|day|' | append: forloop.index
+          break
+        elsif unit == 'serving' or unit == 'servings'
+          assign pack = count | append: '|serving|' | append: forloop.index
+          break
+        endif
+      endif
+    endif
+  endfor
+  echo pack
+-%}

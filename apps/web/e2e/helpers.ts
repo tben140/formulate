@@ -22,7 +22,7 @@ export const openProduct = async (page: Page, handle: string) => {
 
 /** Adds whatever is selected and waits for the drawer to open. */
 export const addToCart = async (page: Page) => {
-  await page.getByRole("button", { name: "Add to cart", exact: true }).click();
+  await page.getByRole("button", { name: /^Add to cart – £[\d.]+$/ }).click();
   await expect(drawer(page)).toBeVisible();
 };
 

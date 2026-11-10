@@ -774,8 +774,17 @@ a:hover {
 
 .product-form__legend {
   margin-block-end: var(--spacing-2);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* The current choice beside the option's name. */
+.product-form__legend-value {
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .product-form__values {
@@ -809,6 +818,44 @@ a:hover {
   outline-offset: 2px;
 }
 
+/* Values with swatches: a circle above the name, not a bordered pill. */
+.product-form__values--swatches {
+  gap: var(--spacing-3);
+}
+.product-form__pill--swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-1);
+  width: 4rem;
+  padding: 0;
+  border: none;
+  text-align: center;
+  font-size: var(--text-xs);
+}
+.product-form__pill--swatch:has(input:checked) {
+  background: none;
+}
+.product-form__swatch {
+  display: block;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  background-color: var(--color-surface);
+  background-position: center;
+  background-size: cover;
+}
+.product-form__pill--swatch:has(input:checked) .product-form__swatch {
+  border-color: transparent;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-brand-600);
+}
+.product-form__pill--swatch.product-form__pill--sold-out .product-form__swatch {
+  opacity: 0.5;
+}
+
 /* Matches apps/web: struck through and muted, but still selectable. The
    visually hidden "(sold out)" inside the label says it for screen readers. */
 .product-form__pill--sold-out {
@@ -829,21 +876,97 @@ a:hover {
   gap: var(--spacing-2);
 }
 
+/*
+ * A purchase option as a card (purchase-cards.ts): its supply, a saving pill
+ * and its price; then what it holds and the price per day; then, on the
+ * chosen plan only, what subscribing gives.
+ */
 .product-form__plan {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3);
-  padding: var(--spacing-2) var(--spacing-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  display: block;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
   font-size: var(--text-sm);
   cursor: pointer;
+}
+
+.product-form__plan:hover {
+  border-color: var(--color-foreground-muted);
 }
 
 .product-form__plan:has(input:checked) {
   border-color: var(--color-brand-600);
   background-color: var(--color-brand-50);
+}
+
+.product-form__plan:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+.product-form__plan-head,
+.product-form__plan-detail {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.product-form__plan-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+
+.product-form__plan-name input {
+  accent-color: var(--color-brand-600);
+}
+
+.product-form__plan-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.product-form__plan-badge {
+  padding: 0.125rem var(--spacing-2);
+  border-radius: 9999px;
+  background-color: var(--color-brand-600);
+  color: var(--color-surface);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.product-form__plan-now {
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+
+.product-form__plan-detail {
+  margin-block-start: var(--spacing-1);
+  padding-inline-start: 1.5rem;
+  font-size: var(--text-xs);
+}
+
+.product-form__plan-per-day {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+/* What subscribing gives: on the chosen plan only, with or without JavaScript. */
+.product-form__perks {
+  display: none;
+  margin: var(--spacing-3) 0 0;
+  padding: var(--spacing-3) 0 0 1.5rem;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+.product-form__plan:has(input:checked) .product-form__perks {
+  display: grid;
+  gap: var(--spacing-1);
+}
+.product-form__perks li::before {
+  content: "✓ ";
+  color: var(--color-brand-600);
 }
 
 /*
@@ -1236,6 +1359,7 @@ a:hover {
 .product-form__plan-was {
   /* Stacked above the subscription price, so no gap beside it. */
   margin: 0;
+  font-size: var(--text-xs);
 }
 .product-form__per-day,
 .product-form__renewal {

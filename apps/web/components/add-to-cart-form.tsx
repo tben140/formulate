@@ -8,21 +8,20 @@ import {
   effectivePlanId as resolvePlanId,
   findVariantByOptions,
   formatMoney,
-  pricePerDay,
+  addButtonLabel,
+  plansForPack,
   purchasableAllocations,
-  purchaseOptions,
+  purchaseCards,
   RENEWAL_SHORT,
   renewalTerms,
   savingMessage,
-  SUBSCRIPTION_BENEFITS,
+  SUBSCRIPTION_PERKS,
   deliveryPromise,
-  deliveryQuote,
   expressCheckoutOnProduct,
   FREE_GIFT_CONDITION,
   FREE_GIFT_LABEL,
   FREE_GIFT_PRICE,
   freeGiftFor,
-  supplyLabel,
   selectionStatus,
   withOption,
   type ProductByHandleResult,
@@ -70,9 +69,14 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
    * or ship again. See `hasOwningApp` in packages/shopify.
    */
   const allocations = variant
-    ? purchasableAllocations(
-        product.sellingPlanGroups.nodes,
-        variant.sellingPlanAllocations.nodes,
+    ? plansForPack(
+        purchasableAllocations(
+          product.sellingPlanGroups.nodes,
+          variant.sellingPlanAllocations.nodes,
+        ),
+        // The pack size sets the plan: a 90-day pack offers the 90-day plan.
+        variant,
+        product.variants.nodes,
       )
     : [];
 
@@ -110,17 +114,12 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     }
   }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
 
-  // One delivery of an option: a 60- or 90-day plan ships two or three
-  // 30-day supplies, so the shopper never runs out, and the plan sets the
-  // quantity (deliveryQuote in packages/shopify). Null without a variant.
-  const quoteFor = (id: string) =>
-    variant
-      ? deliveryQuote(
-          variant.price,
-          allocations.find((a) => a.sellingPlan.id === id),
-        )
-      : null;
-  const quote = quoteFor(effectivePlanId);
+  // Each option as a card, plans first and one-time last (purchase-cards.ts).
+  // A plan ships whole packs, and sets the quantity: three 30-day packs every
+  // 90 days, or one 90-day pack.
+  const cards = purchaseCards(variant, allocations);
+  const chosenCard = cards.find((card) => card.id === effectivePlanId);
+  const quote = chosenCard?.quote ?? null;
   // This selection's free gift, in stock: added nested under it (free-gift.ts).
   const gift = freeGiftFor(product, variant);
   // The selection rules are shared with the app (packages/shopify,
@@ -138,7 +137,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       ? "Sold out"
       : status === "unavailable"
         ? "Unavailable in this combination"
-        : "Add to cart";
+        : addButtonLabel(chosenCard);
 
   // Nothing to add: no variant for this combination, or it's sold out.
   const unavailable = status !== "available";
@@ -163,20 +162,32 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       <input type="hidden" name="quantity" value={quote?.units ?? 1} />
       <input type="hidden" name="giftId" value={gift?.id ?? ""} />
 
-      {product.options.map((option) =>
+      {product.options.map((option) => {
         // A single option called "Title" with one value is Shopify's stand-in
         // for "this product has no options". Rendering it produces a pointless
         // one-choice radio group on most products.
-        option.optionValues.length <= 1 ? null : (
+        if (option.optionValues.length <= 1) return null;
+        const current = selected.find((o) => o.name === option.name)?.value;
+        // Values with a swatch set in the admin show it, above their name.
+        const swatches = option.optionValues.some((value) => value.swatch);
+        return (
           <fieldset key={option.name} className="mb-5">
-            <legend className="mb-2 text-sm font-semibold">{option.name}</legend>
-            <div className="flex flex-wrap gap-2">
+            {/* The choice beside the name, so it reads without scanning. */}
+            <legend className="mb-2 text-xs font-semibold tracking-wide uppercase">
+              {option.name}
+              {current ? (
+                <span className="font-normal tracking-normal normal-case">
+                  : {current}
+                </span>
+              ) : null}
+            </legend>
+            <div className={`flex flex-wrap ${swatches ? "gap-3" : "gap-2"}`}>
               {option.optionValues.map((value) => {
                 const candidate = withOption(selected, option.name, value.name);
                 const match = findVariantByOptions(product.variants.nodes, candidate);
-                const checked = selected.some(
-                  (o) => o.name === option.name && o.value === value.name,
-                );
+                const checked = current === value.name;
+                const soldOut = match && !match.availableForSale;
+                const image = value.swatch?.image?.previewImage?.url;
 
                 return (
                   // The radio is sr-only, so the global :focus-visible outline
@@ -184,18 +195,24 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                   // matching the theme's .product-form__pill (WCAG 2.4.7).
                   <label
                     key={value.name}
-                    className={`cursor-pointer rounded-md border px-3 py-2 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 ${
-                      checked
-                        ? "border-brand-600 bg-brand-50 font-medium"
-                        : "border-border hover:border-foreground-muted"
-                    } ${
-                      // Muted grey on the selected card's brand-50 is 4.34:1,
-                      // under AA's 4.5:1, so a selected sold-out value keeps
-                      // full-strength text and relies on the line-through.
-                      match && !match.availableForSale
-                        ? `line-through ${checked ? "" : "text-foreground-muted"}`
-                        : ""
-                    }`}
+                    className={
+                      swatches
+                        ? `flex w-16 cursor-pointer flex-col items-center gap-1 rounded-md text-center text-xs has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 ${
+                            checked ? "font-medium" : ""
+                          } ${soldOut ? "text-foreground-muted line-through" : ""}`
+                        : `cursor-pointer rounded-md border px-3 py-2 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 ${
+                            checked
+                              ? "border-brand-600 bg-brand-50 font-medium"
+                              : "border-border hover:border-foreground-muted"
+                          } ${
+                            // Muted grey on the selected card's brand-50 is 4.34:1,
+                            // under AA's 4.5:1, so a selected sold-out value keeps
+                            // full-strength text and relies on the line-through.
+                            soldOut
+                              ? `line-through ${checked ? "" : "text-foreground-muted"}`
+                              : ""
+                          }`
+                    }
                   >
                     <input
                       type="radio"
@@ -205,6 +222,20 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       onChange={() => setSelected(candidate)}
                       className="sr-only"
                     />
+                    {swatches ? (
+                      <span
+                        aria-hidden="true"
+                        className={`block h-12 w-12 rounded-full border bg-surface bg-cover bg-center ring-offset-2 ring-offset-surface ${
+                          checked
+                            ? "border-transparent ring-2 ring-brand-600"
+                            : "border-border"
+                        } ${soldOut ? "opacity-50" : ""}`}
+                        style={{
+                          backgroundColor: value.swatch?.color ?? undefined,
+                          backgroundImage: image ? `url(${image})` : undefined,
+                        }}
+                      />
+                    ) : null}
                     {value.name}
                     {/*
                       Sold-out combinations stay selectable. A shopper who wants
@@ -212,91 +243,103 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       hiding it just makes the product look like it never
                       existed.
                     */}
-                    {match && !match.availableForSale ? (
-                      <span className="sr-only"> (sold out)</span>
-                    ) : null}
+                    {soldOut ? <span className="sr-only"> (sold out)</span> : null}
                   </label>
                 );
               })}
             </div>
           </fieldset>
-        ),
-      )}
+        );
+      })}
 
       {allocations.length > 0 ? (
         <fieldset className="mb-5">
-          <legend className="mb-2 text-sm font-semibold">Purchase options</legend>
+          <legend className="mb-2 text-xs font-semibold tracking-wide uppercase">
+            Purchase options
+          </legend>
+          {/*
+            Plans first, as cards; one-time last, a card of its own and the
+            default. Nothing is chosen for the shopper (purchase-cards.ts).
+          */}
           <div className="space-y-2">
-            {purchaseOptions(variant, allocations).map((choice) => (
-              <label
-                key={choice.id || "one-time"}
-                className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${
-                  effectivePlanId === choice.id
-                    ? "border-brand-600 bg-brand-50"
-                    : "border-border hover:border-foreground-muted"
-                }`}
-              >
-                <span className="flex items-start gap-2">
-                  <input
-                    type="radio"
-                    name="purchase-option"
-                    value={choice.id}
-                    checked={effectivePlanId === choice.id}
-                    onChange={() => setPlanId(choice.id)}
-                    className="mt-1"
-                  />
-                  <span className="flex flex-col">
-                    {choice.label}
-                    {supplyLabel(quoteFor(choice.id)?.units ?? 1) ? (
-                      <span className="text-xs text-foreground">
-                        {supplyLabel(quoteFor(choice.id)!.units)} every delivery
-                      </span>
-                    ) : null}
-                    {quoteFor(choice.id)?.saving ? (
-                      // What subscribing gives, read with the option's name.
-                      <span className="text-xs text-foreground">
-                        {savingMessage(quoteFor(choice.id)!.saving!)} ·{" "}
-                        {SUBSCRIPTION_BENEFITS}
-                      </span>
-                    ) : null}
-                  </span>
-                </span>
-                {choice.price ? (
-                  <span
-                    // Full-strength on the selected card: muted grey on
-                    // brand-50 is 4.34:1, under AA's 4.5:1.
-                    // One right-hand column for every price: the struck-through
-                    // one-time price stacks above the subscription price, and
-                    // the price below ends on the same edge (as the theme).
-                    className={`flex shrink-0 flex-col items-end text-right font-mono ${
-                      effectivePlanId === choice.id
-                        ? "text-foreground"
-                        : "text-foreground-muted"
-                    }`}
-                  >
+            {cards.map((card) => {
+              const chosen = effectivePlanId === card.id;
+              const plan = card.id !== ONE_TIME;
+              return (
+                <label
+                  key={card.id || "one-time"}
+                  className={`block cursor-pointer rounded-lg border-2 px-4 py-3 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 ${
+                    chosen
+                      ? "border-brand-600 bg-brand-50"
+                      : "border-border hover:border-foreground-muted"
+                  }`}
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <input
+                        type="radio"
+                        name="purchase-option"
+                        value={card.id}
+                        checked={chosen}
+                        onChange={() => setPlanId(card.id)}
+                        className="h-4 w-4 accent-brand-600"
+                      />
+                      <span className="text-base font-semibold">{card.title}</span>
+                      {card.savePercent ? (
+                        <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-surface">
+                          Save {card.savePercent}%
+                        </span>
+                      ) : null}
+                    </span>
                     {/*
-                      The leading space is for the accessible name, not the
-                      layout — flex handles the visual gap. Without it the
-                      label computes as "One-time purchase£24.95", which is
-                      what a screen reader would announce.
+                      Full-strength text throughout: muted grey on brand-50 is
+                      4.34:1, under AA's 4.5:1. The leading spaces are for the
+                      accessible name ("…Save 15% One-time price £47.85
+                      Subscription price £40.68"), not the layout.
                     */}
-                    {quoteFor(choice.id)?.saving ? (
-                      // The one-time price for the same product, on sale now:
-                      // a real comparison, not a "was" price (see
-                      // packages/shopify/src/subscribe-and-save.ts).
-                      <>
-                        <s>
+                    <span className="flex shrink-0 flex-col items-end text-right font-mono">
+                      {card.quote.saving ? (
+                        // The one-time price for the same supply, on sale now:
+                        // a real comparison, not a "was" price
+                        // (subscribe-and-save.ts).
+                        <s className="text-xs">
                           <span className="sr-only"> One-time price </span>
-                          {formatMoney(quoteFor(choice.id)!.oneTime)}
+                          {formatMoney(card.quote.oneTime)}
                         </s>
-                        <span className="sr-only"> Subscription price </span>
-                      </>
-                    ) : null}
-                    {` ${formatMoney(quoteFor(choice.id)?.price ?? choice.price)}`}
+                      ) : null}
+                      <span className="text-lg font-medium">
+                        {plan && card.quote.saving ? (
+                          <span className="sr-only"> Subscription price </span>
+                        ) : null}
+                        {` ${formatMoney(card.quote.price)}`}
+                      </span>
+                    </span>
                   </span>
-                ) : null}
-              </label>
-            ))}
+                  <span className="mt-1 flex justify-between gap-3 pl-6 text-xs">
+                    <span>{card.detail}</span>
+                    {card.perDay ? (
+                      <span className="shrink-0 font-mono">{` ${card.perDay}`}</span>
+                    ) : null}
+                  </span>
+                  {chosen && plan ? (
+                    // What subscribing gives, on the chosen plan only.
+                    <ul className="mt-3 space-y-1 border-t border-border pt-3 pl-6">
+                      {[
+                        ...(card.quote.saving ? [savingMessage(card.quote.saving)] : []),
+                        ...SUBSCRIPTION_PERKS,
+                      ].map((perk) => (
+                        <li key={perk} className="flex gap-2">
+                          <span aria-hidden="true" className="text-brand-600">
+                            ✓
+                          </span>
+                          {perk}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </label>
+              );
+            })}
           </div>
         </fieldset>
       ) : null}
@@ -330,16 +373,18 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       ) : null}
 
       {displayPrice ? (
-        // DM Mono ships in 400 and 500 only; semibold would be synthesised.
-        <div className="mb-4">
-          {/* pr-3: lined up with the option prices, inside their px-3. */}
-          <p className="pr-3 text-right font-mono text-2xl font-medium">
-            {formatMoney(displayPrice)}
-          </p>
-          <p className="mt-1 text-sm text-foreground-muted">
-            {pricePerDay(displayPrice, quote?.days)} · {deliveryPromise()}
-          </p>
-        </div>
+        allocations.length > 0 ? (
+          // The cards carry the price; this is what applies to every option.
+          <p className="mb-4 text-sm text-foreground-muted">{deliveryPromise()}</p>
+        ) : (
+          // DM Mono ships in 400 and 500 only; semibold would be synthesised.
+          <div className="mb-4">
+            <p className="font-mono text-2xl font-medium">{formatMoney(displayPrice)}</p>
+            <p className="mt-1 text-sm text-foreground-muted">
+              {chosenCard?.perDay} · {deliveryPromise()}
+            </p>
+          </div>
+        )
       ) : null}
 
       {/*
@@ -383,7 +428,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         // (California's Automatic Renewal Law; the UK's DMCC subscription
         // rules from 2027).
         <p className="mt-2 text-xs text-foreground-muted">
-          {renewalTerms(displayPrice, planName, quote?.later, quote?.units)}
+          {renewalTerms(displayPrice, planName, quote?.later, quote?.units, quote?.pack)}
         </p>
       ) : null}
 
@@ -402,7 +447,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         visible={stickyVisible}
         title={product.title}
         variantTitle={variant && variant.title !== "Default Title" ? variant.title : null}
-        planName={planName}
+        planName={chosenCard && effectivePlanId ? chosenCard.title : null}
         price={displayPrice ? formatMoney(displayPrice) : null}
         buttonLabel={buttonLabel}
         unavailable={unavailable}
