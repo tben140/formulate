@@ -67,11 +67,13 @@ export {
   LEGAL_MENU_HANDLE,
   NAV_MENU_HANDLE,
   POLICY_HANDLES,
+  SHOP_MENU_HANDLES,
   breadcrumbCollection,
   isPolicyHandle,
+  toNavGroup,
   toNavLinks,
 } from "./nav";
-export type { NavLink, PolicyHandle } from "./nav";
+export type { NavGroup, NavLink, PolicyHandle } from "./nav";
 
 export {
   DEFAULT_API_VERSION,

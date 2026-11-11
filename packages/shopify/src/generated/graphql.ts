@@ -1533,7 +1533,7 @@ export type NavMenuQueryVariables = Exact<{
 }>;
 
 
-export type NavMenuQuery = { menu: { items: Array<{ id: string, title: string, type: MenuItemType, url: string | null }> } | null };
+export type NavMenuQuery = { menu: { title: string, items: Array<{ id: string, title: string, type: MenuItemType, url: string | null }> } | null };
 
 export type CollectionCardsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2035,6 +2035,7 @@ export const ComplementaryProductsDocument = new TypedDocumentString(`
 export const NavMenuDocument = new TypedDocumentString(`
     query NavMenu($handle: String!) {
   menu(handle: $handle) {
+    title
     items {
       id
       title
