@@ -57,6 +57,11 @@ export const ProductByHandleQuery = graphql(`
       id
       handle
       title
+      # A one-line summary shown under the title on every product page: the
+      # standard "Product subtitle" metafield, set per product in the admin.
+      subtitle: metafield(namespace: "descriptors", key: "subtitle") {
+        value
+      }
       description
       # The formatted description, for the product page. The plain one above
       # is for search engines and the Klaviyo payload.

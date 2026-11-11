@@ -145,6 +145,9 @@ const ProductPage = async ({ params }: PageProps) => {
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+          {product.subtitle?.value ? (
+            <p className="mt-2 text-lg text-foreground-muted">{product.subtitle.value}</p>
+          ) : null}
 
           {product.descriptionHtml ? (
             // Its first paragraph's own top margin spaces it from the title.

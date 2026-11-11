@@ -162,6 +162,11 @@ const ProductBody = ({ product }: { product: Product }) => {
 
         <View>
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
+          {product.subtitle?.value ? (
+            <Text className="mt-1 text-lg text-foreground-muted">
+              {product.subtitle.value}
+            </Text>
+          ) : null}
         </View>
 
         {product.descriptionHtml ? <RichText html={product.descriptionHtml} /> : null}
