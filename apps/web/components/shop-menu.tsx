@@ -1,7 +1,7 @@
 "use client";
 
 import type { NavGroup } from "@formulate/shopify";
-import Link from "next/link";
+import Link from "@/components/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
