@@ -100,16 +100,25 @@ jobs:
           # {id}, ...}, the id a decimal string); progress goes to stderr. If
           # the CLI wants a browser identity check it stops here and prints a
           # verification link (SHO-196).
-          if ! npx --yes @shopify/cli@5.0.1 theme push --path apps/theme --unpublished --no-input \
-            --theme "LHCI ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --json > "$RUNNER_TEMP/push.json"; then
+          code=0
+          npx --yes @shopify/cli@5.0.1 theme push --path apps/theme --unpublished --no-input \
+            --theme "LHCI ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --json > "$RUNNER_TEMP/push.json" || code=$?
+          # A partial upload (status "partial", nonzero exit) still creates the
+          # theme, so its id is kept whatever happened: the delete step then
+          # removes it. Collection only runs after a full success.
+          id=$(jq -r '.theme.id // empty' "$RUNNER_TEMP/push.json" 2>/dev/null || true)
+          if printf '%s' "$id" | grep -qE '^[0-9]+$'; then
+            echo "theme_id=$id" >> "$GITHUB_OUTPUT"
+          else
+            id=""
+          fi
+          if [ "$code" != 0 ]; then
             echo "::error::Theme push failed (an identity verification link above means CLI 5 can't push from CI; see SHO-196)"
             cat "$RUNNER_TEMP/push.json"; exit 1
           fi
-          id=$(jq -r 'select(.status == "success") | .theme.id' "$RUNNER_TEMP/push.json")
-          if [ -z "$id" ] || [ "$id" = null ]; then
-            echo "::error::Theme push returned no theme id"; cat "$RUNNER_TEMP/push.json"; exit 1
+          if [ "$(jq -r '.status' "$RUNNER_TEMP/push.json")" != success ] || [ -z "$id" ]; then
+            echo "::error::Theme push didn't fully succeed, or returned no theme id"; cat "$RUNNER_TEMP/push.json"; exit 1
           fi
-          echo "theme_id=$id" >> "$GITHUB_OUTPUT"
 
       # Chrome is preinstalled on ubuntu-latest; puppeteer (for the password
       # step, apps/theme/scripts/lighthouse-login.cjs) uses it rather than
