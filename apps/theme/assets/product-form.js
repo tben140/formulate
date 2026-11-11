@@ -388,7 +388,9 @@ class ProductForm extends Component {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
       const message =
-        error instanceof Error ? error.message : "Could not update your cart.";
+        (error instanceof Error && error.message) ||
+        status?.dataset.errorLabel ||
+        "Could not update your cart.";
       if (status) status.textContent = message;
       // The status line sits by the main button, off screen whenever the bar
       // is up, so the bar shows the message too. Not a live region: the

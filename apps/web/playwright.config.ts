@@ -43,9 +43,11 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL,
-    ...(behindVercelProtection
+    // Only a deployment of this project gets the bypass cookie.
+    ...(behindVercelProtection ? { storageState: VERCEL_AUTH_STATE } : {}),
+    // Any remote run, though, may be a Vercel deployment with the toolbar.
+    ...(process.env.E2E_BASE_URL
       ? {
-          storageState: VERCEL_AUTH_STATE,
           /*
            * Previews inject the Vercel Toolbar, which keeps a connection open,
            * so `waitUntil: "networkidle"` never resolves and every test times
