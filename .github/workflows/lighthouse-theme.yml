@@ -100,7 +100,7 @@ jobs:
           # {id}, ...}, the id a decimal string); progress goes to stderr. If
           # the CLI wants a browser identity check it stops here and prints a
           # verification link (SHO-196).
-          if ! npx --yes @shopify/cli@5.0.0 theme push --path apps/theme --unpublished --no-input \
+          if ! npx --yes @shopify/cli@5.0.1 theme push --path apps/theme --unpublished --no-input \
             --theme "LHCI ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --json > "$RUNNER_TEMP/push.json"; then
             echo "::error::Theme push failed (an identity verification link above means CLI 5 can't push from CI; see SHO-196)"
             cat "$RUNNER_TEMP/push.json"; exit 1
@@ -160,4 +160,4 @@ jobs:
           SHOPIFY_FLAG_STORE: ${{ secrets.SHOP_STORE }}
           SHOPIFY_CLI_NO_ANALYTICS: "1"
           THEME_ID: ${{ steps.push.outputs.theme_id }}
-        run: npx --yes @shopify/cli@5.0.0 theme delete --theme "$THEME_ID" --force --no-input
+        run: npx --yes @shopify/cli@5.0.1 theme delete --theme "$THEME_ID" --force --no-input

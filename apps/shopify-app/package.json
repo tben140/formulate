@@ -6,6 +6,6 @@
     "info": "shopify app info"
   },
   "devDependencies": {
-    "@shopify/cli": "5.0.0"
+    "@shopify/cli": "5.0.1"
   }
 }

@@ -42,7 +42,7 @@ Without it the CLI walks up to the monorepo root looking for a theme. Theme chec
 then inspects 183 files and reports existing assets as missing. Every script in
 `package.json` already carries the flag; keep it on anything new.
 
-`@shopify/cli` is a **devDependency**, pinned to 5.0.0 (SHO-196). 5.0 changed the theme
+`@shopify/cli` is a **devDependency**, pinned to 5.0.1 (SHO-196). 5.0 changed the theme
 commands' JSON (one result document on stdout, theme IDs as strings) and can stop for a
 browser identity check; `.github/workflows/lighthouse-theme.yml` reads the 5.0 output.
 Do not rely on a global
