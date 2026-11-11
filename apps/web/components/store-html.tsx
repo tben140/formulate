@@ -3,7 +3,8 @@ import sanitizeHtml from "sanitize-html";
 /**
  * What the admin's rich-text editor writes. Anything else is dropped (its text
  * kept), so a description from an app or a CSV import can't run script on the
- * storefront: no event handlers, no styles, and links only to web or mail.
+ * storefront: no event handlers, no styles, and links only to web or mail,
+ * opening in the same tab (no target or rel, so no rel="opener").
  */
 const ALLOWED: sanitizeHtml.IOptions = {
   allowedTags: [
@@ -37,7 +38,7 @@ const ALLOWED: sanitizeHtml.IOptions = {
     "td",
   ],
   allowedAttributes: {
-    a: ["href", "title", "target", "rel"],
+    a: ["href", "title"],
     th: ["colspan", "rowspan"],
     td: ["colspan", "rowspan"],
   },
