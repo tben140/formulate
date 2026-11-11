@@ -144,6 +144,9 @@ const ProductPage = async ({ params }: PageProps) => {
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+          {product.subtitle?.value ? (
+            <p className="mt-2 text-lg text-foreground-muted">{product.subtitle.value}</p>
+          ) : null}
 
           {product.description ? (
             <p className="mt-4 text-foreground-muted">{product.description}</p>
