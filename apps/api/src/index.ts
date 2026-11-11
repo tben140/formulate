@@ -1,4 +1,5 @@
 import type { RateLimiter } from "./rate-limiter";
+import { reportError } from "./sentry";
 
 export { RateLimiter } from "./rate-limiter";
 
@@ -37,6 +38,11 @@ interface Env {
    * src/rate-limiter.ts for why that one was removed.
    */
   readonly RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
+  /**
+   * Sentry's DSN for the `worker` project, in `vars`. Public by design: it can
+   * only submit events. Unset means Sentry is off (local runs, tests).
+   */
+  readonly SENTRY_DSN?: string;
 }
 
 /**
@@ -60,7 +66,10 @@ const MAX_BODY_BYTES = 1024;
  */
 type Outcome =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: "invalid-email" | "rate-limited" | "rejected" };
+  | {
+      readonly ok: false;
+      readonly reason: "invalid-email" | "rate-limited" | "rejected";
+    };
 
 const json = (body: Outcome, status: number): Response =>
   new Response(JSON.stringify(body), {
@@ -83,8 +92,12 @@ const json = (body: Outcome, status: number): Response =>
     },
   });
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+const handler = {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: Pick<ExecutionContext, "waitUntil">,
+  ): Promise<Response> {
     if (request.method !== "POST") {
       return json({ ok: false, reason: "rejected" }, 405);
     }
@@ -161,6 +174,12 @@ export default {
         status: response.status,
         detail: (await response.text()).slice(0, 500),
       });
+      // Sentry gets the status only. Klaviyo's message can quote the address.
+      reportError(env.SENTRY_DSN, ctx, {
+        message: "Klaviyo subscribe failed",
+        level: "error",
+        extra: { status: response.status },
+      });
       return json({ ok: false, reason: "rejected" }, 502);
     }
 
@@ -171,5 +190,26 @@ export default {
      * is worded to claim and no more.
      */
     return json({ ok: true }, 202);
+  },
+} satisfies ExportedHandler<Env>;
+
+/**
+ * Uncaught errors go to Sentry (EU region, project `worker`), plus the
+ * Klaviyo failure above. Errors only, no tracing, and no dependency: see
+ * src/sentry.ts for exactly what is sent (never the request or the user).
+ * The caller gets a bare 500, no error detail.
+ */
+export default {
+  async fetch(request, env, ctx) {
+    try {
+      return await handler.fetch(request, env, ctx);
+    } catch (error) {
+      reportError(env.SENTRY_DSN, ctx, {
+        message: "Uncaught error",
+        level: "error",
+        error,
+      });
+      return json({ ok: false, reason: "rejected" }, 500);
+    }
   },
 } satisfies ExportedHandler<Env>;

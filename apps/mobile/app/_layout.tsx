@@ -10,6 +10,7 @@ import { CartProvider } from "../components/cart-provider";
 import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
 import { initKlaviyo } from "../lib/klaviyo";
+import { initSentry } from "../lib/sentry";
 import {
   analytics,
   loadAnalyticsConsent,
@@ -27,6 +28,7 @@ import "../global.css";
  * this integration keeps producing. Module scope runs before any render.
  */
 initKlaviyo();
+initSentry();
 // The stored analytics choice (SHO-87); nothing is sent until it says yes.
 void loadAnalyticsConsent();
 

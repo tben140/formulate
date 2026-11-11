@@ -11,3 +11,7 @@
 # A Klaviyo private API key, scoped to what the worker needs (profiles and
 # subscriptions, write).
 KLAVIYO_PRIVATE_KEY=
+
+# Overrides the Sentry DSN in wrangler.jsonc so local runs don't report to the
+# production project. Leave it empty.
+SENTRY_DSN=
