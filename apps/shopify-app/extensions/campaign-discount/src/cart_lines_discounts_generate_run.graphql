@@ -1,0 +1,40 @@
+# $collectionIds defaults to empty: with no config (or none of the key)
+# Shopify supplies nothing, and inAnyCollection then answers false rather
+# than the query failing.
+query CartInput($collectionIds: [ID!] = []) {
+  # Tier thresholds are in the shop's currency; this converts them to the
+  # checkout's when the shopper pays in another.
+  presentmentCurrencyRate
+  cart {
+    lines {
+      id
+      quantity
+      cost {
+        # Before discounts: the price the offer is worked out from.
+        amountPerQuantity {
+          amount
+        }
+      }
+      sellingPlanAllocation {
+        sellingPlan {
+          recurringDeliveries
+        }
+      }
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          # On the variant, not the product: a collection can hold single
+          # variants, and the variant's answer covers its product's too.
+          inCampaign: inAnyCollection(ids: $collectionIds)
+        }
+      }
+    }
+  }
+  discount {
+    discountClasses
+    config: metafield(namespace: "$app:campaign-discount", key: "config") {
+      jsonValue
+    }
+  }
+}
