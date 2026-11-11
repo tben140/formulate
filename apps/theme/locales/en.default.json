@@ -121,6 +121,7 @@
     "home": "Home",
     "shop_collection": "Shop {{ title }}",
     "search_link": "Search",
+    "shop": "Shop",
     "skip_to_content": "Skip to content"
   },
   "footer": {
