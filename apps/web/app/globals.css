@@ -22,6 +22,16 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /*
+   * DM Sans ships 400, 500 and 600 only. Preflight sets <b> and <strong> to
+   * `bolder` (700), which the browser would synthesise, a smeared fake bold.
+   * The theme makes the same choice: bold means 600.
+   */
+  b,
+  strong {
+    font-weight: 600;
+  }
+
   /* WCAG 2.4.7 — never remove focus indication, only restyle it. */
   :focus-visible {
     outline: 2px solid var(--color-brand-600);
