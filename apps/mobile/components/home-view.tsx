@@ -11,7 +11,12 @@ import {
   View,
 } from "react-native";
 
-import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
+import {
+  useCollection,
+  useCollectionCards,
+  useNavLinks,
+  useShopGroups,
+} from "../lib/queries";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
 
@@ -31,6 +36,7 @@ const LOAD_ERROR = "Could not load from Shopify";
  */
 export const HomeView = () => {
   const nav = useNavLinks();
+  const shopGroups = useShopGroups();
   const cardsQuery = useCollectionCards();
   const navLinks = nav.data;
   const cards = cardsQuery.data;
@@ -127,12 +133,22 @@ export const HomeView = () => {
 
       {categories.length > 0 ? (
         <View>
-          <Text
-            accessibilityRole="header"
-            className="text-xl font-semibold text-foreground"
-          >
-            Shop by category
-          </Text>
+          <View className="flex-row items-baseline justify-between">
+            <Text
+              accessibilityRole="header"
+              className="text-xl font-semibold text-foreground"
+            >
+              Shop by category
+            </Text>
+            {/* Every grouping (goal, product family, format), on the Shop screen. */}
+            {shopGroups.data && shopGroups.data.length > 0 ? (
+              <Link href="/shop" asChild>
+                <Pressable accessibilityRole="link" hitSlop={8}>
+                  <Text className="text-sm font-medium text-brand-600">Browse all</Text>
+                </Pressable>
+              </Link>
+            ) : null}
+          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
