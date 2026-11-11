@@ -10,10 +10,12 @@ import {
   SearchProductsQuery,
   ShopPoliciesQuery,
   describeError,
+  optionColours,
   payLaterIds,
   paymentIconIds,
   productFiltersFromParams,
   toNavLinks,
+  withOptionColours,
 } from "@formulate/shopify";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
@@ -69,8 +71,13 @@ export const useCollection = (
 export const useProduct = (handle: string) =>
   useQuery({
     queryKey: ["product", handle],
-    queryFn: async () =>
-      unwrap(await storefront.request(ProductByHandleQuery, { handle })),
+    queryFn: async () => {
+      const data = unwrap(await storefront.request(ProductByHandleQuery, { handle }));
+      if (!data.product) return data;
+      // Flavours and other values Shopify gives no swatch take the shop's colours.
+      const colours = optionColours(data.shop.optionColours?.value);
+      return { ...data, product: withOptionColours(data.product, colours) };
+    },
     enabled: handle.length > 0,
   });
 

@@ -1,7 +1,9 @@
 import {
   CollectionProductsQuery,
+  optionColours,
   productFiltersFromParams,
   ProductByHandleQuery,
+  withOptionColours,
 } from "@formulate/shopify";
 import { cache } from "react";
 
@@ -16,9 +18,16 @@ import { storefront } from "./storefront";
  * scopes the memo to one server request, so nothing is shared between
  * shoppers.
  */
-export const getProduct = cache(async (handle: string) =>
-  storefront.request(ProductByHandleQuery, { handle }),
-);
+export const getProduct = cache(async (handle: string) => {
+  const result = await storefront.request(ProductByHandleQuery, { handle });
+  if (!result.ok || !result.data.product) return result;
+  // Flavours and other values Shopify gives no swatch take the shop's colours.
+  const colours = optionColours(result.data.shop.optionColours?.value);
+  return {
+    ...result,
+    data: { ...result.data, product: withOptionColours(result.data.product, colours) },
+  };
+});
 
 /** How many products a collection page shows. Pagination is SHO-44. */
 export const COLLECTION_PAGE_SIZE = 24;

@@ -165,6 +165,8 @@ export type { GiftVariantLike, NestedLineLike } from "./free-gift";
 
 export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";
+export { optionColour, optionColours, withOptionColours } from "./option-colours";
+export type { OptionColours } from "./option-colours";
 export { PLANNED_PAYMENT_ICON_IDS, payLaterIds, paymentIconIds } from "./payment-icons";
 export type { PayLaterId, PaymentIconId } from "./payment-icons";
 export {

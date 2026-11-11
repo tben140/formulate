@@ -70,10 +70,14 @@
     {% if product.has_only_default_variant == false %}
       <div ref="options" class="product-form__options">
         {% for option in product.options_with_values %}
-          {%- comment -%} Values with a swatch set in the admin show it, above their name. {%- endcomment -%}
+          {%- comment -%}
+            Values with a swatch set in the admin show it, above their name, and
+            so do values with a colour in the shop's option colours (flavours).
+          {%- endcomment -%}
           {%- assign swatches = false -%}
           {%- for value in option.values -%}
-            {%- if value.swatch -%}{%- assign swatches = true -%}{%- endif -%}
+            {%- capture shop_colour -%}{%- render 'option-colour', option_name: option.name, value_name: value -%}{%- endcapture -%}
+            {%- if value.swatch or shop_colour != blank -%}{%- assign swatches = true -%}{%- endif -%}
           {%- endfor -%}
           <fieldset class="product-form__option">
             {%- comment -%} The choice beside the name, so it reads without scanning; product-form.js keeps it in step. {%- endcomment -%}
@@ -111,8 +115,12 @@
                     {% if option.selected_value == value %}checked{% endif %}
                   >
                   {%- if swatches -%}
+                    {%- capture shop_colour -%}{%- render 'option-colour', option_name: option.name, value_name: value -%}{%- endcapture -%}
                     {%- liquid
                       assign swatch_style = ''
+                      if value.swatch == blank and shop_colour != blank
+                        assign swatch_style = 'background-color: ' | append: shop_colour | append: ';'
+                      endif
                       if value.swatch.color
                         assign swatch_style = 'background-color: ' | append: value.swatch.color | append: ';'
                       endif

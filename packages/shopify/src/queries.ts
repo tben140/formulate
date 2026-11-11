@@ -240,6 +240,13 @@ export const ProductByHandleQuery = graphql(`
         }
       }
     }
+    # Swatch colours for option values Shopify gives no swatch, such as
+    # flavours (option-colours.ts).
+    shop {
+      optionColours: metafield(namespace: "double_helix", key: "option_colours") {
+        value
+      }
+    }
   }
 `);
 

@@ -1505,7 +1505,7 @@ export type ProductByHandleQuery = { product: { id: string, handle: string, titl
            | null } | null }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, freeGift: { reference:
             | { id: string, availableForSale: boolean, product: { title: string }, image: { url: string, altText: string | null } | null }
             | Record<PropertyKey, never>
-           | null } | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string, options: Array<{ name: string | null, value: string | null }> }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
+           | null } | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string, options: Array<{ name: string | null, value: string | null }> }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null, shop: { optionColours: { value: string } | null } };
 
 export type FilterFieldsFragment = { id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> };
 
@@ -2010,6 +2010,11 @@ export const ProductByHandleDocument = new TypedDocumentString(`
           }
         }
       }
+    }
+  }
+  shop {
+    optionColours: metafield(namespace: "double_helix", key: "option_colours") {
+      value
     }
   }
 }
