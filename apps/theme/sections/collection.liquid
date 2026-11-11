@@ -18,7 +18,8 @@
   <header class="collection__header">
     <h1 class="collection__title">{{ collection.title }}</h1>
     {% if collection.description != blank %}
-      <p class="collection__description">{{ collection.description }}</p>
+      {%- comment -%} A div: the description is HTML with its own <p>s. {%- endcomment -%}
+      <div class="collection__description">{{ collection.description }}</div>
     {% endif %}
   </header>
 
