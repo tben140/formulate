@@ -2,7 +2,7 @@ import { Link } from "expo-router";
 import { Fragment, useRef } from "react";
 import { Pressable, ScrollView, Text, type ScrollViewInstance } from "react-native";
 
-import { useNavLinks } from "../lib/queries";
+import { useNavLinks, useShopGroups } from "../lib/queries";
 
 /**
  * The collection links from the Shopify menu (SHO-60), as a row of chips
@@ -18,6 +18,9 @@ import { useNavLinks } from "../lib/queries";
  * the page, so they shouldn't slide a new screen in, or stack one per tap for
  * Back to walk through. Product links in the menu still navigate.
  *
+ * A Shop chip comes first when the store has its Shop menus: it opens the
+ * Shop screen, the app's version of web's header dropdown.
+ *
  * Nothing renders while the menu loads or if it fails: the products below
  * matter more than the links, and shouldn't wait on them.
  */
@@ -29,13 +32,15 @@ export const CollectionNav = ({
   readonly onSelect?: (handle: string) => void;
 }) => {
   const { data } = useNavLinks();
+  const { data: groups } = useShopGroups();
   // React Native 0.88 types ScrollView as a function component, so the ref
   // is its instance type, not the component.
   const scroller = useRef<ScrollViewInstance>(null);
 
   // Policies belong in the footer (the Legal menu), not the header chips.
   const links = data?.filter((link) => link.kind !== "policy") ?? [];
-  if (links.length === 0) return null;
+  const hasShop = (groups?.length ?? 0) > 0;
+  if (links.length === 0 && !hasShop) return null;
 
   return (
     <ScrollView
@@ -45,6 +50,18 @@ export const CollectionNav = ({
       accessibilityLabel="Collections"
       contentContainerClassName="gap-2 pb-4"
     >
+      {hasShop ? (
+        <Link href="/shop" asChild>
+          <Pressable
+            accessibilityRole="link"
+            // Without it the › would be read aloud.
+            accessibilityLabel="Shop"
+            className="rounded-full border border-border bg-surface px-4 py-2"
+          >
+            <Text className="text-sm font-medium text-foreground">Shop ›</Text>
+          </Pressable>
+        </Link>
+      ) : null}
       {links.map((link) => {
         const isCollection = link.kind === "collection";
         const selected = isCollection && link.handle === current;

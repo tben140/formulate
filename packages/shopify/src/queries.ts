@@ -300,6 +300,8 @@ export const ComplementaryProductsQuery = graphql(`
 export const NavMenuQuery = graphql(`
   query NavMenu($handle: String!) {
     menu(handle: $handle) {
+      # Names a group in the header's Shop menu ("Shop by goal").
+      title
       items {
         id
         title
