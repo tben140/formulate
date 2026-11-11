@@ -1,0 +1,18 @@
+api_version = "2026-07"
+
+[[extensions]]
+name = "Subscribe & save switch"
+handle = "subscribe-upgrade"
+uid = "23a1352d-37f4-46f4-8448-c6981009e9cd15c013d9"
+type = "ui_extension"
+
+# Under each one-time line that could be a subscription. Our own version of
+# Recharge's Checkout Upsell (which needs Recharge Pro): see
+# shared/subscribe-upgrade.ts.
+[[extensions.targeting]]
+module = "./src/SubscribeUpgrade.tsx"
+target = "purchase.checkout.cart-line-item.render-after"
+
+[extensions.capabilities]
+# The line's selling plans, their saving and price, from the Storefront API.
+api_access = true

@@ -1,0 +1,27 @@
+api_version = "2026-07"
+
+[[extensions]]
+name = "Money-back guarantee"
+handle = "checkout-guarantee"
+uid = "94752061-6c67-4c5b-b783-3a6bfe3d1ba2169004d7"
+type = "ui_extension"
+
+# A block the merchant places in the checkout editor, beside the order summary
+# or under the pay button. Checkout blocks need Shopify Plus, which the dev
+# store is.
+[[extensions.targeting]]
+module = "./src/CheckoutGuarantee.tsx"
+target = "purchase.checkout.block.render"
+
+[extensions.settings]
+[[extensions.settings.fields]]
+key = "heading"
+type = "single_line_text_field"
+name = "Heading"
+description = "Leave empty for \"30-day money-back guarantee\"."
+
+[[extensions.settings.fields]]
+key = "text"
+type = "multi_line_text_field"
+name = "Text"
+description = "Leave empty for the wording web, the theme and the app use. It must match the refund policy."
