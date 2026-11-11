@@ -60,7 +60,10 @@ const MAX_BODY_BYTES = 1024;
  */
 type Outcome =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: "invalid-email" | "rate-limited" | "rejected" };
+  | {
+      readonly ok: false;
+      readonly reason: "invalid-email" | "rate-limited" | "rejected";
+    };
 
 const json = (body: Outcome, status: number): Response =>
   new Response(JSON.stringify(body), {

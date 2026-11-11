@@ -17,6 +17,8 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   resolve: {
-    alias: { "cloudflare:workers": new URL("./test/workers-stub.ts", import.meta.url).pathname },
+    alias: {
+      "cloudflare:workers": new URL("./test/workers-stub.ts", import.meta.url).pathname,
+    },
   },
 });

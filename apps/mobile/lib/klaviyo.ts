@@ -82,7 +82,10 @@ export const initKlaviyo = (): void => {
    * `null` in Expo Go and on web, which have no Klaviyo native module (see above).
    */
   if (!Klaviyo) {
-    if (__DEV__) console.warn("[klaviyo] Expo Go or web: the native SDK is not available, so tracking is off.");
+    if (__DEV__)
+      console.warn(
+        "[klaviyo] Expo Go or web: the native SDK is not available, so tracking is off.",
+      );
     return;
   }
 
