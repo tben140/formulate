@@ -142,7 +142,7 @@ export {
   savingMessage,
   subscriptionSaving,
 } from "./subscribe-and-save";
-export { addButtonLabel, purchaseCards } from "./purchase-cards";
+export { addButtonLabel, bestValueIndex, purchaseCards } from "./purchase-cards";
 export type { PurchaseCard } from "./purchase-cards";
 export type {
   DeliveryQuote,

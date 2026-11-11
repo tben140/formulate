@@ -1,0 +1,40 @@
+{% doc %}
+  Which of a variant's plans is best value: the one that saves the most, when
+  no other plan saves as much, and never for a lone plan. Every plan has the same pack, so it's also the
+  cheapest a day. The Liquid twin of bestValueIndex in
+  packages/shopify/src/purchase-cards.ts, with plan-card's whole-percent sums.
+
+  Outputs the selling plan id, or nothing. Capture it.
+
+  @param {object} variant - The variant.
+  @param {string} plans - The variant's plans, from variant-plans ("ddd:planid,...").
+{% enddoc %}
+{%- liquid
+  assign top = 0
+  assign best = ''
+  assign entries = plans | split: ','
+  # A lone plan has nothing to be compared with.
+  assign limit = 0
+  if entries.size > 1
+    assign limit = entries.size
+  endif
+  for entry in entries limit: limit
+    assign plan_id = entry | split: ':' | last | plus: 0
+    for allocation in variant.selling_plan_allocations
+      if allocation.selling_plan.id == plan_id
+        # No saving claim for a plan whose price changes later (plan-card).
+        if allocation.price_adjustments.size < 2 and variant.price > 0
+          assign saving = variant.price | minus: allocation.per_delivery_price
+          assign percent = saving | times: 100.0 | divided_by: variant.price | round
+          if percent > top
+            assign top = percent
+            assign best = plan_id
+          elsif percent == top and percent > 0
+            assign best = ''
+          endif
+        endif
+      endif
+    endfor
+  endfor
+  echo best
+-%}

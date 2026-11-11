@@ -936,6 +936,13 @@ a:hover {
   font-weight: 600;
 }
 
+/* "Best value": outlined, so it doesn't read as a second saving. */
+.product-form__plan-badge--best {
+  border: 1px solid var(--color-brand-600);
+  background-color: transparent;
+  color: var(--color-brand-700);
+}
+
 .product-form__plan-now {
   font-size: var(--text-lg);
   font-weight: 500;

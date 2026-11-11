@@ -29,6 +29,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {number} cents The same in minor units.
  * @property {string} was The same units bought once, formatted.
  * @property {string | null} saving "Save £7.17 a delivery (15%)", or null.
+ * @property {boolean} [bestValue] The one plan that saves the most.
  */
 
 /**
@@ -347,6 +348,17 @@ class ProductForm extends Component {
               "%PERCENT%",
               String(plan.percent),
             ),
+          ),
+        );
+      }
+
+      if (plan.bestValue) {
+        name.append(
+          " ",
+          el(
+            "span",
+            "product-form__plan-badge product-form__plan-badge--best",
+            planList.dataset.bestValue ?? "Best value",
           ),
         );
       }

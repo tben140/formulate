@@ -125,6 +125,7 @@
     "plan_detail": "Delivered every {{ days }} days",
     "plan_detail_packs": "{{ units }} × {{ pack }} packs, delivered every {{ days }} days",
     "save_percent": "Save {{ percent }}%",
+    "best_value": "Best value",
     "perk_delivery": "Free delivery",
     "perk_cancel": "Skip, pause or cancel any time from your account",
     "add_to_cart_price": "Add to cart – {{ price }}",

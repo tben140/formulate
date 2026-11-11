@@ -210,13 +210,18 @@
           data-perk-delivery="{{ 'product.perk_delivery' | t }}"
           data-perk-cancel="{{ 'product.perk_cancel' | t }}"
           data-save-percent="{{ 'product.save_percent' | t: percent: '%PERCENT%' }}"
+          data-best-value="{{ 'product.best_value' | t }}"
         >
+          {%- capture best_plan -%}{% render 'plan-best-value', variant: current_variant, plans: current_plans %}{%- endcapture -%}
           {%- assign entries = current_plans | split: ',' -%}
           {%- for entry in entries -%}
             {%- assign plan_id = entry | split: ':' | last | plus: 0 -%}
+            {%- assign plan_key = plan_id | append: '' -%}
+            {%- assign is_best = false -%}
+            {%- if best_plan != blank and plan_key == best_plan -%}{%- assign is_best = true -%}{%- endif -%}
             {%- for allocation in current_variant.selling_plan_allocations -%}
               {%- if allocation.selling_plan.id == plan_id -%}
-                {% render 'plan-card', variant: current_variant, allocation: allocation, pack: current_pack %}
+                {% render 'plan-card', variant: current_variant, allocation: allocation, pack: current_pack, best_value: is_best %}
               {%- endif -%}
             {%- endfor -%}
           {%- endfor -%}
@@ -419,12 +424,16 @@
         {%- capture variant_plans -%}{% render 'variant-plans', product: product, variant: variant, owned_group_ids: owned_group_ids %}{%- endcapture -%}
         "oneTime": {% render 'plan-card', variant: variant, allocation: nil, pack: variant_pack, format: 'json' %},
         "plans": [
+          {%- capture best_plan -%}{% render 'plan-best-value', variant: variant, plans: variant_plans %}{%- endcapture -%}
           {%- assign entries = variant_plans | split: ',' -%}
           {%- for entry in entries -%}
             {%- assign plan_id = entry | split: ':' | last | plus: 0 -%}
+            {%- assign plan_key = plan_id | append: '' -%}
+            {%- assign is_best = false -%}
+            {%- if best_plan != blank and plan_key == best_plan -%}{%- assign is_best = true -%}{%- endif -%}
             {%- for allocation in variant.selling_plan_allocations -%}
               {%- if allocation.selling_plan.id == plan_id -%}
-                {% render 'plan-card', variant: variant, allocation: allocation, pack: variant_pack, format: 'json' %}
+                {% render 'plan-card', variant: variant, allocation: allocation, pack: variant_pack, best_value: is_best, format: 'json' %}
               {%- endif -%}
             {%- endfor -%}
             {%- unless forloop.last -%},{%- endunless -%}

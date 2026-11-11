@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ONE_TIME } from "./product-selection";
-import { addButtonLabel, purchaseCards } from "./purchase-cards";
+import { addButtonLabel, bestValueIndex, purchaseCards } from "./purchase-cards";
 
 const gbp = (amount: string) => ({ amount, currencyCode: "GBP" });
 const plan = (days: number, price: string) => ({
@@ -50,5 +50,37 @@ describe("purchase cards", () => {
     ]);
     expect(addButtonLabel(undefined)).toBe("Add to cart");
     expect(purchaseCards(undefined, [])).toEqual([]);
+  });
+
+  it("tags no plan best value while every plan saves the same", () => {
+    const cards = purchaseCards(
+      { price: gbp("15.95"), selectedOptions: [{ name: "Pack size", value: "30 days" }] },
+      [plan(30, "13.56"), plan(60, "13.56"), plan(90, "13.56")],
+    );
+    expect(cards.some((card) => card.bestValue)).toBe(false);
+  });
+
+  it("tags the plan that saves the most, when it saves more than the rest", () => {
+    const cards = purchaseCards(
+      { price: gbp("20.00"), selectedOptions: [{ name: "Pack size", value: "30 days" }] },
+      [plan(90, "16.00"), plan(30, "18.00"), plan(60, "17.00")],
+    );
+    expect(cards.map((c) => [c.title, c.savePercent, c.perDay, c.bestValue])).toEqual([
+      ["30-day supply", 10, "60p a day", false],
+      ["60-day supply", 15, "57p a day", false],
+      ["90-day supply", 20, "53p a day", true],
+      ["One-time purchase", null, "67p a day", false],
+    ]);
+  });
+});
+
+describe("bestValueIndex", () => {
+  it("is the one highest saving, or none", () => {
+    expect(bestValueIndex([10, 15, 20])).toBe(2);
+    expect(bestValueIndex([20, 15, 20])).toBe(-1);
+    expect(bestValueIndex([null, 0])).toBe(-1);
+    expect(bestValueIndex([null, 5])).toBe(1);
+    // A lone plan has nothing to beat.
+    expect(bestValueIndex([20])).toBe(-1);
   });
 });

@@ -180,6 +180,7 @@ export const AddToCart = ({
                   accessibilityLabel={[
                     card.title,
                     card.savePercent ? `save ${card.savePercent}%` : null,
+                    card.bestValue ? "best value" : null,
                     card.quote.saving
                       ? `${formatMoney(card.quote.price)} instead of ${formatMoney(card.quote.oneTime)}`
                       : formatMoney(card.quote.price),
@@ -201,6 +202,11 @@ export const AddToCart = ({
                       {card.savePercent ? (
                         <Text className="overflow-hidden rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-surface">
                           Save {card.savePercent}%
+                        </Text>
+                      ) : null}
+                      {card.bestValue ? (
+                        <Text className="overflow-hidden rounded-full border border-brand-600 px-2 py-0.5 text-xs font-semibold text-brand-700">
+                          Best value
                         </Text>
                       ) : null}
                     </View>

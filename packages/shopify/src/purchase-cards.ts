@@ -26,8 +26,10 @@ import {
  *   one-time stays a card of its own, not a link.
  * - **Prices are per delivery, at the real interval.** Never a "/mo" for a
  *   plan that doesn't bill monthly.
- * - **No badge that isn't true.** Nothing here says "best value" or "most
- *   popular": every plan saves the same, and there's no sales data.
+ * - **No badge that isn't true.** "Best value" goes only on the plan that
+ *   saves the most, and so costs least a day, and only when no other plan
+ *   saves as much (`bestValue`): with every plan at 15%, no card has it. Never
+ *   "most popular": there's no sales data.
  */
 
 export interface PurchaseCard {
@@ -42,6 +44,11 @@ export interface PurchaseCard {
   readonly perDay: string | null;
   /** The saving against buying the same once, in whole percent. */
   readonly savePercent: number | null;
+  /**
+   * The one plan that saves the most. Every card has the same pack, so it's
+   * also the cheapest a day or a serving.
+   */
+  readonly bestValue: boolean;
 }
 
 interface CardVariantLike {
@@ -94,11 +101,13 @@ export const purchaseCards = (
         quote,
         perDay: pricePerDay(quote.price, quote.days, pack.unit),
         savePercent: quote.saving?.percent ?? null,
+        bestValue: false,
       };
     });
+  const best = bestValueIndex(plans.map((plan) => plan.savePercent));
   const oneTime = deliveryQuote(variant.price, null, pack);
   return [
-    ...plans,
+    ...plans.map((plan, index) => (index === best ? { ...plan, bestValue: true } : plan)),
     {
       id: ONE_TIME,
       title: "One-time purchase",
@@ -106,8 +115,22 @@ export const purchaseCards = (
       quote: oneTime,
       perDay: pricePerDay(oneTime.price, oneTime.days, pack.unit),
       savePercent: null,
+      bestValue: false,
     },
   ];
+};
+
+/**
+ * Which of the plans' savings (whole percent) is best value: the highest, if
+ * it's above zero and no other plan saves as much. -1 for none, and for a
+ * lone plan: there's nothing to compare it with.
+ */
+export const bestValueIndex = (percents: readonly (number | null)[]): number => {
+  if (percents.length < 2) return -1;
+  const top = Math.max(0, ...percents.map((percent) => percent ?? 0));
+  if (top === 0) return -1;
+  const at = percents.flatMap((percent, index) => (percent === top ? [index] : []));
+  return at.length === 1 ? (at[0] ?? -1) : -1;
 };
 
 const capitalise = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);

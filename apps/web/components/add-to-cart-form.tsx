@@ -290,6 +290,11 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                           Save {card.savePercent}%
                         </span>
                       ) : null}
+                      {card.bestValue ? (
+                        <span className="rounded-full border border-brand-600 px-2 py-0.5 text-xs font-semibold text-brand-700">
+                          Best value
+                        </span>
+                      ) : null}
                     </span>
                     {/*
                       Full-strength text throughout: muted grey on brand-50 is
