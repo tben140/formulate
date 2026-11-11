@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddToCart } from "../../components/add-to-cart";
 import { useCartUi } from "../../components/cart-provider";
 import { PairsWellWith } from "../../components/pairs-well-with";
+import { RichText } from "../../components/rich-text";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
 import { analytics } from "../../lib/product-analytics";
@@ -168,9 +169,7 @@ const ProductBody = ({ product }: { product: Product }) => {
           ) : null}
         </View>
 
-        {product.description ? (
-          <Text className="text-base text-foreground-muted">{product.description}</Text>
-        ) : null}
+        {product.descriptionHtml ? <RichText html={product.descriptionHtml} /> : null}
 
         {/*
           The price lives inside AddToCart, because it changes with the selection

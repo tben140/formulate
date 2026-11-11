@@ -187,6 +187,11 @@
     color: var(--color-foreground-muted);
   }
 
+  /* The reset zeroes every margin, which would run paragraphs and lists together. */
+  .product__description > * + * {
+    margin-block-start: var(--spacing-4);
+  }
+
 {% endstylesheet %}
 
 {% schema %}
