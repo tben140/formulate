@@ -48,7 +48,7 @@ test("a product page renders title, price and a buyable button", async ({ page }
   ).toBeVisible();
   await expect(page.getByText(/£\d+\.\d{2}/).first()).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Add to cart", exact: true }),
+    page.getByRole("button", { name: /^Add to cart – £[\d.]+$/ }),
   ).toBeEnabled();
 });
 

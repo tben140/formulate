@@ -22,6 +22,7 @@
   checkout, then never charge or ship again.
 
   @param {product} product - The product whose variants and selling plans the form offers.
+  @param {boolean} [show_express] - Whether to show express checkout buttons; on unless false.
 {% enddoc %}
 
 {% assign current_variant = product.selected_or_first_available_variant %}
@@ -69,9 +70,22 @@
     {% if product.has_only_default_variant == false %}
       <div ref="options" class="product-form__options">
         {% for option in product.options_with_values %}
+          {%- comment -%}
+            Values with a swatch set in the admin show it, above their name, and
+            so do values with a colour in the shop's option colours (flavours).
+          {%- endcomment -%}
+          {%- assign swatches = false -%}
+          {%- for value in option.values -%}
+            {%- capture shop_colour -%}{%- render 'option-colour', option_name: option.name, value_name: value -%}{%- endcapture -%}
+            {%- if value.swatch or shop_colour != blank -%}{%- assign swatches = true -%}{%- endif -%}
+          {%- endfor -%}
           <fieldset class="product-form__option">
-            <legend class="product-form__legend">{{ option.name }}</legend>
-            <div class="product-form__values">
+            {%- comment -%} The choice beside the name, so it reads without scanning; product-form.js keeps it in step. {%- endcomment -%}
+            <legend class="product-form__legend">
+              {{- option.name -}}
+              <span class="product-form__legend-value" data-option-current="{{ forloop.index }}">: {{ option.selected_value }}</span>
+            </legend>
+            <div class="product-form__values{% if swatches %} product-form__values--swatches{% endif %}">
               {% for value in option.values %}
                 {% comment %}
                   `value` is a product_option_value, and `value.variant` is the
@@ -90,7 +104,7 @@
                 {% if value.variant and value.variant.available == false %}
                   {% assign pill_sold_out = true %}
                 {% endif %}
-                <label class="product-form__pill{% if pill_sold_out %} product-form__pill--sold-out{% endif %}">
+                <label class="product-form__pill{% if swatches %} product-form__pill--swatch{% endif %}{% if pill_sold_out %} product-form__pill--sold-out{% endif %}">
                   <input
                     ref="optionInput"
                     type="radio"
@@ -100,6 +114,23 @@
                     data-option-position="{{ forloop.parentloop.index }}"
                     {% if option.selected_value == value %}checked{% endif %}
                   >
+                  {%- if swatches -%}
+                    {%- capture shop_colour -%}{%- render 'option-colour', option_name: option.name, value_name: value -%}{%- endcapture -%}
+                    {%- liquid
+                      assign swatch_style = ''
+                      if value.swatch == blank and shop_colour != blank
+                        assign swatch_style = 'background-color: ' | append: shop_colour | append: ';'
+                      endif
+                      if value.swatch.color
+                        assign swatch_style = 'background-color: ' | append: value.swatch.color | append: ';'
+                      endif
+                      if value.swatch.image
+                        assign swatch_url = value.swatch.image | image_url: width: 96, height: 96, crop: 'center'
+                        assign swatch_style = swatch_style | append: ' background-image: url(' | append: swatch_url | append: ');'
+                      endif
+                    -%}
+                    <span class="product-form__swatch" aria-hidden="true" style="{{ swatch_style }}"></span>
+                  {%- endif -%}
                   <span>{{ value }}</span>
                   {%- comment -%} Sold-out combinations stay selectable, as on web. {%- endcomment -%}
                   <span class="visually-hidden" data-sold-out-note{% unless pill_sold_out %} hidden{% endunless %}>
@@ -145,95 +176,56 @@
       is hidden while the current one has none, so product-form.js can rebuild
       it for whichever variant the shopper picks (SHO-123).
     {% endcomment %}
-    {% assign product_has_plans = false %}
-    {% for variant in product.variants %}
-      {% for allocation in variant.selling_plan_allocations %}
-        {% assign group_key = allocation.selling_plan_group_id | append: ',' %}
-        {% if owned_group_ids contains group_key %}
-          {% assign product_has_plans = true %}
-        {% endif %}
-      {% endfor %}
-    {% endfor %}
+    {%- comment -%}
+      The plans each variant offers: app-owned, and the pack size sets the
+      plan (snippets/variant-plans.liquid).
+    {%- endcomment -%}
+    {%- assign product_has_plans = false -%}
+    {%- for plan_variant in product.variants -%}
+      {%- capture offered -%}{% render 'variant-plans', product: product, variant: plan_variant, owned_group_ids: owned_group_ids %}{%- endcapture -%}
+      {%- if offered != blank -%}{%- assign product_has_plans = true -%}{%- break -%}{%- endif -%}
+    {%- endfor -%}
+    {%- capture current_plans -%}{% render 'variant-plans', product: product, variant: current_variant, owned_group_ids: owned_group_ids %}{%- endcapture -%}
+    {%- capture current_pack -%}{% render 'variant-pack', variant: current_variant %}{%- endcapture -%}
 
-    {% assign has_plans = false %}
-    {% for allocation in current_variant.selling_plan_allocations %}
-      {% assign group_key = allocation.selling_plan_group_id | append: ',' %}
-      {% if owned_group_ids contains group_key %}
-        {% assign has_plans = true %}
-      {% endif %}
-    {% endfor %}
+    {% comment %}
+      Purchase options as cards: plans first, shortest first, then one-time,
+      which is a card of its own and the default. Nothing is chosen for the
+      shopper (packages/shopify/src/purchase-cards.ts).
 
+      Rendered for the current variant, which is what a no-JavaScript form
+      submits against. The fieldset exists whenever any variant has a plan, and
+      is hidden while the current one has none, so product-form.js can rebuild
+      it for whichever variant the shopper picks (SHO-123).
+    {% endcomment %}
     {% if product_has_plans %}
-      <fieldset ref="plans" class="product-form__option" {% unless has_plans %}hidden{% endunless %}>
+      <fieldset ref="plans" class="product-form__option" {% if current_plans == blank %}hidden{% endif %}>
         <legend class="product-form__legend">{{ 'product.purchase_options' | t }}</legend>
         <div
           ref="planList"
           class="product-form__plans"
           data-built-for="{{ current_variant.id }}"
-          data-one-time-label="{{ 'product.one_time' | t }}"
           data-one-time-price-label="{{ 'product.one_time_price' | t }}"
           data-subscription-price-label="{{ 'product.subscription_price' | t }}"
+          data-perk-delivery="{{ 'product.perk_delivery' | t }}"
+          data-perk-cancel="{{ 'product.perk_cancel' | t }}"
+          data-save-percent="{{ 'product.save_percent' | t: percent: '%PERCENT%' }}"
+          data-best-value="{{ 'product.best_value' | t }}"
         >
-          <label class="product-form__plan">
-            <span>
-              <input type="radio" name="selling_plan" value="" checked>
-              {{ 'product.one_time' | t }}
-            </span>
-            <span class="product-form__plan-price">{{ current_variant.price | money }}</span>
-          </label>
-
-          {% for allocation in current_variant.selling_plan_allocations %}
-            {% assign group_key = allocation.selling_plan_group_id | append: ',' %}
-            {% if owned_group_ids contains group_key %}
-              <label class="product-form__plan">
-                <span>
-                  <input
-                    type="radio"
-                    name="selling_plan"
-                    value="{{ allocation.selling_plan.id }}"
-                  >
-                  {{ allocation.selling_plan.name }}
-                  {%- comment -%}
-                    A 60- or 90-day plan ships two or three 30-day supplies, at
-                    that many times the price (deliveryQuote in
-                    packages/shopify). The plan sets the quantity.
-                  {%- endcomment -%}
-                  {%- capture plan_units -%}{% render 'plan-supply-units', selling_plan: allocation.selling_plan %}{%- endcapture -%}
-                  {%- assign plan_units = plan_units | plus: 0 -%}
-                  {%- assign plan_total = allocation.per_delivery_price | times: plan_units -%}
-                  {%- assign one_time_total = current_variant.price | times: plan_units -%}
-                  {%- if plan_units > 1 -%}
-                    {%- assign plan_days = plan_units | times: 30 -%}
-                    <span class="product-form__plan-saving">
-                      {{- 'product.supply' | t: days: plan_days, units: plan_units -}}
-                    </span>
-                  {%- endif -%}
-                  {%- assign plan_saving = one_time_total | minus: plan_total -%}
-                  {%- comment -%} No saving claim for a plan whose price rises after an introductory period (isIntroductoryPlan). {%- endcomment -%}
-                  {%- if allocation.price_adjustments.size > 1 -%}{%- assign plan_saving = 0 -%}{%- endif -%}
-                  {%- if plan_saving > 0 -%}
-                    {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: one_time_total | round -%}
-                    {%- assign plan_saving_money = plan_saving | money -%}
-                    <span class="product-form__plan-saving">
-                      {{- 'product.subscription_saving' | t: amount: plan_saving_money, percent: plan_percent -}}
-                    </span>
-                  {%- endif -%}
-                </span>
-                <span class="product-form__plan-price">
-                  {%- if plan_saving > 0 -%}
-                    {%- comment -%}
-                      The one-time price for the same product, on sale now: a
-                      real comparison, not a "was" price
-                      (packages/shopify/src/subscribe-and-save.ts).
-                    {%- endcomment -%}
-                    <s class="product-form__plan-was"><span class="visually-hidden">{{ 'product.one_time_price' | t }} </span>{{ one_time_total | money }}</s>
-                    <span class="visually-hidden"> {{ 'product.subscription_price' | t }}</span>
-                  {% endif -%}
-                  {{ plan_total | money }}
-                </span>
-              </label>
-            {% endif %}
-          {% endfor %}
+          {%- capture best_plan -%}{% render 'plan-best-value', variant: current_variant, plans: current_plans %}{%- endcapture -%}
+          {%- assign entries = current_plans | split: ',' -%}
+          {%- for entry in entries -%}
+            {%- assign plan_id = entry | split: ':' | last | plus: 0 -%}
+            {%- assign plan_key = plan_id | append: '' -%}
+            {%- assign is_best = false -%}
+            {%- if best_plan != blank and plan_key == best_plan -%}{%- assign is_best = true -%}{%- endif -%}
+            {%- for allocation in current_variant.selling_plan_allocations -%}
+              {%- if allocation.selling_plan.id == plan_id -%}
+                {% render 'plan-card', variant: current_variant, allocation: allocation, pack: current_pack, best_value: is_best %}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%}
+          {% render 'plan-card', variant: current_variant, allocation: nil, pack: current_pack, checked: true %}
         </div>
       </fieldset>
     {% endif %}
@@ -264,19 +256,27 @@
       <span class="product-form__gift-price">{{ 'product.free_gift_price' | t }}</span>
     </div>
 
-    <p ref="price" class="product-form__price">{{ current_variant.price | money }}</p>
-    {%- assign per_day = current_variant.price | divided_by: 30.0 | round -%}
-    <p class="product-form__per-day">
-      {%- comment -%}
-        Hidden until product-form.js runs: without JavaScript a variant or
-        plan change can't update it, and a stale price per day is worse than
-        none. The delivery line is always true, so it always shows.
-      {%- endcomment -%}
-      <span ref="perDay" data-per-day-suffix="{{ 'product.per_day' | t }}" hidden>
-        {%- if per_day < 100 -%}{{ per_day }}p{%- else -%}{{ per_day | money }}{%- endif %} {{ 'product.per_day' | t }} ·
-      </span>
-      {{ 'product.delivery_promise' | t }}
-    </p>
+    {%- if product_has_plans -%}
+      {%- comment -%} The cards carry the price; this is what applies to every option. {%- endcomment -%}
+      <p class="product-form__per-day">{{ 'product.delivery_promise' | t }}</p>
+    {%- else -%}
+      {%- assign current_pack_parts = current_pack | split: '|' -%}
+      {%- assign pack_count = current_pack_parts[0] | plus: 0 -%}
+      <p ref="price" class="product-form__price">{{ current_variant.price | money }}</p>
+      {%- assign per_day = current_variant.price | times: 1.0 | divided_by: pack_count | round -%}
+      {%- if current_pack_parts[1] == 'serving' -%}{%- assign per_suffix = 'product.per_serving' | t -%}{%- else -%}{%- assign per_suffix = 'product.per_day' | t -%}{%- endif -%}
+      <p class="product-form__per-day">
+        {%- comment -%}
+          Hidden until product-form.js runs: without JavaScript a variant
+          change can't update it, and a stale price per day is worse than
+          none. The delivery line is always true, so it always shows.
+        {%- endcomment -%}
+        <span ref="perDay" hidden>
+          {%- if per_day < 100 -%}{{ per_day }}p{%- else -%}{{ per_day | money }}{%- endif %} {{ per_suffix }} ·
+        </span>
+        {{ 'product.delivery_promise' | t }}
+      </p>
+    {%- endif %}
 
     {% comment %}
       The button's three states are passed as data attributes rather than
@@ -287,7 +287,9 @@
       ref="submit"
       type="submit"
       class="product-form__submit"
-      data-add-label="{{ 'product.add_to_cart' | t }}"
+      data-add-label="{{ 'product.add_to_cart_price' | t: price: '%PRICE%' }}"
+      data-subscribe-label="{{ 'product.subscribe_price' | t: price: '%PRICE%' }}"
+      data-subscribe-save-label="{{ 'product.subscribe_save_price' | t: price: '%PRICE%', percent: '%PERCENT%' }}"
       data-sold-out-label="{{ 'product.sold_out' | t }}"
       data-unavailable-label="{{ 'product.unavailable' | t }}"
       {% unless current_variant.available %}disabled{% endunless %}
@@ -418,43 +420,23 @@
         {%- else -%}
           "gift": null,
         {%- endif -%}
+        {%- capture variant_pack -%}{% render 'variant-pack', variant: variant %}{%- endcapture -%}
+        {%- capture variant_plans -%}{% render 'variant-plans', product: product, variant: variant, owned_group_ids: owned_group_ids %}{%- endcapture -%}
+        "oneTime": {% render 'plan-card', variant: variant, allocation: nil, pack: variant_pack, format: 'json' %},
         "plans": [
-          {%- assign first_plan = true -%}
-          {%- for allocation in variant.selling_plan_allocations -%}
-            {%- assign group_key = allocation.selling_plan_group_id | append: ',' -%}
-            {%- if owned_group_ids contains group_key -%}
-              {%- unless first_plan -%},{%- endunless -%}
-              {%- assign first_plan = false -%}
-              {
-                "id": {{ allocation.selling_plan.id | json }},
-                "name": {{ allocation.selling_plan.name | json }},
-                {%- capture plan_units -%}{% render 'plan-supply-units', selling_plan: allocation.selling_plan %}{%- endcapture -%}
-                {%- assign plan_units = plan_units | plus: 0 -%}
-                {%- assign plan_total = allocation.per_delivery_price | times: plan_units -%}
-                {%- assign one_time_total = variant.price | times: plan_units -%}
-                {%- assign plan_days = plan_units | times: 30 -%}
-                "units": {{ plan_units | json }},
-                "price": {{ plan_total | money | json }},
-                "cents": {{ plan_total | json }},
-                "was": {{ one_time_total | money | json }},
-                {%- if plan_units > 1 -%}
-                  {%- assign plan_supply_text = 'product.supply' | t: days: plan_days, units: plan_units -%}
-                  "supply": {{ plan_supply_text | json }},
-                {%- else -%}
-                  "supply": null,
-                {%- endif -%}
-                {%- assign plan_saving = one_time_total | minus: plan_total -%}
-                {%- if allocation.price_adjustments.size > 1 -%}{%- assign plan_saving = 0 -%}{%- endif -%}
-                {%- if plan_saving > 0 -%}
-                  {%- assign plan_percent = plan_saving | times: 100.0 | divided_by: one_time_total | round -%}
-                  {%- assign plan_saving_money = plan_saving | money -%}
-                  {%- assign plan_saving_text = 'product.subscription_saving' | t: amount: plan_saving_money, percent: plan_percent -%}
-                  "saving": {{ plan_saving_text | json }}
-                {%- else -%}
-                  "saving": null
-                {%- endif %}
-              }
-            {%- endif -%}
+          {%- capture best_plan -%}{% render 'plan-best-value', variant: variant, plans: variant_plans %}{%- endcapture -%}
+          {%- assign entries = variant_plans | split: ',' -%}
+          {%- for entry in entries -%}
+            {%- assign plan_id = entry | split: ':' | last | plus: 0 -%}
+            {%- assign plan_key = plan_id | append: '' -%}
+            {%- assign is_best = false -%}
+            {%- if best_plan != blank and plan_key == best_plan -%}{%- assign is_best = true -%}{%- endif -%}
+            {%- for allocation in variant.selling_plan_allocations -%}
+              {%- if allocation.selling_plan.id == plan_id -%}
+                {% render 'plan-card', variant: variant, allocation: allocation, pack: variant_pack, best_value: is_best, format: 'json' %}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- unless forloop.last -%},{%- endunless -%}
           {%- endfor -%}
         ]
       }{% unless forloop.last %},{% endunless %}

@@ -153,7 +153,10 @@
                 {% endcomment %}
 {%- assign line_units = 1 -%}
                 {%- if item.selling_plan_allocation -%}
-                  {%- capture line_units -%}{% render 'plan-supply-units', selling_plan: item.selling_plan_allocation.selling_plan %}{%- endcapture -%}
+                  {%- capture line_pack -%}{% render 'variant-pack', variant: item.variant %}{%- endcapture -%}
+                  {%- assign line_pack = line_pack | split: '|' -%}
+                  {%- assign line_pack_days = line_pack[0] | plus: 0 -%}
+                  {%- capture line_units -%}{% render 'plan-supply-units', selling_plan: item.selling_plan_allocation.selling_plan, pack_days: line_pack_days %}{%- endcapture -%}
                   {%- assign line_units = line_units | plus: 0 -%}
                 {%- endif -%}
                 {%- if line_units > 1 and item.quantity == line_units -%}
@@ -164,8 +167,9 @@
                     one unit added without JavaScript) keeps the quantity form,
                     so it can be corrected.
                   {%- endcomment -%}
-                  {%- assign line_days = line_units | times: 30 -%}
-                  <p class="cart-line__supply">{{ 'cart.supply' | t: days: line_days, units: line_units }}</p>
+                  {%- assign line_days = line_units | times: line_pack_days -%}
+                  {%- assign line_pack_label = line_pack_days | append: '-' | append: line_pack[1] -%}
+                  <p class="cart-line__supply">{{ 'cart.supply' | t: days: line_days, units: line_units, pack: line_pack_label }}</p>
                 {%- else -%}
                                 <form
                   ref="quantityForm"

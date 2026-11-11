@@ -136,6 +136,16 @@ export const ProductByHandleQuery = graphql(`
         name
         optionValues {
           name
+          # Set per value in the admin (a colour or an image). Values with
+          # one render as swatches rather than pills.
+          swatch {
+            color
+            image {
+              previewImage {
+                url
+              }
+            }
+          }
         }
       }
       # Selling plans as declared on the PRODUCT. Read this only to know which
@@ -228,6 +238,13 @@ export const ProductByHandleQuery = graphql(`
             }
           }
         }
+      }
+    }
+    # Swatch colours for option values Shopify gives no swatch, such as
+    # flavours (option-colours.ts).
+    shop {
+      optionColours: metafield(namespace: "double_helix", key: "option_colours") {
+        value
       }
     }
   }

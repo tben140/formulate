@@ -122,22 +122,31 @@ export type { ProductFilter } from "./generated/graphql";
 export { descriptionBlocks } from "./description";
 export type { DescriptionBlock } from "./description";
 export {
+  DEFAULT_PACK,
+  MAX_SUPPLY_UNITS,
   RENEWAL_SHORT,
   SUBSCRIPTION_BENEFITS,
+  SUBSCRIPTION_PERKS,
   SUPPLY_DAYS,
   deliveryPromise,
   deliveryQuote,
   isIntroductoryPlan,
+  packSize,
   planIntervalDays,
+  plansForPack,
   supplyLabel,
+  supplyTitle,
   supplyUnits,
   pricePerDay,
   renewalTerms,
   savingMessage,
   subscriptionSaving,
 } from "./subscribe-and-save";
+export { addButtonLabel, bestValueIndex, purchaseCards } from "./purchase-cards";
+export type { PurchaseCard } from "./purchase-cards";
 export type {
   DeliveryQuote,
+  PackSize,
   PlanOptionLike,
   SubscriptionSaving,
 } from "./subscribe-and-save";
@@ -156,6 +165,8 @@ export type { GiftVariantLike, NestedLineLike } from "./free-gift";
 
 export { policyBlocks } from "./policy-text";
 export type { PolicyBlock } from "./policy-text";
+export { optionColour, optionColours, withOptionColours } from "./option-colours";
+export type { OptionColours } from "./option-colours";
 export { PLANNED_PAYMENT_ICON_IDS, payLaterIds, paymentIconIds } from "./payment-icons";
 export type { PayLaterId, PaymentIconId } from "./payment-icons";
 export {

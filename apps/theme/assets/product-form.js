@@ -11,23 +11,25 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {number} cents The same price in minor units, for the price per day.
  * @property {{ id: number, title: string, image: string | null } | null} [gift]
  *   Its free gift, in stock; null for none (free-gift.ts).
- * @property {PlanData[]} [plans] App-owned selling plans only. See the filter
- *   in snippets/product-form.liquid.
+ * @property {PlanData} oneTime The one-time card.
+ * @property {PlanData[]} [plans] The plans it offers, shortest first: app-owned,
+ *   and the pack size sets the plan (snippets/variant-plans.liquid).
  */
 
 /**
- * @typedef {Object} PlanData
- * @property {number} id
- * @property {string} name
+ * @typedef {Object} PlanData A purchase option's card, built in Liquid
+ *   (snippets/plan-card.liquid; purchaseCards in packages/shopify).
+ * @property {number | ""} id The selling plan; "" for one-time.
+ * @property {string} title "90-day supply", or "One-time purchase".
+ * @property {string} detail "3 × 30-day packs, delivered every 90 days".
+ * @property {string} perDay "45p a day", "£1.10 a serving".
+ * @property {number | null} percent The saving against buying once.
+ * @property {number} units Packs per delivery: the quantity added.
  * @property {string} price One delivery, for all its units, formatted by Liquid.
  * @property {number} cents The same in minor units.
- * @property {number} units 30-day supplies per delivery (2 for a 60-day plan):
- *   the quantity added.
  * @property {string} was The same units bought once, formatted.
- * @property {string | null} supply "90-day supply (3 × 30-day packs) …", or
- *   null for one supply.
- * @property {string | null} saving "Save £2.39 a delivery (15%) · …", built in
- *   Liquid from the locale, or null when subscribing saves nothing.
+ * @property {string | null} saving "Save £7.17 a delivery (15%)", or null.
+ * @property {boolean} [bestValue] The one plan that saves the most.
  */
 
 /**
@@ -53,22 +55,6 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {HTMLButtonElement} [stickySubmit]
  * @property {HTMLElement} [stickyError]
  */
-
-/**
- * The price per day of a 30-day supply, as Liquid renders it in
- * snippets/product-form.liquid and packages/shopify's pricePerDay: "45p a
- * day", or "£1.20 a day". The theme sells in pounds only.
- *
- * @param {number} cents
- * @param {string} suffix "a day", from the locale (product.per_day).
- * @param {number} [days] What the price buys: 90 for a 90-day plan's delivery.
- */
-const perDayText = (cents, suffix, days = 30) => {
-  const perDay = Math.round(cents / days);
-  return perDay < 100
-    ? `${perDay}p ${suffix} ·`
-    : `${new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(perDay / 100)} ${suffix} ·`;
-};
 
 /**
  * Add to cart, progressively enhanced.
@@ -236,6 +222,13 @@ class ProductForm extends Component {
 
     const { variantId, price, submit } = this.refs;
 
+    // Each option's legend shows its current value.
+    for (const current of this.querySelectorAll("[data-option-current]")) {
+      const value =
+        chosen[Number(/** @type {HTMLElement} */ (current).dataset.optionCurrent) - 1];
+      current.textContent = value ? `: ${value}` : "";
+    }
+
     if (variantId) variantId.value = match ? String(match.id) : "";
 
     // The free gift: the offer, and the express button's fields for it.
@@ -264,23 +257,27 @@ class ProductForm extends Component {
     const { perDay, renewal } = this.refs;
     if (perDay) {
       perDay.hidden = !match;
-      if (match) {
-        perDay.textContent = perDayText(
-          effectivePlan?.cents ?? match.cents,
-          perDay.dataset.perDaySuffix ?? "a day",
-          (effectivePlan?.units ?? 1) * 30,
-        );
-      }
+      if (match) perDay.textContent = `${match.oneTime.perDay} ·`;
     }
     // The renewal terms only while a subscription is selected; express
     // checkout only while it isn't (packages/shopify/src/express-checkout.ts).
     if (renewal) renewal.hidden = !effectivePlan;
     if (this.refs.express) this.refs.express.hidden = Boolean(effectivePlan);
 
+    // The button names the deal: "Subscribe and save 15% – £40.68" or
+    // "Add to cart – £15.95" (addButtonLabel in packages/shopify).
+    const card = effectivePlan ?? match?.oneTime;
+    const template = !effectivePlan
+      ? submit?.dataset.addLabel
+      : effectivePlan.percent
+        ? submit?.dataset.subscribeSaveLabel
+        : submit?.dataset.subscribeLabel;
     const label = !match
       ? (submit?.dataset.unavailableLabel ?? "Unavailable")
       : match.available
-        ? (submit?.dataset.addLabel ?? "Add to cart")
+        ? (template ?? "Add to cart – %PRICE%")
+            .replace("%PRICE%", card?.price ?? match.price)
+            .replace("%PERCENT%", String(effectivePlan?.percent ?? ""))
         : (submit?.dataset.soldOutLabel ?? "Sold out");
 
     if (submit) {
@@ -314,82 +311,103 @@ class ProductForm extends Component {
     if (!fieldset || !planList) return;
 
     /**
-     * @param {string} value
-     * @param {string} name
-     * @param {string} priceText
-     * @param {string | null} [saving] Set for a subscription that saves money:
-     *   the one-time price is struck through beside it, a real comparison.
-     * @param {string | null} [supply] What a multi-supply delivery holds.
-     * @param {string} [wasText] The one-time price of the same units.
+     * @param {string} tag
+     * @param {string} [className]
+     * @param {...(Node | string)} children
      */
-    const option = (
-      value,
-      name,
-      priceText,
-      saving = null,
-      supply = null,
-      wasText = "",
-    ) => {
-      const label = document.createElement("label");
-      label.className = "product-form__plan";
+    const el = (tag, className, ...children) => {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      node.append(...children);
+      return node;
+    };
+    const hidden = (/** @type {string} */ text) => el("span", "visually-hidden", text);
 
-      const text = document.createElement("span");
+    /** The same markup as snippets/plan-card.liquid. @param {PlanData} plan */
+    const card = (plan) => {
       const input = document.createElement("input");
       input.type = "radio";
       input.name = "selling_plan";
-      input.value = value;
-      input.checked = value === (effectivePlan ? String(effectivePlan.id) : "");
-      text.append(input, " ", name);
-      if (supply) {
-        const note = document.createElement("span");
-        note.className = "product-form__plan-saving";
-        note.textContent = supply;
-        text.append(note);
-      }
-      if (saving) {
-        const note = document.createElement("span");
-        note.className = "product-form__plan-saving";
-        note.textContent = saving;
-        text.append(note);
+      input.value = String(plan.id);
+      input.checked = String(plan.id) === (effectivePlan ? String(effectivePlan.id) : "");
+
+      const name = el(
+        "span",
+        "product-form__plan-name",
+        input,
+        " ",
+        el("span", "product-form__plan-title", plan.title),
+      );
+      if (plan.percent) {
+        name.append(
+          " ",
+          el(
+            "span",
+            "product-form__plan-badge",
+            (planList.dataset.savePercent ?? "Save %PERCENT%%").replace(
+              "%PERCENT%",
+              String(plan.percent),
+            ),
+          ),
+        );
       }
 
-      const cost = document.createElement("span");
-      cost.className = "product-form__plan-price";
-      if (saving && match) {
-        const was = document.createElement("s");
-        was.className = "product-form__plan-was";
-        const wasLabel = document.createElement("span");
-        wasLabel.className = "visually-hidden";
-        wasLabel.textContent = `${planList.dataset.oneTimePriceLabel ?? "One-time price"} `;
-        was.append(wasLabel, wasText || match.price);
-        const nowLabel = document.createElement("span");
-        nowLabel.className = "visually-hidden";
-        nowLabel.textContent = ` ${planList.dataset.subscriptionPriceLabel ?? "Subscription price"}`;
-        cost.append(was, nowLabel, " ");
+      if (plan.bestValue) {
+        name.append(
+          " ",
+          el(
+            "span",
+            "product-form__plan-badge product-form__plan-badge--best",
+            planList.dataset.bestValue ?? "Best value",
+          ),
+        );
       }
-      cost.append(priceText);
 
-      label.append(text, cost);
+      const cost = el("span", "product-form__plan-price");
+      if (plan.saving) {
+        // The one-time price for the same supply, on sale now: a real comparison.
+        cost.append(
+          el(
+            "s",
+            "product-form__plan-was",
+            hidden(`${planList.dataset.oneTimePriceLabel ?? "One-time price"} `),
+            plan.was,
+          ),
+          hidden(` ${planList.dataset.subscriptionPriceLabel ?? "Subscription price"}`),
+        );
+      }
+      cost.append(el("span", "product-form__plan-now", plan.price));
+
+      const label = el(
+        "label",
+        "product-form__plan",
+        el("span", "product-form__plan-head", name, cost),
+        el(
+          "span",
+          "product-form__plan-detail",
+          el("span", "", plan.detail),
+          el("span", "product-form__plan-per-day", ` ${plan.perDay}`),
+        ),
+      );
+      if (plan.id !== "") {
+        // What subscribing gives, shown on the chosen plan only (CSS :has).
+        const perks = [
+          plan.saving,
+          planList.dataset.perkDelivery,
+          planList.dataset.perkCancel,
+        ];
+        label.append(
+          el(
+            "ul",
+            "product-form__perks",
+            ...perks.filter((perk) => perk).map((perk) => el("li", "", String(perk))),
+          ),
+        );
+      }
       return label;
     };
 
-    planList.replaceChildren(
-      option(
-        "",
-        planList.dataset.oneTimeLabel ?? "One-time purchase",
-        match?.price ?? "",
-      ),
-      ...plans.map((plan) =>
-        option(
-          String(plan.id),
-          plan.name,
-          plan.price,
-          plan.saving,
-          plan.supply,
-          plan.was,
-        ),
-      ),
-    );
+    planList.replaceChildren(...plans.map(card), ...(match ? [card(match.oneTime)] : []));
     fieldset.hidden = plans.length === 0;
   }
 
@@ -433,7 +451,7 @@ class ProductForm extends Component {
       match && match.options.join(" / ") !== "Default Title"
         ? match.options.join(" / ")
         : "";
-    const detail = [variantTitle, effectivePlan?.name].filter(Boolean).join(" · ");
+    const detail = [variantTitle, effectivePlan?.title].filter(Boolean).join(" · ");
     const priceText = match ? (effectivePlan?.price ?? match.price) : "";
 
     if (stickyDetail) {

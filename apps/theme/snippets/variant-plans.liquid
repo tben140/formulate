@@ -1,0 +1,81 @@
+{%- comment -%}
+  The plans worth offering on a variant, shortest interval first: **the pack
+  size sets the plan.** The Liquid twin of plansForPack in
+  packages/shopify/src/subscribe-and-save.ts.
+
+  - Only app-owned plans (`owned_group_ids`; see hasOwningApp).
+  - A plan must ship whole packs, at most three: a 90-day pack has no 30-day
+    plan, and a single serving none at all.
+  - A plan the product has its own pack for goes to that pack.
+  - A plan that doesn't state its interval stays, shipping one pack, last.
+
+  Outputs "ddd:plan_id" entries joined by commas, sorted ("030:123,090:456"),
+  or nothing. Split on ",", then on ":".
+
+  Accepts:
+  - product: {Object}
+  - variant: {Object}
+  - owned_group_ids: {String} "id,id," of app-owned selling plan groups
+{%- endcomment -%}
+{%- liquid
+  capture pack
+    render 'variant-pack', variant: variant
+  endcapture
+  assign pack = pack | split: '|'
+  assign pack_count = pack[0] | plus: 0
+  assign pack_unit = pack[1]
+  assign pack_position = pack[2] | plus: 0
+
+  # The same product in other pack sizes: every other option matches.
+  assign sibling_packs = ','
+  if pack_position > 0
+    for other in product.variants
+      if other.id == variant.id
+        continue
+      endif
+      assign same = true
+      for value in variant.options
+        if forloop.index != pack_position and other.options[forloop.index0] != value
+          assign same = false
+        endif
+      endfor
+      if same
+        capture other_pack
+          render 'variant-pack', variant: other
+        endcapture
+        assign other_pack = other_pack | split: '|'
+        if other_pack[1] == pack_unit
+          assign sibling_packs = sibling_packs | append: other_pack[0] | append: ','
+        endif
+      endif
+    endfor
+  endif
+
+  assign entries = ''
+  for allocation in variant.selling_plan_allocations
+    assign group_key = allocation.selling_plan_group_id | append: ','
+    unless owned_group_ids contains group_key
+      continue
+    endunless
+    capture days
+      render 'plan-interval-days', selling_plan: allocation.selling_plan
+    endcapture
+    assign days = days | plus: 0
+    assign key = '999'
+    if days > 0
+      assign whole = days | modulo: pack_count
+      assign units = days | divided_by: pack_count
+      if whole != 0 or units < 1 or units > 3
+        continue
+      endif
+      assign day_key = ',' | append: days | append: ','
+      if units > 1 and sibling_packs contains day_key
+        continue
+      endif
+      assign key = '000' | append: days | slice: -3, 3
+    endif
+    assign entries = entries | append: key | append: ':' | append: allocation.selling_plan.id | append: ','
+  endfor
+  assign entries = entries | split: ',' | sort | join: ','
+  echo entries
+-%}

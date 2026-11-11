@@ -42,7 +42,7 @@ test("keyboard-only: collection to cart, with focus moved into the drawer", asyn
   await page.waitForURL(/\/products\/whey-protein/);
   await page.waitForLoadState("networkidle");
 
-  const add = page.getByRole("button", { name: "Add to cart", exact: true });
+  const add = page.getByRole("button", { name: /^Add to cart – £[\d.]+$/ });
   await tabTo(page, add);
   await page.keyboard.press("Enter");
   await expect(drawer(page)).toBeVisible();
@@ -63,7 +63,7 @@ test("the drawer returns focus to the header button that opened it", async ({ pa
 
 test("the drawer returns focus to Add to cart that opened it", async ({ page }) => {
   await openProduct(page, "daily-multivitamin");
-  const add = page.getByRole("button", { name: "Add to cart", exact: true });
+  const add = page.getByRole("button", { name: /^Add to cart – £[\d.]+$/ });
   await add.focus();
   await page.keyboard.press("Enter");
   await expect(drawer(page)).toBeVisible();

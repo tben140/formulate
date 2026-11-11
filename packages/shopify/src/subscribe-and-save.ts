@@ -19,10 +19,67 @@ import { formatMoney, type MoneyLike } from "./format-money";
  * - **One-time stays the default.** Nothing here pre-selects a subscription.
  */
 
-/** Every Double Helix format is a 30-day supply (docs/catalogue). */
+/**
+ * A pack lasts 30 days unless its variant says otherwise (packSize): most
+ * Double Helix formats are a 30-day supply (docs/catalogue).
+ */
 export const SUPPLY_DAYS = 30;
 
-/** Under the subscription option: both are true (SHO-99 and the portal, SHO-73). */
+/**
+ * What one unit of a variant holds: days, or servings for powders sold by the
+ * serving. A serving counts as a day when matching a pack to a plan.
+ */
+export interface PackSize {
+  readonly count: number;
+  readonly unit: "day" | "serving";
+}
+
+export const DEFAULT_PACK: PackSize = { count: SUPPLY_DAYS, unit: "day" };
+
+const PACK_VALUE = /^(\d+)\s*(day|serving)s?$/i;
+
+/**
+ * The pack a variant is, from a pack-size option value ("90 days",
+ * "60 servings"), or a 30-day pack when no option says.
+ */
+export const packSize = (
+  selectedOptions:
+    | readonly { readonly name?: string | null; readonly value?: string | null }[]
+    | null
+    | undefined,
+): PackSize => {
+  for (const option of selectedOptions ?? []) {
+    const match = PACK_VALUE.exec((option.value ?? "").trim());
+    if (match && Number(match[1]) > 0) {
+      return {
+        count: Number(match[1]),
+        unit: match[2]!.toLowerCase() === "serving" ? "serving" : "day",
+      };
+    }
+  }
+  return DEFAULT_PACK;
+};
+
+/** "90-day", "60-serving": a pack's size as a modifier. */
+export const packAdjective = (count: number, unit: PackSize["unit"]): string =>
+  `${count}-${unit}`;
+
+/** "90-day supply", "60 servings": what a delivery of `units` packs holds. */
+export const supplyTitle = (units: number, pack: PackSize = DEFAULT_PACK): string =>
+  pack.unit === "serving"
+    ? `${units * pack.count} servings`
+    : `${packAdjective(units * pack.count, "day")} supply`;
+
+/**
+ * What every subscription gives, listed on the chosen plan's card: both are
+ * true (SHO-99 and the portal, SHO-73).
+ */
+export const SUBSCRIPTION_PERKS: readonly string[] = [
+  "Free delivery",
+  "Skip, pause or cancel any time from your account",
+];
+
+/** The perks on one line. */
 export const SUBSCRIPTION_BENEFITS = "Free delivery · Skip, pause or cancel any time";
 
 /** On the product page, near the price. */
@@ -77,17 +134,20 @@ export const savingMessage = (saving: SubscriptionSaving): string =>
  * The price per day of a supply (30 days unless `days` says, e.g. a 90-day
  * delivery), rounded to the nearest penny:
  * "45p a day", or "£1.20 a day". Null when the price isn't readable.
+ * With `unit` "serving", `days` is servings: "£1.10 a serving".
  */
 export const pricePerDay = (
   price: MoneyLike | null | undefined,
   days: number = SUPPLY_DAYS,
+  unit: PackSize["unit"] = "day",
 ): string | null => {
   if (!price) return null;
   const total = minor(price);
   if (total === null || total <= 0 || days <= 0) return null;
   const perDay = Math.round(total / days);
-  if (price.currencyCode === "GBP" && perDay < 100) return `${perDay}p a day`;
-  return `${formatMoney({ amount: (perDay / 100).toFixed(2), currencyCode: price.currencyCode })} a day`;
+  const per = unit === "serving" ? "a serving" : "a day";
+  if (price.currencyCode === "GBP" && perDay < 100) return `${perDay}p ${per}`;
+  return `${formatMoney({ amount: (perDay / 100).toFixed(2), currencyCode: price.currencyCode })} ${per}`;
 };
 
 /** A selling plan option, e.g. Recharge's "Order Frequency and Unit": "60-day". */
@@ -112,16 +172,82 @@ export const planIntervalDays = (
 };
 
 /**
- * How many 30-day supplies each delivery of a plan holds, so the shopper
- * never runs out: 1 for every 30 days, 2 for 60, 3 for 90. Always at least 1,
- * and 1 when the plan doesn't say. The plan sets the quantity; the shopper
- * doesn't choose it.
+ * How many packs each delivery of a plan holds, so the shopper never runs
+ * out: for 30-day packs, 1 every 30 days, 2 every 60, 3 every 90; a 90-day
+ * pack on the 90-day plan is 1. Always at least 1, and 1 when the plan
+ * doesn't say. The plan sets the quantity; the shopper doesn't choose it.
  */
 export const supplyUnits = (
   options: readonly PlanOptionLike[] | null | undefined,
+  pack: PackSize = DEFAULT_PACK,
 ): number => {
   const days = planIntervalDays(options);
-  return days ? Math.max(1, Math.round(days / SUPPLY_DAYS)) : 1;
+  return days ? Math.max(1, Math.round(days / pack.count)) : 1;
+};
+
+/** The most packs one delivery ships. */
+export const MAX_SUPPLY_UNITS = 3;
+
+interface PackedVariantLike {
+  readonly selectedOptions: readonly { readonly name: string; readonly value: string }[];
+}
+
+/**
+ * The plans worth offering on a variant: **the pack size sets the plan.**
+ *
+ * - A plan must ship whole packs, at most MAX_SUPPLY_UNITS of them: a 90-day
+ *   pack has no 30-day plan, and a single serving none at all.
+ * - A plan the product has its own pack for goes to that pack: with a 90-day
+ *   pack on sale, the 30-day pack doesn't also offer three of itself every 90
+ *   days, at a different price for the same supply.
+ *
+ * A plan that doesn't state its interval stays, shipping one pack.
+ */
+export const plansForPack = <
+  A extends {
+    readonly sellingPlan: { readonly options?: readonly PlanOptionLike[] | null };
+  },
+>(
+  allocations: readonly A[],
+  variant: PackedVariantLike | undefined,
+  variants: readonly PackedVariantLike[],
+): A[] => {
+  if (!variant) return [...allocations];
+  const pack = packSize(variant.selectedOptions);
+  const packOption = variant.selectedOptions.find((option) =>
+    PACK_VALUE.test(option.value.trim()),
+  );
+  // The same product in other pack sizes: every other option matches.
+  const siblingPacks = new Set(
+    packOption
+      ? variants
+          .filter(
+            (other) =>
+              other !== variant &&
+              variant.selectedOptions.every(
+                (option) =>
+                  option.name === packOption.name ||
+                  other.selectedOptions.some(
+                    (o) => o.name === option.name && o.value === option.value,
+                  ),
+              ),
+          )
+          .map((other) => packSize(other.selectedOptions))
+          .filter((other) => other.unit === pack.unit)
+          .map((other) => other.count)
+      : [],
+  );
+  return allocations.filter((allocation) => {
+    const days = planIntervalDays(allocation.sellingPlan.options);
+    if (!days) return true;
+    const units = days / pack.count;
+    return (
+      Number.isInteger(units) &&
+      units >= 1 &&
+      units <= MAX_SUPPLY_UNITS &&
+      (units === 1 || !siblingPacks.has(days))
+    );
+  });
 };
 
 const times = (money: MoneyLike, units: number): MoneyLike => {
@@ -133,9 +259,11 @@ const times = (money: MoneyLike, units: number): MoneyLike => {
 
 /** What one delivery of a purchase option holds and costs. */
 export interface DeliveryQuote {
-  /** 30-day supplies per delivery: the cart line's quantity. */
+  /** Packs per delivery: the cart line's quantity. */
   readonly units: number;
-  /** Days the delivery lasts, for the price per day. */
+  /** What each pack holds. */
+  readonly pack: PackSize;
+  /** Days (or servings) the delivery lasts, for the price per day. */
   readonly days: number;
   /** The price of one delivery, for all its units. */
   readonly price: MoneyLike;
@@ -161,8 +289,9 @@ export const deliveryQuote = (
       }
     | null
     | undefined,
+  pack: PackSize = DEFAULT_PACK,
 ): DeliveryQuote => {
-  const units = allocation ? supplyUnits(allocation.sellingPlan.options) : 1;
+  const units = allocation ? supplyUnits(allocation.sellingPlan.options, pack) : 1;
   const planPrice = allocation?.priceAdjustments[0]?.price ?? unitPrice;
   const price = times(planPrice, units);
   const oneTime = times(unitPrice, units);
@@ -172,13 +301,19 @@ export const deliveryQuote = (
       : null;
   const laterUnit = allocation?.priceAdjustments[1]?.price;
   const later = laterUnit ? times(laterUnit, units) : null;
-  return { units, days: units * SUPPLY_DAYS, price, oneTime, saving, later };
+  return { units, pack, days: units * pack.count, price, oneTime, saving, later };
 };
 
-/** "90-day supply (3 × 30-day packs)": what a multi-unit delivery holds. */
-export const supplyLabel = (units: number): string | null =>
+/**
+ * "90-day supply (3 × 30-day packs)": what a multi-unit delivery holds, or
+ * null for a single pack.
+ */
+export const supplyLabel = (
+  units: number,
+  pack: PackSize = DEFAULT_PACK,
+): string | null =>
   units > 1
-    ? `${units * SUPPLY_DAYS}-day supply (${units} × ${SUPPLY_DAYS}-day packs)`
+    ? `${supplyTitle(units, pack)} (${units} × ${packAdjective(pack.count, pack.unit)} packs)`
     : null;
 
 /**
@@ -214,16 +349,21 @@ export const renewalTerms = (
   plan: string,
   later?: MoneyLike | null,
   units: number = 1,
+  pack: PackSize = DEFAULT_PACK,
 ): string => {
   const changes =
     later && (later.amount !== price.amount || later.currencyCode !== price.currencyCode);
   const each =
-    units > 1 ? `each delivery of a ${units * SUPPLY_DAYS}-day supply` : "each delivery";
+    units > 1 ? `each delivery of ${supplyArticle(units, pack)}` : "each delivery";
   const charge = changes
     ? `${formatMoney(price)} for an introductory period, then ${formatMoney(later)} for ${each} after that (checkout shows exactly when it changes), charged automatically`
     : `${formatMoney(price)} is charged for ${each}, automatically,`;
   return `${plan}: ${charge} until you cancel. You can skip, pause or cancel any time from your account.`;
 };
+
+/** "a 90-day supply", "60 servings". */
+const supplyArticle = (units: number, pack: PackSize): string =>
+  pack.unit === "serving" ? supplyTitle(units, pack) : `a ${supplyTitle(units, pack)}`;
 
 /** For the sticky bars, which have room for one line beside their button. */
 export const RENEWAL_SHORT = "Renews automatically until you cancel";

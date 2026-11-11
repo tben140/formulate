@@ -2,6 +2,7 @@ import {
   cartRenewalTerms,
   formatMoney,
   isNestedLine,
+  packSize,
   supplyLabel,
   supplyUnits,
 } from "@formulate/shopify";
@@ -229,9 +230,15 @@ export const CartSheet = ({
                     ) : null}
 
                     <View className="mt-2 flex-row items-center justify-between">
-                      {supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) > 1 &&
+                      {supplyUnits(
+                        line.sellingPlanAllocation?.sellingPlan.options,
+                        packSize(variant.selectedOptions),
+                      ) > 1 &&
                       line.quantity ===
-                        supplyUnits(line.sellingPlanAllocation?.sellingPlan.options) ? (
+                        supplyUnits(
+                          line.sellingPlanAllocation?.sellingPlan.options,
+                          packSize(variant.selectedOptions),
+                        ) ? (
                         // A 60- or 90-day plan's quantity is its supply, set by
                         // the plan (deliveryQuote), so it can only be removed.
                         // Any other quantity (the same plan added twice) keeps
@@ -241,7 +248,9 @@ export const CartSheet = ({
                             {supplyLabel(
                               supplyUnits(
                                 line.sellingPlanAllocation?.sellingPlan.options,
+                                packSize(variant.selectedOptions),
                               ),
+                              packSize(variant.selectedOptions),
                             )}
                           </Text>
                           <Pressable
