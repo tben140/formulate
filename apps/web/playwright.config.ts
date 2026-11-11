@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { VERCEL_AUTH_STATE } from "./e2e/global-setup";
+import { isVercelProjectUrl, VERCEL_AUTH_STATE } from "./e2e/global-setup";
 
 /**
  * End-to-end tests for apps/web, against the real store.
@@ -24,7 +24,9 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
  * and every test starts from it. See .github/workflows/e2e.yml.
  */
 const behindVercelProtection = Boolean(
-  process.env.E2E_BASE_URL && process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
+  process.env.E2E_BASE_URL &&
+  process.env.VERCEL_AUTOMATION_BYPASS_SECRET &&
+  isVercelProjectUrl(process.env.E2E_BASE_URL),
 );
 
 export default defineConfig({
@@ -41,9 +43,11 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL,
-    ...(behindVercelProtection
+    // Only a deployment of this project gets the bypass cookie.
+    ...(behindVercelProtection ? { storageState: VERCEL_AUTH_STATE } : {}),
+    // Any remote run, though, may be a Vercel deployment with the toolbar.
+    ...(process.env.E2E_BASE_URL
       ? {
-          storageState: VERCEL_AUTH_STATE,
           /*
            * Previews inject the Vercel Toolbar, which keeps a connection open,
            * so `waitUntil: "networkidle"` never resolves and every test times
