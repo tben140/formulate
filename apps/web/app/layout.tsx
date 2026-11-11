@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { AnalyticsPageviews } from "@/components/analytics-pageviews";
 import { CartButton } from "@/components/cart-button";
+import { AgentTools } from "@/components/agent-tools";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
 import { DemoNotice } from "@/components/demo-notice";
@@ -19,7 +20,7 @@ import {
   TrackingConsentProvider,
 } from "@/components/tracking-consent";
 import { getCart } from "@/lib/cart";
-import { getLegalLinks, getNavLinks } from "@/lib/nav";
+import { getLegalLinks, getNavLinks, getShopGroups } from "@/lib/nav";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 import { baseOpenGraph, isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
 import { getCartSuggestions } from "@/lib/recommendations";
@@ -58,9 +59,10 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   // In parallel: neither depends on the other, and both are on every page.
-  const [cart, navLinks, legalLinks] = await Promise.all([
+  const [cart, navLinks, shopGroups, legalLinks] = await Promise.all([
     getCart(),
     getNavLinks(),
+    getShopGroups(),
     getLegalLinks(),
   ]);
   // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
@@ -99,7 +101,8 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         <TrackingConsentProvider initialConsent={consent}>
           <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
             <DemoNotice />
-            <header className="border-b border-border">
+            {/* relative: the Shop dropdown's panel hangs from the header's full width. */}
+            <header className="relative z-30 border-b border-border">
               {/*
                 One row from md up: wordmark, collections, cart. Below that the
                 collections drop to their own scrolling row, via `order`, so the
@@ -115,7 +118,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                 >
                   Double Helix
                 </Link>
-                <SiteNav links={navLinks} />
+                <SiteNav links={navLinks} shopGroups={shopGroups} />
                 <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
                   {/* A link to the search page, not an inline field: it works
                       without JavaScript and keeps the header compact on a phone. */}
@@ -191,6 +194,8 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             </footer>
 
             <CartDrawer cart={cart} suggestions={suggestions} />
+            {/* WebMCP tools for AI agents in the shopper's browser. */}
+            <AgentTools />
           </CartProvider>
         </TrackingConsentProvider>
 
