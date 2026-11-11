@@ -1,0 +1,8 @@
+{
+  // The e2e tests run in Node, with DOM types for the callbacks they run in the
+  // page. Node's types stay here, out of the theme's own tsconfig, which
+  // covers the browser assets.
+  "extends": "@formulate/typescript-config/base.json",
+  "compilerOptions": { "noEmit": true, "types": ["node"], "lib": ["DOM", "ES2023"] },
+  "include": ["./**/*.ts", "../playwright.config.ts"]
+}
