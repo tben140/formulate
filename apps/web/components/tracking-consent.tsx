@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { createContext, useContext, useId, useState, type ReactNode } from "react";
 
+import { forgetCartAnalytics } from "@/app/actions/cart";
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
 import { analytics, forgetProductAnalytics, POSTHOG_KEY } from "@/lib/product-analytics";
 import {
@@ -99,11 +100,14 @@ export const TrackingConsentProvider = ({
   const [consent, setConsent] = useState(initialConsent);
   const [reopened, setReopened] = useState(false);
 
-  const choose = (next: Exclude<TrackingConsent, "unset">) => {
+  const choose = async (next: Exclude<TrackingConsent, "unset">) => {
     writeConsent(next);
 
     if (next === "denied") {
       discardQueuedEvents();
+      // The cart's analytics id too, or the order webhook would still send the
+      // purchase (SHO-88). Before the reload below, which would cancel it.
+      await forgetCartAnalytics().catch(() => undefined);
       /*
        * On every refusal, not only a withdrawal: the consent cookie expires
        * after six months while localStorage and Klaviyo's cookies don't, so a
@@ -141,8 +145,8 @@ export const TrackingConsentProvider = ({
 
       {showBanner ? (
         <ConsentBanner
-          onAccept={() => choose("granted")}
-          onDecline={() => choose("denied")}
+          onAccept={() => void choose("granted")}
+          onDecline={() => void choose("denied")}
         />
       ) : null}
 

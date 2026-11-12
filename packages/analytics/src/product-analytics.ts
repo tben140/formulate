@@ -66,6 +66,13 @@ export const CART_ATTRIBUTES = {
   surface: "_surface",
 } as const;
 
+/**
+ * Every analytics attribute key. A cart made under consent keeps them until
+ * they're removed, so a refusal removes them (the order webhook sends an order
+ * whenever its cart has `_posthog_id`).
+ */
+export const CART_ATTRIBUTE_KEYS: readonly string[] = Object.values(CART_ATTRIBUTES);
+
 export const cartAttributes = (
   distinctId: string,
   surface: Exclude<Surface, "theme">,

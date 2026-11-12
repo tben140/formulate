@@ -34,6 +34,7 @@ export type { SubscribeResult, SubscriptionSource } from "./subscribe";
 
 export {
   CART_ATTRIBUTES,
+  CART_ATTRIBUTE_KEYS,
   PAGEVIEW,
   POSTHOG_HOST,
   PRODUCT_EVENTS,

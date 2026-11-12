@@ -294,6 +294,67 @@ describe("addLinesOrCreate", () => {
     expect(calls(existing.request)).toEqual(["add"]);
   });
 
+  it("takes the analytics id off an existing cart without consent, keeping its others", async () => {
+    // A refusal after consenting: the order webhook would otherwise still send
+    // the purchase (SHO-88).
+    const existing = client(() =>
+      ok({
+        cartLinesAdd: {
+          cart: {
+            id: STORED,
+            attributes: [
+              { key: "_posthog_id", value: "visitor-1" },
+              { key: "_surface", value: "web" },
+              { key: "gift_note", value: "Happy birthday" },
+            ],
+            lines: { nodes: [] },
+          },
+          userErrors: [],
+        },
+      }),
+    );
+    const outcome = await existing.cart.addLinesOrCreate({
+      cartId: STORED,
+      lines: LINES,
+      removeAttributes: ["_posthog_id", "_surface"],
+    });
+    expect(calls(existing.request)).toEqual(["add", "attributes"]);
+    expect(outcome.result).toMatchObject({
+      ok: true,
+      data: { attributes: [{ key: "gift_note", value: "Happy birthday" }] },
+    });
+  });
+
+  it("makes no extra request when there's nothing to remove", async () => {
+    const existing = client(() => added);
+    await existing.cart.addLinesOrCreate({
+      cartId: STORED,
+      lines: LINES,
+      removeAttributes: ["_posthog_id", "_surface"],
+    });
+    expect(calls(existing.request)).toEqual(["add"]);
+  });
+
+  it("removeAttributes updates a cart only when a key is present", async () => {
+    const withId = {
+      id: STORED,
+      attributes: [{ key: "_posthog_id", value: "visitor-1" }],
+      lines: { nodes: [] },
+    };
+    const first = client(() => added);
+    const stripped = await first.cart.removeAttributes(withId as never, ["_posthog_id"]);
+    expect(calls(first.request)).toEqual(["attributes"]);
+    expect(stripped).toMatchObject({ ok: true, data: { attributes: [] } });
+
+    const second = client(() => added);
+    const unchanged = await second.cart.removeAttributes(
+      { ...withId, attributes: [] } as never,
+      ["_posthog_id"],
+    );
+    expect(second.request).not.toHaveBeenCalled();
+    expect(unchanged).toMatchObject({ ok: true, data: { id: STORED } });
+  });
+
   it("keeps the stored cart when the network fails", async () => {
     // The bug: this used to clear the id, orphaning everything in the cart.
     const { request, cart } = client(() =>

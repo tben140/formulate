@@ -200,7 +200,22 @@ export interface CartClient {
      * different, e.g. the shopper consented after the cart was made.
      */
     readonly attributes?: readonly { readonly key: string; readonly value: string }[];
+    /**
+     * Attribute keys an existing cart must not carry, e.g. the analytics id
+     * after the shopper refused tracking. Removed only when present.
+     */
+    readonly removeAttributes?: readonly string[];
   }) => Promise<AddLinesOutcome>;
+
+  /**
+   * The cart without the given attribute keys: one update when any is
+   * present, none otherwise. Used when a shopper refuses tracking, so an
+   * analytics id added under earlier consent doesn't reach the order.
+   */
+  readonly removeAttributes: (
+    cart: Cart,
+    keys: readonly string[],
+  ) => Promise<StorefrontResult<Cart>>;
 
   readonly updateLines: (
     cartId: string,
@@ -387,25 +402,42 @@ export const createCartClient = (
     });
 
   /**
-   * The cart with `attributes` merged in, if any is missing or different.
-   * Analytics only: if the update fails, the add still stands.
+   * The cart's attributes with `set` merged in and `remove` taken out, written
+   * only when that changes something. Shopify's update replaces the whole
+   * list, so the others are sent back as they were.
+   */
+  const changeAttributes = async (
+    cart: Cart,
+    set: readonly { readonly key: string; readonly value: string }[] = [],
+    remove: readonly string[] = [],
+  ): Promise<StorefrontResult<Cart>> => {
+    const current = new Map(cart.attributes.map((a) => [a.key, a.value ?? ""]));
+    const changed =
+      set.some((a) => current.get(a.key) !== a.value) ||
+      remove.some((key) => current.has(key));
+    if (!changed) return { ok: true, data: cart };
+    for (const a of set) current.set(a.key, a.value);
+    for (const key of remove) current.delete(key);
+    const updated = await storefront.request(CartAttributesUpdateMutation, {
+      cartId: cart.id,
+      attributes: [...current].map(([key, value]) => ({ key, value })),
+      visitorConsent: await consent(),
+    });
+    return updated.ok ? fromPayload(updated.data.cartAttributesUpdate) : updated;
+  };
+
+  /**
+   * After an add: the attributes brought up to date. Analytics only: if the
+   * update fails, the add still stands.
    */
   const withAttributes = async (
     result: StorefrontResult<Cart>,
     attributes: readonly { readonly key: string; readonly value: string }[] | undefined,
+    remove: readonly string[] | undefined,
   ): Promise<StorefrontResult<Cart>> => {
-    if (!result.ok || !attributes?.length) return result;
-    const current = new Map(result.data.attributes.map((a) => [a.key, a.value ?? ""]));
-    if (attributes.every((a) => current.get(a.key) === a.value)) return result;
-    for (const a of attributes) current.set(a.key, a.value);
-    const updated = await storefront.request(CartAttributesUpdateMutation, {
-      cartId: result.data.id,
-      attributes: [...current].map(([key, value]) => ({ key, value })),
-      visitorConsent: await consent(),
-    });
-    if (!updated.ok) return result;
-    const merged = fromPayload(updated.data.cartAttributesUpdate);
-    return merged.ok ? merged : result;
+    if (!result.ok || (!attributes?.length && !remove?.length)) return result;
+    const changed = await changeAttributes(result.data, attributes, remove);
+    return changed.ok ? changed : result;
   };
 
   const client: Omit<CartClient, "addLinesOrCreate"> = {
@@ -453,12 +485,14 @@ export const createCartClient = (
       });
       return result.ok ? fromPayload(result.data.cartBuyerIdentityUpdate) : result;
     },
+
+    removeAttributes: (cart, keys) => changeAttributes(cart, [], keys),
   };
 
   return {
     ...client,
 
-    addLinesOrCreate: async ({ cartId, lines, email, attributes }) => {
+    addLinesOrCreate: async ({ cartId, lines, email, attributes, removeAttributes }) => {
       if (cartId) {
         const added = await requestAdd(cartId, lines);
         const result = added.ok ? fromPayload(added.data.cartLinesAdd) : added;
@@ -466,7 +500,7 @@ export const createCartClient = (
           const warnings = added.ok ? (added.data.cartLinesAdd?.warnings ?? []) : [];
           return settleStock(
             client,
-            await withAttributes(result, attributes),
+            await withAttributes(result, attributes, removeAttributes),
             warnings,
             lines,
             false,

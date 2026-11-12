@@ -1,6 +1,6 @@
 "use server";
 
-import { cartAttributes } from "@formulate/analytics";
+import { CART_ATTRIBUTE_KEYS, cartAttributes } from "@formulate/analytics";
 import {
   describeError,
   describeForShopper,
@@ -136,11 +136,15 @@ export const addToCart = async (
    * cart is still fine, and clearing it would silently lose everything in it.
    * See `addLinesOrCreate` and `isCartGone` in packages/shopify (SHO-122).
    */
+  const attributes = await newCartAttributes(formData);
   const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
     cartId: await readCartId(),
     lines: [line],
     email: readBuyerEmail,
-    attributes: await newCartAttributes(formData),
+    ...(attributes
+      ? { attributes }
+      : // No consent now: an id added under earlier consent comes off.
+        { removeAttributes: CART_ATTRIBUTE_KEYS }),
   });
 
   if (!result.ok) {
@@ -205,6 +209,25 @@ export const removeCartLine = async (formData: FormData): Promise<CartLineResult
   if (result.ok) return {};
   console.error(`[cart] remove failed: ${describeError(result.error)}`);
   return { message: describeForShopper(result.error) };
+};
+
+/**
+ * Takes the analytics attributes off the shopper's cart, on a tracking refusal
+ * (components/tracking-consent.tsx). A cart made under earlier consent would
+ * otherwise carry `_posthog_id` to the order, and the order webhook would send
+ * the purchase to PostHog despite the refusal (SHO-88).
+ *
+ * Quiet on failure, like `identifyBuyer`: the refusal itself is already
+ * recorded in the cookie, and the next add tries again.
+ */
+export const forgetCartAnalytics = async (): Promise<void> => {
+  const cartId = await readCartId();
+  if (!cartId) return;
+  const cart = await cartClient.get(cartId);
+  if (!cart.ok || !cart.data) return;
+  const result = await cartClient.removeAttributes(cart.data, CART_ATTRIBUTE_KEYS);
+  if (!result.ok)
+    console.error(`[cart] forget analytics failed: ${describeError(result.error)}`);
 };
 
 /**
