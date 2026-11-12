@@ -1,7 +1,7 @@
 import { CollectionCardsQuery, CollectionProductsQuery } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/link";
 
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
