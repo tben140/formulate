@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@formulate/tokens";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
@@ -85,7 +86,7 @@ const RootLayout = () => {
               headerRight: () => <HeaderActions />,
             }}
           >
-            <Stack.Screen name="index" options={{ title: "Double Helix" }} />
+            <Stack.Screen name="index" options={{ title: BRAND_NAME }} />
             <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
             <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
             <Stack.Screen name="policies/[handle]" options={{ title: "" }} />

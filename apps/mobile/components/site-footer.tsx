@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@formulate/tokens";
 import { Link } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
@@ -67,7 +68,7 @@ export const SiteFooter = () => {
       ) : null}
 
       <Text className="mt-4 text-sm text-foreground-muted">
-        &copy; {new Date().getFullYear()} Double Helix
+        &copy; {new Date().getFullYear()} {BRAND_NAME}
       </Text>
 
       {/* Web's "Cookie preferences": changing the analytics choice (SHO-87). */}

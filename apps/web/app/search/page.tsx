@@ -19,6 +19,7 @@ import { storefront } from "@/lib/storefront";
  * engines are asked not to index them (they may still follow the links).
  */
 export const metadata: Metadata = {
+  // The root layout's title template adds " — <brand>".
   title: "Search",
   robots: { index: false, follow: true },
 };

@@ -1,3 +1,5 @@
+import { BRAND_NAME } from "@formulate/tokens";
+
 /**
  * Where this deployment lives, and whether search engines may index it.
  *
@@ -62,7 +64,7 @@ export const siteUrl = resolveSiteUrl();
 /** An absolute URL on this site, for places that do not accept relative ones. */
 export const absoluteUrl = (path: string): string => new URL(path, siteUrl).toString();
 
-export const SITE_NAME = "Double Helix";
+export const SITE_NAME = BRAND_NAME;
 
 /**
  * The Open Graph fields every page shares. A page that sets its own
