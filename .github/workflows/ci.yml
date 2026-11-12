@@ -59,6 +59,14 @@ jobs:
         run: |
           pnpm --filter @formulate/tokens build
           pnpm --filter @formulate/theme build
-          git diff --exit-code -- packages/tokens apps/theme/assets
+          # Untracked too: a deleted or never-committed output is rebuilt here,
+          # and `git diff` alone wouldn't see it.
+          changed=$(git status --porcelain -- packages/tokens apps/theme/assets)
+          if [ -n "$changed" ]; then
+            echo "::error::Generated design tokens differ from the committed ones:"
+            echo "$changed"
+            git diff -- packages/tokens apps/theme/assets
+            exit 1
+          fi
 
       - run: pnpm turbo lint typecheck test build
