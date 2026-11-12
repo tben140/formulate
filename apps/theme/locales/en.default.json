@@ -14,6 +14,7 @@
     "comment_form_title": "Add a comment"
   },
   "cart": {
+    "add_error": "Could not add this to your cart.",
     "checkout": "Checkout",
     "title": "Cart",
     "update": "Update",
@@ -100,6 +101,7 @@
     "sold_out": "Sold out",
     "unavailable": "Unavailable in this combination",
     "added": "Added to your cart.",
+    "cart_error": "Could not update your cart.",
     "purchase_options": "Purchase options",
     "one_time": "One-time purchase",
     "variant": "Variant",
@@ -121,6 +123,7 @@
     "home": "Home",
     "shop_collection": "Shop {{ title }}",
     "search_link": "Search",
+    "shop": "Shop",
     "skip_to_content": "Skip to content"
   },
   "footer": {
