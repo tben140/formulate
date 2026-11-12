@@ -157,7 +157,7 @@ describe("PostHog custom pixel", () => {
     );
     expect(sent?.body).toMatchObject({
       event: PRODUCT_EVENTS.orderCompleted,
-      // The same id the order webhook sends (SHO-88), so PostHog keeps one.
+      // Derived from the order, so PostHog merges a retried send.
       uuid: orderEventUuid("6500000000001"),
       distinct_id: "web-visitor-id",
       properties: {
@@ -178,6 +178,14 @@ describe("PostHog custom pixel", () => {
       distinct_id: "shopify-client-id",
       properties: { surface: "theme" },
     });
+  });
+
+  it("leaves an order without an id or checkout token to the webhook's backup", async () => {
+    const { fire } = loadPixel();
+    const noToken = { ...checkout([]), token: null };
+    expect(await fire("checkout_completed", { checkout: noToken })).toBeNull();
+    const noOrder = { ...checkout([]), order: null };
+    expect(await fire("checkout_completed", { checkout: noOrder })).toBeNull();
   });
 
   it("leaves checkout_started to web and the app for their own carts", async () => {

@@ -285,6 +285,9 @@ analytics.subscribe("checkout_completed", (event) => {
   const checkout = event.data?.checkout;
   if (!checkout) return;
   const orderId = numericId(checkout.order?.id);
+  // Without both, the Worker can't be told this order was counted, and its
+  // anonymous backup would count it again. Leave the order to the backup.
+  if (!orderId || !checkout.token) return;
   void send(
     event,
     EVENTS.orderCompleted,
@@ -297,6 +300,6 @@ analytics.subscribe("checkout_completed", (event) => {
     },
     attribute(checkout, ATTRIBUTES.distinctId),
     surfaceOf(checkout),
-    orderId ? orderEventUuid(orderId) : undefined,
+    orderEventUuid(orderId),
   ).then((sent) => (sent ? reportCounted(orderId, checkout.token) : undefined));
 });

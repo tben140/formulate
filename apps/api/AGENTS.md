@@ -53,11 +53,10 @@ and it looks identical in code.
 
 - **No CORS headers.** A native caller needs none, and their absence prevents
   cross-origin browser use. Do not add them to "fix" anything. One exception:
-  `POST /orders/counted` (SHO-88) answers with `access-control-allow-origin: *`.
-  Its caller is the checkout pixel, in Shopify's sandbox, whose origin we don't
-  control, and it needs the status to retry. Any site can read that status and
-  nothing else; the route can only stop a backup event, never send one, and
-  only with the order's unguessable checkout token. Nothing else gets one.
+  `POST /orders/counted` (SHO-88) answers with `access-control-allow-origin: *`,
+  for the checkout pixel in Shopify's sandbox. Why it's safe:
+  [ADR 0012](../../docs/adr/0012-the-order-backup-is-anonymous.md). Nothing
+  else gets one.
 - **No dependencies.** The runtime provides `fetch`, `Request`, `Response`. Keep
   it that way; it is the strongest supply-chain control available.
 - **No email addresses in logs.** Personal data. Status codes and Klaviyo's own

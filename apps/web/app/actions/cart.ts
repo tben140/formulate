@@ -213,12 +213,13 @@ export const removeCartLine = async (formData: FormData): Promise<CartLineResult
 
 /**
  * Takes the analytics attributes off the shopper's cart, on a tracking refusal
- * (components/tracking-consent.tsx). A cart made under earlier consent would
- * otherwise carry `_posthog_id` to the order, and the order webhook would send
- * the purchase to PostHog despite the refusal (SHO-88).
+ * (components/tracking-consent.tsx), so a cart made under earlier consent
+ * doesn't carry `_posthog_id` to the order.
  *
- * Quiet on failure, like `identifyBuyer`: the refusal itself is already
- * recorded in the cookie, and the next add tries again.
+ * Housekeeping, not the consent control: the order webhook never reads the id
+ * (ADR 0012), and the checkout pixel uses it only if the shopper allows
+ * analytics in checkout. So it's quiet on failure, like `identifyBuyer`: the
+ * refusal is already recorded in the cookie, and the next add tries again.
  */
 export const forgetCartAnalytics = async (): Promise<void> => {
   const cartId = await readCartId();

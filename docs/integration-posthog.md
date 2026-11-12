@@ -97,18 +97,23 @@ again.**
 
 ## Orders: the webhook as a backup (SHO-88)
 
-The pixel can't count an order when it doesn't run: analytics declined again in
+The pixel can't count an order when it doesn't run: analytics declined in
 checkout, a blocker, a tab closed on the thank-you page. So the API Worker also
 takes Shopify's **orders/create** webhook (`POST /webhooks/orders-create`,
-`apps/api/src/order-webhook.ts`) and can send the same `order_completed`, but
-only for orders the pixel missed.
+`apps/api/src/order-webhook.ts`) and sends an `order_completed` of its own,
+but only for orders the pixel missed.
 
-**Why one sender per order.** PostHog merges duplicates only when the event id,
-name, `distinct_id` _and_ `timestamp` all match, and only eventually. Both
-senders use the same id (`orderEventUuid(order id)`, which the pixel repeats;
-`pixel.test.ts` checks they agree), but the pixel can't know the order's
-`created_at`, so its timestamp differs. Sending both would count the order
-twice.
+**Anonymous, always** ([ADR 0012](adr/0012-the-order-backup-is-anonymous.md)).
+Shopify's payload doesn't say whether the shopper declined analytics in
+checkout, so the backup is never linked to a person: no visitor id, no order
+id, no person profile (`$process_person_profile: false`). Its id is an HMAC of
+the order id under the webhook secret, so retries merge but nobody can work
+back to the order. It carries the value, item count, currency, surface,
+Shopify's `source_name` and the time, and `$lib: formulate-webhook`.
+
+**Why one sender per order.** The two events can't merge in PostHog: their
+ids differ, and the pixel can't know the order's `created_at`. Sending both
+would count the order twice.
 
 **How it decides** (`apps/api/src/order-backup.ts`): one Durable Object per
 order.
@@ -126,49 +131,55 @@ order.
    minute to an hour, for about two days; then the event is dropped. The
    object then empties itself.
 
-So the pixel's richer event (`has_subscription`, the browser session) wins
-whenever it ran, and the webhook covers the rest. Shopify's retries keep the
+So the pixel's attributed event (the visit, `order_id`, `has_subscription`)
+wins whenever it ran, and the webhook's anonymous one covers the rest. Shopify's retries keep the
 first stored event.
 
-- **Only with consent.** The webhook acts only when the order's cart carries
-  `_posthog_id`, which web and the app add only for shoppers who allowed
-  analytics.
+- **Every order, anonymously.** Theme and admin orders included; `_posthog_id`
+  isn't read. Funnels and per-person reports see only the pixel's events;
+  revenue and order totals see both.
 - **Signed.** Nothing is parsed before the HMAC of the raw body checks out
   (`crypto.subtle.verify`). The body is read with a 256 KB cap: a larger
   `Content-Length` is refused straight away, and reading stops at the cap
-  otherwise (413). A consented order that arrives before `POSTHOG_KEY` is set gets 503,
-  so Shopify retries it.
+  otherwise (413). Any order that arrives before `POSTHOG_KEY` is set gets
+  503, so Shopify retries it.
 - **The "counted" note isn't signed.** The pixel can't hold a secret, so the
   note carries the checkout token, and stops the backup only if it matches
   the webhook's `checkout_token` (the same value, per Shopify's docs). Order
   ids are easy to guess; the token isn't. A wrong note changes nothing.
 - **The one CORS header in the Worker** is on this route, so the pixel can
-  read the status: an exception recorded in `apps/api/AGENTS.md`.
+  read the status: an exception recorded in ADR 0012.
 - **Edge cases:** a thank-you page that first loads more than ten minutes
-  after the order (rare), a note that still fails after its retries, or a
-  pixel event without a checkout token (not expected on `checkout_completed`),
-  can count the order twice.
+  after the order (rare), or a note that still fails after its retries, can
+  count the order twice, once attributed and once anonymously. A checkout
+  without an order id or token (not expected) is left to the backup: the pixel
+  doesn't send it.
 - **The backup's event has no `has_subscription`:** the webhook payload
   doesn't say which lines are on a selling plan.
 
 **To switch it on** (store owner), after the Worker is deployed with this code
 (the deploy adds the OrderBackup object; no setup needed for it):
 
-1. In Shopify admin, Settings → Notifications → Webhooks → **Create webhook**:
-   Event "Order creation", format JSON, the newest API version, URL
-   `https://<worker>/webhooks/orders-create`. The page shows the signing
-   secret.
+1. In Shopify admin, Settings → Notifications → Webhooks, find the signing
+   secret ("Your webhooks will be signed with …"), the same for every webhook
+   created there. If it only appears once a webhook exists, do step 4 first
+   and steps 2 and 3 straight after: orders in between get 503, and Shopify
+   retries them for 48 hours.
 2. On the Worker: `wrangler secret put SHOPIFY_WEBHOOK_SECRET` (that signing
    secret) and `wrangler secret put POSTHOG_KEY` (the public project key).
-   Until both are set it answers 503 and sends nothing.
+   Until both are set it answers 503, and Shopify retries, then warns about,
+   a webhook that keeps failing.
 3. In the custom pixel (Settings → Customer events), replace `__API_URL__`
-   with `https://<worker>` and save. Until then, the webhook's backup is sent
-   for every eligible order (one with `_posthog_id`), so do this in the same
-   sitting.
-4. **Send test notification** from the webhook page (no `_posthog_id`, so 200
-   and nothing sent), then place a test order from web with analytics
-   accepted: one `order_completed` in PostHog, from the pixel, under the same
-   person as the visit, and nothing more after ten minutes.
+   with `https://<worker>` and save. Until then, every order is counted twice
+   (the pixel's and the backup), so do this before step 4.
+4. **Create webhook**: event "Order creation", format JSON, the newest API
+   version, URL `https://<worker>/webhooks/orders-create`.
+5. **Send test notification** from the webhook page: 200. Ten minutes later
+   PostHog has one anonymous `order_completed` (`$lib: formulate-webhook`):
+   the sample order has no pixel. Then place a test order from web with
+   analytics accepted: one `order_completed` from the pixel, under the same
+   person as the visit, and nothing more after ten minutes. Then one with
+   analytics declined in checkout: one anonymous event after ten minutes.
 
 ## Known gaps
 
@@ -176,8 +187,8 @@ first stored event.
   calls it yet: customer sign-in (#76 web, #78 app) isn't in this branch's
   base. It should be called at sign-in with the Shopify customer id.
 - **Consent in checkout is Shopify's.** A web shopper who accepted on web but
-  declines again in checkout sends no `order_completed` from the pixel. The
-  webhook's backup fills that gap once it's switched on.
+  declines in checkout sends no `order_completed` from the pixel. The
+  webhook's backup counts the order, anonymously, once it's switched on.
 - **The theme can't report collections or selling plans** on its events:
   Shopify's pixel events don't carry them.
 

@@ -31,17 +31,18 @@ const fakeState = () => {
 
 const object = () => {
   const state = fakeState();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a stand-in for the runtime's DurableObjectState
-  return { backup: new OrderBackup(state.ctx as any, {}), ...state };
+  // A stand-in for the runtime's DurableObjectState.
+  const ctx = state.ctx as unknown as ConstructorParameters<typeof OrderBackup>[0];
+  return { backup: new OrderBackup(ctx, {}), ...state };
 };
 
 const event: CapturedOrderEvent = {
   api_key: "phc_test",
   event: "order_completed",
   uuid: "00000000-0000-8000-8000-000000000000",
-  distinct_id: "web-visitor-id",
+  distinct_id: "00000000-0000-8000-8000-000000000000",
   timestamp: "2026-10-28T19:40:00.000Z",
-  properties: { order_id: "6500000000001" },
+  properties: { order_value: 39.85, $process_person_profile: false },
 };
 
 const TOKEN = "checkout-token-1";
@@ -198,8 +199,8 @@ describe("POST /orders/counted", () => {
         },
         body,
       }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the stubs stand in for Cloudflare bindings
-      env as any,
+      // The stubs stand in for Cloudflare's bindings.
+      env as unknown as Parameters<typeof worker.fetch>[1],
     );
 
   afterEach(() => {

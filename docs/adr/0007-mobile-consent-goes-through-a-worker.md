@@ -82,7 +82,7 @@ Controls, in order of how much they actually buy:
 | Double opt-in on the list | Nobody is subscribed until they click a confirmation email, so abuse costs unsent confirmations rather than list poisoning. |
 | Rate limit, 5/min per IP | A **Durable Object**, keyed on `CF-Connecting-IP` — edge-set and unspoofable, unlike `X-Forwarded-For`. See below: this is the second attempt. |
 | Generic error responses | Klaviyo's errors describe the account. Forwarding them would make this an information-disclosure endpoint. |
-| No CORS headers | A native caller needs none, and their absence stops browsers using it cross-origin. The one exception, added later, is `POST /orders/counted` (SHO-88): see `apps/api/AGENTS.md`. |
+| No CORS headers | A native caller needs none, and their absence stops browsers using it cross-origin. |
 | No dependencies | Nothing in the supply chain to compromise. |
 | No addresses in logs | Emails are personal data; outcomes and statuses are enough to diagnose with. |
 

@@ -110,9 +110,12 @@ export const useCart = () => {
         await clearCartId();
         return null;
       }
-      // Without consent the cart mustn't carry the analytics id: the order
-      // webhook would send the purchase (SHO-88). This query reruns on every
-      // consent change, so a refusal takes it off here. Quiet on failure.
+      // Without consent the cart shouldn't carry the analytics id to the
+      // order. This query reruns on every consent change, so a refusal takes
+      // it off here. Housekeeping, not the consent control: the order webhook
+      // never reads the id (ADR 0012), and the pixel uses it only if the
+      // shopper allows analytics in checkout. So a failure here doesn't stop
+      // the cart showing; the next run tries again.
       const choice = trackingConsent();
       if (choice === "denied" || choice === "unset") {
         const stripped = await cartClient.removeAttributes(

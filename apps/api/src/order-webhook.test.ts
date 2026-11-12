@@ -1,7 +1,7 @@
-import { orderEventUuid } from "@formulate/analytics";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import worker from "./index";
+import { anonymousOrderEventId } from "./order-webhook";
 
 const SECRET = "shpss_not_a_real_secret";
 
@@ -69,9 +69,9 @@ const webhook = async (body: string, headers: Record<string, string> = {}) =>
     body,
   });
 
+/** The stubs stand in for Cloudflare's bindings. */
 const call = (request: Request, e = env()) =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the stubs stand in for Cloudflare bindings
-  worker.fetch(request, e as any);
+  worker.fetch(request, e as unknown as Parameters<typeof worker.fetch>[1]);
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -86,14 +86,31 @@ describe("orders/create webhook", () => {
     expect(response.status).toBe(200);
     expect(fetchMock).not.toHaveBeenCalled();
     const scheduled = backup("6500000000001").schedule.mock.calls[0]?.[0];
+    const id = await anonymousOrderEventId(SECRET, "6500000000001");
     expect(scheduled).toMatchObject({
       event: "order_completed",
-      uuid: orderEventUuid("6500000000001"),
-      distinct_id: "web-visitor-id",
+      uuid: id,
+      distinct_id: id,
       timestamp: "2026-10-28T19:40:00.000Z",
-      properties: { order_value: 39.85, item_count: 3, surface: "web" },
+      properties: {
+        order_value: 39.85,
+        item_count: 3,
+        surface: "web",
+        $process_person_profile: false,
+      },
     });
+    expect(JSON.stringify(scheduled)).not.toContain("web-visitor-id");
     expect(backup("6500000000001").schedule.mock.calls[0]?.[1]).toBe("checkout-token-1");
+  });
+
+  it("gives an order the same anonymous id every time, unguessable without the secret", async () => {
+    const id = await anonymousOrderEventId(SECRET, "6500000000001");
+    expect(id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    expect(await anonymousOrderEventId(SECRET, "6500000000001")).toBe(id);
+    expect(await anonymousOrderEventId(SECRET, "6500000000002")).not.toBe(id);
+    expect(await anonymousOrderEventId("another secret", "6500000000001")).not.toBe(id);
   });
 
   it("asks Shopify to retry when the backup can't be stored", async () => {
@@ -128,26 +145,23 @@ describe("orders/create webhook", () => {
     expect((await call(request)).status).toBe(401);
   });
 
-  it("accepts an order without an analytics id, and sends nothing (no consent)", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
+  it("backs up an order without an analytics id too, still anonymously", async () => {
+    vi.stubGlobal("fetch", vi.fn());
     const untagged = JSON.stringify({ ...JSON.parse(order), note_attributes: [] });
     expect((await call(await webhook(untagged))).status).toBe(200);
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(backups.size).toBe(0);
+    expect(backup("6500000000001").schedule.mock.calls[0]?.[0]).toMatchObject({
+      properties: { surface: "theme" },
+    });
   });
 
-  it("asks Shopify to retry a consented order until the PostHog key is set", async () => {
+  it("asks Shopify to retry until the PostHog key is set", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     expect(
       (await call(await webhook(order), env({ POSTHOG_KEY: undefined }))).status,
     ).toBe(503);
-    const untagged = JSON.stringify({ ...JSON.parse(order), note_attributes: [] });
-    expect(
-      (await call(await webhook(untagged), env({ POSTHOG_KEY: undefined }))).status,
-    ).toBe(200);
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(backups.size).toBe(0);
   });
 
   it("refuses a body over the limit, declared or streamed, before checking it", async () => {

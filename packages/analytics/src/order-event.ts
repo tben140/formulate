@@ -4,20 +4,22 @@ import { CART_ATTRIBUTES, POSTHOG_HOST, PRODUCT_EVENTS } from "./product-analyti
  * A purchase, sent to PostHog from Shopify's order webhook (SHO-88).
  *
  * The checkout pixel (pixel/posthog.js) already sends `order_completed` when
- * the shopper's browser finishes checkout. It misses an order when the pixel
- * doesn't run: analytics declined again in checkout, a blocker, a closed tab.
- * The webhook fills that gap from the server.
+ * the shopper's browser finishes checkout, credited to their visit. It misses
+ * an order when the pixel doesn't run: analytics declined in checkout, a
+ * blocker, a closed tab. The webhook counts those from the server.
  *
- * Both use the **same event id** for an order (`orderEventUuid`). That alone
- * doesn't stop a double count: PostHog merges two events only when their id,
- * name, distinct id and timestamp all match, and the pixel can't know the
- * order's `created_at`. So the webhook's event is a backup, held and sent only
- * if the pixel doesn't report (apps/api/src/order-backup.ts). The shared id
- * still collapses Shopify's webhook retries and replays of the same sender.
+ * **Anonymous, always** (ADR 0012). The webhook can't tell a shopper who
+ * declined analytics in checkout from one whose tab closed: Shopify's order
+ * payload doesn't carry the checkout's consent choice. So its event is never
+ * linked to a person. No visitor id, no order id, no person profile: an id
+ * of its own (see `anonymousOrderEventId` in apps/api), the order's value,
+ * item count, currency, surface and time. Revenue and order counts stay
+ * complete; who bought stays with the pixel, under the shopper's consent.
  *
- * Consent: only orders whose cart carries `_posthog_id` are sent. Web and the
- * app add it only for shoppers who allowed analytics; theme carts never have
- * it (the pixel, under Shopify's consent, covers them).
+ * The pixel's and the webhook's events can't merge in PostHog (different ids,
+ * and the pixel can't know the order's `created_at`), so the webhook's is a
+ * backup, held and sent only if the pixel doesn't report the order
+ * (apps/api/src/order-backup.ts).
  */
 
 /** FNV-1a over a string, 64-bit, from a given offset basis. */
@@ -31,10 +33,11 @@ const fnv64 = (text: string, basis: bigint): bigint => {
 };
 
 /**
- * The event id for an order's `order_completed`: a UUID derived from the
- * order id alone, so every sender agrees on it. Version nibble 8 (custom,
- * RFC 9562) and the RFC variant. pixel/posthog.js repeats this exactly;
- * pixel.test.ts checks they agree.
+ * The pixel's event id for an order's `order_completed`: a UUID derived from
+ * the order id, so a retried pixel send is merged by PostHog. Version nibble 8
+ * (custom, RFC 9562) and the RFC variant. pixel/posthog.js repeats this
+ * exactly; pixel.test.ts checks they agree. The webhook's anonymous event
+ * doesn't use it: anyone could recompute it from an order id.
  */
 export const orderEventUuid = (orderId: string): string => {
   const key = `order_completed:${orderId}`;
@@ -56,6 +59,8 @@ export interface WebhookOrder {
   readonly note_attributes?:
     readonly { readonly name: string; readonly value: string }[] | null;
   readonly line_items?: readonly { readonly quantity: number }[] | null;
+  /** Where the order came from: "web" (checkout), "shopify_draft_order", a channel id. */
+  readonly source_name?: string | null;
 }
 
 export interface CapturedOrderEvent {
@@ -68,35 +73,37 @@ export interface CapturedOrderEvent {
 }
 
 /**
- * The PostHog event for an order, or null when it mustn't be sent (no
- * analytics id on the cart, so no consent to send it).
+ * The anonymous PostHog event for an order. `eventId` must be stable for the
+ * order, so Shopify's retries and our own resends merge in PostHog, and must
+ * not be derivable from the order id; it's both the event's id and its
+ * `distinct_id`, with person processing off, so no person is created.
  *
- * The same properties as the pixel's, except `has_subscription`: the webhook
- * payload doesn't say which lines are on a selling plan, so it's left out
- * rather than guessed.
+ * The same figures as the pixel's, except `has_subscription` (the payload
+ * doesn't say which lines are on a selling plan) and `order_id` (it would
+ * link the event to a customer in the admin).
  */
 export const orderCompletedEvent = (
   order: WebhookOrder,
   apiKey: string,
-): CapturedOrderEvent | null => {
-  const attribute = (name: string) =>
-    order.note_attributes?.find((entry) => entry.name === name)?.value || null;
-  const distinctId = attribute(CART_ATTRIBUTES.distinctId);
-  if (!distinctId) return null;
-  const surface = attribute(CART_ATTRIBUTES.surface);
-  const orderId = String(order.id);
+  eventId: string,
+): CapturedOrderEvent => {
+  const surface = order.note_attributes?.find(
+    (entry) => entry.name === CART_ATTRIBUTES.surface,
+  )?.value;
   return {
     api_key: apiKey,
     event: PRODUCT_EVENTS.orderCompleted,
-    uuid: orderEventUuid(orderId),
-    distinct_id: distinctId,
+    uuid: eventId,
+    distinct_id: eventId,
     timestamp: new Date(order.created_at).toISOString(),
     properties: {
-      order_id: orderId,
       item_count: (order.line_items ?? []).reduce((sum, line) => sum + line.quantity, 0),
       order_value: Number(order.total_price),
       currency: order.currency,
       surface: surface === "web" || surface === "app" ? surface : "theme",
+      source_name: order.source_name ?? null,
+      $process_person_profile: false,
+      $geoip_disable: true,
       $lib: "formulate-webhook",
     },
   };

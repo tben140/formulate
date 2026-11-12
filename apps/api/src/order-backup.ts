@@ -13,7 +13,8 @@ import type { RateLimiter } from "./rate-limiter";
  * So the two senders can't both send `order_completed`: one has to win.
  *
  * The pixel wins when it runs, because its event says more (subscription
- * lines, the browser session). After PostHog accepts it, it tells this Worker
+ * lines, the browser session, the person, all under the shopper's consent;
+ * the webhook's is anonymous). After PostHog accepts it, it tells this Worker
  * "order X was counted". The webhook doesn't send straight away: it hands the
  * event to this object, one per order, which waits BACKUP_DELAY_MS and sends
  * it only if no such note arrived. Order of arrival doesn't matter; a note
@@ -106,7 +107,7 @@ export class OrderBackup extends DurableObject {
           await this.ctx.storage.setAlarm(Date.now() + delay);
           return;
         }
-        // The status only, never the event: it carries the visitor's id.
+        // The status only: an outcome is enough to diagnose with.
         console.warn(`Order backup dropped after ${attempts} failed sends`);
       }
     }
@@ -136,7 +137,7 @@ export const handleOrderCounted = async (
   env: OrderCountedEnv,
 ): Promise<Response> => {
   // ⚠️ The one route with a CORS header, an exception to this Worker's rule
-  // (apps/api/AGENTS.md). The pixel runs in Shopify's sandbox, whose origin we
+  // (apps/api/AGENTS.md, ADR 0012). The pixel runs in Shopify's sandbox, whose origin we
   // don't control, and needs the status to know whether to retry. A status is
   // all there is to read, and the route can only stop a backup, never send.
   const status = (code: number) =>

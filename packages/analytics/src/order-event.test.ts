@@ -27,43 +27,52 @@ describe("orderEventUuid", () => {
 });
 
 describe("orderCompletedEvent", () => {
-  it("credits the order to the visitor whose cart it was", () => {
+  const EVENT_ID = "0f9b6c1e-2d3a-8b4c-9d5e-6f7a8b9c0d1e";
+
+  it("counts the order anonymously: no visitor id, no order id, no person", () => {
     const event = orderCompletedEvent(
-      order({
-        [CART_ATTRIBUTES.distinctId]: "web-visitor-id",
-        [CART_ATTRIBUTES.surface]: "web",
-      }),
+      {
+        ...order({
+          [CART_ATTRIBUTES.distinctId]: "web-visitor-id",
+          [CART_ATTRIBUTES.surface]: "web",
+        }),
+        source_name: "web",
+      },
       "phc_test",
+      EVENT_ID,
     );
     expect(event).toEqual({
       api_key: "phc_test",
       event: PRODUCT_EVENTS.orderCompleted,
-      uuid: orderEventUuid("6500000000001"),
-      distinct_id: "web-visitor-id",
+      uuid: EVENT_ID,
+      distinct_id: EVENT_ID,
       timestamp: "2026-10-28T19:40:00.000Z",
       properties: {
-        order_id: "6500000000001",
         item_count: 3,
         order_value: 39.85,
         currency: "GBP",
         surface: "web",
+        source_name: "web",
+        $process_person_profile: false,
+        $geoip_disable: true,
         $lib: "formulate-webhook",
       },
     });
+    expect(JSON.stringify(event)).not.toContain("web-visitor-id");
+    expect(JSON.stringify(event)).not.toContain("6500000000001");
   });
 
-  it("sends nothing for a cart without an analytics id: no consent", () => {
-    expect(orderCompletedEvent(order({}), "phc_test")).toBeNull();
-    expect(
-      orderCompletedEvent(order({ [CART_ATTRIBUTES.surface]: "web" }), "phc_test"),
-    ).toBeNull();
+  it("counts an untagged cart's order too, as the theme's", () => {
+    const event = orderCompletedEvent(order({}), "phc_test", EVENT_ID);
+    expect(event.properties).toMatchObject({ surface: "theme", source_name: null });
   });
 
   it("calls an unknown surface the theme's", () => {
     const event = orderCompletedEvent(
-      order({ [CART_ATTRIBUTES.distinctId]: "x", [CART_ATTRIBUTES.surface]: "kiosk" }),
+      order({ [CART_ATTRIBUTES.surface]: "kiosk" }),
       "phc_test",
+      EVENT_ID,
     );
-    expect(event?.properties.surface).toBe("theme");
+    expect(event.properties.surface).toBe("theme");
   });
 });

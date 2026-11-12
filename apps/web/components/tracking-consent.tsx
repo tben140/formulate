@@ -105,8 +105,8 @@ export const TrackingConsentProvider = ({
 
     if (next === "denied") {
       discardQueuedEvents();
-      // The cart's analytics id too, or the order webhook would still send the
-      // purchase (SHO-88). Before the reload below, which would cancel it.
+      // The cart's analytics id too, so it doesn't reach the order. Before the
+      // reload below, which would cancel it.
       await forgetCartAnalytics().catch(() => undefined);
       /*
        * On every refusal, not only a withdrawal: the consent cookie expires
