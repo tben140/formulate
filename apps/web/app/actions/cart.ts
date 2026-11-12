@@ -230,15 +230,19 @@ export const removeCartLine = async (formData: FormData): Promise<CartLineResult
  * (ADR 0012), and the checkout pixel uses it only if the shopper allows
  * analytics in checkout. So it's quiet on failure, like `identifyBuyer`: the
  * refusal is already recorded in the cookie, and the next add tries again.
+ *
+ * Resolves `false` when it couldn't finish, so a caller can try again later.
  */
-export const forgetCartAnalytics = async (): Promise<void> => {
+export const forgetCartAnalytics = async (): Promise<boolean> => {
   const cartId = await readCartId();
-  if (!cartId) return;
+  if (!cartId) return true;
   const cart = await cartClient.get(cartId);
-  if (!cart.ok || !cart.data) return;
+  if (!cart.ok) return false;
+  if (!cart.data) return true;
   const result = await cartClient.removeAttributes(cart.data, CART_ATTRIBUTE_KEYS);
   if (!result.ok)
     console.error(`[cart] forget analytics failed: ${describeError(result.error)}`);
+  return result.ok;
 };
 
 /**

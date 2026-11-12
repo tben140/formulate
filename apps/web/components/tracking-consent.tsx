@@ -114,13 +114,19 @@ const leaveCartCleanup = () => {
   }
 };
 
-const takeCartCleanup = (): boolean => {
+const isCartCleanupDue = (): boolean => {
   try {
-    const due = window.sessionStorage.getItem(CART_CLEANUP_KEY) !== null;
-    window.sessionStorage.removeItem(CART_CLEANUP_KEY);
-    return due;
+    return window.sessionStorage.getItem(CART_CLEANUP_KEY) !== null;
   } catch {
     return false;
+  }
+};
+
+const clearCartCleanup = () => {
+  try {
+    window.sessionStorage.removeItem(CART_CLEANUP_KEY);
+  } catch {
+    // Storage blocked: nothing was left there.
   }
 };
 
@@ -139,10 +145,15 @@ export const TrackingConsentProvider = ({
   const pending = useRef(false);
 
   // A withdrawal reloads at once (below), which would cancel the cart
-  // clean-up, so it's left for the reloaded page to do.
+  // clean-up, so it's left for the reloaded page to do. The marker stays
+  // until the clean-up succeeds, so a failure is retried on the next page.
   useEffect(() => {
-    if (!takeCartCleanup()) return;
-    void forgetCartAnalytics().catch(() => undefined);
+    if (!isCartCleanupDue()) return;
+    forgetCartAnalytics()
+      .then((done) => {
+        if (done) clearCartCleanup();
+      })
+      .catch(() => undefined);
   }, []);
 
   const choose = async (next: Exclude<TrackingConsent, "unset">) => {
