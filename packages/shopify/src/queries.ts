@@ -57,7 +57,15 @@ export const ProductByHandleQuery = graphql(`
       id
       handle
       title
+      # A one-line summary shown under the title on every product page: the
+      # standard "Product subtitle" metafield, set per product in the admin.
+      subtitle: metafield(namespace: "descriptors", key: "subtitle") {
+        value
+      }
       description
+      # The formatted description, for the product page. The plain one above
+      # is for search engines and the Klaviyo payload.
+      descriptionHtml
       # The merchant's search-engine overrides from the admin. Either can be
       # null, in which case apps/web falls back to the title and description.
       seo {
@@ -300,6 +308,8 @@ export const ComplementaryProductsQuery = graphql(`
 export const NavMenuQuery = graphql(`
   query NavMenu($handle: String!) {
     menu(handle: $handle) {
+      # Names a group in the header's Shop menu ("Shop by goal").
+      title
       items {
         id
         title
