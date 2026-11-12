@@ -52,7 +52,11 @@ and it looks identical in code.
 ### Other invariants
 
 - **No CORS headers.** A native caller needs none, and their absence prevents
-  cross-origin browser use. Do not add them to "fix" anything.
+  cross-origin browser use. Do not add them to "fix" anything. One exception:
+  `POST /orders/counted` (SHO-88) answers with `access-control-allow-origin: *`,
+  for the checkout pixel in Shopify's sandbox. Why it's safe:
+  [ADR 0012](../../docs/adr/0012-the-order-backup-is-anonymous.md). Nothing
+  else gets one.
 - **No dependencies.** The runtime provides `fetch`, `Request`, `Response`. Keep
   it that way; it is the strongest supply-chain control available.
 - **No email addresses in logs.** Personal data. Status codes and Klaviyo's own

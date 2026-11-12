@@ -1,4 +1,4 @@
-import { cartAttributes } from "@formulate/analytics";
+import { CART_ATTRIBUTE_KEYS, cartAttributes } from "@formulate/analytics";
 import {
   createCartClient,
   describeError,
@@ -106,7 +106,26 @@ export const useCart = () => {
       const result = await cartClient.get(id);
       if (!result.ok) throw shopperError(result.error);
 
-      if (!result.data) await clearCartId();
+      if (!result.data) {
+        // Only if it's still the cart we asked about: an add may have made a
+        // new one while this ran, and that one must stay reachable.
+        if ((await readCartId()) === id) await clearCartId();
+        return null;
+      }
+      // Without consent the cart shouldn't carry the analytics id to the
+      // order. This query reruns on every consent change, so a refusal takes
+      // it off here. Housekeeping, not the consent control: the order webhook
+      // never reads the id (ADR 0012), and the pixel uses it only if the
+      // shopper allows analytics in checkout. So a failure here doesn't stop
+      // the cart showing; the next run tries again.
+      const choice = trackingConsent();
+      if (choice === "denied" || choice === "unset") {
+        const stripped = await cartClient.removeAttributes(
+          result.data,
+          CART_ATTRIBUTE_KEYS,
+        );
+        if (stripped.ok) return stripped.data;
+      }
       return result.data;
     },
     // The cart is the one thing a shopper expects to be exactly right, so it is
@@ -134,12 +153,14 @@ export const useAddToCart = () => {
        * fine, and clearing it would silently lose everything in it. See
        * `addLinesOrCreate` in packages/shopify (SHO-122).
        */
+      const attributes = newCartAttributes();
       const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
         cartId: await readCartId(),
         lines: [line],
         email: readIdentifiedEmail,
         // So checkout can credit the order to this shopper; consent only.
-        attributes: newCartAttributes(),
+        // Without it, an id added under earlier consent comes off.
+        ...(attributes ? { attributes } : { removeAttributes: CART_ATTRIBUTE_KEYS }),
       });
 
       if (!result.ok) {

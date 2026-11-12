@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { createContext, useContext, useId, useState, type ReactNode } from "react";
 
+import { forgetCartAnalytics } from "@/app/actions/cart";
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
 import { analytics, forgetProductAnalytics, POSTHOG_KEY } from "@/lib/product-analytics";
 import {
@@ -99,7 +100,7 @@ export const TrackingConsentProvider = ({
   const [consent, setConsent] = useState(initialConsent);
   const [reopened, setReopened] = useState(false);
 
-  const choose = (next: Exclude<TrackingConsent, "unset">) => {
+  const choose = async (next: Exclude<TrackingConsent, "unset">) => {
     writeConsent(next);
 
     if (next === "denied") {
@@ -111,6 +112,13 @@ export const TrackingConsentProvider = ({
        */
       forgetKlaviyo();
       forgetProductAnalytics();
+      // Then the cart's analytics id, so it doesn't reach the order: after
+      // everything local, and before the reload below, which would cancel it.
+      // Two seconds at most, so a slow request can't hold the refusal up.
+      await Promise.race([
+        forgetCartAnalytics().catch(() => undefined),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
 
       /*
        * Withdrawing after accepting. `klaviyo.js` is already running and there
@@ -141,8 +149,8 @@ export const TrackingConsentProvider = ({
 
       {showBanner ? (
         <ConsentBanner
-          onAccept={() => choose("granted")}
-          onDecline={() => choose("denied")}
+          onAccept={() => void choose("granted")}
+          onDecline={() => void choose("denied")}
         />
       ) : null}
 

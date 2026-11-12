@@ -41,7 +41,7 @@
    * one on this platform, and it looks identical in code.
    */
   "vars": {
-    "KLAVIYO_LIST_ID": "XPJ8ic"
+    "KLAVIYO_LIST_ID": "XPJ8ic",
   },
 
   /*
@@ -58,9 +58,24 @@
    * available on the Workers Free plan.
    */
   "durable_objects": {
-    "bindings": [{ "name": "RATE_LIMITER", "class_name": "RateLimiter" }]
+    "bindings": [
+      { "name": "RATE_LIMITER", "class_name": "RateLimiter" },
+      // One per order: the webhook's backup event, held until the pixel
+      // reports or ten minutes pass (src/order-backup.ts, SHO-88).
+      { "name": "ORDER_BACKUP", "class_name": "OrderBackup" },
+    ],
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RateLimiter"] }],
+  /*
+   * ⚠️ Tags are applied in order and never reused. The deployed Worker is
+   * already at v2, CampaignLog (the campaign change log, #211, deployed
+   * 5 Nov 2026), so OrderBackup is v3. Deploy only from code that has both:
+   * v1 RateLimiter, v2 CampaignLog, v3 OrderBackup. A deploy without v2, or
+   * with a different v2, is refused by Cloudflare or drops the log.
+   */
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["RateLimiter"] },
+    { "tag": "v3", "new_sqlite_classes": ["OrderBackup"] },
+  ],
 
   /*
    * Logs are opt-in and deliberately kept. They record outcomes and status
@@ -68,6 +83,6 @@
    * key. See src/index.ts.
    */
   "observability": {
-    "enabled": true
-  }
+    "enabled": true,
+  },
 }
