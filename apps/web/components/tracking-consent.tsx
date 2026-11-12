@@ -5,7 +5,12 @@ import { createContext, useContext, useId, useState, type ReactNode } from "reac
 
 import { forgetCartAnalytics } from "@/app/actions/cart";
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
-import { analytics, forgetProductAnalytics, POSTHOG_KEY } from "@/lib/product-analytics";
+import {
+  analytics,
+  forgetProductAnalytics,
+  notifyAnalyticsConsentChanged,
+  POSTHOG_KEY,
+} from "@/lib/product-analytics";
 import {
   discardQueuedEvents,
   KLAVIYO_PUBLIC_KEY,
@@ -102,6 +107,8 @@ export const TrackingConsentProvider = ({
 
   const choose = async (next: Exclude<TrackingConsent, "unset">) => {
     writeConsent(next);
+    // The add-to-cart forms' id field reads consent; tell it.
+    notifyAnalyticsConsentChanged();
 
     if (next === "denied") {
       discardQueuedEvents();

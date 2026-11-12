@@ -64,6 +64,14 @@ export const subscribeToStoredDistinctId = (listener: () => void): (() => void) 
   };
 };
 
+/**
+ * For the consent banner, on every choice: `storedDistinctId` depends on
+ * consent too, and an id kept from before (the consent cookie expires after
+ * six months, localStorage doesn't) becomes readable on Accept without
+ * anything being written.
+ */
+export const notifyAnalyticsConsentChanged = (): void => notifyId();
+
 /** The visitor's ids, starting a new session after 30 idle minutes. */
 const identity = (): AnalyticsIdentity => {
   const now = Date.now();
