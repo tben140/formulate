@@ -36,9 +36,9 @@ notice already shown on all three surfaces.
   admin → Settings → Policies.
 - **Accessibility statement:** Online Store → Pages, as a page.
 
-Then add all four to the menu under Content → Menus → Legal: the Terms of
-service, the Subscription policy, the Shipping policy and the Accessibility
-statement page. Web, the app and the theme all read that menu, so the links
+Then add all five to the menu under Content → Menus → Legal: the Terms of
+service, the Subscription policy, the Shipping policy, the Refund policy
+(already written, not yet in the menu) and the Accessibility statement page. Web, the app and the theme all read that menu, so the links
 appear on all three surfaces with no code change.
 
 **Placeholders to fill:** `[business name]`, `[business address]`,
@@ -159,8 +159,8 @@ it takes. The products are yours, and at your risk, once they're delivered.
 
 You have the legal right to cancel an order within 14 days of delivery
 without giving a reason. Supplements are sealed for health and hygiene
-reasons, so this right doesn't cover a product whose seal (the seal under the
-lid) has been broken after delivery. Opening the box or the postage packaging
+reasons, so this right doesn't cover a product whose seal has been broken
+after delivery. Opening the box or the postage packaging
 doesn't affect it.
 
 On top of that, our Refund policy gives you a 30-day money-back guarantee on
