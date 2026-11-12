@@ -1,11 +1,10 @@
 /**
  * The collection the storefront opens on.
  *
- * `automated-collection` is a seeded smart collection on the demo store
- * (products priced between £200 and £800), which gives the slice eight real
- * products to render.
+ * `best-sellers` is the store's own collection now that the demo catalogue
+ * (and its seeded `automated-collection`) has gone.
  */
-export const DEFAULT_COLLECTION_HANDLE = "automated-collection";
+export const DEFAULT_COLLECTION_HANDLE = "best-sellers";
 
 /**
  * Must match the schema version codegen ran against — see codegen.ts. Bumping
