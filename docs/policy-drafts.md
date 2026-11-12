@@ -36,13 +36,16 @@ notice already shown on all three surfaces.
   admin → Settings → Policies.
 - **Accessibility statement:** Online Store → Pages, as a page.
 
-Then add all three to the menu under Content → Menus → Legal. Web, the app
-and the theme all read that menu, so the links appear on all three surfaces
-with no code change.
+Then add all four to the menu under Content → Menus → Legal: the Terms of
+service, the Subscription policy, the Shipping policy and the Accessibility
+statement page. Web, the app and the theme all read that menu, so the links
+appear on all three surfaces with no code change.
 
 **Placeholders to fill:** `[business name]`, `[business address]`,
 `[contact email]` and `[company number]`. Use a business address, not a home
-one; a PO box or virtual office is fine.
+one. The distance-selling rules want the geographical address where the
+business is established, so a PO box on its own won't do; confirm the address
+meets that before publishing.
 
 **Written to match what the store does today:**
 
@@ -65,10 +68,13 @@ If any of those change, these drafts need to change with them.
    offer, and it says to manage subscriptions from order emails rather than
    your account. A replacement is below, after the terms.
 3. **How shoppers change a subscription.** Nothing on the site lets them do it
-   yet: the account page will show subscriptions but not change them (#80), and
+   yet: the account page can show subscriptions but not change them, and
    Recharge's own customer portal isn't linked anywhere. So the drafts say
-   "contact us", with a `[Check: …]` note at each place. Switch on Recharge's
-   portal and link it, and they can say "from your account" instead.
+   "contact us", with a `[Check: …]` note at each place. Because a request by
+   email takes time to handle, they also give a cut-off, `[N] working days`
+   before the renewal date: pick a number you can always meet. Switch on
+   Recharge's portal and link it, and they can say "from your account", with
+   no cut-off, instead.
 
 ---
 
@@ -133,8 +139,9 @@ A subscription is a repeat order of a product at the interval you choose
 - **Changing or stopping:** you can skip a delivery, change the interval,
   pause, or cancel at any time, with no fee, by contacting us at
   `[contact email]`. `[Check: say "from your account" once Recharge's portal
-is linked.]` Cancel before
-  your next renewal date and you won't be charged again.
+is linked.]` Contact us at
+  least `[N] working days` before your next renewal date and you won't be
+  charged for it. `[Check: only promise a cut-off you can always meet.]`
 - **Reminders:** we'll email you before each renewal. `[Check: this needs
 Recharge's upcoming-charge email switched on; drop the line if it isn't.]`
 - **Price changes:** if a subscription price is going to change, we'll email
@@ -151,8 +158,10 @@ it takes. The products are yours, and at your risk, once they're delivered.
 ### 7. Cancelling, returns and refunds
 
 You have the legal right to cancel an order within 14 days of delivery
-without giving a reason. Because supplements are sealed for health and
-hygiene reasons, this applies to products that are returned unopened.
+without giving a reason. Supplements are sealed for health and hygiene
+reasons, so this right doesn't cover a product whose seal (the seal under the
+lid) has been broken after delivery. Opening the box or the postage packaging
+doesn't affect it.
 
 On top of that, our Refund policy gives you a 30-day money-back guarantee on
 your first order of each product, even if it's opened. It also explains how
@@ -252,8 +261,10 @@ At any time and with no fee, you can ask us at `[contact email]` to:
 `[Check: once Recharge's customer portal is linked, change the first line to
 "From your account, at any time and with no fee, you can:".]`
 
-Make the change before your next renewal date and it applies to that
-renewal. There's no minimum number of deliveries.
+Contact us at least `[N] working days` before your next renewal date and
+the change applies to that renewal. There's no minimum number of deliveries.
+`[Check: only promise a cut-off you can always meet; with Recharge's portal
+linked, a change made in your account before the renewal date applies to it.]`
 
 ### Reminders and price changes
 
@@ -266,12 +277,12 @@ renewal. There's no minimum number of deliveries.
 ### Your right to cancel
 
 You can cancel your first subscription order within 14 days of delivery for
-any reason, as with any order (see our Refund policy). Products must come
-back unopened.
+any reason, as with any order (see our Refund policy). This doesn't cover a
+product whose seal has been broken after delivery.
 
 If a renewal goes through that you didn't want, contact us within 14 days of
-its delivery. We'll refund it if the product is unopened, and we'll cover the
-return postage.
+its delivery. We'll refund it if the product's seal is unbroken, and we'll
+cover the return postage.
 
 The 30-day money-back guarantee in our Refund policy covers your first order
 of each product, subscription or not.
@@ -352,9 +363,9 @@ Accessibility Guidelines (WCAG) 2.2 at level AA.
   choosing product options (with the focus visible) and adding to the basket
   work with a keyboard alone.
 
-`[Not for publishing: add a line for each of these only once it's true. The
-theme's scans arrive with #59, and the app's label checks with #69 and #137.
-"We test on real phones" needs a real, repeated check, not occasional use.]`
+`[Not for publishing: add a line for the theme's scans, and for the app's
+label checks, only once each is true. "We test on real phones" needs a real,
+repeated check, not occasional use.]`
 
 Automated checks can't catch everything, so we may still have issues we
 don't know about.
