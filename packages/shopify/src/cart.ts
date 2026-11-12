@@ -117,6 +117,12 @@ export interface AddLinesOutcome {
    * the one the shopper chose.
    */
   readonly notice?: string;
+  /**
+   * Set when the add succeeded but the cart's attributes couldn't be brought
+   * up to date, e.g. an analytics id that should have come off is still on.
+   * The add stands; the caller can retry with `removeAttributes`.
+   */
+  readonly attributesFailed?: true;
 }
 
 export interface CartClient {
@@ -427,17 +433,18 @@ export const createCartClient = (
   };
 
   /**
-   * After an add: the attributes brought up to date. Analytics only: if the
-   * update fails, the add still stands.
+   * After an add: the attributes brought up to date. If the update fails, the
+   * add still stands, and `failed` says so (see `attributesFailed`).
    */
   const withAttributes = async (
     result: StorefrontResult<Cart>,
     attributes: readonly { readonly key: string; readonly value: string }[] | undefined,
     remove: readonly string[] | undefined,
-  ): Promise<StorefrontResult<Cart>> => {
-    if (!result.ok || (!attributes?.length && !remove?.length)) return result;
+  ): Promise<{ readonly result: StorefrontResult<Cart>; readonly failed: boolean }> => {
+    if (!result.ok || (!attributes?.length && !remove?.length))
+      return { result, failed: false };
     const changed = await changeAttributes(result.data, attributes, remove);
-    return changed.ok ? changed : result;
+    return changed.ok ? { result: changed, failed: false } : { result, failed: true };
   };
 
   const client: Omit<CartClient, "addLinesOrCreate"> = {
@@ -498,13 +505,15 @@ export const createCartClient = (
         const result = added.ok ? fromPayload(added.data.cartLinesAdd) : added;
         if (result.ok || !isCartGone(result.error)) {
           const warnings = added.ok ? (added.data.cartLinesAdd?.warnings ?? []) : [];
-          return settleStock(
+          const updated = await withAttributes(result, attributes, removeAttributes);
+          const outcome = await settleStock(
             client,
-            await withAttributes(result, attributes, removeAttributes),
+            updated.result,
             warnings,
             lines,
             false,
           );
+          return updated.failed ? { ...outcome, attributesFailed: true } : outcome;
         }
       }
 

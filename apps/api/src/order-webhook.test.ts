@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import worker from "./index";
-import { anonymousOrderEventId } from "./order-webhook";
+import { anonymousOrderEventId, MAX_ORDER_BYTES } from "./order-webhook";
 
 const SECRET = "shpss_not_a_real_secret";
 
@@ -166,13 +166,13 @@ describe("orders/create webhook", () => {
 
   it("refuses a body over the limit, declared or streamed, before checking it", async () => {
     vi.stubGlobal("fetch", vi.fn());
-    const big = "x".repeat(256 * 1024 + 1);
+    const big = "x".repeat(MAX_ORDER_BYTES + 1);
     expect((await call(await webhook(big))).status).toBe(413);
     const chunk = new TextEncoder().encode("x".repeat(64 * 1024));
     let sent = 0;
     const stream = new ReadableStream<Uint8Array>({
       pull(controller) {
-        if (sent++ < 5) controller.enqueue(chunk);
+        if (sent++ <= MAX_ORDER_BYTES / chunk.byteLength) controller.enqueue(chunk);
         else controller.close();
       },
     });

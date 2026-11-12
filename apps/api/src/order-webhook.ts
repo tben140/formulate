@@ -29,8 +29,13 @@ export interface OrderWebhookEnv {
   readonly ORDER_BACKUP: DurableObjectNamespace<OrderBackup>;
 }
 
-/** An order webhook is a few KB; well past any real order. */
-const MAX_ORDER_BYTES = 256 * 1024;
+/**
+ * An order webhook is usually a few KB, but carries the whole order: Shopify
+ * allows 500 line items, which can pass 1 MB. 4 MB covers that with room, and
+ * is still small for a Worker. A body past it gets 413, which Shopify retries
+ * and then gives up on: that order isn't backed up.
+ */
+export const MAX_ORDER_BYTES = 4 * 1024 * 1024;
 
 const base64ToBytes = (value: string): Uint8Array | null => {
   try {

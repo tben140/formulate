@@ -72,8 +72,13 @@ describe("OrderBackup", () => {
     await backup.alarm();
 
     expect(fetchMock).toHaveBeenCalledOnce();
-    const [, init] = fetchMock.mock.calls[0] as unknown as [string, { body: string }];
+    const [, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      { body: string; signal?: unknown },
+    ];
     expect(JSON.parse(init.body)).toEqual(event);
+    // A stalled PostHog can't hold the alarm: the send has a deadline.
+    expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(data.size).toBe(0);
   });
 

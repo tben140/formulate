@@ -42,6 +42,9 @@ export const RETRY_FIRST_MS = 60 * 1000;
 export const RETRY_MAX_MS = 60 * 60 * 1000;
 export const MAX_SEND_ATTEMPTS = 54;
 
+/** How long one send to PostHog may take before it counts as failed. */
+export const SEND_TIMEOUT_MS = 10 * 1000;
+
 /** Each note is kept under its own token, so a wrong one can't hide the right one. */
 const noteKey = (checkoutToken: string) => `counted:${checkoutToken}`;
 
@@ -98,10 +101,13 @@ export class OrderBackup extends DurableObject {
     // still here is owed.
     const event = await this.ctx.storage.get<CapturedOrderEvent>("event");
     if (event) {
+      // A stalled request counts as failed, so this object's own backoff
+      // runs rather than Cloudflare's few alarm retries.
       const sent = await fetch(POSTHOG_CAPTURE_URL, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(event),
+        signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
       }).then(
         (response) => response.ok,
         () => false,

@@ -137,15 +137,16 @@ export const addToCart = async (
    * See `addLinesOrCreate` and `isCartGone` in packages/shopify (SHO-122).
    */
   const attributes = await newCartAttributes(formData);
-  const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
-    cartId: await readCartId(),
-    lines: [line],
-    email: readBuyerEmail,
-    ...(attributes
-      ? { attributes }
-      : // No consent now: an id added under earlier consent comes off.
-        { removeAttributes: CART_ATTRIBUTE_KEYS }),
-  });
+  const { result, storedCartGone, notice, attributesFailed } =
+    await cartClient.addLinesOrCreate({
+      cartId: await readCartId(),
+      lines: [line],
+      email: readBuyerEmail,
+      ...(attributes
+        ? { attributes }
+        : // No consent now: an id added under earlier consent comes off.
+          { removeAttributes: CART_ATTRIBUTE_KEYS }),
+    });
 
   if (!result.ok) {
     if (storedCartGone) await clearCartId();
@@ -156,6 +157,15 @@ export const addToCart = async (
   }
 
   await writeCartId(result.data.id);
+  // The add stood but the analytics id didn't come off: one more try before
+  // the shopper can reach checkout from this cart. Logged if that fails too.
+  if (attributesFailed && !attributes) {
+    const retried = await cartClient.removeAttributes(result.data, CART_ATTRIBUTE_KEYS);
+    if (!retried.ok)
+      console.error(
+        `[cart] analytics attributes not removed: ${describeError(retried.error)}`,
+      );
+  }
   revalidate();
 
   // The line Shopify actually created for this merchandise + selling plan

@@ -1,7 +1,15 @@
 "use client";
 
 import Script from "next/script";
-import { createContext, useContext, useId, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { forgetCartAnalytics } from "@/app/actions/cart";
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
@@ -95,6 +103,27 @@ const forgetKlaviyo = (): void => {
   }
 };
 
+/** Session-scoped: a withdrawal's cart clean-up, carried across its reload. */
+const CART_CLEANUP_KEY = "formulate_cart_cleanup";
+
+const leaveCartCleanup = () => {
+  try {
+    window.sessionStorage.setItem(CART_CLEANUP_KEY, "1");
+  } catch {
+    // Storage blocked: the next add takes the id off instead.
+  }
+};
+
+const takeCartCleanup = (): boolean => {
+  try {
+    const due = window.sessionStorage.getItem(CART_CLEANUP_KEY) !== null;
+    window.sessionStorage.removeItem(CART_CLEANUP_KEY);
+    return due;
+  } catch {
+    return false;
+  }
+};
+
 export const TrackingConsentProvider = ({
   initialConsent,
   children,
@@ -105,46 +134,65 @@ export const TrackingConsentProvider = ({
   const [consent, setConsent] = useState(initialConsent);
   const [reopened, setReopened] = useState(false);
 
+  // One choice at a time: a Decline still clearing the cart mustn't finish
+  // after a later Accept and leave the state saying the opposite of the cookie.
+  const pending = useRef(false);
+
+  // A withdrawal reloads at once (below), which would cancel the cart
+  // clean-up, so it's left for the reloaded page to do.
+  useEffect(() => {
+    if (!takeCartCleanup()) return;
+    void forgetCartAnalytics().catch(() => undefined);
+  }, []);
+
   const choose = async (next: Exclude<TrackingConsent, "unset">) => {
-    writeConsent(next);
-    // The add-to-cart forms' id field reads consent; tell it.
-    notifyAnalyticsConsentChanged();
+    if (pending.current) return;
+    pending.current = true;
+    try {
+      writeConsent(next);
+      // The add-to-cart forms' id field reads consent; tell it.
+      notifyAnalyticsConsentChanged();
 
-    if (next === "denied") {
-      discardQueuedEvents();
-      /*
-       * On every refusal, not only a withdrawal: the consent cookie expires
-       * after six months while localStorage and Klaviyo's cookies don't, so a
-       * shopper asked again ("unset") may still have an old id here.
-       */
-      forgetKlaviyo();
-      forgetProductAnalytics();
-      // Then the cart's analytics id, so it doesn't reach the order: after
-      // everything local, and before the reload below, which would cancel it.
-      // Two seconds at most, so a slow request can't hold the refusal up.
-      await Promise.race([
-        forgetCartAnalytics().catch(() => undefined),
-        new Promise((resolve) => setTimeout(resolve, 2000)),
-      ]);
+      if (next === "denied") {
+        discardQueuedEvents();
+        /*
+         * On every refusal, not only a withdrawal: the consent cookie expires
+         * after six months while localStorage and Klaviyo's cookies don't, so
+         * a shopper asked again ("unset") may still have an old id here.
+         */
+        forgetKlaviyo();
+        forgetProductAnalytics();
 
-      /*
-       * Withdrawing after accepting. `klaviyo.js` is already running and there
-       * is no API to stop it, so reload into a page the server renders without
-       * it. Heavy-handed, but it is the only way the refusal is actually true
-       * for the rest of the visit.
-       */
-      if (consent === "granted") {
-        window.location.reload();
-        return;
+        /*
+         * Withdrawing after accepting. `klaviyo.js` is already running and
+         * there is no API to stop it, so reload into a page the server renders
+         * without it, straight away. Heavy-handed, but it is the only way the
+         * refusal is actually true for the rest of the visit. The cart's
+         * analytics id comes off on the reloaded page.
+         */
+        if (consent === "granted") {
+          leaveCartCleanup();
+          window.location.reload();
+          return;
+        }
+
+        // No script to stop: take the cart's analytics id off now, so it
+        // doesn't reach the order. Two seconds at most.
+        await Promise.race([
+          forgetCartAnalytics().catch(() => undefined),
+          new Promise((resolve) => setTimeout(resolve, 2000)),
+        ]);
       }
+
+      setConsent(next);
+      setReopened(false);
+
+      // Events before Accept were dropped, not queued (lib/product-analytics.ts),
+      // so the page the shopper accepted on is counted from here.
+      if (next === "granted") analytics()?.pageview();
+    } finally {
+      pending.current = false;
     }
-
-    setConsent(next);
-    setReopened(false);
-
-    // Events before Accept were dropped, not queued (lib/product-analytics.ts),
-    // so the page the shopper accepted on is counted from here.
-    if (next === "granted") analytics()?.pageview();
   };
 
   const showBanner =

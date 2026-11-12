@@ -76,6 +76,11 @@ const shopperError = (error: StorefrontError): Error => {
 export interface AddToCartResult {
   readonly cart: Cart;
   readonly notice?: string;
+  /**
+   * The cart may not match the current consent choice: it changed during the
+   * add, or the attributes couldn't be updated. Refetch, which strips them.
+   */
+  readonly stale?: true;
 }
 
 /**
@@ -153,15 +158,17 @@ export const useAddToCart = () => {
        * fine, and clearing it would silently lose everything in it. See
        * `addLinesOrCreate` in packages/shopify (SHO-122).
        */
+      const choice = trackingConsent();
       const attributes = newCartAttributes();
-      const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
-        cartId: await readCartId(),
-        lines: [line],
-        email: readIdentifiedEmail,
-        // So checkout can credit the order to this shopper; consent only.
-        // Without it, an id added under earlier consent comes off.
-        ...(attributes ? { attributes } : { removeAttributes: CART_ATTRIBUTE_KEYS }),
-      });
+      const { result, storedCartGone, notice, attributesFailed } =
+        await cartClient.addLinesOrCreate({
+          cartId: await readCartId(),
+          lines: [line],
+          email: readIdentifiedEmail,
+          // So checkout can credit the order to this shopper; consent only.
+          // Without it, an id added under earlier consent comes off.
+          ...(attributes ? { attributes } : { removeAttributes: CART_ATTRIBUTE_KEYS }),
+        });
 
       if (!result.ok) {
         if (storedCartGone) await clearCartId();
@@ -169,12 +176,21 @@ export const useAddToCart = () => {
       }
 
       await writeCartId(result.data.id);
-      return { cart: result.data, ...(notice ? { notice } : {}) };
+      const stale = attributesFailed || trackingConsent() !== choice;
+      return {
+        cart: result.data,
+        ...(notice ? { notice } : {}),
+        ...(stale ? { stale: true as const } : {}),
+      };
     },
     // Every mutation returns the complete cart, so the cache is seeded directly
     // rather than invalidated — no refetch, and no window where the badge and
-    // the sheet disagree.
-    onSuccess: ({ cart }) => queryClient.setQueryData(CART_KEY, cart),
+    // the sheet disagree. Except a stale one: the cart query refetches it and
+    // brings its attributes in line with the current choice.
+    onSuccess: ({ cart, stale }) =>
+      stale
+        ? queryClient.invalidateQueries({ queryKey: CART_KEY })
+        : queryClient.setQueryData(CART_KEY, cart),
   });
 };
 

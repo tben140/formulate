@@ -36,8 +36,12 @@ features that are switched off.
 
 ## Consent
 
-Nothing is sent without consent, and on all three surfaces the gate is the
-same idea: no client until the shopper says yes.
+Nothing from the shopper's browser or app is sent without consent, and on all
+three surfaces the gate is the same idea: no client until the shopper says yes.
+The one exception is server-side: the order webhook's backup sends an
+anonymous `order_completed` (no visitor id, no order id, no person profile)
+for an order the pixel didn't count, including after a refusal in checkout.
+See "Orders: the webhook as a backup" below and ADR 0012.
 
 | Surface | Choice                                                                                      |
 | ------- | ------------------------------------------------------------------------------------------- |
@@ -74,9 +78,15 @@ as `theme`.
 
 - **Web** sends the id with the add-to-cart form (`AnalyticsIdField`), and the
   server re-checks the consent cookie before using it.
-- **Only at creation.** A cart created before consent stays untagged.
+- **On every add, not only at creation.** An existing cart gets the
+  attributes when the shopper has consented and they're missing or
+  different, and loses them when the shopper hasn't (web and app). A refusal
+  on web also takes them off the current cart, and the app's cart query does
+  the same whenever consent isn't given.
 - The attributes land on the order as note attributes, visible in the admin.
-  The id is a random UUID, not personal data.
+  The id is random, but it links a shopper's visits to their order, so it's a
+  pseudonymous identifier, personal data under UK GDPR. That's why it's only
+  set with consent.
 
 ### Installing it (done in the Shopify admin, not by deploy)
 

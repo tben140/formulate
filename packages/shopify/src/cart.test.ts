@@ -325,6 +325,34 @@ describe("addLinesOrCreate", () => {
     });
   });
 
+  it("keeps the add but reports it when the analytics id can't come off", async () => {
+    const request = vi.fn((document: unknown) =>
+      document === CartLinesAddMutation
+        ? ok({
+            cartLinesAdd: {
+              cart: {
+                id: STORED,
+                attributes: [{ key: "_posthog_id", value: "visitor-1" }],
+                lines: { nodes: [] },
+              },
+              userErrors: [],
+            },
+          })
+        : Promise.resolve({
+            ok: false as const,
+            error: { kind: "network", message: "fetch failed", cause: null },
+          }),
+    );
+    const cart = createCartClient({ request } as never);
+    const outcome = await cart.addLinesOrCreate({
+      cartId: STORED,
+      lines: LINES,
+      removeAttributes: ["_posthog_id", "_surface"],
+    });
+    expect(outcome.result).toMatchObject({ ok: true, data: { id: STORED } });
+    expect(outcome.attributesFailed).toBe(true);
+  });
+
   it("makes no extra request when there's nothing to remove", async () => {
     const existing = client(() => added);
     await existing.cart.addLinesOrCreate({
