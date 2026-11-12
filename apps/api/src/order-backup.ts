@@ -57,8 +57,13 @@ export class OrderBackup extends DurableObject {
       // A pending backup keeps its timer unless this note is the real one.
       if (pending !== checkoutToken) return;
       await this.ctx.storage.delete("event");
+      await this.ctx.storage.setAlarm(Date.now() + FORGET_AFTER_MS);
+      return;
     }
-    await this.ctx.storage.setAlarm(Date.now() + FORGET_AFTER_MS);
+    // Only the first note sets the timer: repeated notes, right or wrong,
+    // can't keep an order's state past three days.
+    if ((await this.ctx.storage.getAlarm()) === null)
+      await this.ctx.storage.setAlarm(Date.now() + FORGET_AFTER_MS);
   }
 
   /**
@@ -74,9 +79,11 @@ export class OrderBackup extends DurableObject {
       return "counted";
     // A retried webhook keeps the first event and its timer.
     if (!(await this.ctx.storage.get("event"))) {
-      await this.ctx.storage.put("event", event);
-      await this.ctx.storage.put("token", checkoutToken);
+      // The alarm first, then the event and token in one write: a failure
+      // part-way leaves either nothing stored (the retry starts over) or an
+      // alarm with nothing to send, never an event without an alarm.
       await this.ctx.storage.setAlarm(Date.now() + BACKUP_DELAY_MS);
+      await this.ctx.storage.put({ event, token: checkoutToken });
     }
     return "scheduled";
   }
@@ -99,6 +106,9 @@ export class OrderBackup extends DurableObject {
         (response) => response.ok,
         () => false,
       );
+      // The pixel's note may have arrived during the send and cancelled it.
+      // It has set its own three-day timer; don't replace it.
+      if (!sent && !(await this.ctx.storage.get("event"))) return;
       if (!sent) {
         const attempts = ((await this.ctx.storage.get<number>("attempts")) ?? 0) + 1;
         if (attempts < MAX_SEND_ATTEMPTS) {

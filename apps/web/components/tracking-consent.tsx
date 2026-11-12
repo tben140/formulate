@@ -105,9 +105,6 @@ export const TrackingConsentProvider = ({
 
     if (next === "denied") {
       discardQueuedEvents();
-      // The cart's analytics id too, so it doesn't reach the order. Before the
-      // reload below, which would cancel it.
-      await forgetCartAnalytics().catch(() => undefined);
       /*
        * On every refusal, not only a withdrawal: the consent cookie expires
        * after six months while localStorage and Klaviyo's cookies don't, so a
@@ -115,6 +112,13 @@ export const TrackingConsentProvider = ({
        */
       forgetKlaviyo();
       forgetProductAnalytics();
+      // Then the cart's analytics id, so it doesn't reach the order: after
+      // everything local, and before the reload below, which would cancel it.
+      // Two seconds at most, so a slow request can't hold the refusal up.
+      await Promise.race([
+        forgetCartAnalytics().catch(() => undefined),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
 
       /*
        * Withdrawing after accepting. `klaviyo.js` is already running and there

@@ -50,9 +50,20 @@ one exception to the Worker's no-CORS rule. It's safe because:
 
 - the route can only cancel a backup, never send anything;
 - it acts only when the note's checkout token matches the webhook's
-  `checkout_token`, which is unguessable, unlike order ids;
+  `checkout_token`. Order ids are close to sequential; the token is a long
+  random string, known to the buyer's browser, Shopify, and apps that can
+  read orders. Anyone holding it can, at worst, stop one anonymous backup
+  event for an order the pixel didn't count;
 - a status code is all any site can read from it;
-- it's rate-limited per IP like the subscribe endpoint.
+- it's rate-limited per IP like the subscribe endpoint;
+- what a note stores is bounded: only the first note for an order sets its
+  three-day timer, so repeated notes, right or wrong, can't keep state longer.
+
+**The same route takes an order id from the request**, which the Worker's
+review rules flag (`apps/api/**` in `.coderabbit.yaml`: record ids come from
+Shopify's answer, not the caller). Here the id only picks which order's
+object to check. It reads nothing back and changes nothing without the
+matching token, so it's a second, recorded exception.
 
 ## Alternatives considered
 

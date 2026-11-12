@@ -17,7 +17,11 @@ const fakeState = () => {
   let alarm: number | null = null;
   const storage = {
     get: (key: string) => Promise.resolve(data.get(key)),
-    put: (key: string, value: unknown) => Promise.resolve(void data.set(key, value)),
+    put: (key: string | Record<string, unknown>, value?: unknown) => {
+      if (typeof key === "string") data.set(key, value);
+      else for (const [k, v] of Object.entries(key)) data.set(k, v);
+      return Promise.resolve();
+    },
     delete: (key: string) => Promise.resolve(data.delete(key)),
     deleteAll: () => {
       data.clear();
@@ -25,6 +29,7 @@ const fakeState = () => {
       return Promise.resolve();
     },
     setAlarm: (time: number) => Promise.resolve(void (alarm = time)),
+    getAlarm: () => Promise.resolve(alarm),
   };
   return { ctx: { storage }, data, alarm: () => alarm };
 };
@@ -117,6 +122,45 @@ describe("OrderBackup", () => {
     await backup.counted(TOKEN);
     await backup.alarm();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("doesn't let repeated notes keep an order's state past three days", async () => {
+    vi.useFakeTimers({ now, toFake: ["Date"] });
+    const { backup, alarm } = object();
+    await backup.counted("guessed");
+    vi.setSystemTime(now + 2 * 24 * 60 * 60 * 1000);
+    await backup.counted("guessed-again");
+    await backup.counted(TOKEN);
+    expect(alarm()).toBe(now + FORGET_AFTER_MS);
+  });
+
+  it("keeps the note's timer when the note cancels a send that then fails", async () => {
+    vi.useFakeTimers({ now, toFake: ["Date"] });
+    const { backup, alarm, data } = object();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        await backup.counted(TOKEN);
+        return new Response("", { status: 503 });
+      }),
+    );
+    await backup.schedule(event, TOKEN);
+    await backup.alarm();
+    expect(data.get("event")).toBeUndefined();
+    expect(alarm()).toBe(now + FORGET_AFTER_MS);
+  });
+
+  it("never stores an event without its alarm", async () => {
+    vi.useFakeTimers({ now, toFake: ["Date"] });
+    const { backup, alarm, data, ctx } = object();
+    const put = vi.spyOn(ctx.storage, "put").mockRejectedValueOnce(new Error("storage"));
+    await expect(backup.schedule(event, TOKEN)).rejects.toThrow("storage");
+    expect(data.get("event")).toBeUndefined();
+    put.mockRestore();
+    // Shopify's retry stores it, with the alarm.
+    await backup.schedule(event, TOKEN);
+    expect(data.get("event")).toEqual(event);
+    expect(alarm()).toBe(now + BACKUP_DELAY_MS);
   });
 
   it("sends an order with no checkout token (an admin order) after the delay", async () => {

@@ -107,7 +107,9 @@ export const useCart = () => {
       if (!result.ok) throw shopperError(result.error);
 
       if (!result.data) {
-        await clearCartId();
+        // Only if it's still the cart we asked about: an add may have made a
+        // new one while this ran, and that one must stay reachable.
+        if ((await readCartId()) === id) await clearCartId();
         return null;
       }
       // Without consent the cart shouldn't carry the analytics id to the
