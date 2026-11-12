@@ -1,7 +1,7 @@
 # ADR 0010 — Aggregate analytics run without consent; anything personal still asks
 
 - **Status:** Proposed. If accepted, it supersedes part of [ADR 0008](0008-headless-tracking-consent-is-our-own.md) (see "What changes in ADR 0008").
-- **Date:** 2026-10-16
+- **Date:** 2026-10-16 (updated 2026-11-12 for ADR 0012)
 
 ## Context
 
@@ -61,6 +61,14 @@ data, which fits. Three things don't:
 | A **persistent** anonymous id that follows a visitor for months                          | Monitoring an individual over time    |
 | **Order attribution** (#108: `_posthog_id` on the cart, `order_completed` under that id) | Links a visitor id to their purchases |
 | **`identify()` at sign-in** (SHO-172)                                                    | Ties activity to a known person       |
+
+**Since this was proposed:** [ADR 0012](0012-the-order-backup-is-anonymous.md) (in #108)
+(accepted 2026-11-12) counts every order in PostHog from Shopify's order
+webhook, anonymously: no visitor id, no order id, no person profile. It runs on
+the server and touches no device, so it needs neither consent nor this
+exception. Order and revenue totals are complete whatever is decided here.
+What this record still decides is everything that runs on the shopper's device,
+including the attributed `order_completed` from the checkout pixel.
 
 ## Decision
 
@@ -181,7 +189,8 @@ session-scoped id avoids the question.
 - **Two kinds of analytics in PostHog.** Session-level aggregate events from
   everyone, and person-level journeys only from those who accepted. Reports
   must say which they use. A funnel that ends at `order_completed` only works
-  for the consented tier, because order attribution needs consent.
+  for the consented tier, because order attribution needs consent. Order and
+  revenue totals don't: ADR 0012's anonymous backup counts the rest.
 - **More code paths.** Each surface's client needs the two modes, and a
   switch between them when the shopper accepts (with the reset above).
   Device properties are dropped in the exempt tier, so its reports can't be
