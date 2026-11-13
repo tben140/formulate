@@ -99,9 +99,10 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     openCart();
 
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
-    if (state.cart && line) {
-      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
-      const added = addedToCartProperties(line, state.addedQuantity ?? 1);
+    const quantity = state.addedQuantity ?? 1;
+    if (state.cart && line && quantity > 0) {
+      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain, quantity));
+      const added = addedToCartProperties(line, quantity);
       if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
     }
   }, [
