@@ -6,7 +6,9 @@
   "exports": {
     ".": "./src/tokens.ts",
     "./theme.css": "./theme.css",
-    "./tokens.css": "./tokens.css"
+    "./tokens.css": "./tokens.css",
+    "./fonts.css": "./fonts.css",
+    "./fonts/*": "./fonts/*"
   },
   "scripts": {
     "build": "node scripts/build-css.ts",
