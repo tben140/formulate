@@ -410,11 +410,11 @@ applied or the cart was tagged `_campaign` by a visit to the campaign page. By
 surface it uses `_surface` when present (the PostHog stack adds it), else
 Shopify's source.
 
-## Offer experiments (designed; waits for #93)
+## Offer experiments (designed, not built)
 
 Testing two offers against each other (20% off against spend-and-save, say)
-needs PostHog's feature flags, which arrive with #93. The design, so it's
-quick to build once that lands:
+needs PostHog's feature flags (#93). The design, so it's quick to build on
+top of them:
 
 1. **The record** gets `offer_variants`: JSON naming each arm and its rules,
    `{ "control": <offer_rules>, "tiered": { "type": "tiered", … } }`, plus
@@ -423,20 +423,39 @@ quick to build once that lands:
 2. **Assignment** is PostHog's flag `campaign-<handle>`, evaluated once per
    visitor: on the server for web (so the first paint is already right), by
    the SDK in the app, and in the theme's script after consent. Without
-   consent, or if PostHog fails, everyone gets `control`.
+   consent, or if PostHog fails, the visitor is **unassigned**: they see
+   `control`, nothing is stored for them, and they're outside the
+   experiment. A flag result that arrives later (after consent, say) assigns
+   them, unless their cart already carries an arm (below).
 3. **Checkout** can't see the flag, so the surfaces tag the cart with the arm
    (`_offer_arm`, beside `_campaign`), and the campaign Function reads it
-   (`cart.attribute(key: "_offer_arm")`) and charges that arm's rules. An
-   untagged cart gets `control`. A shopper only ever sees, and pays, their
-   own arm's price.
-4. **Results:** `campaigns report` splits by `_offer_arm`: orders, revenue,
-   discount given and margin per visitor in each arm, with PostHog's
-   experiment view for conversion.
+   (`cart.attribute(key: "_offer_arm")`) and charges that arm's rules. Only
+   an assigned visitor's cart is tagged; an untagged cart gets `control`.
+   - Once a cart carries an arm, that arm stands for the cart, whatever a
+     later flag result says.
+   - A surface shows a non-control price only while the cart carries that
+     arm. The tag goes in the same request that creates the cart or adds
+     the line; if the cart comes back without it, the surface shows
+     `control` from then on, which is what checkout charges.
+   - `_offer_arm` is **advisory**: a cart attribute is client-writable, and
+     the Function can't check it against the flag. A shopper who edits it
+     gets another arm's terms, and every arm is margin-checked by `check`
+     and published on the campaign page, so that's an accepted cost. The
+     Function treats a value that isn't one of the campaign's arms as
+     `control`.
+4. **Results.** `campaigns report` splits orders by `_offer_arm`, counting
+   only tagged orders (unassigned shoppers aren't in the experiment). Per
+   arm it gives orders, revenue, discount given, and margin per visitor.
+   The visitor count per arm is PostHog's flag exposures
+   (`$feature_flag_called` for `campaign-<handle>`), so it counts consented
+   visitors only, the same people who can be assigned. PostHog's experiment
+   view gives conversion. An edited `_offer_arm` can put an order under the
+   wrong arm; that's noise the report accepts rather than prevents.
 
 Rules that hold: an arm never shows a price it won't charge; nobody's arm
-changes mid-campaign (the flag is sticky per visitor, and the cart carries
-it); and every arm's terms are on the campaign page, so shoppers comparing
-notes see why they differ.
+changes once their cart carries it (and the flag is sticky per visitor); and
+every arm's terms are on the campaign page, so shoppers comparing notes see
+why they differ.
 
 ## Housekeeping
 
