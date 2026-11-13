@@ -1,10 +1,17 @@
 import {
+  anonymousId,
   isPlausibleEmail,
   looksFakeToKlaviyo,
+  type EventName,
   type SubscribeResult,
 } from "@formulate/analytics";
 
 import { hasNativeSdks } from "./expo-go";
+import {
+  KLAVIYO_PUBLIC_KEY,
+  subscribeToTrackingConsent,
+  trackingConsent,
+} from "./tracking-consent";
 
 type KlaviyoSdk = typeof import("klaviyo-react-native-sdk");
 
@@ -54,11 +61,12 @@ const Klaviyo: KlaviyoSdk["Klaviyo"] | null = hasNativeSdks
  */
 
 /**
- * Public by design, inlined by Metro at build time. `EXPO_PUBLIC_` is required
- * rather than stylistic: the bundle *is* the client. A Klaviyo **private** key
- * must never appear in this app — there is no server to hide it behind.
+ * Public by design, inlined by Metro at build time; defined with the tracking
+ * choice in lib/tracking-consent.ts. `EXPO_PUBLIC_` is required rather than
+ * stylistic: the bundle *is* the client. A Klaviyo **private** key must never
+ * appear in this app — there is no server to hide it behind.
  */
-export const KLAVIYO_PUBLIC_KEY = process.env.EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY ?? "";
+export { KLAVIYO_PUBLIC_KEY };
 
 /**
  * Our own consent proxy — see apps/api.
@@ -69,13 +77,25 @@ export const KLAVIYO_PUBLIC_KEY = process.env.EXPO_PUBLIC_KLAVIYO_PUBLIC_KEY ?? 
  */
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
+/** Whether `Klaviyo.initialize` has run in this process. */
+let started = false;
+
 /**
- * Starts the SDK. Called once, from the root layout.
+ * Starts the SDK once the shopper accepts tracking, and resets it if they
+ * withdraw. Called once, from the root layout.
  *
- * Everything else on `Klaviyo` is a no-op until this has run, and it fails
- * quietly rather than throwing — so a missing key produces an app that works
- * and collects nothing, which is the failure mode this integration specialises
- * in. Hence the explicit guard and the warning.
+ * ⚠️ **Behind the tracking choice, not at app start** (ADR 0008, SHO-109).
+ * Initialising stores an anonymous profile on the device, and what the SDK does
+ * on its own after that has not been audited; PECR's storage-and-access rule
+ * covers app storage as well as cookies. So nothing Klaviyo runs until a yes,
+ * the same guarantee web gets from not loading `klaviyo.js`.
+ *
+ * Withdrawing calls `resetProfile`, which clears the identity and anonymous id
+ * the SDK stored. The SDK cannot be stopped within the process, so every call
+ * below also checks the choice; on the next launch it is never started.
+ *
+ * Everything else on `Klaviyo` is a no-op until `initialize` has run, and it
+ * fails quietly rather than throwing, hence the explicit guards and warnings.
  */
 export const initKlaviyo = (): void => {
   /*
@@ -96,8 +116,23 @@ export const initKlaviyo = (): void => {
     return;
   }
 
-  Klaviyo.initialize(KLAVIYO_PUBLIC_KEY);
+  const sdk = Klaviyo;
+  const sync = () => {
+    const consent = trackingConsent();
+    if (consent === "granted" && !started) {
+      sdk.initialize(KLAVIYO_PUBLIC_KEY);
+      started = true;
+    } else if (consent === "denied" && started) {
+      sdk.resetProfile();
+    }
+  };
+  subscribeToTrackingConsent(sync);
+  sync();
 };
+
+/** The SDK, only while it is started and the shopper still says yes. */
+const allowed = (): NonNullable<typeof Klaviyo> | null =>
+  Klaviyo && started && trackingConsent() === "granted" ? Klaviyo : null;
 
 /**
  * Reads back the identity the SDK is holding.
@@ -123,11 +158,14 @@ export const initKlaviyo = (): void => {
  */
 export const readIdentifiedEmail = (): Promise<string | null> =>
   new Promise((resolve) => {
-    if (!Klaviyo) {
+    // ⚠️ Not started means no answer at all: the SDK never calls back, and a
+    // cart creation awaiting this would hang. So resolve rather than ask.
+    const sdk = allowed();
+    if (!sdk) {
       resolve(null);
       return;
     }
-    Klaviyo.getEmail((email: string | null) => resolve(email ?? null));
+    sdk.getEmail((email: string | null) => resolve(email ?? null));
   });
 
 /**
@@ -140,6 +178,10 @@ export const readIdentifiedEmail = (): Promise<string | null> =>
  * Returns whether the address was usable at all. The SDK's methods are
  * fire-and-forget with no result, so there is nothing further to report: a
  * network failure is retried natively rather than surfaced here.
+ *
+ * Skipped without tracking consent, as web's `identify` is: identifying is
+ * what attaches browsing to a person. A subscriber who declined tracking still
+ * gets the emails, through the Worker, and no browse or cart flows.
  */
 export const identify = (email: string): boolean => {
   const trimmed = email.trim();
@@ -160,7 +202,7 @@ export const identify = (email: string): boolean => {
     );
   }
 
-  Klaviyo?.setEmail(trimmed);
+  allowed()?.setEmail(trimmed);
   return true;
 };
 
@@ -216,4 +258,37 @@ export const subscribe = async (email: string): Promise<SubscribeResult> => {
   // Consent recorded, so the device may now be associated with the profile.
   identify(trimmed);
   return { ok: true };
+};
+
+/**
+ * Sends one of the three commerce events, with the payload the theme and web
+ * send (`packages/analytics`'s `viewedProduct`, `addedToCart`,
+ * `startedCheckout`), so a Klaviyo segment or flow counts app shoppers too.
+ *
+ * Names are the shared strings, not the SDK's `EventName` enum. The enum's
+ * native values are the same strings ("Viewed Product" and so on), and a
+ * metric is matched by name, so one source keeps all three surfaces on one
+ * metric.
+ *
+ * Nothing is sent without tracking consent. Unlike web, nothing is queued
+ * while the shopper hasn't chosen yet: the app has no script to drain a queue.
+ */
+export const trackEvent = (name: EventName, payload: object): void => {
+  const sdk = allowed();
+  if (!sdk) return;
+
+  // Plain JSON for the bridge: drops `undefined`, keeps `null` inside arrays.
+  const properties = JSON.parse(JSON.stringify(payload)) as Record<string, object>;
+  const value = (payload as { $value?: unknown }).$value;
+
+  sdk.createEvent({
+    name,
+    properties,
+    ...(typeof value === "number" ? { value } : {}),
+    /*
+     * ⚠️ Without one, the SDK de-duplicates on the time to the second: two adds
+     * within a second would record one. Each call here is a real event.
+     */
+    uniqueId: anonymousId(),
+  });
 };
