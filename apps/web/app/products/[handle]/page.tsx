@@ -1,7 +1,7 @@
 import { viewedProduct } from "@formulate/analytics";
 import { DEFAULT_COLLECTION_HANDLE, ProductByHandleQuery } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { notFound } from "next/navigation";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
