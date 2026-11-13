@@ -1,7 +1,7 @@
 import { viewedProduct } from "@formulate/analytics";
 import { DEFAULT_COLLECTION_HANDLE, ProductByHandleQuery } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { notFound } from "next/navigation";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
@@ -39,6 +39,11 @@ const ProductPage = async ({ params }: PageProps) => {
             data={product.featuredImage}
             sizes="(min-width: 768px) 45vw, 90vw"
             className="h-full w-full object-cover"
+            // The page's Largest Contentful Paint. Hydrogen's Image defaults
+            // to lazy, which made the browser wait for layout before even
+            // requesting it (SHO-143).
+            loading="eager"
+            fetchPriority="high"
           />
         ) : (
           <div
