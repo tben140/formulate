@@ -97,7 +97,7 @@
     {% if status == 'active' and campaign.collection.value %}
       <section class="campaign__products" aria-labelledby="campaign-products">
         <h2 id="campaign-products">{{ 'campaign.in_offer' | t: badge: campaign.badge.value  }}</h2>
-        {% render 'product-grid', products: campaign.collection.value.products, section_index: 2 %}
+        {% render 'product-grid', products: campaign.collection.value.products, section_index: 2, available_first: true %}
       </section>
     {% endif %}
 
