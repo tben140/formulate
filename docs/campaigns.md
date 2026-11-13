@@ -431,12 +431,18 @@ top of them:
    (`_offer_arm`, beside `_campaign`), and the campaign Function reads it
    (`cart.attribute(key: "_offer_arm")`) and charges that arm's rules. Only
    an assigned visitor's cart is tagged; an untagged cart gets `control`.
+   - The tag names its campaign: `<handle>:<arm>`. The Function uses it only
+     when the handle matches the campaign it's charging, and treats any
+     other value as untagged. When the cart's `_campaign` changes, the
+     surfaces replace the tag with the new campaign's arm, or remove it if
+     the visitor is unassigned there.
    - Once a cart carries an arm, that arm stands for the cart, whatever a
      later flag result says.
-   - A surface shows a non-control price only while the cart carries that
-     arm. The tag goes in the same request that creates the cart or adds
-     the line; if the cart comes back without it, the surface shows
-     `control` from then on, which is what checkout charges.
+   - A visitor with no cart yet sees their assigned arm's price from the
+     first paint. The tag goes in the same request that creates the cart or
+     adds the line; if the cart comes back without it, every surface shows
+     `control` from then on, cart included, so checkout never charges a
+     price the cart didn't show.
    - `_offer_arm` is **advisory**: a cart attribute is client-writable, and
      the Function can't check it against the flag. A shopper who edits it
      gets another arm's terms, and every arm is margin-checked by `check`
@@ -448,9 +454,15 @@ top of them:
    arm it gives orders, revenue, discount given, and margin per visitor.
    The visitor count per arm is PostHog's flag exposures
    (`$feature_flag_called` for `campaign-<handle>`), so it counts consented
-   visitors only, the same people who can be assigned. PostHog's experiment
-   view gives conversion. An edited `_offer_arm` can put an order under the
-   wrong arm; that's noise the report accepts rather than prevents.
+   visitors only, the same people who can be assigned. Exposures with no
+   tagged cart (tagging failed, say) are shown as a separate count per arm,
+   not folded into margin per visitor. PostHog's experiment view gives
+   conversion. An edited `_offer_arm` can put an order under the wrong arm;
+   that's noise the report accepts rather than prevents.
+   - The flag's split doesn't change while a campaign runs: a new split
+     could move a visitor whose cart already carries an arm, and their
+     exposure and order would then fall under different arms. A new split
+     is a new campaign.
 
 Rules that hold: an arm never shows a price it won't charge; nobody's arm
 changes once their cart carries it (and the flag is sticky per visitor); and
