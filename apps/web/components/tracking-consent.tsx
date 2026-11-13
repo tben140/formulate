@@ -130,6 +130,24 @@ const clearCartCleanup = () => {
   }
 };
 
+/**
+ * Tells the shopper's other open tabs about a refusal. A tab that loaded
+ * `klaviyo.js` under the old choice keeps running it, and only a reload stops
+ * it, so the refusal has to reach every tab, not just the one it was made in.
+ * Same-origin only; a browser without it leaves other tabs as they were.
+ */
+const CONSENT_CHANNEL = "formulate_consent";
+
+const announceRefusal = () => {
+  try {
+    const channel = new BroadcastChannel(CONSENT_CHANNEL);
+    channel.postMessage("denied");
+    channel.close();
+  } catch {
+    // No BroadcastChannel: other tabs pick the cookie up on their next load.
+  }
+};
+
 export const TrackingConsentProvider = ({
   initialConsent,
   children,
@@ -156,6 +174,27 @@ export const TrackingConsentProvider = ({
       .catch(() => undefined);
   }, []);
 
+  // A refusal made in another tab. The cookie already says so; this tab's
+  // state and scripts don't yet. With the scripts running, clear their
+  // storage again (they may have rewritten it) and reload without them.
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel(CONSENT_CHANNEL);
+    channel.onmessage = (event: MessageEvent) => {
+      if (event.data !== "denied") return;
+      discardQueuedEvents();
+      if (consent === "granted") {
+        forgetKlaviyo();
+        forgetProductAnalytics();
+        window.location.reload();
+        return;
+      }
+      setConsent("denied");
+      setReopened(false);
+    };
+    return () => channel.close();
+  }, [consent]);
+
   const choose = async (next: Exclude<TrackingConsent, "unset">) => {
     if (pending.current) return;
     pending.current = true;
@@ -173,6 +212,7 @@ export const TrackingConsentProvider = ({
          */
         forgetKlaviyo();
         forgetProductAnalytics();
+        announceRefusal();
 
         /*
          * Withdrawing after accepting. `klaviyo.js` is already running and
