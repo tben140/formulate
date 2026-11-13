@@ -135,6 +135,28 @@ country.
 `DEFAULT_COUNTRY_CODE` in `packages/shopify/src/config.ts` is the single place
 that decision lives.
 
+### Free delivery threshold
+
+Every cart drawer shows how far the cart is from free standard delivery (£40 in
+the UK zone). Three decisions sit behind it:
+
+- **Subtotal, not total.** The total includes delivery, so a free-delivery
+  threshold measured against it is circular. Shopify gives the same advice.
+- **After line discounts, before cart-level codes.** This is the subtotal every
+  drawer already displays: Storefront `cost.subtotalAmount`, and Liquid
+  `cart.items_subtotal_price`. Subscription savings count, because they are
+  line-level. No surface accepts a discount code before checkout, so nothing is
+  left out in practice. A code entered _at_ checkout can take an order back under
+  £40, and there Shopify's rate rules decide.
+- **Money, not a number.** The threshold carries its currency, and a cart in any
+  other currency shows no bar rather than comparing 40 of something else.
+
+The rule itself is a price condition on the store's "Free standard delivery"
+rate, which the Storefront API cannot read. So it is copied, in
+`FREE_SHIPPING_THRESHOLD` (`packages/shopify/src/free-shipping.ts`) for web and
+mobile and in the theme's `cart-drawer` section settings. Change all three
+together.
+
 ## Order
 
 Created by Shopify at checkout; the storefront never writes one.

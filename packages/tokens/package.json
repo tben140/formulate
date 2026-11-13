@@ -5,11 +5,15 @@
   "type": "module",
   "exports": {
     ".": "./src/tokens.ts",
+    "./social": "./src/social.ts",
+    "./payment": "./src/payment.ts",
     "./theme.css": "./theme.css",
-    "./tokens.css": "./tokens.css"
+    "./tokens.css": "./tokens.css",
+    "./fonts.css": "./fonts.css",
+    "./fonts/*": "./fonts/*"
   },
   "scripts": {
-    "build": "node scripts/build-css.ts",
+    "build": "node scripts/build-css.ts && node scripts/check-brand.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },

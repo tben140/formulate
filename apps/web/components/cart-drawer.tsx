@@ -1,14 +1,31 @@
 "use client";
 
-import { EVENTS, startedCheckout } from "@formulate/analytics";
-import { formatMoney, type Cart } from "@formulate/shopify";
-import { useEffect, useRef } from "react";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  cartViewedProperties,
+  checkoutStartedProperties,
+  startedCheckout,
+} from "@formulate/analytics";
+import {
+  formatMoney,
+  initialOptimisticCart,
+  optimisticCart,
+  optimisticCartReducer,
+  pendingLineIds,
+  type Cart,
+  type CartChange,
+  type CartSuggestion,
+} from "@formulate/shopify";
+import { Suspense, use, useEffect, useOptimistic, useRef, useState } from "react";
 
 import { removeCartLine, updateCartLine } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
+import { analytics } from "@/lib/product-analytics";
 
-import { useCartUi } from "./cart-provider";
-
+import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
+import { FreeShippingBar } from "./free-shipping-bar";
+import { CartSuggestions } from "./cart-suggestions";
 /**
  * The slide-in cart.
  *
@@ -24,7 +41,54 @@ import { useCartUi } from "./cart-provider";
  * Hand-rolling any of that is where accessible drawers usually go wrong. The
  * only thing added on top is the slide, which is pure CSS in globals.css.
  */
-export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
+/**
+ * A line's quantity field. It stays mounted while the quantity changes, so a
+ * shopper who pressed Enter keeps focus; a rolled-back change still resets
+ * what it shows.
+ */
+const QuantityInput = ({ id, quantity }: { id: string; quantity: number }) => {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.value = String(quantity);
+  }, [quantity]);
+  return (
+    <input
+      ref={ref}
+      id={id}
+      name="quantity"
+      type="number"
+      min={0}
+      defaultValue={quantity}
+      className="w-16 rounded-md border border-border px-2 py-1 text-sm"
+    />
+  );
+};
+
+type Suggestions = readonly CartSuggestion[] | Promise<readonly CartSuggestion[]>;
+
+/** Suggestions given as a promise render when it settles, never holding the drawer. */
+const SuggestionsWhenReady = ({ suggestions }: { suggestions: Suggestions }) => (
+  <CartSuggestions
+    suggestions={
+      Array.isArray(suggestions)
+        ? suggestions
+        : use(suggestions as Promise<readonly CartSuggestion[]>)
+    }
+  />
+);
+
+/**
+ * `suggestions` may be a promise: the layout passes the Storefront request
+ * unawaited, so the drawer (and checkout) is usable as soon as the cart is
+ * known, and the optional suggestions fill in when they arrive.
+ */
+export const CartDrawer = ({
+  cart,
+  suggestions = [],
+}: {
+  cart: Cart | null;
+  suggestions?: Suggestions;
+}) => {
   const { open, closeCart, storeDomain } = useCartUi();
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -38,7 +102,53 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  const lines = cart?.lines.nodes ?? [];
+  // cart_viewed once per opening (SHO-87), not on every cart update while open.
+  const counted = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      counted.current = false;
+      return;
+    }
+    if (counted.current || !cart) return;
+    counted.current = true;
+    analytics()?.capture(PRODUCT_EVENTS.cartViewed, cartViewedProperties(cart));
+  }, [open, cart]);
+
+  /*
+   * Quantity changes and removals show at once (SHO-52). The optimistic layer
+   * lasts until the action's re-render brings Shopify's cart in as `cart`; if
+   * the action failed, that cart is the old one, so the change simply undoes
+   * itself, and the message says why.
+   */
+  const [state, applyChange] = useOptimistic(
+    initialOptimisticCart(cart),
+    (current, change: CartChange) =>
+      optimisticCartReducer(current, { type: "start", change }),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const shown = optimisticCart(state);
+  const busy = pendingLineIds(state);
+  const lines = shown?.lines.nodes ?? [];
+
+  const changeLine = async (formData: FormData) => {
+    const lineId = String(formData.get("lineId") ?? "");
+    const remove = formData.get("quantity") === null;
+    const quantity = Number(formData.get("quantity") ?? 0);
+    setError(null);
+    applyChange(
+      remove || quantity <= 0
+        ? { id: crypto.randomUUID(), kind: "remove", lineId }
+        : { id: crypto.randomUUID(), kind: "update", lineId, quantity },
+    );
+    try {
+      const result = await (remove ? removeCartLine(formData) : updateCartLine(formData));
+      if (result.message) setError(result.message);
+    } catch {
+      // The request itself failed (offline, a deploy mid-flight). The change
+      // undoes itself when this returns; say so rather than reach the error page.
+      setError("Your cart couldn't be updated. Check your connection and try again.");
+    }
+  };
 
   return (
     /*
@@ -65,11 +175,11 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
     >
       <div className="flex h-full flex-col">
         <header className="flex items-center justify-between border-b border-border px-4 py-4">
-          <h2 className="text-lg font-semibold">
-            Cart
-            {cart?.totalQuantity ? (
+          <h2 id={CART_DRAWER_TITLE_ID} className="text-lg font-semibold">
+            Cart{/* A real space: the margin alone reads "Cart2 items". */}{" "}
+            {shown?.totalQuantity ? (
               <span className="ml-2 text-sm font-normal text-foreground-muted">
-                {cart.totalQuantity} {cart.totalQuantity === 1 ? "item" : "items"}
+                {shown.totalQuantity} {shown.totalQuantity === 1 ? "item" : "items"}
               </span>
             ) : null}
           </h2>
@@ -83,100 +193,125 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
           </button>
         </header>
 
+        {/* Above the lines, so it is read before the list rather than after it. */}
+        <FreeShippingBar
+          subtotal={lines.length > 0 ? (shown?.cost.subtotalAmount ?? null) : null}
+        />
+
+        {error ? (
+          <p
+            role="alert"
+            className="border-b border-border px-4 py-2 text-sm text-danger"
+          >
+            {error}
+          </p>
+        ) : null}
+
         {lines.length === 0 ? (
           <p className="flex-1 px-4 py-8 text-sm text-foreground-muted">
             Your cart is empty.
           </p>
         ) : (
-          <ul className="flex-1 divide-y divide-border overflow-y-auto">
-            {lines.map((line) => {
-              // `merchandise` is a union in the schema, but ProductVariant is
-              // its only member we select, so codegen flattens it — no
-              // __typename narrowing needed here.
-              const variant = line.merchandise;
+          // One scrolling region for lines and suggestions, so suggestions sit
+          // under the last line rather than pushing the checkout off screen.
+          <div className="flex-1 overflow-y-auto">
+            <ul className="divide-y divide-border">
+              {lines.map((line) => {
+                // `merchandise` is a union in the schema, but ProductVariant is
+                // its only member we select, so codegen flattens it — no
+                // __typename narrowing needed here.
+                const variant = line.merchandise;
 
-              return (
-                <li key={line.id} className="flex gap-3 px-4 py-4">
-                  {variant.image ? (
-                    // Plain <img>: these are Shopify CDN URLs at a fixed small
-                    // size inside a dialog, so next/image's optimisation and
-                    // layout machinery would cost more than it returns.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={variant.image.url}
-                      alt=""
-                      width={64}
-                      height={64}
-                      className="h-16 w-16 shrink-0 rounded-md border border-border object-cover"
-                    />
-                  ) : null}
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {variant.product.title}
-                    </p>
-                    {variant.title !== "Default Title" ? (
-                      <p className="text-xs text-foreground-muted">{variant.title}</p>
+                return (
+                  <li
+                    key={line.id}
+                    aria-busy={busy.has(line.id)}
+                    className={`flex gap-3 px-4 py-4 ${busy.has(line.id) ? "opacity-60" : ""}`}
+                  >
+                    {variant.image ? (
+                      // Plain <img>: these are Shopify CDN URLs at a fixed small
+                      // size inside a dialog, so next/image's optimisation and
+                      // layout machinery would cost more than it returns.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={variant.image.url}
+                        alt=""
+                        width={64}
+                        height={64}
+                        className="h-16 w-16 shrink-0 rounded-md border border-border object-cover"
+                      />
                     ) : null}
 
-                    {/*
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {variant.product.title}
+                      </p>
+                      {variant.title !== "Default Title" ? (
+                        <p className="text-xs text-foreground-muted">{variant.title}</p>
+                      ) : null}
+
+                      {/*
                       The subscription line is the whole reason the selling-plan
                       filter exists. Showing it here is how a shopper confirms
                       they bought a subscription rather than a one-off.
                     */}
-                    {line.sellingPlanAllocation ? (
-                      <p className="mt-0.5 text-xs font-medium text-brand-600">
-                        {line.sellingPlanAllocation.sellingPlan.name}
-                      </p>
-                    ) : null}
+                      {line.sellingPlanAllocation ? (
+                        <p className="mt-0.5 text-xs font-medium text-brand-600">
+                          {line.sellingPlanAllocation.sellingPlan.name}
+                        </p>
+                      ) : null}
 
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <form action={updateCartLine} className="flex items-center gap-1">
-                        <input type="hidden" name="lineId" value={line.id} />
-                        <label htmlFor={`qty-${line.id}`} className="sr-only">
-                          Quantity for {variant.product.title}
-                        </label>
-                        <input
-                          id={`qty-${line.id}`}
-                          name="quantity"
-                          type="number"
-                          min={0}
-                          defaultValue={line.quantity}
-                          className="w-16 rounded-md border border-border px-2 py-1 text-sm"
-                        />
-                        <button
-                          type="submit"
-                          className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
-                        >
-                          Update
-                        </button>
-                      </form>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <form action={changeLine} className="flex items-center gap-1">
+                          <input type="hidden" name="lineId" value={line.id} />
+                          <label htmlFor={`qty-${line.id}`} className="sr-only">
+                            Quantity for {variant.product.title}
+                          </label>
+                          <QuantityInput id={`qty-${line.id}`} quantity={line.quantity} />
+                          <button
+                            type="submit"
+                            className="rounded-md px-2 py-1 text-xs text-brand-600 underline underline-offset-2"
+                          >
+                            Update
+                          </button>
+                        </form>
 
-                      <p className="text-sm">{formatMoney(line.cost.totalAmount)}</p>
+                        <p className="font-mono text-sm">
+                          {formatMoney(line.cost.totalAmount)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <form action={removeCartLine}>
-                    <input type="hidden" name="lineId" value={line.id} />
-                    <button
-                      type="submit"
-                      className="text-xs text-foreground-muted underline underline-offset-2 hover:text-danger"
-                    >
-                      Remove
-                      <span className="sr-only"> {variant.product.title} from cart</span>
-                    </button>
-                  </form>
-                </li>
-              );
-            })}
-          </ul>
+                    <form action={changeLine}>
+                      <input type="hidden" name="lineId" value={line.id} />
+                      <button
+                        type="submit"
+                        className="text-xs text-foreground-muted underline underline-offset-2 hover:text-danger"
+                      >
+                        Remove
+                        <span className="sr-only">
+                          {" "}
+                          {variant.product.title} from cart
+                        </span>
+                      </button>
+                    </form>
+                  </li>
+                );
+              })}
+            </ul>
+            <Suspense fallback={null}>
+              <SuggestionsWhenReady suggestions={suggestions} />
+            </Suspense>
+          </div>
         )}
 
-        {cart && lines.length > 0 ? (
+        {cart && shown && lines.length > 0 ? (
           <footer className="border-t border-border px-4 py-4">
             <div className="mb-3 flex items-center justify-between text-sm">
               <span className="text-foreground-muted">Subtotal</span>
-              <span className="font-medium">{formatMoney(cart.cost.subtotalAmount)}</span>
+              <span className="font-mono font-medium">
+                {formatMoney(shown.cost.subtotalAmount)}
+              </span>
             </div>
 
             <p className="mb-3 text-xs text-foreground-muted">
@@ -189,19 +324,37 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
               anchor keeps middle-click, right-click and keyboard behaviour that
               a scripted redirect would break.
             */}
-            <a
-              href={cart.checkoutUrl}
-              // Fires before navigation rather than after. Checkout is
-              // cross-origin, so there is no "after" — the page is gone.
-              // Klaviyo's onsite script queues and flushes, which is what makes
-              // a beacon unnecessary here.
-              onClick={() =>
-                track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain))
-              }
-              className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface hover:bg-brand-700"
-            >
-              Checkout
-            </a>
+            {/*
+              Held while a line change is in flight: Shopify's checkout would
+              open on the cart before the change, and a failure couldn't be
+              shown once the shopper had left.
+            */}
+            {busy.size > 0 ? (
+              <p
+                aria-live="polite"
+                className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface opacity-60"
+              >
+                Updating your cart…
+              </p>
+            ) : (
+              <a
+                href={cart.checkoutUrl}
+                // Fires before navigation rather than after. Checkout is
+                // cross-origin, so there is no "after" — the page is gone.
+                // Klaviyo's onsite script queues and flushes, which is what makes
+                // a beacon unnecessary here.
+                onClick={() => {
+                  track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain));
+                  analytics()?.capture(
+                    PRODUCT_EVENTS.checkoutStarted,
+                    checkoutStartedProperties(cart),
+                  );
+                }}
+                className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface hover:bg-brand-700"
+              >
+                Checkout
+              </a>
+            )}
           </footer>
         ) : null}
       </div>

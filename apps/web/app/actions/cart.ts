@@ -1,6 +1,11 @@
 "use server";
 
-import { describeError, type Cart, type CartLineInput } from "@formulate/shopify";
+import {
+  describeError,
+  describeForShopper,
+  type Cart,
+  type CartLineInput,
+} from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -39,6 +44,11 @@ import {
  */
 export interface CartActionState {
   readonly status: "idle" | "success" | "error";
+  /**
+   * Shown to the shopper: an error on failure, or on success a note that fewer
+   * were added than asked for (see `notice` in packages/shopify). Always
+   * shopper-facing text — never `describeError`, which is for logs.
+   */
   readonly message?: string;
   /**
    * Bumped on every successful add.
@@ -60,6 +70,8 @@ export interface CartActionState {
   readonly cart?: Cart;
   /** Line key of the item just added, so the event can name it. */
   readonly addedLineId?: string;
+  /** How many this add asked for, for analytics (not the line's new total). */
+  readonly addedQuantity?: number;
 }
 
 const revalidate = () => revalidatePath("/", "layout");
@@ -101,7 +113,7 @@ export const addToCart = async (
    * cart is still fine, and clearing it would silently lose everything in it.
    * See `addLinesOrCreate` and `isCartGone` in packages/shopify (SHO-122).
    */
-  const { result, storedCartGone } = await cartClient.addLinesOrCreate({
+  const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
     cartId: await readCartId(),
     lines: [line],
     email: readBuyerEmail,
@@ -109,7 +121,10 @@ export const addToCart = async (
 
   if (!result.ok) {
     if (storedCartGone) await clearCartId();
-    return { status: "error", message: describeError(result.error) };
+    // The detail for whoever reads the logs; the shopper gets something
+    // they can act on, not "Storefront rejected the operation: …gid://…".
+    console.error(`[cart] add failed: ${describeError(result.error)}`);
+    return { status: "error", message: describeForShopper(result.error) };
   }
 
   await writeCartId(result.data.id);
@@ -126,31 +141,46 @@ export const addToCart = async (
 
   return {
     status: "success",
+    ...(notice ? { message: notice } : {}),
     token: Date.now(),
     cart: result.data,
     addedLineId: addedLine?.id,
+    addedQuantity: line.quantity ?? 1,
   };
 };
 
-export const updateCartLine = async (formData: FormData): Promise<void> => {
+/** What a line update or removal reports back: nothing, or why it failed. */
+export interface CartLineResult {
+  readonly message?: string;
+}
+
+export const updateCartLine = async (formData: FormData): Promise<CartLineResult> => {
   const id = String(formData.get("lineId") ?? "");
   const quantity = Number(formData.get("quantity") ?? 0);
   const cartId = await readCartId();
-  if (!cartId || !id) return;
+  if (!cartId || !id) return { message: "Your cart couldn't be found. Please refresh." };
 
   // Quantity zero is how Shopify expresses removal on an update, so there is no
   // need for the caller to decide which mutation to use.
-  await cartClient.updateLines(cartId, [{ id, quantity }]);
+  const result = await cartClient.updateLines(cartId, [{ id, quantity }]);
   revalidate();
+  if (result.ok) return {};
+  // The drawer has already shown the change (SHO-52); this tells it to undo.
+  console.error(`[cart] update failed: ${describeError(result.error)}`);
+  return { message: describeForShopper(result.error) };
 };
 
-export const removeCartLine = async (formData: FormData): Promise<void> => {
+export const removeCartLine = async (formData: FormData): Promise<CartLineResult> => {
   const lineId = String(formData.get("lineId") ?? "");
   const cartId = await readCartId();
-  if (!cartId || !lineId) return;
+  if (!cartId || !lineId)
+    return { message: "Your cart couldn't be found. Please refresh." };
 
-  await cartClient.removeLines(cartId, [lineId]);
+  const result = await cartClient.removeLines(cartId, [lineId]);
   revalidate();
+  if (result.ok) return {};
+  console.error(`[cart] remove failed: ${describeError(result.error)}`);
+  return { message: describeForShopper(result.error) };
 };
 
 /**

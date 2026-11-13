@@ -1,10 +1,21 @@
 import {
   createCartClient,
   describeError,
+  describeForShopper,
+  optimisticCart,
+  pendingLineIds,
   type Cart,
+  type CartChange,
   type CartLineInput,
+  type StorefrontError,
 } from "@formulate/shopify";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useState } from "react";
 
 import { clearCartId, readCartId, writeCartId } from "./cart-storage";
 import { readIdentifiedEmail } from "./klaviyo";
@@ -23,9 +34,35 @@ import { storefront } from "./storefront";
  * to invalidate. Same feature, genuinely different machinery.
  */
 
+// No tracking choice in the app yet, so every cart request states "refused"
+// and checkout gets no visitor ids. #107 adds the app's choice: pass it here
+// as `trackingChoice` when it merges.
 const cartClient = createCartClient(storefront);
 
 const CART_KEY = ["cart"] as const;
+const LINE_KEY = ["cart", "line"] as const;
+
+interface LineChange {
+  readonly lineId: string;
+  readonly quantity: number;
+}
+
+/**
+ * An Error whose message a shopper can read, with the developer detail logged.
+ *
+ * These errors surface in the UI, so they carry `describeForShopper` rather
+ * than `describeError` — which names transports and ids, and reads as a crash.
+ */
+const shopperError = (error: StorefrontError): Error => {
+  if (__DEV__) console.warn(`[cart] ${describeError(error)}`);
+  return new Error(describeForShopper(error));
+};
+
+/** What an add returns: the cart, plus a note when fewer were added than asked. */
+export interface AddToCartResult {
+  readonly cart: Cart;
+  readonly notice?: string;
+}
 
 /**
  * The current cart, or null when there isn't one.
@@ -43,7 +80,7 @@ export const useCart = () =>
       if (!id) return null;
 
       const result = await cartClient.get(id);
-      if (!result.ok) throw new Error(describeError(result.error));
+      if (!result.ok) throw shopperError(result.error);
 
       if (!result.data) await clearCartId();
       return result.data;
@@ -57,7 +94,7 @@ export const useAddToCart = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (line: CartLineInput): Promise<Cart> => {
+    mutationFn: async (line: CartLineInput): Promise<AddToCartResult> => {
       /*
        * A cart created for a shopper we already know carries their email from
        * the start, which is what lets Shopify record an *attributable*
@@ -72,7 +109,7 @@ export const useAddToCart = () => {
        * fine, and clearing it would silently lose everything in it. See
        * `addLinesOrCreate` in packages/shopify (SHO-122).
        */
-      const { result, storedCartGone } = await cartClient.addLinesOrCreate({
+      const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
         cartId: await readCartId(),
         lines: [line],
         email: readIdentifiedEmail,
@@ -80,42 +117,76 @@ export const useAddToCart = () => {
 
       if (!result.ok) {
         if (storedCartGone) await clearCartId();
-        throw new Error(describeError(result.error));
+        throw shopperError(result.error);
       }
 
       await writeCartId(result.data.id);
-      return result.data;
+      return { cart: result.data, ...(notice ? { notice } : {}) };
     },
     // Every mutation returns the complete cart, so the cache is seeded directly
     // rather than invalidated — no refetch, and no window where the badge and
     // the sheet disagree.
-    onSuccess: (cart) => queryClient.setQueryData(CART_KEY, cart),
+    onSuccess: ({ cart }) => queryClient.setQueryData(CART_KEY, cart),
   });
 };
 
 export const useUpdateCartLine = () => {
   const queryClient = useQueryClient();
+  /*
+   * The last failure of any queued change. `mutation.error` only follows the
+   * latest `mutate()`, so a first "+" failing while a second waits would show
+   * nothing. Option callbacks run for every change, so the error lives here:
+   * set by whichever change fails, cleared by the shopper's next change.
+   */
+  const [lineError, setLineError] = useState<Error | null>(null);
 
-  return useMutation({
-    mutationFn: async ({
-      lineId,
-      quantity,
-    }: {
-      lineId: string;
-      quantity: number;
-    }): Promise<Cart> => {
+  const mutation = useMutation({
+    mutationKey: LINE_KEY,
+    // One at a time: each answer is the whole cart, and a slow early answer
+    // must not land after a later one and undo it.
+    scope: { id: "cart-lines" },
+    mutationFn: async ({ lineId, quantity }: LineChange): Promise<Cart> => {
       const id = await readCartId();
       if (!id) throw new Error("No cart to update.");
 
       // Quantity zero is how Shopify expresses removal on an update, so the
       // caller never has to choose between two mutations.
       const result = await cartClient.updateLines(id, [{ id: lineId, quantity }]);
-      if (!result.ok) throw new Error(describeError(result.error));
+      if (!result.ok) throw shopperError(result.error);
 
       return result.data;
     },
+    // Runs when the change is made, even while it waits its turn in the scope.
+    onMutate: () => setLineError(null),
+    onError: (error) => setLineError(error),
     onSuccess: (cart) => queryClient.setQueryData(CART_KEY, cart),
   });
+  return { ...mutation, lineError };
+};
+
+/**
+ * The cart as the shopper should see it: Shopify's last cart with the line
+ * changes still in flight already applied (SHO-52, the shared
+ * `optimisticCart`). A failed change drops out of the pending list, so the
+ * view returns to Shopify's cart by itself; `useUpdateCartLine().lineError`
+ * says why.
+ */
+export const useOptimisticCart = () => {
+  const { data, isPending } = useCart();
+  const pending = useMutationState({
+    filters: { mutationKey: LINE_KEY, status: "pending" },
+    select: (mutation) => mutation.state.variables as LineChange,
+  });
+  const state = {
+    confirmed: data ?? null,
+    pending: pending.map((change, index): CartChange =>
+      change.quantity > 0
+        ? { id: String(index), kind: "update", ...change }
+        : { id: String(index), kind: "remove", lineId: change.lineId },
+    ),
+    error: null,
+  };
+  return { cart: optimisticCart(state), busy: pendingLineIds(state), isPending };
 };
 
 /** Called after checkout completes, so the next read starts a fresh cart. */

@@ -86,6 +86,13 @@ Events go to `window._learnq`, **never** to `window.klaviyo`. The latter is
 owned by `klaviyo.js`; assigning an array to it shadows the object the script
 installs, and every event lands somewhere nothing drains — silently.
 
+⚠️ **`klaviyo.js` loads only after tracking consent.** It is rendered by
+`components/tracking-consent.tsx`, never directly in a layout or page. Before
+consent `_learnq` is a plain array that nothing transmits. Loading the script
+anywhere else would set `__kla_id` for shoppers who declined. Signing up for
+emails does not grant tracking consent. See
+[ADR 0008](../../docs/adr/0008-headless-tracking-consent-is-our-own.md).
+
 Two things make this integration hard to verify, and both look like broken code:
 
 - **Klaviyo does not transmit events for anonymous visitors.** They are cached
@@ -108,7 +115,7 @@ ever tells you an event was dropped.
 
 Email capture (`components/email-capture.tsx`) does two things and both are
 required: `POST /client/subscriptions/` creates the profile and records
-consent, then `identify` tells the script in *this tab* who the visitor is,
+consent, then `identify` tells the script in _this tab_ who the visitor is,
 which is what flushes the cached events. The first alone leaves them cached.
 
 There is no already-subscribed state to render. Klaviyo returns `202` for a new
@@ -121,6 +128,12 @@ public by design; a list id names a destination, not a permission.
 See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
 
 ## Vercel
+
+- Links use `Link` from `@/components/link`, never `next/link` directly (lint
+  enforces it). It prefetches on mouse hover or keyboard focus (never on touch) instead of whenever a
+  link scrolls into view: viewport prefetching was about half of every page
+  view's CDN requests, measured locally on 27 October 2026 (36–43 requests per
+  page down to 17–19).
 
 - The Vercel project's root directory is `apps/web`.
 - `vercel.json` sets security headers; keep them.

@@ -17,7 +17,12 @@
     },
     "header": {
       "type": "header",
-      "settings": {}
+      "settings": {
+        "menu": "shop",
+        "shop_menu_1": "shop-by-goal",
+        "shop_menu_2": "shop-by-family",
+        "shop_menu_3": "shop-by-format"
+      }
     }
   },
   "order": [

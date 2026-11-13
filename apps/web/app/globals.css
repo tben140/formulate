@@ -7,11 +7,29 @@
  */
 @import "@formulate/tokens/theme.css";
 
+/*
+ * DM Sans and DM Mono, the same files the Liquid theme serves. Plain
+ * @font-face rather than next/font, which renames the family to a hash and
+ * would break parity with the theme (SHO-110). `--font-sans` from the tokens
+ * makes DM Sans the page default through Tailwind's preflight.
+ */
+@import "@formulate/tokens/fonts.css";
+
 @layer base {
   body {
     background-color: var(--color-surface);
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * DM Sans ships 400, 500 and 600 only. Preflight sets <b> and <strong> to
+   * `bolder` (700), which the browser would synthesise, a smeared fake bold.
+   * The theme makes the same choice: bold means 600.
+   */
+  b,
+  strong {
+    font-weight: 600;
   }
 
   /* WCAG 2.4.7 — never remove focus indication, only restyle it. */

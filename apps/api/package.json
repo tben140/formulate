@@ -19,7 +19,7 @@
     "@formulate/typescript-config": "workspace:*",
     "eslint": "^10.8.0",
     "typescript": "~6.0.3",
-    "vitest": "^3.2.7",
+    "vitest": "4.1.12",
     "wrangler": "^4.0.0"
   }
 }

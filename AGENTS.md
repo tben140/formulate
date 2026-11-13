@@ -34,6 +34,88 @@ load-bearing and look like neglect from the outside. They are recorded in
 - [TypeScript is `~6.0.3`, not 7](docs/adr/0002-typescript-6-over-7.md). No
   `typescript-eslint` release supports 7.
 
+## Dependencies
+
+**A new version must be 7 days old before it's installed.** pnpm enforces
+this (`minimumReleaseAge` in `pnpm-workspace.yaml`) and Renovate uses the same
+number. The wait keeps out hijacked releases, which are usually caught and
+pulled within hours to days.
+
+- **Security fast track: as soon as it's verified.** A version that fixes a
+  published advisory may be installed straight away, with no wait, when all of
+  these hold:
+  1. A **GitHub-reviewed advisory** names this exact version as patched.
+  2. It's a **patch or minor** release, from the **same publisher** as the
+     version it replaces.
+  3. pnpm's **trust policy** passes (no drop in provenance; see
+     `trustPolicy` in `pnpm-workspace.yaml`).
+  4. **CI passes.**
+
+  Add it to `minimumReleaseAgeExclude` with a comment naming the advisory, and
+  remove the line once the version is 7 days old. `pnpm audit --fix`, and
+  Renovate's security PRs, may write the line for you; a person still checks
+  the four conditions before merging (nothing here merges automatically).
+
+  When a check fails, what happens next depends on which one:
+  - **1 or 2** (no reviewed advisory names it, or it's a major release or from
+    a new publisher): it isn't fast-tracked, and waits the normal 7 days.
+  - **3 or 4** (the trust policy rejects it, or CI fails): **stop and
+    investigate**. Waiting doesn't change either result, and a trust failure
+    on a "security fix" can be the attack itself.
+
+  Until a fix can be installed, **mitigate**: turn off the affected feature,
+  or block the attack at the edge (a Vercel firewall rule). docs/security.md
+  has the full process.
+
+- **Prefer a range that can't reach a release that's too new.** A caret can
+  resolve to a release from yesterday: `~16.3.8` instead of `^16.3.8` kept Next
+  off a two-day-old 16.4.2.
+- **Major versions** also need their changelog read and the full checks run.
+  The age rule doesn't cover breaking changes.
+- **Renovate opens the update PRs; Dependabot only raises alerts.** There is
+  no `dependabot.yml`, and Dependabot security updates stay off. Dependabot
+  version updates would duplicate every Renovate update, and its security
+  updates would duplicate Renovate's security PRs; neither copy follows the
+  age rule, the groups or the pins. Renovate reads the Dependabot alerts (and
+  OSV) to open its security PRs. It keeps each Action pinned to a commit SHA,
+  updating the SHA and the version comment together.
+
+## Environments and secrets
+
+Every variable is documented in its app's example file, which says what it is
+for and whether it is secret. Copy the example, never the other way round.
+
+| App           | Example file         | Local copy (gitignored) |
+| ------------- | -------------------- | ----------------------- |
+| `apps/web`    | `.env.example`       | `.env.local`            |
+| `apps/mobile` | `.env.example`       | `.env.local`            |
+| `apps/theme`  | `.env.local.example` | `.env.local`            |
+| `apps/api`    | `.dev.vars.example`  | `.dev.vars`             |
+
+Three tiers, and each value lives in exactly one place per tier:
+
+| Tier       | Web                                         | Mobile                                      | API worker                         |
+| ---------- | ------------------------------------------- | ------------------------------------------- | ---------------------------------- |
+| Local      | `apps/web/.env.local`                       | `apps/mobile/.env.local`                    | `apps/api/.dev.vars`               |
+| Preview    | Vercel env vars, **Preview** environment    | EAS env vars, `preview` (and `development`) | `wrangler secret put` (one worker) |
+| Production | Vercel env vars, **Production** environment | EAS env vars, `production`                  | `wrangler secret put`              |
+
+The theme has no tiers of its own: its only secret is the store password for
+the Shopify CLI, and Shopify injects everything else server-side.
+
+⚠️ **`NEXT_PUBLIC_*` and `EXPO_PUBLIC_*` values ship to every browser and every
+device.** Only values that are public by design may carry those prefixes: the
+Storefront public token (mobile only; web keeps it server-side), the Klaviyo
+public site key, the list id, and URLs. A private key under either prefix is a
+leaked key.
+
+Never secret, and pinned in the repository instead: `SHOPIFY_API_VERSION`
+(also in `eas.json`) and `KLAVIYO_LIST_ID` for the worker (in
+`wrangler.jsonc` `vars`).
+
+Not configured yet, and to be added here when they are: Sentry DSN (SHO-27) and
+Vercel's own project settings (SHO-22).
+
 ## Verification
 
 `turbo lint typecheck build` is the bar, and CI runs it on every pull request
@@ -94,6 +176,17 @@ non-obvious lines here exist to work around something real, and a comment naming
 the failure is what stops it being removed.
 
 Keep that standard. A comment restating the code is worse than none.
+
+## Parity overrides
+
+Features ship on all three surfaces by default: that is the point of the
+project, and [ADR 0005](docs/adr/0005-parity-means-design-not-data.md) says what
+parity means. A feature that deliberately skips a surface is an **override**, and
+every override is listed here with its reason. An unlisted gap is a bug.
+
+| Feature                                          | Surfaces   | Why not everywhere                                                                                                                                                                                                                                       |
+| ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SEO: metadata, structured data, sitemap (SHO-64) | Web, theme | A native app has no crawlable pages. The theme already gets it from Shopify (`structured_data`, `canonical_url`, the platform sitemap), so only `apps/web` needs code. Its routes are in `app/robots.ts`, `app/sitemap.ts` and `lib/structured-data.ts`. |
 
 ## The shared package rule
 

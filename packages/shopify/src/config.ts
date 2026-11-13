@@ -1,8 +1,15 @@
 /**
  * The collection the storefront opens on.
  *
- * `best-sellers` is the store's own collection now that the demo catalogue
- * (and its seeded `automated-collection`) has gone.
+ * `best-sellers` is the Double Helix catalogue's collection that is published
+ * to the Headless channel (6 products, measured 2026-09-26). It replaced
+ * `automated-collection`, the snowboard seed collection, which is now empty,
+ * and an empty collection resolves without an error, so a stale handle
+ * produces a blank landing page rather than a failure anyone notices.
+ *
+ * ⚠️ Files that can't import this (the theme's Liquid, the plain-Node smoke
+ * test, the Lighthouse and e2e configs) hold copies. `config.test.ts` fails if
+ * any of them differs, so change them together.
  */
 export const DEFAULT_COLLECTION_HANDLE = "best-sellers";
 

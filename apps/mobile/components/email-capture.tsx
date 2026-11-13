@@ -56,7 +56,8 @@ const announce = (message: string): void => {
   }
 };
 
-type Status = { readonly kind: "idle" } | { readonly kind: "done"; readonly message: string };
+type Status =
+  { readonly kind: "idle" } | { readonly kind: "done"; readonly message: string };
 
 /**
  * Email capture, the mobile counterpart to apps/web's <EmailCapture /> and the
