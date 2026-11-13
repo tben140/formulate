@@ -7,15 +7,15 @@
   icon leading to an unbuilt experience is worse than no icon.
 
   The wordmark is a theme-wide setting (Theme settings → Brand, shared with the
-  footer) rather than `shop.name` so it can read "Formulate"
-  (the project brand) while the store itself is named something else — and
-  still be editable in the theme editor, as a theme should be.
+  footer) rather than `shop.name` so it can read the brand, Double Helix,
+  while the store itself is named something else. Its value is committed in
+  config/settings_data.json, since a theme push replaces editor changes.
 {% endcomment %}
 
 <header class="site-header">
   <nav class="container site-header__nav">
     <a class="site-header__wordmark" href="{{ routes.root_url }}">
-      {{ settings.wordmark | default: shop.name }}
+      {{ settings.wordmark | default: shop.name | escape }}
     </a>
 
     {% if section.settings.menu != blank %}
