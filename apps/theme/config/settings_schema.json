@@ -54,13 +54,13 @@
     ]
   },
   {
-    "name": "Brand",
+    "name": "t:general.brand",
     "settings": [
       {
         "type": "text",
         "id": "wordmark",
-        "label": "Wordmark",
-        "info": "The brand name in the header and the footer's copyright line. Leave blank to use the store name. Set in config/settings_data.json in the repository: a theme push replaces a change made here.",
+        "label": "t:labels.wordmark",
+        "info": "t:info.wordmark",
         "default": "Double Helix"
       }
     ]
