@@ -194,9 +194,9 @@ export const CartDrawer = ({
         </header>
 
         {/* Above the lines, so it is read before the list rather than after it. */}
-        <FreeShippingBar
-          subtotal={lines.length > 0 ? (shown?.cost.subtotalAmount ?? null) : null}
-        />
+        {/* The optimistic lines: their totals are rescaled as quantities change,
+            so the bar moves with them (SHO-52). */}
+        <FreeShippingBar lines={lines} />
 
         {error ? (
           <p

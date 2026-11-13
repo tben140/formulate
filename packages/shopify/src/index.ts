@@ -22,10 +22,16 @@ export { formatMoney } from "./format-money";
 
 export {
   FREE_SHIPPING_THRESHOLD,
+  cartFreeShippingMessage,
+  freeShippingForCart,
   freeShippingMessage,
   freeShippingProgress,
 } from "./free-shipping";
-export type { FreeShippingProgress } from "./free-shipping";
+export type {
+  CartFreeShipping,
+  FreeShippingLine,
+  FreeShippingProgress,
+} from "./free-shipping";
 export { priorityIndex } from "./priority-image";
 export { RECOMMENDATION_LIMIT, selectCartSuggestions } from "./recommendations";
 export type { CartSuggestion } from "./recommendations";
