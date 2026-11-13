@@ -115,6 +115,54 @@ describe("viewedProduct", () => {
   });
 });
 
+/**
+ * `Categories`, captured from the running theme on 2026-09-26 (SHO-126).
+ *
+ * The 2026-08-08 reference above was a product in no collections, so its
+ * `Categories: []` matched a hardcoded `[]` and the gap went unnoticed. These
+ * are products that ARE in collections, with the theme's own values.
+ *
+ * ⚠️ The theme sorts by title; the Storefront API returns collections in
+ * creation order. Daily Multivitamin is the case that tells them apart:
+ * Storefront gives Cellular, Best Sellers, Daily Essentials.
+ */
+describe("viewedProduct — Categories", () => {
+  const inCollections = (...titles: string[]) => ({
+    id: "gid://shopify/Product/10846318231864",
+    handle: "daily-multivitamin",
+    title: "Daily Multivitamin",
+    vendor: "Double Helix",
+    featuredImage: null,
+    priceRange: { minVariantPrice: { amount: "15.95", currencyCode: "GBP" } },
+    compareAtPriceRange: null,
+    collections: { nodes: titles.map((title) => ({ title })) },
+  });
+
+  it("matches the theme for a product in several collections", () => {
+    // Order as the Storefront API returned it on 2026-09-26.
+    const product = inCollections("Cellular", "Best Sellers", "Daily Essentials");
+    expect(viewedProduct(product, DOMAIN).Categories).toEqual([
+      "Best Sellers",
+      "Cellular",
+      "Daily Essentials",
+    ]);
+  });
+
+  it("keeps punctuation in titles as the theme sends it", () => {
+    // The theme's HTML shows "Mind \u0026 Focus": JSON escaping, not the value.
+    const product = inCollections("Best Sellers", "Daily Essentials", "Mind & Focus");
+    expect(viewedProduct(product, DOMAIN).Categories).toEqual([
+      "Best Sellers",
+      "Daily Essentials",
+      "Mind & Focus",
+    ]);
+  });
+
+  it("sends an empty list for a product in no collections", () => {
+    expect(viewedProduct(inCollections(), DOMAIN).Categories).toEqual([]);
+  });
+});
+
 const line = (overrides: Record<string, unknown> = {}) => ({
   quantity: 2,
   merchandise: {
