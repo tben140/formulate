@@ -98,7 +98,8 @@ class CartDrawer extends Component {
     this.#pendingAnnouncement = null;
     const announcer = this.#announcer;
     announcer.textContent = "";
-    requestAnimationFrame(() => {
+    this.#announceFrame = requestAnimationFrame(() => {
+      this.#announceFrame = 0;
       announcer.textContent = pending;
     });
   }
@@ -219,8 +220,18 @@ class CartDrawer extends Component {
       return;
     }
     this.#pendingAnnouncement = null;
+    // A newer message supersedes one open() is still waiting a frame to
+    // write, which would otherwise overwrite this one (an emptied cart would
+    // get its old delivery message back).
+    if (this.#announceFrame) {
+      cancelAnimationFrame(this.#announceFrame);
+      this.#announceFrame = 0;
+    }
     this.#announcer.textContent = message;
   }
+
+  /** The frame open() writes a held message in, while it's pending. */
+  #announceFrame = 0;
 
   /**
    * A message from a change made while the drawer was closed, waiting for
