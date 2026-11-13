@@ -32,7 +32,11 @@
       "other": "Open cart, {{ count }} items"
     },
     "quantity_for": "Quantity for {{ title }}",
-    "remove_for": "{{ title }} from cart"
+    "remove_for": "{{ title }} from cart",
+    "free_shipping": {
+      "away": "You're {{ amount }} away from free standard delivery",
+      "unlocked": "You've unlocked free standard delivery"
+    }
   },
   "collections": {
     "title": "Collections"
