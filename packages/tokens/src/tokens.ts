@@ -63,7 +63,13 @@ export const colours = {
   "foreground-muted": ink[500],
   border: ink[200],
   danger: "#dc2626",
-  success: "#16a34a",
+  /**
+   * Green-700, not green-600 (#16a34a). Success is used as **text** ("Added to
+   * your cart.", "You're on the list."), and #16a34a is 3.30:1 on white,
+   * short of WCAG AA's 4.5:1 for body text (SHO-133). This is 5.02:1 on
+   * surface and 4.58:1 on surface-muted.
+   */
+  success: "#15803d",
 } as const;
 
 /** Base-4 scale. Keys become Tailwind's `--spacing-*` namespace. */

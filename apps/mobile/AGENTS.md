@@ -207,6 +207,30 @@ Any screen with a text input near the bottom of a scroll container needs
 `automaticallyAdjustKeyboardInsets` on that container. A browser scrolls a
 focused input into view for free; nothing here does.
 
+## Accessibility in tests
+
+There are no component tests yet (SHO-17 sets them up). When there are, they
+find elements **the way VoiceOver does**, so a test that can't find a control
+has found an accessibility bug rather than a testing inconvenience.
+
+React Native Testing Library, in this order of preference:
+
+1. `getByRole("button", { name: "Add to cart" })`. Needs `accessibilityRole`
+   on the element, which every `Pressable` here should have anyway.
+2. `getByLabelText(...)`, for elements named by `accessibilityLabel`.
+3. `getByText(...)`, for static text.
+4. `getByTestId(...)` only when nothing a user perceives identifies the
+   element, with a comment saying why.
+
+Maestro flows follow the same rule: select by the text or accessibility label a
+user would hear (`tapOn: "Add to cart"`), and use `id:` (a `testID`) only as a
+last resort.
+
+On web the query rule is a convention, as here: no lint rule enforces it.
+`eslint-plugin-jsx-a11y` (shared config) is a separate check, of accessibility
+patterns in JSX. Role-based Playwright specs with axe scans in `apps/web/e2e`
+are planned, and arrive with #40.
+
 ## Verification
 
 Screens are verified on an **iPhone 17 Pro simulator**. "It typechecks" is not
