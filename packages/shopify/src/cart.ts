@@ -1,7 +1,7 @@
 import { DEFAULT_COUNTRY_CODE } from "./config";
 
 import type { StorefrontClient } from "./client";
-import type { StorefrontResult, UserErrorShape } from "./errors";
+import type { StorefrontError, StorefrontResult, UserErrorShape } from "./errors";
 import type {
   CartBuyerIdentityInput,
   CartFieldsFragment,
@@ -93,6 +93,17 @@ const fromPayload = (
   return { ok: true, data: payload.cart };
 };
 
+export interface AddLinesOutcome {
+  readonly result: StorefrontResult<Cart>;
+  /**
+   * True when the id passed in no longer resolves: expired, completed at
+   * checkout, or tampered with. Always true in that case, even if the
+   * replacement cart could not be created, because the old id is useless
+   * either way.
+   */
+  readonly storedCartGone: boolean;
+}
+
 export interface CartClient {
   /**
    * Fetches a cart by id.
@@ -137,6 +148,32 @@ export interface CartClient {
     lines: readonly CartLineInput[],
   ) => Promise<StorefrontResult<Cart>>;
 
+  /**
+   * Adds lines to the stored cart, starting a new one if there is none or the
+   * stored one has gone. This is the add-to-cart every surface should call.
+   *
+   * ⚠️ Only a cart Shopify says **no longer exists** is replaced (see
+   * `isCartGone`). A network blip, an HTTP error or a rejected line leaves the
+   * stored cart alone and returns the error, because the cart is still fine —
+   * throwing it away would silently lose everything the shopper had added.
+   *
+   * A dead cart is recovered within this one call, so the shopper's first
+   * attempt succeeds rather than failing and making them try again.
+   *
+   * On success, persist `result.data.id` whatever it is (it is new when the old
+   * cart had gone). On failure, clear the stored id only when `storedCartGone`.
+   */
+  readonly addLinesOrCreate: (options: {
+    readonly cartId: string | null;
+    readonly lines: readonly CartLineInput[];
+    /**
+     * Resolves the buyer's email for a new cart. A function rather than a value
+     * because it is only needed when a cart is created, and on mobile reading
+     * it goes through the Klaviyo SDK. See `create` for why it matters.
+     */
+    readonly email?: () => Promise<string | null | undefined>;
+  }) => Promise<AddLinesOutcome>;
+
   readonly updateLines: (
     cartId: string,
     lines: readonly CartLineUpdateInput[],
@@ -154,58 +191,105 @@ export interface CartClient {
   ) => Promise<StorefrontResult<Cart>>;
 }
 
-export const createCartClient = (storefront: StorefrontClient): CartClient => ({
-  get: async (cartId) => {
-    const result = await storefront.request(CartQuery, { id: cartId });
-    return result.ok ? { ok: true, data: result.data.cart ?? null } : result;
-  },
+export const createCartClient = (storefront: StorefrontClient): CartClient => {
+  const client: Omit<CartClient, "addLinesOrCreate"> = {
+    get: async (cartId) => {
+      const result = await storefront.request(CartQuery, { id: cartId });
+      return result.ok ? { ok: true, data: result.data.cart ?? null } : result;
+    },
 
-  create: async (options) => {
-    const result = await storefront.request(CartCreateMutation, {
-      input: {
-        lines: options?.lines ? [...options.lines] : undefined,
-        buyerIdentity: {
-          countryCode: options?.countryCode ?? (DEFAULT_COUNTRY_CODE as CountryCode),
-          // Omitted rather than sent empty — Shopify rejects "" as an address.
-          ...(options?.email ? { email: options.email } : {}),
+    create: async (options) => {
+      const result = await storefront.request(CartCreateMutation, {
+        input: {
+          lines: options?.lines ? [...options.lines] : undefined,
+          buyerIdentity: {
+            countryCode: options?.countryCode ?? (DEFAULT_COUNTRY_CODE as CountryCode),
+            // Omitted rather than sent empty — Shopify rejects "" as an address.
+            ...(options?.email ? { email: options.email } : {}),
+          },
         },
-      },
-    });
-    return result.ok ? fromPayload(result.data.cartCreate) : result;
-  },
+      });
+      return result.ok ? fromPayload(result.data.cartCreate) : result;
+    },
 
-  addLines: async (cartId, lines) => {
-    const result = await storefront.request(CartLinesAddMutation, {
-      cartId,
-      lines: [...lines],
-    });
-    return result.ok ? fromPayload(result.data.cartLinesAdd) : result;
-  },
+    addLines: async (cartId, lines) => {
+      const result = await storefront.request(CartLinesAddMutation, {
+        cartId,
+        lines: [...lines],
+      });
+      return result.ok ? fromPayload(result.data.cartLinesAdd) : result;
+    },
 
-  updateLines: async (cartId, lines) => {
-    const result = await storefront.request(CartLinesUpdateMutation, {
-      cartId,
-      lines: [...lines],
-    });
-    return result.ok ? fromPayload(result.data.cartLinesUpdate) : result;
-  },
+    updateLines: async (cartId, lines) => {
+      const result = await storefront.request(CartLinesUpdateMutation, {
+        cartId,
+        lines: [...lines],
+      });
+      return result.ok ? fromPayload(result.data.cartLinesUpdate) : result;
+    },
 
-  removeLines: async (cartId, lineIds) => {
-    const result = await storefront.request(CartLinesRemoveMutation, {
-      cartId,
-      lineIds: [...lineIds],
-    });
-    return result.ok ? fromPayload(result.data.cartLinesRemove) : result;
-  },
+    removeLines: async (cartId, lineIds) => {
+      const result = await storefront.request(CartLinesRemoveMutation, {
+        cartId,
+        lineIds: [...lineIds],
+      });
+      return result.ok ? fromPayload(result.data.cartLinesRemove) : result;
+    },
 
-  setBuyerIdentity: async (cartId, buyerIdentity) => {
-    const result = await storefront.request(CartBuyerIdentityUpdateMutation, {
-      cartId,
-      buyerIdentity,
-    });
-    return result.ok ? fromPayload(result.data.cartBuyerIdentityUpdate) : result;
-  },
-});
+    setBuyerIdentity: async (cartId, buyerIdentity) => {
+      const result = await storefront.request(CartBuyerIdentityUpdateMutation, {
+        cartId,
+        buyerIdentity,
+      });
+      return result.ok ? fromPayload(result.data.cartBuyerIdentityUpdate) : result;
+    },
+  };
+
+  return {
+    ...client,
+
+    addLinesOrCreate: async ({ cartId, lines, email }) => {
+      if (cartId) {
+        const added = await client.addLines(cartId, lines);
+        if (added.ok || !isCartGone(added.error)) {
+          return { result: added, storedCartGone: false };
+        }
+      }
+
+      const created = await client.create({
+        lines,
+        email: (await email?.()) ?? undefined,
+      });
+      return { result: created, storedCartGone: cartId !== null };
+    },
+  };
+};
+
+/**
+ * Whether a failed cart mutation failed because the cart itself no longer
+ * exists — as opposed to anything else, after which the cart is still fine.
+ *
+ * Measured against the live store on 2026-09-26. Four different ways of losing
+ * a cart produced the same answer from `cartLinesAdd` and `cartLinesUpdate`:
+ *
+ * | Stored id | Response |
+ * | --- | --- |
+ * | made up, well-formed | `userErrors: [{ code: "INVALID", field: ["cartId"], message: "The specified cart does not exist." }]` |
+ * | real, `?key=` stripped | same |
+ * | real, wrong key | same |
+ * | completed at checkout | same |
+ *
+ * ⚠️ **Match the field, not the code.** A line Shopify refuses is also
+ * `INVALID`, on `["lines", "0", "merchandiseId"]` — and after that the cart is
+ * perfectly healthy. Matching the code alone would discard a shopper's cart
+ * whenever one product in it went unavailable.
+ *
+ * Everything that is not a `userError` is transient or a developer mistake —
+ * network, HTTP, GraphQL, config — and says nothing about the cart at all.
+ */
+export const isCartGone = (error: StorefrontError): boolean =>
+  error.kind === "userError" &&
+  error.errors.some((entry) => entry.field?.length === 1 && entry.field[0] === "cartId");
 
 /**
  * Whether a string is a complete cart id — meaning it still carries its `?key=`.
