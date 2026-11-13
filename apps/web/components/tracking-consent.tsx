@@ -165,14 +165,19 @@ export const TrackingConsentProvider = ({
   // A withdrawal reloads at once (below), which would cancel the cart
   // clean-up, so it's left for the reloaded page to do. The marker stays
   // until the clean-up succeeds, so a failure is retried on the next page.
+  // An Accept since then cancels it (here, in `choose` and in the action).
   useEffect(() => {
     if (!isCartCleanupDue()) return;
+    if (initialConsent === "granted") {
+      clearCartCleanup();
+      return;
+    }
     forgetCartAnalytics()
       .then((done) => {
         if (done) clearCartCleanup();
       })
       .catch(() => undefined);
-  }, []);
+  }, [initialConsent]);
 
   // A refusal made in another tab. The cookie already says so; this tab's
   // state and scripts don't yet. With the scripts running, clear their
@@ -235,6 +240,7 @@ export const TrackingConsentProvider = ({
         ]);
       }
 
+      if (next === "granted") clearCartCleanup();
       setConsent(next);
       setReopened(false);
 

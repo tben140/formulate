@@ -232,8 +232,12 @@ export const removeCartLine = async (formData: FormData): Promise<CartLineResult
  * refusal is already recorded in the cookie, and the next add tries again.
  *
  * Resolves `false` when it couldn't finish, so a caller can try again later.
+ * Does nothing once the shopper has accepted again: the id on the cart is then
+ * the one they agreed to.
  */
 export const forgetCartAnalytics = async (): Promise<boolean> => {
+  const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
+  if (consent === "granted") return true;
   const cartId = await readCartId();
   if (!cartId) return true;
   const cart = await cartClient.get(cartId);
