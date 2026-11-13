@@ -1,8 +1,8 @@
 export { createStorefrontClient } from "./client";
 export type { StorefrontClient, StorefrontClientConfig } from "./client";
 
-export { createCartClient, isCartId } from "./cart";
-export type { Cart, CartClient } from "./cart";
+export { createCartClient, isCartGone, isCartId } from "./cart";
+export type { AddLinesOutcome, Cart, CartClient } from "./cart";
 
 export { describeError } from "./errors";
 export type {
@@ -47,6 +47,7 @@ export {
 export {
   DEFAULT_API_VERSION,
   DEFAULT_COLLECTION_HANDLE,
+  DEMO_STORE_NOTICE,
   DEFAULT_COUNTRY_CODE,
 } from "./config";
 

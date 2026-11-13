@@ -1,13 +1,14 @@
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/link";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { CartButton } from "@/components/cart-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
+import { DemoNotice } from "@/components/demo-notice";
 import { EmailCapture } from "@/components/email-capture";
 import { getCart } from "@/lib/cart";
 import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
@@ -43,6 +44,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
       */}
       <body className="flex min-h-screen flex-col">
         <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
+          <DemoNotice />
           <header className="border-b border-border">
             <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
               <Link

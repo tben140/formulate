@@ -45,7 +45,9 @@ const response = await fetch(`https://${domain}/api/${apiVersion}/graphql.json`,
   },
   body: JSON.stringify({
     query,
-    variables: { handle: "automated-collection" },
+    // A copy of DEFAULT_COLLECTION_HANDLE in src/config.ts; this script runs as
+    // plain Node and cannot import TypeScript. Change both together.
+    variables: { handle: "best-sellers" },
   }),
 });
 
