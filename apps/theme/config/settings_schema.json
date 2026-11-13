@@ -8,6 +8,21 @@
     "theme_support_url": "https://support.shopify.com/"
   },
   {
+    "name": "t:general.typography",
+    "settings": [
+      {
+        "type": "header",
+        "content": "t:general.fonts"
+      },
+      {
+        "type": "font_picker",
+        "id": "type_primary_font",
+        "default": "work_sans_n4",
+        "label": "t:general.primary"
+      }
+    ]
+  },
+  {
     "name": "t:general.layout",
     "settings": [
       {
@@ -39,13 +54,13 @@
     ]
   },
   {
-    "name": "Brand",
+    "name": "t:general.brand",
     "settings": [
       {
         "type": "text",
         "id": "wordmark",
-        "label": "Wordmark",
-        "info": "The brand name in the header and the footer's copyright line. Leave blank to use the store name.",
+        "label": "t:labels.wordmark",
+        "info": "t:info.wordmark",
         "default": "Double Helix"
       }
     ]
@@ -95,51 +110,6 @@
         "unit": "px",
         "label": "t:labels.input_corner_radius",
         "default": 4
-      }
-    ]
-  },
-  {
-    "name": "Social media",
-    "settings": [
-      {
-        "type": "paragraph",
-        "content": "Placeholders: each link is the platform's home page until the account exists. Clear a link to hide its icon. Web and the app read packages/tokens/src/social.ts; keep them the same."
-      },
-      {
-        "type": "text",
-        "id": "social_instagram_link",
-        "label": "Instagram",
-        "default": "https://www.instagram.com/"
-      },
-      {
-        "type": "text",
-        "id": "social_tiktok_link",
-        "label": "TikTok",
-        "default": "https://www.tiktok.com/"
-      },
-      {
-        "type": "text",
-        "id": "social_youtube_link",
-        "label": "YouTube",
-        "default": "https://www.youtube.com/"
-      },
-      {
-        "type": "text",
-        "id": "social_facebook_link",
-        "label": "Facebook",
-        "default": "https://www.facebook.com/"
-      },
-      {
-        "type": "text",
-        "id": "social_pinterest_link",
-        "label": "Pinterest",
-        "default": "https://www.pinterest.com/"
-      },
-      {
-        "type": "text",
-        "id": "social_x_link",
-        "label": "X",
-        "default": "https://x.com/"
       }
     ]
   }

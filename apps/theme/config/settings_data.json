@@ -43,6 +43,13 @@
     "klaviyo_list_id": "XPJ8ic",
 
     /*
+     * The brand name in the header and the footer's copyright line. Committed
+     * for the same reason: a change made in the theme editor would be undone
+     * by the next push.
+     */
+    "wordmark": "Double Helix",
+
+    /*
      * App embeds. Committed rather than enabled through the theme editor,
      * because `.shopifyignore` does not exclude this file — so `shopify theme
      * push` overwrites whatever the editor set, and an embed enabled there
