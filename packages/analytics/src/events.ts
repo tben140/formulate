@@ -167,7 +167,9 @@ interface ProductLike {
  * Store for the theme, Headless for web), so the two lists match only while
  * both channels carry the same collections.
  */
-const categories = (product: ProductLike): readonly string[] =>
+export const collectionTitles = (product: {
+  readonly collections?: ProductLike["collections"];
+}): readonly string[] =>
   (product.collections?.nodes ?? []).map((collection) => collection.title).sort();
 
 /**
@@ -183,7 +185,7 @@ export const viewedProduct = (
 ): ViewedProductPayload => ({
   Name: product.title,
   ProductID: legacyIdFromGid(product.id),
-  Categories: categories(product),
+  Categories: collectionTitles(product),
   ImageURL: product.featuredImage?.url ?? "",
   URL: productUrl(storeDomain, product.handle),
   Brand: product.vendor ?? "",

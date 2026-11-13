@@ -1,5 +1,6 @@
 "use server";
 
+import { CART_ATTRIBUTE_KEYS, cartAttributes } from "@formulate/analytics";
 import {
   describeError,
   describeForShopper,
@@ -7,6 +8,7 @@ import {
   type CartLineInput,
 } from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import {
   cartClient,
@@ -16,6 +18,7 @@ import {
   writeBuyerEmail,
   writeCartId,
 } from "@/lib/cart";
+import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 
 /**
  * Cart mutations, as Server Actions.
@@ -78,6 +81,22 @@ export interface CartActionState {
   readonly addedQuantity?: number;
 }
 
+/** PostHog's anonymous ids are v4 UUIDs; anything else is ignored. */
+const ANALYTICS_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Attributes for a new cart: the visitor's PostHog id and "web", so the
+ * custom pixel can credit the order (packages/analytics, `cartAttributes`).
+ * Only with tracking consent, checked here on the cookie rather than trusted
+ * from the form, and only for an id that looks like one of ours.
+ */
+const newCartAttributes = async (formData: FormData) => {
+  const id = String(formData.get("analyticsId") ?? "");
+  if (!ANALYTICS_ID.test(id)) return undefined;
+  const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
+  return consent === "granted" ? cartAttributes(id, "web") : undefined;
+};
+
 const revalidate = () => revalidatePath("/", "layout");
 
 /**
@@ -117,11 +136,17 @@ export const addToCart = async (
    * cart is still fine, and clearing it would silently lose everything in it.
    * See `addLinesOrCreate` and `isCartGone` in packages/shopify (SHO-122).
    */
-  const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
-    cartId: await readCartId(),
-    lines: [line],
-    email: readBuyerEmail,
-  });
+  const attributes = await newCartAttributes(formData);
+  const { result, storedCartGone, notice, attributesFailed } =
+    await cartClient.addLinesOrCreate({
+      cartId: await readCartId(),
+      lines: [line],
+      email: readBuyerEmail,
+      ...(attributes
+        ? { attributes }
+        : // No consent now: an id added under earlier consent comes off.
+          { removeAttributes: CART_ATTRIBUTE_KEYS }),
+    });
 
   if (!result.ok) {
     if (storedCartGone) await clearCartId();
@@ -132,6 +157,15 @@ export const addToCart = async (
   }
 
   await writeCartId(result.data.id);
+  // The add stood but the analytics id didn't come off: one more try before
+  // the shopper can reach checkout from this cart. Logged if that fails too.
+  if (attributesFailed && !attributes) {
+    const retried = await cartClient.removeAttributes(result.data, CART_ATTRIBUTE_KEYS);
+    if (!retried.ok)
+      console.error(
+        `[cart] analytics attributes not removed: ${describeError(retried.error)}`,
+      );
+  }
   revalidate();
 
   // The line Shopify actually created for this merchandise + selling plan
@@ -185,6 +219,34 @@ export const removeCartLine = async (formData: FormData): Promise<CartLineResult
   if (result.ok) return {};
   console.error(`[cart] remove failed: ${describeError(result.error)}`);
   return { message: describeForShopper(result.error) };
+};
+
+/**
+ * Takes the analytics attributes off the shopper's cart, on a tracking refusal
+ * (components/tracking-consent.tsx), so a cart made under earlier consent
+ * doesn't carry `_posthog_id` to the order.
+ *
+ * Housekeeping, not the consent control: the order webhook never reads the id
+ * (ADR 0012), and the checkout pixel uses it only if the shopper allows
+ * analytics in checkout. So it's quiet on failure, like `identifyBuyer`: the
+ * refusal is already recorded in the cookie, and the next add tries again.
+ *
+ * Resolves `false` when it couldn't finish, so a caller can try again later.
+ * Does nothing once the shopper has accepted again: the id on the cart is then
+ * the one they agreed to.
+ */
+export const forgetCartAnalytics = async (): Promise<boolean> => {
+  const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
+  if (consent === "granted") return true;
+  const cartId = await readCartId();
+  if (!cartId) return true;
+  const cart = await cartClient.get(cartId);
+  if (!cart.ok) return false;
+  if (!cart.data) return true;
+  const result = await cartClient.removeAttributes(cart.data, CART_ATTRIBUTE_KEYS);
+  if (!result.ok)
+    console.error(`[cart] forget analytics failed: ${describeError(result.error)}`);
+  return result.ok;
 };
 
 /**

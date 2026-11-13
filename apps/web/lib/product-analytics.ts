@@ -45,6 +45,33 @@ const read = (): Stored | null => {
   }
 };
 
+const idListeners = new Set<() => void>();
+const notifyId = () => idListeners.forEach((listener) => listener());
+
+/**
+ * Calls `listener` when the stored id appears or goes, in this tab (the first
+ * event after consent creates it; withdrawal removes it) or in another.
+ */
+export const subscribeToStoredDistinctId = (listener: () => void): (() => void) => {
+  idListeners.add(listener);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY || event.key === null) listener();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    idListeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+};
+
+/**
+ * For the consent banner, on every choice: `storedDistinctId` depends on
+ * consent too, and an id kept from before (the consent cookie expires after
+ * six months, localStorage doesn't) becomes readable on Accept without
+ * anything being written.
+ */
+export const notifyAnalyticsConsentChanged = (): void => notifyId();
+
 /** The visitor's ids, starting a new session after 30 idle minutes. */
 const identity = (): AnalyticsIdentity => {
   const now = Date.now();
@@ -62,8 +89,19 @@ const identity = (): AnalyticsIdentity => {
   } catch {
     // Storage blocked: this event still goes, with ids that won't persist.
   }
+  if (!stored) notifyId();
   return { distinctId, sessionId };
 };
+
+/**
+ * The visitor's PostHog id, read without side effects, or null without consent
+ * or before the first event has created one. For tagging a new cart so its
+ * order is credited to this visitor (components/analytics-id-field.tsx).
+ */
+export const storedDistinctId = (): string | null =>
+  POSTHOG_KEY && typeof window !== "undefined" && readConsent() === "granted"
+    ? (read()?.distinctId ?? null)
+    : null;
 
 let client: ProductAnalytics | null = null;
 let referrerSent = false;
@@ -101,4 +139,5 @@ export const forgetProductAnalytics = (): void => {
   } catch {
     // Storage blocked: nothing was kept.
   }
+  notifyId();
 };
