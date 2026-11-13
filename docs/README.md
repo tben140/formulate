@@ -21,6 +21,7 @@ vault to browse it as a graph; it is plain markdown either way.
 | [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
 | [AI agents](agents.md)            | UCP, WebMCP tools, llms.txt and Markdown pages: how agents read and buy                        |
 | [Compliance](compliance.md)       | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open |
+| [Domains](domains.md)             | Which address serves what, the DNS behind it, and why checkout has its own subdomain           |
 
 ## Surfaces
 
