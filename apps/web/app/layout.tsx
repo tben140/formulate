@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/link";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
