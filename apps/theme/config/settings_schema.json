@@ -54,6 +54,18 @@
     ]
   },
   {
+    "name": "t:general.brand",
+    "settings": [
+      {
+        "type": "text",
+        "id": "wordmark",
+        "label": "t:labels.wordmark",
+        "info": "t:info.wordmark",
+        "default": "Double Helix"
+      }
+    ]
+  },
+  {
     "name": "t:general.klaviyo",
     "settings": [
       {
