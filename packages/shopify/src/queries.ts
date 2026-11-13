@@ -15,7 +15,11 @@ export const CollectionProductsQuery = graphql(`
       id
       title
       description
-      products(first: $first) {
+      # COLLECTION_DEFAULT is the merchant's configured sort for this
+      # collection, the same order Liquid's collection.products uses, so the
+      # three surfaces agree. It is also the API default: stated here so it is a
+      # decision rather than an inheritance (SHO-111).
+      products(first: $first, sortKey: COLLECTION_DEFAULT) {
         nodes {
           id
           handle
@@ -48,6 +52,13 @@ export const ProductByHandleQuery = graphql(`
       # Both exist for the Klaviyo payload, which must match what the theme's
       # app embed already emits — see packages/analytics/src/events.ts.
       vendor
+      # Klaviyo Categories. Sorted by title in events.ts, because this comes
+      # back in creation order and the theme's list is alphabetical. SHO-126.
+      collections(first: 50) {
+        nodes {
+          title
+        }
+      }
       compareAtPriceRange {
         minVariantPrice {
           amount

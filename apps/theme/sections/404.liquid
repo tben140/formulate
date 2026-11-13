@@ -1,9 +1,9 @@
 {% comment %}
   404 page.
 
-  apps/web has no custom not-found route, so there is nothing to match
-  literally. This uses the shared container and design tokens so it reads as
-  part of the same storefront rather than an unstyled fallback.
+  Same copy as apps/web's app/not-found.tsx, so a missing page reads the same
+  on both surfaces. The one difference is the link: here it goes to
+  /collections/all, which exists only in Liquid, so apps/web links to / instead.
 
   https://shopify.dev/docs/storefronts/themes/architecture/templates/404
 {% endcomment %}

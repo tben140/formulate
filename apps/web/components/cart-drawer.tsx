@@ -41,6 +41,14 @@ export const CartDrawer = ({ cart }: { cart: Cart | null }) => {
   const lines = cart?.lines.nodes ?? [];
 
   return (
+    /*
+     * The backdrop click below is a mouse convenience with no keyboard
+     * equivalent to add: keyboard users already close a modal <dialog> with
+     * Escape (native) or the Close button. jsx-a11y can't see that the element
+     * is a dialog handling its own keyboard dismissal, so the two rules are
+     * disabled for this element only.
+     */
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={ref}
       aria-label="Shopping cart"
