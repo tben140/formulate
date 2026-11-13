@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [".env.example"],
+  "globalDependencies": ["apps/web/.env.example", "apps/mobile/.env.example"],
   "globalEnv": [
     "SHOPIFY_STORE_DOMAIN",
     "SHOPIFY_STOREFRONT_TOKEN",

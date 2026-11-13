@@ -16,7 +16,7 @@ const apiVersion = process.env.SHOPIFY_API_VERSION ?? "2026-04";
 if (!domain || !token) {
   console.error(
     "Missing SHOPIFY_STORE_DOMAIN or SHOPIFY_STOREFRONT_TOKEN.\n" +
-      "Copy .env.example to apps/web/.env.local and fill it in.",
+      "Copy apps/web/.env.example to apps/web/.env.local and fill it in.",
   );
   process.exit(1);
 }

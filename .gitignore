@@ -54,3 +54,8 @@ pnpm-debug.log*
 # .obsidian/ holds per-machine UI state (open panes, window size, hotkeys) that
 # would churn on every commit.
 .obsidian/
+
+# Wrangler's local secrets for apps/api. Holds the Klaviyo PRIVATE key.
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
