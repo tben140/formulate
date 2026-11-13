@@ -54,3 +54,6 @@ pnpm-debug.log*
 # .obsidian/ holds per-machine UI state (open panes, window size, hotkeys) that
 # would churn on every commit.
 .obsidian/
+
+# Lighthouse CI output (apps/web/lighthouserc.cjs)
+.lighthouseci/
