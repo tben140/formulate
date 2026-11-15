@@ -172,6 +172,7 @@ describe("viewedProduct — Categories", () => {
 
 const line = (overrides: Record<string, unknown> = {}) => ({
   quantity: 2,
+  cost: { totalAmount: { amount: "49.90", currencyCode: "GBP" } },
   merchandise: {
     id: "gid://shopify/ProductVariant/52607188009272",
     image: { url: "/cdn/shop/files/wax.png" },
@@ -228,6 +229,19 @@ describe("startedCheckout", () => {
     const payload = startedCheckout(cart(), SITE_ORIGIN);
     expect(payload.Items[0]?.ItemPrice).toBe("£24.95");
     expect(payload.Items[0]?.RowTotal).toBe("£49.90");
+  });
+
+  it("reports the charged price, not the list price, for a subscription line", () => {
+    // Two units listed at £24.95, charged £19.95 each on the plan.
+    const onPlan = line({
+      cost: { totalAmount: { amount: "39.90", currencyCode: "GBP" } },
+    });
+    const item = startedCheckout(cart([onPlan]), SITE_ORIGIN).Items[0];
+    expect(item?.ItemPrice).toBe("£19.95");
+    expect(item?.RowTotal).toBe("£39.90");
+    expect(addedToCart(cart([onPlan]), onPlan, SITE_ORIGIN, 1).AddedItemPrice).toBe(
+      "£19.95",
+    );
   });
 
   it("identifies each line by product id, with the variant beside it", () => {

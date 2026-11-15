@@ -1756,7 +1756,7 @@ export const CartFieldsFragmentDoc = new TypedDocumentString(`
             id
             handle
             title
-            collections(first: 10) {
+            collections(first: 50) {
               nodes {
                 title
               }
@@ -2182,7 +2182,7 @@ export const CartDocument = new TypedDocumentString(`
             id
             handle
             title
-            collections(first: 10) {
+            collections(first: 50) {
               nodes {
                 title
               }
@@ -2271,7 +2271,7 @@ export const CartCreateDocument = new TypedDocumentString(`
             id
             handle
             title
-            collections(first: 10) {
+            collections(first: 50) {
               nodes {
                 title
               }
@@ -2360,7 +2360,7 @@ export const CartLinesAddDocument = new TypedDocumentString(`
             id
             handle
             title
-            collections(first: 10) {
+            collections(first: 50) {
               nodes {
                 title
               }
@@ -2444,7 +2444,7 @@ export const CartLinesUpdateDocument = new TypedDocumentString(`
             id
             handle
             title
-            collections(first: 10) {
+            collections(first: 50) {
               nodes {
                 title
               }
@@ -2528,7 +2528,7 @@ export const CartLinesRemoveDocument = new TypedDocumentString(`
             id
             handle
             title
-            collections(first: 10) {
+            collections(first: 50) {
               nodes {
                 title
               }
@@ -2612,7 +2612,7 @@ export const CartBuyerIdentityUpdateDocument = new TypedDocumentString(`
             id
             handle
             title
-            collections(first: 10) {
+            collections(first: 50) {
               nodes {
                 title
               }

@@ -220,6 +220,8 @@ export const viewedProduct = (
 
 interface CartLineLike {
   readonly quantity: number;
+  /** What the line actually costs: a subscription line is below list price. */
+  readonly cost: { readonly totalAmount: MoneyLike };
   readonly merchandise: {
     /** The variant's gid. */
     readonly id: string;
@@ -242,16 +244,24 @@ interface CartLike {
   readonly lines: { readonly nodes: readonly CartLineLike[] };
 }
 
+/**
+ * The price one unit of the line is charged at: the line's cost divided by its
+ * quantity, not `merchandise.price`, which is the variant's list price and
+ * overstates a subscription line (£24.95 listed, £19.95 on the plan).
+ * `product-analytics.ts` reads the same source for PostHog.
+ */
+const chargedUnitPrice = (line: CartLineLike): MoneyLike => ({
+  amount: String(Number(line.cost.totalAmount.amount) / Math.max(line.quantity, 1)),
+  currencyCode: line.cost.totalAmount.currencyCode,
+});
+
 const cartItem = (line: CartLineLike, siteOrigin: string): CartItemPayload => ({
   ProductName: line.merchandise.product.title,
   ProductID: legacyIdFromGid(line.merchandise.product.id),
   VariantID: legacyIdFromGid(line.merchandise.id),
   Quantity: line.quantity,
-  ItemPrice: formatEventPrice(line.merchandise.price),
-  RowTotal: formatEventPrice({
-    amount: String(Number(line.merchandise.price.amount) * line.quantity),
-    currencyCode: line.merchandise.price.currencyCode,
-  }),
+  ItemPrice: formatEventPrice(chargedUnitPrice(line)),
+  RowTotal: formatEventPrice(line.cost.totalAmount),
   ProductURL: productUrl(siteOrigin, line.merchandise.product.handle),
   ImageURL: line.merchandise.image?.url ?? "",
   ProductCategories: categories(line.merchandise.product),
@@ -273,7 +283,7 @@ export const addedToCart = (
   AddedItemProductID: legacyIdFromGid(addedLine.merchandise.product.id),
   AddedItemVariantID: legacyIdFromGid(addedLine.merchandise.id),
   AddedItemCategories: categories(addedLine.merchandise.product),
-  AddedItemPrice: formatEventPrice(addedLine.merchandise.price),
+  AddedItemPrice: formatEventPrice(chargedUnitPrice(addedLine)),
   AddedItemQuantity: quantity,
   AddedItemURL: productUrl(siteOrigin, addedLine.merchandise.product.handle),
   AddedItemImageURL: addedLine.merchandise.image?.url ?? "",
