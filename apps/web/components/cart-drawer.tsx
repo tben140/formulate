@@ -196,6 +196,7 @@ export const CartDrawer = ({
         {/* Above the lines, so it is read before the list rather than after it. */}
         <FreeShippingBar
           subtotal={lines.length > 0 ? (shown?.cost.subtotalAmount ?? null) : null}
+          open={open}
         />
 
         {error ? (
