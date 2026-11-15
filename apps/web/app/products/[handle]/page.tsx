@@ -14,7 +14,7 @@ import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
 import { getNavLinks, getShopGroups } from "@/lib/nav";
-import { baseOpenGraph } from "@/lib/site";
+import { baseOpenGraph, siteUrl } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "@/lib/structured-data";
 
 interface PageProps {
@@ -110,7 +110,7 @@ const ProductPage = async ({ params }: PageProps) => {
         bundle — only the emitting needs a browser.
       */}
         <TrackViewedProduct
-          payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
+          payload={viewedProduct(product, siteUrl.origin)}
           productViewed={productViewedProperties(product)}
         />
 
