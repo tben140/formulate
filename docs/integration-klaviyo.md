@@ -549,9 +549,13 @@ records tracking consent, the right to watch what they browse. One does not
 imply the other: a subscriber who declined tracking gets the emails and no
 browse or cart-abandonment flows.
 
-This matters when reading numbers. Decliners are invisible to Klaviyo on all
-three surfaces, so flow volume counts **consenting** shoppers, not all of them.
-Comparing surfaces is only fair because all three now gate the same way.
+This matters when reading numbers. Decliners send none of the client events
+above (Viewed Product, Added to Cart, Started Checkout) on any of the three
+surfaces, so the browse and cart-abandonment flows count **consenting**
+shoppers, not all of them. Decliners are not invisible, though: a subscriber
+still has a profile, and Shopify's server-side events (orders, and the
+checkouts it sees) arrive whatever the banner said. Comparing surfaces on the
+client events is only fair because all three now gate the same way.
 
 Vercel Analytics on the web surface is cookieless and stores nothing on the
 device, so it sits outside this entirely.
