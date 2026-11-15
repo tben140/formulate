@@ -211,16 +211,21 @@ interface CartLike {
   readonly lines: { readonly nodes: readonly CartLineLike[] };
 }
 
+/**
+ * `quantity` is how many this add put in, not the line's new total: adding a
+ * second unit to a line of one reports 1, not 2.
+ */
 export const addedToCart = (
   cart: CartLike,
   addedLine: CartLineLike,
   storeDomain: string,
+  quantity: number,
 ): AddedToCartPayload => ({
   $value: Number(cart.cost.subtotalAmount.amount),
   AddedItemProductName: addedLine.merchandise.product.title,
   AddedItemProductID: legacyIdFromGid(addedLine.merchandise.id),
   AddedItemPrice: formatEventPrice(addedLine.merchandise.price),
-  AddedItemQuantity: addedLine.quantity,
+  AddedItemQuantity: quantity,
   AddedItemURL: productUrl(storeDomain, addedLine.merchandise.product.handle),
   AddedItemImageURL: addedLine.merchandise.image?.url ?? "",
   ItemNames: cart.lines.nodes.map((line) => line.merchandise.product.title),
