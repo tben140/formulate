@@ -61,10 +61,30 @@ export const loadTrackingConsent = async (): Promise<void> => {
   notify();
 };
 
-export const setTrackingConsent = async (next: "granted" | "denied"): Promise<void> => {
+/**
+ * Stores the choice, then applies it. Resolves `false` when the keychain write
+ * failed; the choice then isn't applied, so the banner can say so and offer
+ * another go. One exception: a withdrawal still takes effect now, because
+ * tracking must stop on the tap, not on the disk. The stored answer is removed
+ * too, where it can be, so the next launch asks again rather than restoring a
+ * "granted" that was withdrawn.
+ */
+export const setTrackingConsent = async (
+  next: "granted" | "denied",
+): Promise<boolean> => {
+  try {
+    await SecureStore.setItemAsync(CONSENT_KEY, next);
+  } catch {
+    if (next === "denied") {
+      consent = "denied";
+      await SecureStore.deleteItemAsync(CONSENT_KEY).catch(() => undefined);
+      notify();
+    }
+    return false;
+  }
   consent = next;
-  await SecureStore.setItemAsync(CONSENT_KEY, next).catch(() => undefined);
   notify();
+  return true;
 };
 
 /** Re-renders when the choice changes or finishes loading. */

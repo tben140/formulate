@@ -1,13 +1,17 @@
-import { Pressable, Text, View } from "react-native";
+import { useState } from "react";
+import { AccessibilityInfo, Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   closeTrackingChoice,
+  reopenTrackingChoice,
   setTrackingConsent,
   TRACKING_AVAILABLE,
   useTrackingChoiceReopened,
   useTrackingConsent,
 } from "../lib/tracking-consent";
+
+const SAVE_FAILED = "Your choice couldn't be saved. Please try again.";
 
 /**
  * The app's tracking choice, for PostHog and Klaviyo together, the counterpart
@@ -23,12 +27,21 @@ export const AnalyticsConsent = () => {
   const consent = useTrackingConsent();
   const reopened = useTrackingChoiceReopened();
   const { bottom } = useSafeAreaInsets();
+  const [failed, setFailed] = useState(false);
 
   if (!TRACKING_AVAILABLE || consent === "loading" || (consent !== "unset" && !reopened))
     return null;
 
   const choose = async (next: "granted" | "denied") => {
-    await setTrackingConsent(next);
+    if (!(await setTrackingConsent(next))) {
+      // Keep the banner up, with the message, so the shopper can try again.
+      // A withdrawal has still taken effect (see setTrackingConsent).
+      setFailed(true);
+      reopenTrackingChoice();
+      if (Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(SAVE_FAILED);
+      return;
+    }
+    setFailed(false);
     closeTrackingChoice();
     // No event here: the screen tracker in app/_layout.tsx re-sends the
     // current screen as soon as the choice becomes "granted".
@@ -68,6 +81,16 @@ export const AnalyticsConsent = () => {
           <Text className="text-sm font-semibold text-foreground">Accept</Text>
         </Pressable>
       </View>
+      {/* `accessibilityLiveRegion` covers Android; the announce in `choose` covers iOS. */}
+      {failed ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          role="alert"
+          className="mt-2 text-sm text-danger"
+        >
+          {SAVE_FAILED}
+        </Text>
+      ) : null}
     </View>
   );
 };
