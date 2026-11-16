@@ -1,3 +1,4 @@
+import { readBounded } from "./body";
 import type { RateLimiter } from "./rate-limiter";
 
 export { RateLimiter } from "./rate-limiter";
@@ -41,7 +42,8 @@ interface Env {
 
 /**
  * Generous for a form submission, tight for anything constructing a payload.
- * Read before parsing, so a large body is rejected rather than buffered.
+ * Enforced while reading (see body.ts), so a large body is cut off rather
+ * than buffered and then measured.
  */
 const MAX_BODY_BYTES = 1024;
 
@@ -60,7 +62,10 @@ const MAX_BODY_BYTES = 1024;
  */
 type Outcome =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: "invalid-email" | "rate-limited" | "rejected" };
+  | {
+      readonly ok: false;
+      readonly reason: "invalid-email" | "rate-limited" | "rejected";
+    };
 
 const json = (body: Outcome, status: number): Response =>
   new Response(JSON.stringify(body), {
@@ -110,8 +115,8 @@ export default {
       return json({ ok: false, reason: "rate-limited" }, 429);
     }
 
-    const raw = await request.text();
-    if (raw.length > MAX_BODY_BYTES) {
+    const raw = await readBounded(request, MAX_BODY_BYTES);
+    if (raw === null) {
       return json({ ok: false, reason: "rejected" }, 413);
     }
 
