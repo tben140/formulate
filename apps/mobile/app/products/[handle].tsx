@@ -19,7 +19,7 @@ import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-
 import { trackEvent } from "../../lib/klaviyo";
 import { analytics } from "../../lib/product-analytics";
 import { useProduct } from "../../lib/queries";
-import { STORE_DOMAIN } from "../../lib/storefront";
+import { SITE_ORIGIN } from "../../lib/site";
 import { useTrackingConsent } from "../../lib/tracking-consent";
 import { usePurchase, type Product } from "../../lib/use-purchase";
 
@@ -105,7 +105,7 @@ const ProductBody = ({ product }: { product: Product }) => {
         PRODUCT_EVENTS.productViewed,
         productViewedProperties(product),
       );
-      trackEvent(EVENTS.viewedProduct, viewedProduct(product, STORE_DOMAIN));
+      trackEvent(EVENTS.viewedProduct, viewedProduct(product, SITE_ORIGIN));
     }, [product, consent]),
   );
   const { bottom } = useSafeAreaInsets();

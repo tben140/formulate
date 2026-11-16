@@ -208,7 +208,10 @@ hand-edit `theme.css`, `tokens.css`, or `apps/theme/assets/tokens.css`.
 ## Git
 
 - Branch from `main`; never commit to it directly. Branch protection enforces
-  this, with linear history and required up-to-date status checks.
+  this, with required up-to-date status checks and resolved review threads.
+  Linear history is **not** required: pull requests land with merge commits
+  (`gh pr merge --merge`), never by squash or rebase, so the history of a
+  branch survives its landing.
 - Commit incrementally as work lands. Do not batch a day of work into one commit
   and reconstruct the history afterwards.
 - Commit messages explain **why**, at length where the reason is not obvious.

@@ -49,7 +49,7 @@ account on 2026-09-27. Two pairs have near-identical names, so the id matters.
 | Klaviyo metric (id)         | Integration | Fed by                                                                  | Flows that use it                                 |
 | --------------------------- | ----------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
 | Viewed Product (`RXYrJ4`)   | API         | Web (`_learnq`), theme (Klaviyo app embed)                              | Browse abandonment                                |
-| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed). **Canonical**, see below. Mobile sends none yet | Cart abandonment                                  |
+| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed), app (SHO-109). **Canonical**, see below         | Cart abandonment                                  |
 | Added to Cart (`UNszvd`)    | Shopify     | Shopify's web pixel, theme only. **Not used**, see below                | none                                              |
 | Started Checkout (`SqEBQ9`) | API         | Web only (`apps/web`, on the checkout link). The theme does not emit it | none                                              |
 | Checkout Started (`UprmRa`) | Shopify     | Shopify, server-side, from every surface                                | Abandoned checkout                                |
@@ -62,6 +62,19 @@ assert against a payload captured from the running theme. A `ProductID` sent as
 a Storefront gid rather than a legacy numeric id would produce events that look
 correct in Klaviyo and never match a theme-generated one, splitting every
 segment in two with no error anywhere.
+
+Two more things the headless payloads keep in step with Klaviyo's Shopify
+schema, both wrong until 2026-11-15:
+
+- **Ids.** `ProductID` is the product's id in every event, including
+  `AddedItemProductID` and each `Items[].ProductID`; the variant rides beside it
+  as `AddedItemVariantID` / `VariantID`. A flow matching a browse to a cart, or
+  a product block in an email, keys on the product id.
+- **URLs.** `URL`, `AddedItemURL` and `ProductURL` are on the public site
+  (`https://www.doublehelixsupplements.co.uk`, web's `siteUrl.origin`), not on
+  the `*.myshopify.com` host, which is the password-protected Online Store of a
+  development store. The theme's own events link to the Online Store's host,
+  which is where a theme shopper is.
 
 For checkout, see "Which checkout metric" below: the flow uses Shopify's
 server-side `Checkout Started`, not our `Started Checkout`.
