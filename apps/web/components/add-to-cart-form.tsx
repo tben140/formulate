@@ -44,7 +44,7 @@ const IDLE: CartActionState = { status: "idle" };
  * only the rendering is here. See docs/adr/0005-parity-means-design-not-data.md.
  */
 export const AddToCartForm = ({ product }: { product: Product }) => {
-  const { openCart, storeDomain } = useCartUi();
+  const { openCart, siteOrigin } = useCartUi();
   const [state, formAction, pending] = useActionState(addToCart, IDLE);
 
   const [selected, setSelected] = useState<readonly SelectedOption[]>(() =>
@@ -101,7 +101,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
     const quantity = state.addedQuantity ?? 1;
     if (state.cart && line && quantity > 0) {
-      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain, quantity));
+      track(EVENTS.addedToCart, addedToCart(state.cart, line, siteOrigin, quantity));
       const added = addedToCartProperties(line, quantity);
       if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
     }
@@ -112,7 +112,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     state.addedLineId,
     state.addedQuantity,
     openCart,
-    storeDomain,
+    siteOrigin,
   ]);
 
   const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
