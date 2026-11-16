@@ -150,11 +150,18 @@ Still to do, in this order, each one reversible:
 
 **Always name the version.** `pnpm --filter @formulate/api exec wrangler
 deployments list` shows every version with its date and message; pick the last
-known-good one and run `wrangler rollback <version-id>`. Not the bare
-`wrangler rollback`: every `wrangler secret put` also creates a version, so
-"the previous version" after a bad deploy followed by a secret change is the
-bad deploy again, with the new secret. Secrets and Durable Object data are
-untouched by a rollback.
+known-good one and run
+`pnpm --filter @formulate/api exec wrangler rollback <version-id>` (Wrangler is
+the API package's dependency, so the bare command finds nothing from the
+repository root). Not the bare `wrangler rollback`: every `wrangler secret put`
+also creates a version, so "the previous version" after a bad deploy followed
+by a secret change is the bad deploy again, with the new secret.
+
+**Secrets travel with the version.** A version records the secrets it was
+created with, and rolling back restores them; Wrangler says which ones will
+change and asks before it does. So a rollback across a secret rotation
+reinstates the old value, and the rotated secret has to be `secret put` again
+afterwards. Durable Object data is not versioned and is untouched.
 
 **A rollback cannot cross a Durable Object migration.** Cloudflare refuses to
 roll back to a version from before a class was added, so nothing before `v2`
@@ -165,14 +172,17 @@ tag to "undo" one.
 
 **Webhooks during a rollback.** A version without a route answers that route
 with `404` or `405`, which Shopify counts as a failed delivery. Shopify retries
-a failed delivery up to eight times over four hours, and removes a subscription
-after enough consecutive failures. So a rollback that lasts under an hour loses
-nothing; a longer one loses the order-backup events for orders in that window,
-and there is no replay: those orders are counted only if the checkout pixel
-reported them. After any outage past an hour, check the subscription still
-exists (the Dev Dashboard app, or `shopify app webhooks` for the app's own) and
-re-create it if not, and for the campaign log compare `campaigns history`
-against the records' current fields and note any edit it missed.
+a failed delivery up to eight times over four hours, and deletes a subscription
+made through the Admin API (the `orders/create` one, from the Dev Dashboard
+app) after eight consecutive failures, so a short outage with several orders
+in it can lose the subscription as surely as a long one. A subscription
+declared in `shopify.app.toml` (the campaigns webhook) is not deleted. There is
+no replay for a delivery that ran out of retries: those orders are counted
+only if the checkout pixel reported them. After any outage, however short,
+check the `orders/create` subscription still exists (the Dev Dashboard app, or
+`shopify app webhooks` for the app's own) and re-create it if not, and for the
+campaign log compare `campaigns history` against the records' current fields
+and note any edit it missed.
 
 ## Related
 
