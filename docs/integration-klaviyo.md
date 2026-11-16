@@ -46,14 +46,14 @@ _features_, but not as a route to the same endpoints over plain `fetch`.
 Where each metric in the Klaviyo account really comes from, as observed in the
 account on 2026-09-27. Two pairs have near-identical names, so the id matters.
 
-| Klaviyo metric (id)         | Integration | Fed by                                                                  | Flows that use it                                 |
-| --------------------------- | ----------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
-| Viewed Product (`RXYrJ4`)   | API         | Web (`_learnq`), theme (Klaviyo app embed), mobile (the SDK)            | Browse abandonment                                |
-| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed), mobile (the SDK). **Canonical**, see below      | Cart abandonment                                  |
-| Added to Cart (`UNszvd`)    | Shopify     | Shopify's web pixel, theme only. **Not used**, see below                | none                                              |
-| Started Checkout (`SqEBQ9`) | API         | Web only (`apps/web`, on the checkout link). The theme does not emit it | none                                              |
-| Checkout Started (`UprmRa`) | Shopify     | Shopify, server-side, from every surface                                | Abandoned checkout                                |
-| Subscribed to List          | Klaviyo     | Web, theme, mobile through the `apps/api` Worker (email capture, below) | none (Welcome series triggers on the list itself) |
+| Klaviyo metric (id)         | Integration | Fed by                                                                                  | Flows that use it                                 |
+| --------------------------- | ----------- | --------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Viewed Product (`RXYrJ4`)   | API         | Web (`_learnq`), theme (Klaviyo app embed), mobile (the SDK)                            | Browse abandonment                                |
+| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed), mobile (the SDK). **Canonical**, see below                      | Cart abandonment                                  |
+| Added to Cart (`UNszvd`)    | Shopify     | Shopify's web pixel, theme only. **Not used**, see below                                | none                                              |
+| Started Checkout (`SqEBQ9`) | API         | Web (`apps/web`, on the checkout link) and mobile (the SDK). The theme does not emit it | none                                              |
+| Checkout Started (`UprmRa`) | Shopify     | Shopify, server-side, from every surface                                                | Abandoned checkout                                |
+| Subscribed to List          | Klaviyo     | Web, theme, mobile through the `apps/api` Worker (email capture, below)                 | none (Welcome series triggers on the list itself) |
 
 The theme's Viewed Product and Added to Cart come from Klaviyo's app embed, with
 no code from us. The headless surfaces build the same payloads by hand in
