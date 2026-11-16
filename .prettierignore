@@ -1,0 +1,15 @@
+# Written by tools that don't run Prettier. Formatting them would be undone on
+# the next regeneration, so they are left in their generator's layout.
+packages/shopify/src/generated/
+packages/tokens/theme.css
+packages/tokens/tokens.css
+apps/theme/assets/tokens.css
+apps/theme/assets/fonts.css
+
+# Written by Shopify (the theme editor, `shopify theme pull`) in its own layout.
+apps/theme/templates/*.json
+apps/theme/sections/*.json
+apps/theme/config/*.json
+
+# pnpm's.
+pnpm-lock.yaml

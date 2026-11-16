@@ -101,7 +101,10 @@ const ProductBody = ({ product }: { product: Product }) => {
     useCallback(() => {
       if (consent !== "granted" || counted.current === product.id) return;
       counted.current = product.id;
-      analytics()?.capture(PRODUCT_EVENTS.productViewed, productViewedProperties(product));
+      analytics()?.capture(
+        PRODUCT_EVENTS.productViewed,
+        productViewedProperties(product),
+      );
       trackEvent(EVENTS.viewedProduct, viewedProduct(product, STORE_DOMAIN));
     }, [product, consent]),
   );
