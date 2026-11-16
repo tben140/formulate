@@ -95,9 +95,10 @@ only runs in Expo's command-line tools.
 Each comes out of the list once every parent package that pulls in the
 vulnerable version ships the fix. glob comes in through Expo's CLI and
 fingerprint packages; minimatch through those, ESLint and graphql-config, so it
-stays until all of them have moved to minimatch 11 (`pnpm why minimatch` shows
-what's left). On the review date, check; if a parent still hasn't, move the
-date on.
+stays until all of them have moved to minimatch 11.0.1 or later, the first
+patched version (`pnpm why -r minimatch` shows what's left, across every
+workspace package, which the bare command doesn't). On the review date, check;
+if a parent still hasn't, move the date on.
 
 Three earlier entries came off the list on 16 November 2026, because the
 October batch's dependency updates removed the packages themselves: zod 3

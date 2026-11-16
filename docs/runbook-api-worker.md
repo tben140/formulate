@@ -15,13 +15,15 @@ manual.
 | `https://formulate-api.<subdomain>.workers.dev` | The original address. Kept (`workers_dev: true`) while app builds, the pixel and the app's webhook URIs still name it |
 
 The Worker was last deployed on **15 November 2026**, from a combined local
-branch (`deploy/api-domain`): the October batch plus two pull requests still in
-review, **#108** (the order webhook and `OrderBackup`) and **#211** (the
-campaign change log and `CampaignLog`). Until both land, **neither `main` nor
-the batch can be deployed as they are**: their `wrangler.jsonc` knows only the
-`v1` migration, so a deploy from them would publish a Worker without the
-campaign log and order routes, and the webhooks Shopify already sends to them
-would start failing. That is why the CI deploy workflow is manual-only (#255).
+branch (`deploy/api-domain`): the October batch plus the order webhook and
+`OrderBackup` (#108) and the campaign change log and `CampaignLog` (#211).
+**Only code that carries all three Durable Object classes and all three
+migration tags below may be deployed.** A branch whose `wrangler.jsonc` knows
+only `v1` would publish a Worker without the campaign log and order routes,
+and the webhooks Shopify already sends to them would start failing. That is
+why the CI deploy workflow runs only by hand (#255). Which branches qualify
+is a fact about the code, checked by the dry-run in step 3 below, not a list
+to keep here.
 
 ### Routes
 
@@ -146,13 +148,31 @@ Still to do, in this order, each one reversible:
 
 ## Rolling back
 
-`pnpm --filter @formulate/api exec wrangler rollback` returns to the previous
-version (or `wrangler rollback <version-id>` to a named one from
-`wrangler deployments list`). Secrets and Durable Object data are untouched;
-migration tags are not undone, which is the point of never reusing them. A
-rollback to a version without a route makes that route a `404` or `405` again,
-and Shopify retries a webhook for 48 hours, so a short rollback loses no
-orders from the backup.
+**Always name the version.** `pnpm --filter @formulate/api exec wrangler
+deployments list` shows every version with its date and message; pick the last
+known-good one and run `wrangler rollback <version-id>`. Not the bare
+`wrangler rollback`: every `wrangler secret put` also creates a version, so
+"the previous version" after a bad deploy followed by a secret change is the
+bad deploy again, with the new secret. Secrets and Durable Object data are
+untouched by a rollback.
+
+**A rollback cannot cross a Durable Object migration.** Cloudflare refuses to
+roll back to a version from before a class was added, so nothing before `v2`
+or `v3` can be selected now, and the same will hold for `v4`. If the bad
+version is the one that added a class, the way back is forward: fix the code,
+keep the class and its tag, and deploy again. Never delete a class or reuse a
+tag to "undo" one.
+
+**Webhooks during a rollback.** A version without a route answers that route
+with `404` or `405`, which Shopify counts as a failed delivery. Shopify retries
+a failed delivery up to eight times over four hours, and removes a subscription
+after enough consecutive failures. So a rollback that lasts under an hour loses
+nothing; a longer one loses the order-backup events for orders in that window,
+and there is no replay: those orders are counted only if the checkout pixel
+reported them. After any outage past an hour, check the subscription still
+exists (the Dev Dashboard app, or `shopify app webhooks` for the app's own) and
+re-create it if not, and for the campaign log compare `campaigns history`
+against the records' current fields and note any edit it missed.
 
 ## Related
 

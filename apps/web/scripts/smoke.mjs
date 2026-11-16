@@ -54,6 +54,15 @@ const get = async (path, init = {}) => {
   }
 };
 
+/** A URL's origin, or "" when it isn't one. */
+const originOf = (url) => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "";
+  }
+};
+
 const titleOf = (html) => html.match(/<title>([^<]*)<\/title>/i)?.[1]?.trim() ?? "";
 const canonicalOf = (html) =>
   html.match(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/i)?.[1] ??
@@ -135,10 +144,12 @@ const host = new URL(origin).host;
 if (host.startsWith("www.")) {
   const apex = await get(`https://${host.slice(4)}/`);
   const location = apex.headers.get("location") ?? "";
+  // The destination's origin, compared whole: a prefix match would accept a
+  // redirect to another host that merely starts with ours.
   check(
     "apex redirects to www",
-    [301, 308].includes(apex.status) && location.startsWith(origin),
-    `${apex.status} ${location}`,
+    [301, 308].includes(apex.status) && originOf(location) === origin,
+    `${apex.status} ${location || "no location"}`,
   );
 }
 
