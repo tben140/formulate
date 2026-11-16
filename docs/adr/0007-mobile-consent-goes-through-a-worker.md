@@ -38,8 +38,8 @@ each was closed:
    challenge escalates with repetition, which makes this the kind of dependency
    that passes a demo and fails a user.
 
-3. **Klaviyo's in-app forms.** Their documentation states these _"cannot be used
-   to collect consent or profile information yet"_. Display and analytics only.
+3. **Klaviyo's in-app forms.** Their documentation states these *"cannot be used
+   to collect consent or profile information yet"*. Display and analytics only.
 
 ## Decision
 
@@ -59,7 +59,7 @@ recorded by different systems, deliberately.
 
 The credential would otherwise live in the storefront's environment — the
 highest-traffic, most third-party-exposed surface in the project. Having argued
-for a scoped key to limit what a leaked credential can _do_, putting it there
+for a scoped key to limit what a leaked credential can *do*, putting it there
 would undercut the same reasoning. A separate deployable isolates it.
 
 Cloudflare over a second Vercel project for two reasons: rate limiting is a
@@ -75,16 +75,16 @@ The threat is **not** key theft. It is a confused deputy: a public endpoint that
 acts on our behalf, where an attacker never needs the credential at all.
 Controls, in order of how much they actually buy:
 
-| Control                              | Effect                                                                                                                                                                               |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Control | Effect |
+| --- | --- |
 | Payload constructed, never forwarded | Caller supplies an address and nothing else. The list id is worker config. Prevents choosing the destination list, setting arbitrary profile properties, or forging `custom_source`. |
-| Scoped key — Lists and Profiles only | A leaked key adds addresses to a list. It cannot read the customer database.                                                                                                         |
-| Double opt-in on the list            | Nobody is subscribed until they click a confirmation email, so abuse costs unsent confirmations rather than list poisoning.                                                          |
-| Rate limit, 5/min per IP             | A **Durable Object**, keyed on `CF-Connecting-IP` — edge-set and unspoofable, unlike `X-Forwarded-For`. See below: this is the second attempt.                                       |
-| Generic error responses              | Klaviyo's errors describe the account. Forwarding them would make this an information-disclosure endpoint.                                                                           |
-| No CORS headers                      | A native caller needs none, and their absence stops browsers using it cross-origin.                                                                                                  |
-| No dependencies                      | Nothing in the supply chain to compromise.                                                                                                                                           |
-| No addresses in logs                 | Emails are personal data; outcomes and statuses are enough to diagnose with.                                                                                                         |
+| Scoped key — Lists and Profiles only | A leaked key adds addresses to a list. It cannot read the customer database. |
+| Double opt-in on the list | Nobody is subscribed until they click a confirmation email, so abuse costs unsent confirmations rather than list poisoning. |
+| Rate limit, 5/min per IP | A **Durable Object**, keyed on `CF-Connecting-IP` — edge-set and unspoofable, unlike `X-Forwarded-For`. See below: this is the second attempt. |
+| Generic error responses | Klaviyo's errors describe the account. Forwarding them would make this an information-disclosure endpoint. |
+| No CORS headers | A native caller needs none, and their absence stops browsers using it cross-origin. |
+| No dependencies | Nothing in the supply chain to compromise. |
+| No addresses in logs | Emails are personal data; outcomes and statuses are enough to diagnose with. |
 
 ### ⚠️ The first rate limiter did nothing
 
@@ -94,9 +94,9 @@ appeared in the deploy output as `env.SUBSCRIBE_LIMITER (5 requests/60s)`, and
 requests against a limit of 5/60s, in parallel bursts and in sequential runs
 minutes apart.
 
-Cloudflare's own documentation explains it: that API is _"permissive,
+Cloudflare's own documentation explains it: that API is *"permissive,
 eventually consistent, and intentionally designed to not be used as an accurate
-accounting system"_, with counters cached per-location and updated
+accounting system"*, with counters cached per-location and updated
 asynchronously. A rate limiter **is** an accounting system. The primitive was
 wrong for the job, a sentence in the docs said so, and only measuring the
 behaviour revealed it.
@@ -111,7 +111,7 @@ Two things worth carrying forward:
 
 1. **Every signal short of counting responses said it worked.** Config valid,
    binding present, deploy output confirming the limit, well-formed return
-   value. A control that has not been observed _failing closed_ has not been
+   value. A control that has not been observed *failing closed* has not been
    tested.
 2. **A free native rate limiter was one of two reasons for choosing Cloudflare
    over Vercel.** That reason evaporated. The decision stands on the remaining
@@ -143,8 +143,8 @@ app may call this", and it is disproportionate here: the asset is a demo store's
 double-opt-in marketing list, and the cost is a stateful attestation protocol,
 per-platform implementations, and a dev loop that cannot run on the simulator.
 
-Also worth recording that attestation is what you reach for when you _cannot
-authenticate the user_. Were the app to gain customer accounts, this endpoint
+Also worth recording that attestation is what you reach for when you *cannot
+authenticate the user*. Were the app to gain customer accounts, this endpoint
 would take a customer token and the question would not arise.
 
 **Turnstile, IP allow-lists, a shared secret in the app bundle.** The last is

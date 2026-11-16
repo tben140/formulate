@@ -13,3 +13,7 @@ apps/theme/config/*.json
 
 # pnpm's.
 pnpm-lock.yaml
+
+# A merged decision record is immutable (AGENTS.md), so Prettier may not
+# restyle it either. Format a new record before it lands, not after.
+docs/adr/0007-mobile-consent-goes-through-a-worker.md
