@@ -1,18 +1,42 @@
-import { CollectionProductsQuery, formatMoney } from "@formulate/shopify";
+import { formatMoney } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import Link from "@/components/link";
 import { notFound } from "next/navigation";
 
+import { JsonLd } from "@/components/json-ld";
 import { StorefrontErrorState } from "@/components/storefront-error";
-import { storefront } from "@/lib/storefront";
+import { getCollection } from "@/lib/catalogue";
+import { baseOpenGraph } from "@/lib/site";
+import { breadcrumbJsonLd, metaDescription } from "@/lib/structured-data";
 
 interface PageProps {
   /** Next 15+ passes route params as a Promise. */
   readonly params: Promise<{ handle: string }>;
 }
 
-export const metadata: Metadata = { title: "Collection — Formulate" };
+export const generateMetadata = async ({ params }: PageProps): Promise<Metadata> => {
+  const { handle } = await params;
+  const result = await getCollection(handle);
+  const collection = result.ok ? result.data.collection : null;
+  if (!collection) return {};
+
+  const description = metaDescription(
+    collection.seo.description ?? collection.description,
+  );
+
+  return {
+    title: collection.seo.title ?? collection.title,
+    ...(description ? { description } : {}),
+    alternates: { canonical: `/collections/${handle}` },
+    openGraph: {
+      ...baseOpenGraph,
+      url: `/collections/${handle}`,
+      title: collection.title,
+      ...(description ? { description } : {}),
+    },
+  };
+};
 
 /** Products per row at the widest breakpoint (`lg:grid-cols-3`). */
 const FIRST_ROW = 3;
@@ -20,10 +44,8 @@ const FIRST_ROW = 3;
 const CollectionPage = async ({ params }: PageProps) => {
   const { handle } = await params;
 
-  const result = await storefront.request(CollectionProductsQuery, {
-    handle,
-    first: 24,
-  });
+  // Cached per request: generateMetadata already fetched it.
+  const result = await getCollection(handle);
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
@@ -32,6 +54,13 @@ const CollectionPage = async ({ params }: PageProps) => {
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: collection.title, path: `/collections/${handle}` },
+        ])}
+      />
+
       <header className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">{collection.title}</h1>
         {collection.description ? (

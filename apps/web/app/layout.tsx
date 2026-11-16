@@ -12,12 +12,18 @@ import { DemoNotice } from "@/components/demo-notice";
 import { EmailCapture } from "@/components/email-capture";
 import { getCart } from "@/lib/cart";
 import { KLAVIYO_PUBLIC_KEY, KLAVIYO_SCRIPT_URL } from "@/lib/klaviyo";
+import { baseOpenGraph, isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Formulate",
-  description: "A headless Shopify storefront built on Next.js and Expo.",
+  metadataBase: siteUrl,
+  title: { default: SITE_NAME, template: `%s — ${SITE_NAME}` },
+  description: `Supplements built around a 30-day rhythm, from ${SITE_NAME}.`,
+  applicationName: SITE_NAME,
+  openGraph: baseOpenGraph,
+  twitter: { card: "summary_large_image" },
+  robots: isIndexable ? { index: true, follow: true } : { index: false, follow: false },
 };
 
 /**
@@ -51,7 +57,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                 href="/"
                 className="text-lg font-semibold tracking-tight text-foreground"
               >
-                Formulate
+                {SITE_NAME}
               </Link>
               <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
             </nav>
@@ -67,7 +73,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             <div className="mx-auto max-w-5xl px-4 py-6">
               <EmailCapture />
               <p className="mt-6 text-sm text-foreground-muted">
-                &copy; {new Date().getFullYear()} Formulate
+                &copy; {new Date().getFullYear()} {SITE_NAME}
               </p>
             </div>
           </footer>
