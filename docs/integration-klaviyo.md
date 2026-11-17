@@ -46,14 +46,14 @@ _features_, but not as a route to the same endpoints over plain `fetch`.
 Where each metric in the Klaviyo account really comes from, as observed in the
 account on 2026-09-27. Two pairs have near-identical names, so the id matters.
 
-| Klaviyo metric (id)         | Integration | Fed by                                                                  | Flows that use it                                 |
-| --------------------------- | ----------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
-| Viewed Product (`RXYrJ4`)   | API         | Web (`_learnq`), theme (Klaviyo app embed)                              | Browse abandonment                                |
-| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed), app (SHO-109). **Canonical**, see below         | Cart abandonment                                  |
-| Added to Cart (`UNszvd`)    | Shopify     | Shopify's web pixel, theme only. **Not used**, see below                | none                                              |
-| Started Checkout (`SqEBQ9`) | API         | Web only (`apps/web`, on the checkout link). The theme does not emit it | none                                              |
-| Checkout Started (`UprmRa`) | Shopify     | Shopify, server-side, from every surface                                | Abandoned checkout                                |
-| Subscribed to List          | Klaviyo     | Web, theme, mobile through the `apps/api` Worker (email capture, below) | none (Welcome series triggers on the list itself) |
+| Klaviyo metric (id)         | Integration | Fed by                                                                                  | Flows that use it                                 |
+| --------------------------- | ----------- | --------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Viewed Product (`RXYrJ4`)   | API         | Web (`_learnq`), theme (Klaviyo app embed), mobile (the SDK)                            | Browse abandonment                                |
+| Added to Cart (`W7zpiE`)    | API         | Web, theme (app embed), mobile (the SDK). **Canonical**, see below                      | Cart abandonment                                  |
+| Added to Cart (`UNszvd`)    | Shopify     | Shopify's web pixel, theme only. **Not used**, see below                                | none                                              |
+| Started Checkout (`SqEBQ9`) | API         | Web (`apps/web`, on the checkout link) and mobile (the SDK). The theme does not emit it | none                                              |
+| Checkout Started (`UprmRa`) | Shopify     | Shopify, server-side, from every surface                                                | Abandoned checkout                                |
+| Subscribed to List          | Klaviyo     | Web, theme, mobile through the `apps/api` Worker (email capture, below)                 | none (Welcome series triggers on the list itself) |
 
 The theme's Viewed Product and Added to Cart come from Klaviyo's app embed, with
 no code from us. The headless surfaces build the same payloads by hand in
@@ -62,19 +62,6 @@ assert against a payload captured from the running theme. A `ProductID` sent as
 a Storefront gid rather than a legacy numeric id would produce events that look
 correct in Klaviyo and never match a theme-generated one, splitting every
 segment in two with no error anywhere.
-
-Two more things the headless payloads keep in step with Klaviyo's Shopify
-schema, both wrong until 2026-11-15:
-
-- **Ids.** `ProductID` is the product's id in every event, including
-  `AddedItemProductID` and each `Items[].ProductID`; the variant rides beside it
-  as `AddedItemVariantID` / `VariantID`. A flow matching a browse to a cart, or
-  a product block in an email, keys on the product id.
-- **URLs.** `URL`, `AddedItemURL` and `ProductURL` are on the public site
-  (`https://www.doublehelixsupplements.co.uk`, web's `siteUrl.origin`), not on
-  the `*.myshopify.com` host, which is the password-protected Online Store of a
-  development store. The theme's own events link to the Online Store's host,
-  which is where a theme shopper is.
 
 For checkout, see "Which checkout metric" below: the flow uses Shopify's
 server-side `Checkout Started`, not our `Started Checkout`.
@@ -320,18 +307,20 @@ identity and events only. This is deliberate on Klaviyo's part, and defensible:
 a marketing consent record carries legal weight, so an arbitrary mobile client
 is not allowed to write one.
 
-**So mobile identifies but does not subscribe**, and its copy says so. Web and
-theme offer a newsletter because they send an explicit consent block; the
-mobile form promises only what it delivers. Restoring the marketing wording
-before a consent route lands would be collecting an address under a promise
-nothing has recorded.
+**So mobile identifies through the SDK and subscribes through `apps/api`**, a
+Cloudflare Worker that holds a scoped private key and records the consent
+server-side ([ADR 0007](adr/0007-mobile-consent-goes-through-a-worker.md)).
+The app's email capture posts the address to the Worker and nothing else: the
+list, the consent block and the source are the Worker's to set. Consent and
+identity are different claims, recorded by different systems, deliberately.
 
-Two routes remain for consent on mobile, and neither is chosen yet:
+The two routes that were on the table when the SDK's limit was found, and
+what became of each:
 
-| Route                                              | Trade                                                                                                                                                                                                          |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Klaviyo in-app forms** (`registerForInAppForms`) | Vendor's answer. Handles consent properly, but the form is designed in Klaviyo's dashboard, so our custom UI is replaced by theirs.                                                                            |
-| **Server-side call** from `apps/web`               | Keeps our UI. Needs a private key and an authenticated endpoint — see the rejection note below, which applies with less force now that it would be a _complement_ to the SDK rather than a replacement for it. |
+| Route                                              | Outcome                                                                                                                                                                                                                                      |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Klaviyo in-app forms** (`registerForInAppForms`) | Rejected. Klaviyo's documentation says they cannot be used to collect consent or profile information: display and analytics only.                                                                                                            |
+| **Server-side call** from `apps/web`               | Rejected in favour of the Worker. The key would sit in the storefront's environment, the most exposed surface, and the rate limit the route needs is a Worker primitive. The rejection note below is the earlier form of the same objection. |
 
 ### Prior recommendation, superseded
 
@@ -449,8 +438,8 @@ the demo-store notice, except Abandoned checkout and Back in stock
 | Flow               | Trigger                                | Source of the trigger                                       |
 | ------------------ | -------------------------------------- | ----------------------------------------------------------- |
 | Welcome series     | Added to the newsletter list           | Email capture on every surface                              |
-| Browse abandonment | Viewed Product (`RXYrJ4`)              | Ours: web, theme app embed                                  |
-| Cart abandonment   | Added to Cart (`W7zpiE`)               | Ours: web, theme app embed                                  |
+| Browse abandonment | Viewed Product (`RXYrJ4`)              | Ours: web, theme app embed, mobile app                      |
+| Cart abandonment   | Added to Cart (`W7zpiE`)               | Ours: web, theme app embed, mobile app                      |
 | Abandoned checkout | Checkout Started (`UprmRa`)            | Shopify, server-side, every surface. See the decision below |
 | Back in stock      | Subscribed to Back in Stock (`WbRfmD`) | Klaviyo's back-in-stock form                                |
 | Post-purchase      | Placed Order (`V2sqtM`)                | Shopify                                                     |
