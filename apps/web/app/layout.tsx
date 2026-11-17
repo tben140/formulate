@@ -99,7 +99,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           Shopify's consent API; here it is ours. See ADR 0008.
         */}
         <TrackingConsentProvider initialConsent={consent}>
-          <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
+          <CartProvider siteOrigin={siteUrl.origin}>
             <DemoNotice />
             {/* relative: the Shop dropdown's panel hangs from the header's full width. */}
             <header className="relative z-30 border-b border-border">

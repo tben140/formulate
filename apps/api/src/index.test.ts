@@ -68,11 +68,17 @@ describe("request shape", () => {
   });
 
   it("stops reading a chunked body past the limit instead of buffering it", async () => {
-    // A stream that never ends: only a reader that gives up past the limit
-    // can answer at all, so a 413 here proves the body was cut off.
+    // A stream with no end in sight: only a reader that gives up past the
+    // limit can answer at all, so a 413 here proves the body was cut off. It
+    // errors after sixteen chunks (four times the limit), so a reader that
+    // waited for the end would fail the test rather than hang it.
     const chunk = new TextEncoder().encode("a".repeat(256));
+    let pulls = 0;
     const endless = new ReadableStream<Uint8Array>({
-      pull: (controller) => controller.enqueue(chunk),
+      pull: (controller) => {
+        if (++pulls > 16) throw new Error("read past the limit without giving up");
+        controller.enqueue(chunk);
+      },
     });
     const res = await run(
       new Request("https://api.example/", {

@@ -39,6 +39,12 @@ vault to browse it as a graph; it is plain markdown either way.
 | [Klaviyo](integration-klaviyo.md)     | Live on web and the theme: email capture, events, flows. App events in review (#107) |
 | [Pay later](integration-pay-later.md) | Klarna and Clearpay: storefront side ready; providers not set up yet                 |
 
+## Operations
+
+| Note                                        | What it covers                                                                                                   |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [API Worker runbook](runbook-api-worker.md) | What the Worker serves, which secrets and Durable Objects each route needs, deploying, checking and rolling back |
+
 ## Out of scope, kept for reference
 
 These describe work that is explicitly **not** being built in the current push.
