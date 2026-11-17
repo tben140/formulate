@@ -39,7 +39,7 @@ already does.
 
 ⚠️ **That reasoning assumed the `/client/` endpoints were reachable from a
 native app. They are not** — see below. The conclusion stands for the SDK's
-*features*, but not as a route to the same endpoints over plain `fetch`.
+_features_, but not as a route to the same endpoints over plain `fetch`.
 
 ## Events we intend to emit
 
@@ -237,10 +237,10 @@ package — see the identity note below for the one part that differs.
 
 **Two steps, and the second is the one that matters:**
 
-| Step                         | Effect                                                   |
-| ---------------------------- | -------------------------------------------------------- |
-| `POST /client/subscriptions/` | Creates the profile, records consent. Durable.           |
-| `_learnq.push(["identify"])`  | Tells the script in **this tab** who the visitor is.      |
+| Step                          | Effect                                               |
+| ----------------------------- | ---------------------------------------------------- |
+| `POST /client/subscriptions/` | Creates the profile, records consent. Durable.       |
+| `_learnq.push(["identify"])`  | Tells the script in **this tab** who the visitor is. |
 
 Step 1 alone leaves the session anonymous, so every event cached during it
 stays cached. The profile appears in Klaviyo with no history attached, which
@@ -282,10 +282,10 @@ The response is not a Klaviyo error at all. It is an HTML interstitial:
 
 Measured on one machine, one IP, within the same minute:
 
-| Client         | `/client/profiles/` | `/client/subscriptions/` |
-| -------------- | ------------------- | ------------------------ |
-| Browser        | **202**             | **202**                  |
-| React Native   | —                   | **403, Cloudflare HTML** |
+| Client       | `/client/profiles/` | `/client/subscriptions/` |
+| ------------ | ------------------- | ------------------------ |
+| Browser      | **202**             | **202**                  |
+| React Native | —                   | **403, Cloudflare HTML** |
 
 So it is the shape of the client, not the address of it. Reproduced twice, and
 note it did **not** fail on the first attempt hours earlier — Cloudflare's
@@ -328,10 +328,10 @@ nothing has recorded.
 
 Two routes remain for consent on mobile, and neither is chosen yet:
 
-| Route | Trade |
-| --- | --- |
-| **Klaviyo in-app forms** (`registerForInAppForms`) | Vendor's answer. Handles consent properly, but the form is designed in Klaviyo's dashboard, so our custom UI is replaced by theirs. |
-| **Server-side call** from `apps/web` | Keeps our UI. Needs a private key and an authenticated endpoint — see the rejection note below, which applies with less force now that it would be a *complement* to the SDK rather than a replacement for it. |
+| Route                                              | Trade                                                                                                                                                                                                          |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Klaviyo in-app forms** (`registerForInAppForms`) | Vendor's answer. Handles consent properly, but the form is designed in Klaviyo's dashboard, so our custom UI is replaced by theirs.                                                                            |
+| **Server-side call** from `apps/web`               | Keeps our UI. Needs a private key and an authenticated endpoint — see the rejection note below, which applies with less force now that it would be a _complement_ to the SDK rather than a replacement for it. |
 
 ### Prior recommendation, superseded
 
@@ -374,10 +374,10 @@ type should not be able to represent a state you cannot observe.
 
 ### Configuration
 
-| Surface | Public key                        | List id                        |
-| ------- | --------------------------------- | ------------------------------ |
-| Web     | `NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY`  | `NEXT_PUBLIC_KLAVIYO_LIST_ID`  |
-| Theme   | `settings.klaviyo_public_key`     | `settings.klaviyo_list_id`     |
+| Surface | Public key                       | List id                       |
+| ------- | -------------------------------- | ----------------------------- |
+| Web     | `NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY` | `NEXT_PUBLIC_KLAVIYO_LIST_ID` |
+| Theme   | `settings.klaviyo_public_key`    | `settings.klaviyo_list_id`    |
 
 Both values are public by design — the onsite key is scoped to writing events
 and subscriptions for one account and is meant to ship in client code, and a
@@ -395,7 +395,7 @@ Only a **list** can be subscribed to. A segment is a dynamic query — a
 description of who matches, evaluated continuously — so there is nothing to add
 anyone to, and `/client/subscriptions/` rejects it.
 
-Klaviyo files both under *Lists & Segments*, and — the part that costs the time
+Klaviyo files both under _Lists & Segments_, and — the part that costs the time
 — **the URL is `www.klaviyo.com/list/<id>` for both.** There is no way to tell
 them apart from the browser bar. Checking the URL is a natural instinct and it
 gives the wrong answer with total confidence.
@@ -417,7 +417,7 @@ Tell them apart inside Klaviyo instead: a list offers subscribe/unsubscribe
 controls and an import button; a segment shows its definition rules and cannot
 be added to.
 
-Worth noting what this endpoint got *right*, given the rest of this document.
+Worth noting what this endpoint got _right_, given the rest of this document.
 It is the only part of the integration that reports a real cause: a wrong id
 returns a 400 naming the field, where `/client/events/` and `/client/profiles/`
 return `202` and discard the data. Both surfaces log the body for that reason —
@@ -446,17 +446,17 @@ Nine flows are live, read from the account on 2026-10-01. Each email carries
 the demo-store notice, except Abandoned checkout and Back in stock
 ([demo-store.md](demo-store.md) says why).
 
-| Flow | Trigger | Source of the trigger |
-| --- | --- | --- |
-| Welcome series | Added to the newsletter list | Email capture on every surface |
-| Browse abandonment | Viewed Product (`RXYrJ4`) | Ours: web, theme app embed |
-| Cart abandonment | Added to Cart (`W7zpiE`) | Ours: web, theme app embed |
-| Abandoned checkout | Checkout Started (`UprmRa`) | Shopify, server-side, every surface. See the decision below |
-| Back in stock | Subscribed to Back in Stock (`WbRfmD`) | Klaviyo's back-in-stock form |
-| Post-purchase | Placed Order (`V2sqtM`) | Shopify |
-| Replenishment | Placed Order (`V2sqtM`), after a delay | Shopify |
-| Review request | Fulfilled Order (`QNzAQc`) | Shopify |
-| Cancelled order | Cancelled Order (`WNShYg`) | Shopify |
+| Flow               | Trigger                                | Source of the trigger                                       |
+| ------------------ | -------------------------------------- | ----------------------------------------------------------- |
+| Welcome series     | Added to the newsletter list           | Email capture on every surface                              |
+| Browse abandonment | Viewed Product (`RXYrJ4`)              | Ours: web, theme app embed                                  |
+| Cart abandonment   | Added to Cart (`W7zpiE`)               | Ours: web, theme app embed                                  |
+| Abandoned checkout | Checkout Started (`UprmRa`)            | Shopify, server-side, every surface. See the decision below |
+| Back in stock      | Subscribed to Back in Stock (`WbRfmD`) | Klaviyo's back-in-stock form                                |
+| Post-purchase      | Placed Order (`V2sqtM`)                | Shopify                                                     |
+| Replenishment      | Placed Order (`V2sqtM`), after a delay | Shopify                                                     |
+| Review request     | Fulfilled Order (`QNzAQc`)             | Shopify                                                     |
+| Cancelled order    | Cancelled Order (`WNShYg`)             | Shopify                                                     |
 
 The cart and checkout pair is deliberate. **Cart abandonment** catches a shopper
 who added something and never reached checkout; **Abandoned checkout** catches
@@ -475,15 +475,15 @@ of ours in the trigger. Eleven have been live since 6 October 2026; see
 Two metrics exist with confusingly similar names, and picking the wrong one
 produces a flow that looks correct and covers a third of the traffic.
 
-| | Source | Covers | Reliability |
-| --- | --- | --- | --- |
-| `Started Checkout` (ours) | Client-side: `apps/web`, and the app since SHO-109 | **Web and the app**, not the theme | Blockable — ad blockers, ITP; the app's waits for consent |
-| `Checkout Started` (Shopify → Klaviyo) | Server-side, from Shopify | **All three surfaces** | Server-to-server |
+|                                        | Source                                             | Covers                             | Reliability                                               |
+| -------------------------------------- | -------------------------------------------------- | ---------------------------------- | --------------------------------------------------------- |
+| `Started Checkout` (ours)              | Client-side: `apps/web`, and the app since SHO-109 | **Web and the app**, not the theme | Blockable — ad blockers, ITP; the app's waits for consent |
+| `Checkout Started` (Shopify → Klaviyo) | Server-side, from Shopify                          | **All three surfaces**             | Server-to-server                                          |
 
 **The flow triggers on Shopify's `Checkout Started`.**
 
 This inverts the logic used everywhere else in this project, which is the
-interesting part. `Viewed Product` *had* to be ours, because Shopify has no
+interesting part. `Viewed Product` _had_ to be ours, because Shopify has no
 idea a headless page was viewed — the platform is blind there. At checkout the
 opposite holds: Shopify owns the transaction, observes it from all three
 surfaces, and reports it server-side. Our client-side version is strictly worse
