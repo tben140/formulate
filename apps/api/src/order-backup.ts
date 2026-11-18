@@ -113,8 +113,9 @@ export class OrderBackup extends DurableObject {
         () => false,
       );
       // The pixel's note may have arrived during the send and cancelled it.
-      // It has set its own three-day timer; don't replace it.
-      if (!sent && !(await this.ctx.storage.get("event"))) return;
+      // It has set its own three-day timer; keep both, sent or not, so a
+      // webhook retry still finds the note and doesn't schedule another send.
+      if (!(await this.ctx.storage.get("event"))) return;
       if (!sent) {
         const attempts = ((await this.ctx.storage.get<number>("attempts")) ?? 0) + 1;
         if (attempts < MAX_SEND_ATTEMPTS) {
