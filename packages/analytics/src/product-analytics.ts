@@ -34,6 +34,8 @@ export const PRODUCT_EVENTS = {
   addedToCart: "product_added_to_cart",
   cartViewed: "cart_viewed",
   checkoutStarted: "checkout_started",
+  /** A visitor saw an experiment's variant (ADR 0013, packages/experiments). */
+  experimentViewed: "experiment_viewed",
 } as const;
 
 export type ProductEventName = (typeof PRODUCT_EVENTS)[keyof typeof PRODUCT_EVENTS];
@@ -79,6 +81,12 @@ export interface ProductEventProperties {
     readonly currency: string;
     /** Whether any line is a subscription: the Recharge half of the funnel. */
     readonly has_subscription: boolean;
+  };
+  readonly experiment_viewed: {
+    /** GrowthBook's experiment tracking key, which the warehouse joins on. */
+    readonly experiment_key: string;
+    /** The variation's key in GrowthBook: "0" is the control. */
+    readonly variation_id: string;
   };
 }
 
