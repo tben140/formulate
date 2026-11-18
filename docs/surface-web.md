@@ -78,6 +78,14 @@ Vercel is linked to the repository with `apps/web` as the root directory.
   produced build is never reused for a Vercel build where the environment
   genuinely differs.
 
+After a production deploy, `node apps/web/scripts/smoke.mjs` checks the site
+from outside: the home page is a page and not a redirect, `robots.txt` allows
+crawling and names the sitemap, the sitemap lists products and collections, a
+real product and collection page from it carry their canonical and JSON-LD, the
+search page asks not to be indexed, the security headers are present, and no
+page shows the old working name. It exits non-zero on any failure, so it can
+gate a workflow later.
+
 ### Analytics
 
 `<Analytics />` and `<SpeedInsights />` are mounted in `app/layout.tsx`, after

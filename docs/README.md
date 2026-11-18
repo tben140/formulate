@@ -19,7 +19,9 @@ vault to browse it as a graph; it is plain markdown either way.
 | [Decision records](adr/README.md) | Why things are the way they are, with alternatives                                             |
 | [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
 | [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                          |
+| [AI agents](agents.md)            | UCP, WebMCP tools, llms.txt and Markdown pages: how agents read and buy                        |
 | [Compliance](compliance.md)       | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open |
+| [Domains](domains.md)             | Which address serves what, the DNS behind it, and why checkout has its own subdomain           |
 
 ## Surfaces
 
@@ -36,6 +38,12 @@ vault to browse it as a graph; it is plain markdown either way.
 | [Recharge](integration-recharge.md)   | Installed; subscription flows live in Klaviyo. Read-only portal in review (#80)      |
 | [Klaviyo](integration-klaviyo.md)     | Live on web and the theme: email capture, events, flows. App events in review (#107) |
 | [Pay later](integration-pay-later.md) | Klarna and Clearpay: storefront side ready; providers not set up yet                 |
+
+## Operations
+
+| Note                                        | What it covers                                                                                                   |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [API Worker runbook](runbook-api-worker.md) | What the Worker serves, which secrets and Durable Objects each route needs, deploying, checking and rolling back |
 
 ## Out of scope, kept for reference
 
