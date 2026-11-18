@@ -37,7 +37,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: siteUrl,
   title: { default: SITE_NAME, template: `%s — ${SITE_NAME}` },
-  description: "Supplements built around a 30-day rhythm, from Double Helix.",
+  description: `Supplements built around a 30-day rhythm, from ${SITE_NAME}.`,
   applicationName: SITE_NAME,
   openGraph: baseOpenGraph,
   twitter: { card: "summary_large_image" },
@@ -99,7 +99,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           Shopify's consent API; here it is ours. See ADR 0008.
         */}
         <TrackingConsentProvider initialConsent={consent}>
-          <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
+          <CartProvider siteOrigin={siteUrl.origin}>
             <DemoNotice />
             {/* relative: the Shop dropdown's panel hangs from the header's full width. */}
             <header className="relative z-30 border-b border-border">
@@ -116,7 +116,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                   href="/"
                   className="order-1 text-lg font-semibold tracking-tight text-foreground"
                 >
-                  Double Helix
+                  {SITE_NAME}
                 </Link>
                 <SiteNav links={navLinks} shopGroups={shopGroups} />
                 <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
@@ -170,7 +170,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                 */}
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground-muted">
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                    <p>&copy; {new Date().getFullYear()} Double Helix</p>
+                    <p>
+                      &copy; {new Date().getFullYear()} {SITE_NAME}
+                    </p>
                     {legalLinks.length > 0 ? (
                       <nav aria-label="Legal">
                         <ul className="flex flex-wrap gap-x-4 gap-y-1">

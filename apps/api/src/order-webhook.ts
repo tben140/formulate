@@ -1,5 +1,6 @@
 import { orderCompletedEvent, type WebhookOrder } from "@formulate/analytics";
 
+import { readBounded } from "./body";
 import type { OrderBackup } from "./order-backup";
 
 /**
@@ -43,40 +44,6 @@ const base64ToBytes = (value: string): Uint8Array | null => {
   } catch {
     return null;
   }
-};
-
-/**
- * The body as text, or null past `limit` bytes. The URL is public and this
- * runs before the signature check, so a large body is refused from its
- * declared length, and a body without one (chunked) is read only up to the
- * limit.
- */
-export const readBounded = async (
-  request: Request,
-  limit: number,
-): Promise<string | null> => {
-  if (Number(request.headers.get("content-length") ?? 0) > limit) return null;
-  if (!request.body) return "";
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > limit) {
-      await reader.cancel();
-      return null;
-    }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(bytes);
 };
 
 export const verifyShopifyHmac = async (
@@ -132,6 +99,7 @@ export const handleOrderWebhook = async (
   env: OrderWebhookEnv,
 ): Promise<Response> => {
   const status = (code: number) => new Response(null, { status: code });
+  if (request.method !== "POST") return status(405);
   if (!env.SHOPIFY_WEBHOOK_SECRET) return status(503);
   if (request.headers.get("x-shopify-topic") !== "orders/create") return status(400);
   const signature = request.headers.get("x-shopify-hmac-sha256") ?? "";

@@ -28,6 +28,17 @@
   "preview_urls": false,
 
   /*
+   * Also on the store's own domain. `custom_domain` makes the deploy create
+   * the DNS record and certificate itself, so there's nothing to add by hand,
+   * but the deploy fails if an `api` record already exists in the zone.
+   *
+   * workers.dev stays on above until every app build in use points at this
+   * address (EXPO_PUBLIC_API_BASE_URL in EAS): a build already on a phone
+   * keeps calling the old URL.
+   */
+  "routes": [{ "pattern": "api.doublehelixsupplements.co.uk", "custom_domain": true }],
+
+  /*
    * ⚠️ `vars` is NOT for secrets.
    *
    * Everything here is plaintext: committed to the repository and visible in

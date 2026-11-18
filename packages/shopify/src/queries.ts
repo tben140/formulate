@@ -482,6 +482,14 @@ export const CartFields = graphql(`
               id
               handle
               title
+              # Klaviyo's Added to Cart carries the product's collection
+              # titles, as Viewed Product does (packages/analytics); the same
+              # limit as the product fragment, so the two lists agree.
+              collections(first: 50) {
+                nodes {
+                  title
+                }
+              }
             }
           }
         }

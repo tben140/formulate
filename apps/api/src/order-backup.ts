@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 
 import { POSTHOG_CAPTURE_URL, type CapturedOrderEvent } from "@formulate/analytics";
 
-import { readBounded } from "./order-webhook";
+import { readBounded } from "./body";
 import type { RateLimiter } from "./rate-limiter";
 
 /**
@@ -161,6 +161,7 @@ export const handleOrderCounted = async (
       status: code,
       headers: { "cache-control": "no-store", "access-control-allow-origin": "*" },
     });
+  if (request.method !== "POST") return status(405);
 
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
   const { success } = await env.RATE_LIMITER.get(

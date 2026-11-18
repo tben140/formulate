@@ -1,10 +1,10 @@
 import {
-  anonymousId,
   isPlausibleEmail,
   looksFakeToKlaviyo,
   type EventName,
   type SubscribeResult,
 } from "@formulate/analytics";
+import { uuid } from "expo";
 
 import { hasNativeSdks } from "./expo-go";
 import {
@@ -102,7 +102,10 @@ export const initKlaviyo = (): void => {
    * `null` in Expo Go and on web, which have no Klaviyo native module (see above).
    */
   if (!Klaviyo) {
-    if (__DEV__) console.warn("[klaviyo] Expo Go or web: the native SDK is not available, so tracking is off.");
+    if (__DEV__)
+      console.warn(
+        "[klaviyo] Expo Go or web: the native SDK is not available, so tracking is off.",
+      );
     return;
   }
 
@@ -288,7 +291,10 @@ export const trackEvent = (name: EventName, payload: object): void => {
     /*
      * ⚠️ Without one, the SDK de-duplicates on the time to the second: two adds
      * within a second would record one. Each call here is a real event.
+     *
+     * Expo's native v4 generator, as lib/product-analytics.ts uses: Hermes has
+     * no `crypto`, so the shared package's `anonymousId()` would throw here.
      */
-    uniqueId: anonymousId(),
+    uniqueId: uuid.v4(),
   });
 };

@@ -98,7 +98,8 @@ class CartDrawer extends Component {
     this.#pendingAnnouncement = null;
     const announcer = this.#announcer;
     announcer.textContent = "";
-    requestAnimationFrame(() => {
+    this.#announceFrame = requestAnimationFrame(() => {
+      this.#announceFrame = 0;
       announcer.textContent = pending;
     });
   }
@@ -211,6 +212,16 @@ class CartDrawer extends Component {
     if (!this.#announcer || message === this.#lastAnnounced) return;
     this.#lastAnnounced = message;
 
+    // A newer message supersedes one open() is still waiting a frame to
+    // write, which would otherwise overwrite this one (an emptied cart would
+    // get its old delivery message back). Cancelled before the closed check
+    // below: a message held while the drawer is closed must also stop a frame
+    // open() scheduled just before it closed.
+    if (this.#announceFrame) {
+      cancelAnimationFrame(this.#announceFrame);
+      this.#announceFrame = 0;
+    }
+
     // A closed dialog is hidden, so a live region inside it isn't announced,
     // and the message would then count as said (review of #27). Held until
     // open() instead.
@@ -221,6 +232,9 @@ class CartDrawer extends Component {
     this.#pendingAnnouncement = null;
     this.#announcer.textContent = message;
   }
+
+  /** The frame open() writes a held message in, while it's pending. */
+  #announceFrame = 0;
 
   /**
    * A message from a change made while the drawer was closed, waiting for

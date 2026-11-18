@@ -4,6 +4,7 @@
     "article": "Article",
     "block": "Block",
     "blog": "Blog",
+    "brand": "Brand",
     "cart": "Cart",
     "collection": "Collection",
     "collection_card": "Collection card",
@@ -54,7 +55,8 @@
     "page_width": "Page width",
     "show_payment_icons": "Show payment icons",
     "text": "Text",
-    "text_style": "Text style"
+    "text_style": "Text style",
+    "wordmark": "Wordmark"
   },
   "options": {
     "alignment": {
@@ -82,6 +84,7 @@
   },
   "info": {
     "klaviyo_public_key": "Klaviyo → Settings → API keys → Public API key.",
-    "klaviyo_list_id": "Klaviyo → Lists & Segments → open the list → the ID in the browser URL."
+    "klaviyo_list_id": "Klaviyo → Lists & Segments → open the list → the ID in the browser URL.",
+    "wordmark": "The brand name in the header and the footer's copyright line. Leave blank to use the store name. Set in config/settings_data.json in the repository: a theme push replaces a change made here."
   }
 }

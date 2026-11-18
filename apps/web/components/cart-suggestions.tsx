@@ -50,7 +50,7 @@ export const CartSuggestions = ({
 
 const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
   const { product } = suggestion;
-  const { closeCart, storeDomain } = useCartUi();
+  const { closeCart, siteOrigin } = useCartUi();
   /*
    * The add, wrapped so the follow-up runs when the server answers, not in an
    * effect. A successful add revalidates the layout, which drops this product
@@ -67,7 +67,7 @@ const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
         const line = next.cart?.lines.nodes.find((l) => l.id === next.addedLineId);
         const quantity = next.addedQuantity ?? 1;
         if (next.cart && line && quantity > 0) {
-          track(EVENTS.addedToCart, addedToCart(next.cart, line, storeDomain, quantity));
+          track(EVENTS.addedToCart, addedToCart(next.cart, line, siteOrigin, quantity));
           const added = addedToCartProperties(line, quantity);
           if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
         }

@@ -61,10 +61,38 @@ export const loadTrackingConsent = async (): Promise<void> => {
   notify();
 };
 
-export const setTrackingConsent = async (next: "granted" | "denied"): Promise<void> => {
-  consent = next;
-  await SecureStore.setItemAsync(CONSENT_KEY, next).catch(() => undefined);
-  notify();
+/**
+ * Records the choice. Resolves `false` when the keychain write failed, so the
+ * banner can say so and offer another go.
+ *
+ * The two answers apply at different moments, on purpose. A withdrawal takes
+ * effect before the write: tracking stops on the tap, not when the disk
+ * catches up, so nothing is sent during the write. A grant waits for the
+ * write: a "yes" that didn't save mustn't start tracking that the next launch
+ * won't remember. And when a withdrawal fails to save, the stored answer is
+ * removed where it can be, so the next launch asks again rather than restoring
+ * a "granted" that was withdrawn.
+ */
+export const setTrackingConsent = async (
+  next: "granted" | "denied",
+): Promise<boolean> => {
+  if (next === "denied") {
+    consent = "denied";
+    notify();
+  }
+  try {
+    await SecureStore.setItemAsync(CONSENT_KEY, next);
+  } catch {
+    if (next === "denied") {
+      await SecureStore.deleteItemAsync(CONSENT_KEY).catch(() => undefined);
+    }
+    return false;
+  }
+  if (next === "granted") {
+    consent = "granted";
+    notify();
+  }
+  return true;
 };
 
 /** Re-renders when the choice changes or finishes loading. */

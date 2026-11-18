@@ -5,8 +5,8 @@ import {
   viewedProduct,
 } from "@formulate/analytics";
 import { Image } from "expo-image";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -19,7 +19,7 @@ import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-
 import { trackEvent } from "../../lib/klaviyo";
 import { analytics } from "../../lib/product-analytics";
 import { useProduct } from "../../lib/queries";
-import { STORE_DOMAIN } from "../../lib/storefront";
+import { SITE_ORIGIN } from "../../lib/site";
 import { useTrackingConsent } from "../../lib/tracking-consent";
 import { usePurchase, type Product } from "../../lib/use-purchase";
 
@@ -90,13 +90,24 @@ const ProductBody = ({ product }: { product: Product }) => {
    * once per product shown. Also re-run when the tracking choice changes, so
    * the product open while the shopper accepts is counted, and the one shown
    * while the stored choice was still loading isn't lost.
+   *
+   * Only while this screen is in front: earlier product screens stay mounted
+   * under the stack, and an Accept mustn't count those. Each screen counts its
+   * product once, so coming back to it isn't a second view.
    */
   const consent = useTrackingConsent();
-  useEffect(() => {
-    if (consent !== "granted") return;
-    analytics()?.capture(PRODUCT_EVENTS.productViewed, productViewedProperties(product));
-    trackEvent(EVENTS.viewedProduct, viewedProduct(product, STORE_DOMAIN));
-  }, [product, consent]);
+  const counted = useRef<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (consent !== "granted" || counted.current === product.id) return;
+      counted.current = product.id;
+      analytics()?.capture(
+        PRODUCT_EVENTS.productViewed,
+        productViewedProperties(product),
+      );
+      trackEvent(EVENTS.viewedProduct, viewedProduct(product, SITE_ORIGIN));
+    }, [product, consent]),
+  );
   const { bottom } = useSafeAreaInsets();
   const purchase = usePurchase(product);
 
