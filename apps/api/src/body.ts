@@ -5,9 +5,6 @@
  * before anything is read, and one without a length (chunked) is read only up
  * to the limit and then cancelled, rather than buffered whole and measured
  * afterwards. Bytes, not `string.length`, which counts UTF-16 units.
- *
- * Same shape as the helper the order-backup stack (#108) carries in
- * order-webhook.ts; when that lands, its copy should import this one.
  */
 export const readBounded = async (
   request: Request,

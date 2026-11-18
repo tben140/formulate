@@ -193,7 +193,7 @@ interface ProductLike extends InCollections {
  * Store for the theme, Headless for web), so the two lists match only while
  * both channels carry the same collections.
  */
-const categories = (product: InCollections): readonly string[] =>
+export const collectionTitles = (product: InCollections): readonly string[] =>
   (product.collections?.nodes ?? []).map((collection) => collection.title).sort();
 
 /**
@@ -209,7 +209,7 @@ export const viewedProduct = (
 ): ViewedProductPayload => ({
   Name: product.title,
   ProductID: legacyIdFromGid(product.id),
-  Categories: categories(product),
+  Categories: collectionTitles(product),
   ImageURL: product.featuredImage?.url ?? "",
   URL: productUrl(siteOrigin, product.handle),
   Brand: product.vendor ?? "",
@@ -264,7 +264,7 @@ const cartItem = (line: CartLineLike, siteOrigin: string): CartItemPayload => ({
   RowTotal: formatEventPrice(line.cost.totalAmount),
   ProductURL: productUrl(siteOrigin, line.merchandise.product.handle),
   ImageURL: line.merchandise.image?.url ?? "",
-  ProductCategories: categories(line.merchandise.product),
+  ProductCategories: collectionTitles(line.merchandise.product),
   SellingPlanName: line.sellingPlanAllocation?.sellingPlan.name ?? null,
 });
 
@@ -282,7 +282,7 @@ export const addedToCart = (
   AddedItemProductName: addedLine.merchandise.product.title,
   AddedItemProductID: legacyIdFromGid(addedLine.merchandise.product.id),
   AddedItemVariantID: legacyIdFromGid(addedLine.merchandise.id),
-  AddedItemCategories: categories(addedLine.merchandise.product),
+  AddedItemCategories: collectionTitles(addedLine.merchandise.product),
   AddedItemPrice: formatEventPrice(chargedUnitPrice(addedLine)),
   AddedItemQuantity: quantity,
   AddedItemURL: productUrl(siteOrigin, addedLine.merchandise.product.handle),

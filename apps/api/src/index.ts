@@ -1,3 +1,5 @@
+import { handleOrderCounted, type OrderCountedEnv } from "./order-backup";
+import { handleOrderWebhook, type OrderWebhookEnv } from "./order-webhook";
 import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 
 /**
@@ -11,9 +13,10 @@ import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
  * and one line in the table.
  */
 
+export { OrderBackup } from "./order-backup";
 export { RateLimiter } from "./rate-limiter";
 
-export type Env = SubscribeEnv;
+export type Env = SubscribeEnv & OrderWebhookEnv & OrderCountedEnv;
 
 type Route = (request: Request, env: Env) => Promise<Response>;
 
@@ -26,7 +29,13 @@ type Route = (request: Request, env: Env) => Promise<Response>;
  * That is also why a route added here must claim a path nothing posts to
  * today.
  */
-const routes: ReadonlyMap<string, Route> = new Map();
+const routes: ReadonlyMap<string, Route> = new Map<string, Route>([
+  // Shopify's order webhook (SHO-88): checked by its HMAC, not rate limited.
+  ["/webhooks/orders-create", handleOrderWebhook],
+  // The checkout pixel's "order counted" note (SHO-88). The one route with a
+  // CORS header: see order-backup.ts and AGENTS.md.
+  ["/orders/counted", handleOrderCounted],
+]);
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {

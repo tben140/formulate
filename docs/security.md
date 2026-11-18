@@ -87,10 +87,11 @@ date, so CI ignores exactly these and fails on anything new. pnpm counts them
 as production dependencies because the app depends on `expo`; most of the code
 only runs in Expo's command-line tools.
 
-| Advisory            | Package                    | Severity | Path                          | Why it's acceptable                                                                                                                           | Review      |
-| ------------------- | -------------------------- | -------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| GHSA-3g3m-2fjr-6pw4 | glob 13.0.6                | Moderate | Expo's config plugins         | The fix is glob 14 only, a major Expo hasn't moved to. The bug lets a cancelled search keep reading files; Expo's prebuild never cancels one. | 25 Nov 2026 |
-| GHSA-g3hv-75wg-m249 | minimatch 3.1.5 and 10.2.5 | Moderate | Expo's config plugins, ESLint | The fix is minimatch 11 only. A slow match on a crafted pattern; every pattern here is written by us or by Expo.                              | 25 Nov 2026 |
+| Advisory            | Package                    | Severity | Path                                  | Why it's acceptable                                                                                                                            | Review      |
+| ------------------- | -------------------------- | -------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| GHSA-3g3m-2fjr-6pw4 | glob 13.0.6                | Moderate | Expo's config plugins                 | The fix is glob 14 only, a major Expo hasn't moved to. The bug lets a cancelled search keep reading files; Expo's prebuild never cancels one.  | 25 Nov 2026 |
+| GHSA-g3hv-75wg-m249 | minimatch 3.1.5 and 10.2.5 | Moderate | Expo's config plugins, ESLint         | The fix is minimatch 11 only. A slow match on a crafted pattern; every pattern here is written by us or by Expo.                               | 25 Nov 2026 |
+| GHSA-fc5q-39xc-vjpf | picomatch 2.3.2 and 4.0.5  | High     | The app's checkout sheet, build tools | **GitHub has withdrawn the advisory**, but npm's audit data still lists it, naming a fix (4.0.8) that was never published. Nothing to install. | 25 Nov 2026 |
 
 Each comes out of the list once every parent package that pulls in the
 vulnerable version ships the fix. glob comes in through Expo's CLI and

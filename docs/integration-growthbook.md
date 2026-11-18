@@ -83,8 +83,9 @@ second currency would need converting first.
 - **The A/A test first.** Both arms render the same page. GrowthBook should
   show no sample ratio mismatch and no significant difference. If it shows
   either, the pipeline is wrong, not the page.
-- **Orders without `_posthog_id`** can't be attributed. Until #108's cart
-  attribute is live, every order metric is empty.
+- **Orders without `_posthog_id`** can't be attributed: those from shoppers
+  who didn't accept tracking, from the theme, and any placed before the cart
+  attribute (#108) went live.
 - **Only visitors who accept tracking take part**, so results describe them,
   not every shopper.
 
