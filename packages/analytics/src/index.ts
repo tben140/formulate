@@ -1,6 +1,7 @@
 export {
   EVENTS,
   addedToCart,
+  collectionTitles,
   formatEventPrice,
   legacyIdFromGid,
   productUrl,
@@ -32,6 +33,8 @@ export {
 export type { SubscribeResult, SubscriptionSource } from "./subscribe";
 
 export {
+  CART_ATTRIBUTES,
+  CART_ATTRIBUTE_KEYS,
   PAGEVIEW,
   POSTHOG_HOST,
   PRODUCT_EVENTS,
@@ -39,6 +42,7 @@ export {
   SESSION_IDLE_MS,
   addedToCartProperties,
   anonymousId,
+  cartAttributes,
   cartViewedProperties,
   checkoutStartedProperties,
   productRef,
@@ -59,3 +63,5 @@ export type {
   ProductRef,
   Surface,
 } from "./product-analytics";
+export { POSTHOG_CAPTURE_URL, orderCompletedEvent, orderEventUuid } from "./order-event";
+export type { CapturedOrderEvent, WebhookOrder } from "./order-event";
