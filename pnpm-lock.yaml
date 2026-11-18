@@ -192,6 +192,9 @@ importers:
       '@formulate/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
+      '@formulate/experiments':
+        specifier: workspace:*
+        version: link:../../packages/experiments
       '@formulate/shopify':
         specifier: workspace:*
         version: link:../../packages/shopify
@@ -308,6 +311,31 @@ importers:
       eslint:
         specifier: ^10.8.0
         version: 10.8.0(jiti@2.7.0)(supports-color@10.2.2)
+
+  packages/experiments:
+    dependencies:
+      '@growthbook/growthbook':
+        specifier: ~2.0.0
+        version: 2.0.0
+    devDependencies:
+      '@formulate/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@formulate/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.19.0
+        version: 22.20.1
+      eslint:
+        specifier: ^10.8.0
+        version: 10.8.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 4.1.12
+        version: 4.1.12(@types/node@22.20.1)(vite@8.1.6(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
 
   packages/shopify:
     dependencies:
@@ -1636,6 +1664,10 @@ packages:
     resolution: {integrity: sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
+
+  '@growthbook/growthbook@2.0.0':
+    resolution: {integrity: sha512-NQgdtW9ezfNopNlc1ZzuA8lc7iKuNX6HT2o3NTHKgthdOlRFAubNSGf+F259sL1mbdsEO4e3j1aUQDF4CtUouA==}
+    engines: {node: '>=10'}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -3637,6 +3669,10 @@ packages:
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
+
+  dom-mutator@0.6.0:
+    resolution: {integrity: sha512-iCt9o0aYfXMUkz/43ZOAUFQYotjGB+GNbYJiJdz4TgXkyToXbbRy5S6FbTp72lRBtfpUMwEc1KmpFEU4CZeoNg==}
+    engines: {node: '>=10'}
 
   dom-serializer@2.0.0:
     resolution: {integrity: sha512-wIkAryiqt/nV5EQKqQpo3SToSOV9J0DnbJqwK7Wv/Trc92zIAYZ4FlMu+JPFW1DfGFt81ZTCGgDEabffXeLyJg==}
@@ -8196,6 +8232,10 @@ snapshots:
     dependencies:
       graphql: 16.14.2
 
+  '@growthbook/growthbook@2.0.0':
+    dependencies:
+      dom-mutator: 0.6.0
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -10075,6 +10115,8 @@ snapshots:
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
+
+  dom-mutator@0.6.0: {}
 
   dom-serializer@2.0.0:
     dependencies:
