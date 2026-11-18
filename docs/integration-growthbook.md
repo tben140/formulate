@@ -1,0 +1,95 @@
+# Integration: GrowthBook
+
+A/B tests on web and the app, analysed in Databricks. The reasoning is in
+[ADR 0013](adr/0013-experiments-run-on-growthbook-for-consenting-visitors.md);
+this note says how the pieces connect and how to set them up.
+
+## How it fits together
+
+```mermaid
+flowchart LR
+  GB[GrowthBook Cloud] -- settings, via its CDN --> Web[apps/web server]
+  GB -- settings, via its CDN --> App[apps/mobile]
+  Web -- experiment_viewed --> PH[PostHog]
+  App -- experiment_viewed --> PH
+  Shop[Shopify orders] -- read_orders --> DBX[(Databricks)]
+  PH -- query API --> DBX
+  DBX -- read-only SQL --> GB
+```
+
+1. **Assignment.** Each surface asks `packages/experiments` for a visitor's
+   variant. The visitor id is PostHog's anonymous id, which exists only after
+   the shopper accepts tracking. Without it everyone sees the control.
+2. **Exposure.** The surface sends `experiment_viewed` to PostHog, with
+   GrowthBook's experiment tracking key and the variation's key.
+3. **Outcome.** The order carries the same id in its `_posthog_id` cart
+   attribute (#108).
+4. **Analysis.** `apps/warehouse` loads both into Databricks every morning.
+   GrowthBook queries the views it creates.
+
+## Setting up GrowthBook
+
+| What                 | Where                                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK connections      | One per surface and environment: web (Node.js) and mobile (React Native), each for `production` and `dev`                                 |
+| Web key              | `GROWTHBOOK_CLIENT_KEY` on Vercel: the `production` key on Production, the `dev` key on Preview. Not `NEXT_PUBLIC_`                       |
+| App key              | `EXPO_PUBLIC_GROWTHBOOK_CLIENT_KEY` in EAS, when the app's change lands                                                                   |
+| An experiment        | A **feature** whose key is in `packages/experiments`, with an **experiment rule** whose variation values are that experiment's `variants` |
+| Assignment attribute | `id`, hashed with GrowthBook's v2 hashing                                                                                                 |
+
+To look at a variant without being counted, add the experiment's key and a
+variant name to the page's query string: `?product-page-aa=control-copy`.
+
+## Connecting Databricks
+
+In GrowthBook, **Metrics and Data → Data Sources → Add**, type **Databricks**:
+
+| Field     | Value                                                           |
+| --------- | --------------------------------------------------------------- |
+| Host      | The workspace host, without `https://`                          |
+| Port      | 443                                                             |
+| HTTP path | From the SQL warehouse's **Connection details**                 |
+| Token     | A Databricks token that can only read the `double_helix` schema |
+| Catalog   | `workspace`                                                     |
+
+Identifier type: `user_id`.
+
+**Experiment assignment query:**
+
+```sql
+SELECT user_id, timestamp, experiment_id, variation_id
+FROM workspace.double_helix.experiment_exposures
+WHERE timestamp BETWEEN '{{startDate}}' AND '{{endDate}}'
+```
+
+## Metrics
+
+Each is a **fact table** or **SQL metric** on `attributed_orders`, with
+`user_id` as the identifier. On the demo store every order is a test order,
+so the `test` column is kept and not filtered; a real store adds
+`AND NOT test`.
+
+| Metric                 | Type       | SQL                                                                                         |
+| ---------------------- | ---------- | ------------------------------------------------------------------------------------------- |
+| Placed an order        | Proportion | `SELECT user_id, timestamp FROM workspace.double_helix.attributed_orders`                   |
+| Revenue per visitor    | Mean       | `SELECT user_id, timestamp, revenue AS value FROM workspace.double_helix.attributed_orders` |
+| Ordered a subscription | Proportion | `... FROM workspace.double_helix.attributed_orders WHERE has_subscription`                  |
+
+Revenue is in each order's own currency. The demo store sells in GBP only; a
+second currency would need converting first.
+
+## What to check before trusting a result
+
+- **The A/A test first.** Both arms render the same page. GrowthBook should
+  show no sample ratio mismatch and no significant difference. If it shows
+  either, the pipeline is wrong, not the page.
+- **Orders without `_posthog_id`** can't be attributed. Until #108's cart
+  attribute is live, every order metric is empty.
+- **Only visitors who accept tracking take part**, so results describe them,
+  not every shopper.
+
+## Related
+
+- [ADR 0013](adr/0013-experiments-run-on-growthbook-for-consenting-visitors.md) ·
+  [ADR 0008](adr/0008-headless-tracking-consent-is-our-own.md)
+- `apps/warehouse/AGENTS.md`: the loaders, their secrets and their privacy rules
