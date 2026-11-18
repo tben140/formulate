@@ -1,6 +1,6 @@
 # ADR 0013 — A/B tests run on GrowthBook Cloud, for visitors who accept tracking
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-18
 
 ## Context

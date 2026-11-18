@@ -155,6 +155,23 @@ describe("OrderBackup", () => {
     expect(alarm()).toBe(now + FORGET_AFTER_MS);
   });
 
+  it("keeps the note when it arrives during a send that succeeds", async () => {
+    vi.useFakeTimers({ now, toFake: ["Date"] });
+    const { backup, alarm, data } = object();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        await backup.counted(TOKEN);
+        return new Response("", { status: 200 });
+      }),
+    );
+    await backup.schedule(event, TOKEN);
+    await backup.alarm();
+    expect(data.get(`counted:${TOKEN}`)).toBe(true);
+    expect(alarm()).toBe(now + FORGET_AFTER_MS);
+    expect(await backup.schedule(event, TOKEN)).toBe("counted");
+  });
+
   it("never stores an event without its alarm", async () => {
     vi.useFakeTimers({ now, toFake: ["Date"] });
     const { backup, alarm, data, ctx } = object();
