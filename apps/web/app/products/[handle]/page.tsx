@@ -1,4 +1,4 @@
-import { viewedProduct } from "@formulate/analytics";
+import { productViewedProperties, viewedProduct } from "@formulate/analytics";
 import { breadcrumbCollection, ratingLabel, reviewSummary } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
@@ -12,11 +12,12 @@ import { PairsWellWith } from "@/components/pairs-well-with";
 import { ProductReviews } from "@/components/product-reviews";
 import { WriteReview } from "@/components/write-review";
 import { Stars } from "@/components/stars";
+import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
-import { getNavLinks } from "@/lib/nav";
-import { baseOpenGraph } from "@/lib/site";
+import { getNavLinks, getShopGroups } from "@/lib/nav";
+import { baseOpenGraph, siteUrl } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "@/lib/structured-data";
 
 interface PageProps {
@@ -69,7 +70,11 @@ const ProductPage = async ({ params }: PageProps) => {
 
   // Both cached per render: generateMetadata already fetched the product, and
   // the header the menu.
-  const [result, navLinks] = await Promise.all([getProduct(handle), getNavLinks()]);
+  const [result, navLinks, shopGroups] = await Promise.all([
+    getProduct(handle),
+    getNavLinks(),
+    getShopGroups(),
+  ]);
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
@@ -80,7 +85,12 @@ const ProductPage = async ({ params }: PageProps) => {
   const summary = reviewSummary(product);
 
   // The same trail for people and for search engines.
-  const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, navLinks);
+  // The Shop dropdown's groups first (a goal says more than "Best Sellers"),
+  // then the bar's links, so a product in neither still gets one if it can.
+  const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, [
+    ...shopGroups.flatMap((group) => group.links),
+    ...navLinks,
+  ]);
 
   return (
     <>
@@ -106,7 +116,8 @@ const ProductPage = async ({ params }: PageProps) => {
         bundle — only the emitting needs a browser.
       */}
         <TrackViewedProduct
-          payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
+          payload={viewedProduct(product, siteUrl.origin)}
+          productViewed={productViewedProperties(product)}
         />
 
         {/*
@@ -140,6 +151,9 @@ const ProductPage = async ({ params }: PageProps) => {
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+          {product.subtitle?.value ? (
+            <p className="mt-2 text-lg text-foreground-muted">{product.subtitle.value}</p>
+          ) : null}
           {summary ? (
             <a
               href="#reviews"
@@ -152,8 +166,9 @@ const ProductPage = async ({ params }: PageProps) => {
             </a>
           ) : null}
 
-          {product.description ? (
-            <p className="mt-4 text-foreground-muted">{product.description}</p>
+          {product.descriptionHtml ? (
+            // Its first paragraph's own top margin spaces it from the title.
+            <StoreHtml html={product.descriptionHtml} />
           ) : null}
 
           {/*

@@ -206,7 +206,10 @@ describe("requests", () => {
 
 describe("when Judge.me fails", () => {
   it("answers a generic 502 when the request itself fails, without throwing", async () => {
-    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("network down"))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new TypeError("network down"))),
+    );
     expect(await listReviews(env, body({ handle: "x" }))).toEqual({
       status: 502,
       body: { ok: false, reason: "unavailable" },

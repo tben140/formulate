@@ -70,6 +70,12 @@ export interface CartActionState {
   readonly cart?: Cart;
   /** Line key of the item just added, so the event can name it. */
   readonly addedLineId?: string;
+  /**
+   * How many this add put in, for analytics (not the line's new total). 0 when
+   * stock cut the add short: Shopify doesn't say how many went in, possibly
+   * none, so the add isn't reported rather than over-counted.
+   */
+  readonly addedQuantity?: number;
 }
 
 const revalidate = () => revalidatePath("/", "layout");
@@ -143,6 +149,7 @@ export const addToCart = async (
     token: Date.now(),
     cart: result.data,
     addedLineId: addedLine?.id,
+    addedQuantity: notice ? 0 : (line.quantity ?? 1),
   };
 };
 
