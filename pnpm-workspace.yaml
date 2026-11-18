@@ -56,6 +56,7 @@ auditConfig:
   ignoreGhsas:
     - GHSA-3g3m-2fjr-6pw4 # moderate: glob 13 (Expo config plugins); fix is glob 14 only. Review 2026-11-25
     - GHSA-g3hv-75wg-m249 # moderate: minimatch 3 and 10 (Expo config plugins, ESLint); fix is minimatch 11 only. Review 2026-11-25
+    - GHSA-fc5q-39xc-vjpf # high: picomatch 2 and 4. Withdrawn by GitHub; its "patched" 4.0.8 doesn't exist. Review 2026-11-25
 
 # @shopify/hydrogen-react declares a hard (non-optional) peer dependency on
 # vite, because it is built for the Hydrogen/Vite stack. We only use its
