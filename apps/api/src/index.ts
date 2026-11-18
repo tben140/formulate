@@ -1,3 +1,4 @@
+import { handleReviewNew, type ReviewNewEnv } from "./routes/review-new";
 import { handleReviews, type ReviewsRouteEnv } from "./routes/reviews";
 import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 
@@ -14,7 +15,7 @@ import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 
 export { RateLimiter } from "./rate-limiter";
 
-export type Env = SubscribeEnv & ReviewsRouteEnv;
+export type Env = SubscribeEnv & ReviewsRouteEnv & ReviewNewEnv;
 
 type Route = (request: Request, env: Env) => Promise<Response>;
 
@@ -30,6 +31,8 @@ type Route = (request: Request, env: Env) => Promise<Response>;
 const routes: ReadonlyMap<string, Route> = new Map<string, Route>([
   // Product reviews (Judge.me): public, read-only. See src/reviews.ts.
   ["/reviews", handleReviews],
+  // Writing a review (web's form), sent on to Judge.me. See src/review-submit.ts.
+  ["/reviews/new", handleReviewNew],
 ]);
 
 export default {
