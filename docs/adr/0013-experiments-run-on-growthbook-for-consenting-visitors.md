@@ -16,8 +16,9 @@ What was already true:
   built in.
 - Tracking is opt-in (ADR 0008). Web stores PostHog's anonymous id in
   `localStorage`, so the server cannot read it.
-- Web renders in React Server Components, has a JavaScript budget (SHO-148),
-  and runs on Vercel's free tier, where every uncached request counts.
+- Web renders in React Server Components and has a JavaScript budget
+  (SHO-148). Every page already renders per request: the root layout reads
+  the consent and cart cookies.
 - Order outcomes reach the backend through Shopify's order webhook (#108),
   which carries cart attributes onto the order. #108 adds `_posthog_id` to
   the cart for order attribution.
@@ -77,9 +78,9 @@ A/B tests.
 - Every experiment key and variant name is defined once, typed, in a new
   `packages/experiments`, the same rule as event names: a string literal key
   in an app is a bug.
-- **One experiment on a page at a time.** A page running one renders per
-  request instead of from Vercel's cache; when it ends, the page goes back to
-  being cached.
+- **One experiment on a page at a time**, so one experiment's change can't
+  muddy another's result. Pages already render per request (the root layout
+  reads cookies), so an experiment adds no rendering cost.
 
 ### How results are read
 
@@ -113,10 +114,10 @@ default path. It adds JavaScript to every page, and the page shows the
 control first and then repaints, which itself skews the result.
 
 **Deciding the web variant in middleware and serving prebuilt variant pages**
-(the Vercel Flags SDK "precompute" pattern). It keeps pages cached, but runs
-middleware on every request and doubles the number of built pages for each
-experiment. For one experiment at a time, rendering the experimented page on
-request is cheaper and simpler.
+(the Vercel Flags SDK "precompute" pattern). It exists to keep pages cached,
+but these pages already render per request because the root layout reads
+cookies. It would add middleware to every request and a built page per
+variant, and buy nothing.
 
 **Including visitors who have not accepted tracking**, under ADR 0010's
 statistical exception. It would give larger samples. Rejected: the outcome
@@ -137,8 +138,6 @@ purchases on the consent side.
 - **The first page view after Accept always shows the control.** The cookie
   does not exist until the visitor accepts, so the server cannot assign them
   on that request.
-- **Pages with a running experiment cost a request each** on Vercel's free
-  tier.
 - **Results wait for the warehouse.** Exposures are recorded from the first
   experiment, but nothing can be read until Databricks is loaded and
   connected.
@@ -152,6 +151,7 @@ purchases on the consent side.
   (for example "reached the cart"). That experiment could include everyone
   who has not objected, with session-scoped ids.
 - The theme takes real traffic.
-- Traffic grows enough that rendering experimented pages per request matters
-  on Vercel's free tier.
+- Pages start being served from Vercel's cache (for example, if the layout
+  stops reading cookies). Variants would then have to be decided without
+  breaking that cache, and the middleware approach comes back into question.
 - GrowthBook Cloud's free plan changes.
