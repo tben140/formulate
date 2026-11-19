@@ -87,17 +87,19 @@ date, so CI ignores exactly these and fails on anything new. pnpm counts them
 as production dependencies because the app depends on `expo`; most of the code
 only runs in Expo's command-line tools.
 
-| Advisory            | Package                    | Severity | Path                          | Why it's acceptable                                                                                                                                                                                                                                          | Review     |
-| ------------------- | -------------------------- | -------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
-| GHSA-3g3m-2fjr-6pw4 | glob 13.0.7                | Moderate | Expo's config plugins         | **Fixed, still listed.** 13.0.7 (6 Nov) backports the fix ("do not continue walking after signal abort"), but the advisory names only 14.0.2, so audits still flag it. The bug let a cancelled search keep reading files; Expo's prebuild never cancels one. | 9 Dec 2026 |
-| GHSA-g3hv-75wg-m249 | minimatch 3.1.5 and 10.2.5 | Moderate | Expo's config plugins, ESLint | The fix is minimatch 11 only; 10.x has had no release since July. A slow match on a crafted pattern; every pattern here is written by us or by Expo.                                                                                                         | 9 Dec 2026 |
+| Advisory            | Package          | Severity | Path                          | Why it's acceptable                                                                                                                                                                                                                                          | Review     |
+| ------------------- | ---------------- | -------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| GHSA-3g3m-2fjr-6pw4 | glob 13.0.7      | Moderate | Expo's config plugins         | **Fixed, still listed.** 13.0.7 (6 Nov) backports the fix ("do not continue walking after signal abort"), but the advisory names only 14.0.2, so audits still flag it. The bug let a cancelled search keep reading files; Expo's prebuild never cancels one. | 9 Dec 2026 |
+| GHSA-g3hv-75wg-m249 | minimatch 10.2.5 | Moderate | Expo's config plugins, ESLint | The fix is minimatch 11 only; 10.x has had no release since July. A slow match on a crafted pattern; every pattern here is written by us or by Expo.                                                                                                         | 9 Dec 2026 |
 
 Each comes out of the list once every parent package that pulls in the
 vulnerable version ships the fix, or, for glob, once GitHub's advisory counts
 the 13.0.7 backport as patched. glob comes in through Expo's CLI and
-fingerprint packages; minimatch through those, ESLint and graphql-config, so it
-stays until all of them have moved to minimatch 11.0.1 or later, the first
-patched version (`pnpm why -r minimatch` shows what's left, across every
+fingerprint packages; minimatch 10 through those, ESLint and graphql-config,
+so it stays until every parent that pulls in a 7.x–11.0.0 minimatch, the
+advisory's range, has moved to 11.0.1 or later. minimatch 3.1.5 is outside that
+range and doesn't keep the entry. Recheck if GitHub changes the range, which
+its issue thread is questioning (`pnpm why -r minimatch` shows what's left, across every
 workspace package, which the bare command doesn't). On the review date, check;
 if a parent still hasn't, move the date on.
 
