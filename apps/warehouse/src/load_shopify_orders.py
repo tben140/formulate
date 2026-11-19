@@ -14,7 +14,8 @@
 dbutils.widgets.text("catalog", "workspace")
 dbutils.widgets.text("schema", "double_helix")
 dbutils.widgets.text("shop_domain", "")
-dbutils.widgets.text("backfill_days", "90")
+dbutils.widgets.text("backfill_days", "60")
+dbutils.widgets.text("src_dir", "")
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
 shop_domain = dbutils.widgets.get("shop_domain").strip()
@@ -26,21 +27,38 @@ if not shop_domain.endswith(".myshopify.com"):
 # COMMAND ----------
 
 import json
+import os
+import sys
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
+# transform.py sits beside this notebook. Serverless compute doesn't promise
+# the notebook's folder is on the path, so the job passes it (databricks.yml);
+# a run by hand falls back to the notebook's own folder.
+src_dir = dbutils.widgets.get("src_dir").strip() or "/Workspace" + os.path.dirname(
+    dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+)
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
+
 import transform
+
+if not 0 < backfill_days <= transform.MAX_ORDER_BACKFILL_DAYS:
+    raise ValueError(
+        f"backfill_days must be 1 to {transform.MAX_ORDER_BACKFILL_DAYS}: a read_orders "
+        "token sees only the last 60 days of orders. Older ones need read_all_orders."
+    )
 
 token = dbutils.secrets.get("double-helix", "shopify_admin_token")
 salt = dbutils.secrets.get("double-helix", "customer_id_salt").encode()
 endpoint = f"https://{shop_domain}/admin/api/{transform.SHOPIFY_ADMIN_API_VERSION}/graphql.json"
 
 
-def graphql(variables: dict) -> dict:
-    """One page of orders. Waits out throttling; never puts the token in an error."""
-    body = json.dumps({"query": transform.SHOPIFY_ORDERS_QUERY, "variables": variables}).encode()
+def graphql(query: str, variables: dict) -> dict:
+    """One query's data. Waits out throttling; never puts the token in an error."""
+    body = json.dumps({"query": query, "variables": variables}).encode()
     request = urllib.request.Request(
         endpoint,
         data=body,
@@ -62,8 +80,20 @@ def graphql(variables: dict) -> dict:
             continue
         if errors:
             raise RuntimeError(f"Shopify GraphQL errors: {[e.get('message') for e in errors]}")
-        return payload["data"]["orders"]
+        return payload["data"]
     raise RuntimeError("Shopify request failed: throttled")
+
+
+def with_all_lines(node: dict) -> dict:
+    """The order with every line, fetching the pages after the first."""
+    cursor = transform.more_lines_cursor(node)
+    while cursor:
+        page = graphql(transform.SHOPIFY_ORDER_LINES_QUERY, {"id": node["id"], "cursor": cursor})
+        line_items = (page.get("order") or {}).get("lineItems") or {}
+        node["lineItems"]["nodes"].extend(line_items.get("nodes") or [])
+        node["lineItems"]["pageInfo"] = line_items.get("pageInfo") or {}
+        cursor = transform.more_lines_cursor(node)
+    return node
 
 
 # COMMAND ----------
@@ -80,9 +110,11 @@ orders, lines = [], []
 cursor = None
 while True:
     page = graphql(
-        {"cursor": cursor, "search": transform.orders_search(since.isoformat().replace("+00:00", "Z"))}
-    )
+        transform.SHOPIFY_ORDERS_QUERY,
+        {"cursor": cursor, "search": transform.orders_search(since.isoformat().replace("+00:00", "Z"))},
+    )["orders"]
     for node in page["nodes"]:
+        node = with_all_lines(node)
         orders.append(transform.order_row(node, salt))
         lines.extend(transform.order_line_rows(node))
     if not page["pageInfo"]["hasNextPage"]:
@@ -103,8 +135,23 @@ LINE_DDL = (
     "quantity INT, amount DOUBLE, selling_plan STRING, selling_plan_id STRING"
 )
 
+# The lines are written before the orders. The next run starts from the
+# newest order's updated_at, so the orders' merge is what moves the
+# checkpoint: if a line write fails first, the checkpoint hasn't moved and the
+# next run fetches the same orders again. An order's lines are replaced whole,
+# since an edited order can lose a line, which a merge on line id would miss.
 if orders:
     spark.createDataFrame(orders, ORDER_DDL).createOrReplaceTempView("incoming_orders")
+    spark.sql(f"""
+      DELETE FROM {target}.order_lines
+      WHERE order_id IN (SELECT order_id FROM incoming_orders)
+    """)
+    if lines:
+        spark.createDataFrame(lines, LINE_DDL).createOrReplaceTempView("incoming_lines")
+        spark.sql(f"""
+          INSERT INTO {target}.order_lines
+          SELECT *, current_timestamp() AS loaded_at FROM incoming_lines
+        """)
     spark.sql(f"""
       MERGE INTO {target}.orders AS t
       USING (
@@ -120,17 +167,5 @@ if orders:
       WHEN MATCHED THEN UPDATE SET *
       WHEN NOT MATCHED THEN INSERT *
     """)
-    # An order's lines are replaced whole: an edited order can lose a line,
-    # which a merge on line id would never notice.
-    spark.sql(f"""
-      DELETE FROM {target}.order_lines
-      WHERE order_id IN (SELECT order_id FROM incoming_orders)
-    """)
-    if lines:
-        spark.createDataFrame(lines, LINE_DDL).createOrReplaceTempView("incoming_lines")
-        spark.sql(f"""
-          INSERT INTO {target}.order_lines
-          SELECT *, current_timestamp() AS loaded_at FROM incoming_lines
-        """)
 
 print(f"Loaded {len(orders)} orders and {len(lines)} lines updated since {since.isoformat()}")

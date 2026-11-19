@@ -33,8 +33,22 @@ if SCOPE not in {scope.name for scope in workspace.secrets.list_scopes()}:
 keys = {secret.key for secret in workspace.secrets.list_secrets(SCOPE)}
 if "customer_id_salt" not in keys:
     # Generated once. Changing it later would give every customer a new hash,
-    # and repeat-purchase metrics would see them all as new.
-    workspace.secrets.put_secret(SCOPE, "customer_id_salt", string_value=random_source.token_hex(32))
+    # and repeat-purchase metrics would see them all as new. So a missing salt
+    # with hashes already loaded is an error, never a reason to make a new one.
+    if spark.catalog.tableExists(f"{catalog}.{schema}.orders") and spark.sql(
+        f"SELECT 1 FROM {target}.orders WHERE customer_hash IS NOT NULL LIMIT 1"
+    ).first():
+        raise RuntimeError(
+            "customer_id_salt is missing but orders already carry customer hashes. "
+            "Restore the original salt; a new one would break every repeat-purchase join."
+        )
+    # The job runs one at a time (databricks.yml), but a run by hand could
+    # overlap it. Reading the salt back catches a second setup that wrote its
+    # own in between: stop rather than load with a salt that's been replaced.
+    salt = random_source.token_hex(32)
+    workspace.secrets.put_secret(SCOPE, "customer_id_salt", string_value=salt)
+    if dbutils.secrets.get(SCOPE, "customer_id_salt") != salt:
+        raise RuntimeError("Another setup run wrote customer_id_salt at the same time. Run setup again.")
 missing = {"posthog_personal_api_key", "shopify_admin_token"} - keys
 print("Secrets still to add with the CLI:", ", ".join(sorted(missing)) or "none")
 

@@ -140,13 +140,35 @@ def event_rows(columns: Sequence[str], results: Iterable[Sequence[Any]]) -> list
 #: The Admin API version the Double Helix app uses (apps/shopify-app/shopify.app.toml).
 SHOPIFY_ADMIN_API_VERSION = "2026-10"
 
+#: How far back a `read_orders` token can see: Shopify limits it to orders
+#: created in the last 60 days. Older orders need `read_all_orders`, which is
+#: a separate permission request, not a setting here.
+MAX_ORDER_BACKFILL_DAYS = 60
+
+#: Page sizes. Shopify prices a query before running it, multiplying nested
+#: connections by their page sizes, and refuses one over 1,000 points. Ten
+#: orders of ten lines stays well under; an order with more lines has the
+#: rest fetched with SHOPIFY_ORDER_LINES_QUERY. To see a query's price, send
+#: it with the header `Shopify-GraphQL-Cost-Debug: 1`.
+ORDERS_PAGE_SIZE = 10
+LINES_PAGE_SIZE = 10
+
+_LINE_FIELDS = """
+          id
+          quantity
+          sku
+          product { id }
+          variant { id }
+          sellingPlan { name sellingPlanId }
+          originalTotalSet { shopMoney { amount } }"""
+
 #: Orders by last update, so edits, refunds and cancellations are picked up.
 #: No customer fields except the id, which is hashed before it's stored.
-SHOPIFY_ORDERS_QUERY = """
-query Orders($cursor: String, $search: String!) {
-  orders(first: 100, after: $cursor, query: $search, sortKey: UPDATED_AT) {
-    pageInfo { hasNextPage endCursor }
-    nodes {
+SHOPIFY_ORDERS_QUERY = f"""
+query Orders($cursor: String, $search: String!) {{
+  orders(first: {ORDERS_PAGE_SIZE}, after: $cursor, query: $search, sortKey: UPDATED_AT) {{
+    pageInfo {{ hasNextPage endCursor }}
+    nodes {{
       id
       name
       createdAt
@@ -156,26 +178,39 @@ query Orders($cursor: String, $search: String!) {
       test
       sourceName
       currencyCode
-      totalPriceSet { shopMoney { amount } }
-      currentTotalPriceSet { shopMoney { amount } }
-      totalDiscountsSet { shopMoney { amount } }
-      customAttributes { key value }
-      customer { id }
-      lineItems(first: 100) {
-        nodes {
-          id
-          quantity
-          sku
-          product { id }
-          variant { id }
-          sellingPlan { name sellingPlanId }
-          originalTotalSet { shopMoney { amount } }
-        }
-      }
-    }
-  }
-}
+      totalPriceSet {{ shopMoney {{ amount }} }}
+      currentTotalPriceSet {{ shopMoney {{ amount }} }}
+      totalDiscountsSet {{ shopMoney {{ amount }} }}
+      customAttributes {{ key value }}
+      customer {{ id }}
+      lineItems(first: {LINES_PAGE_SIZE}) {{
+        pageInfo {{ hasNextPage endCursor }}
+        nodes {{{_LINE_FIELDS}
+        }}
+      }}
+    }}
+  }}
+}}
 """
+
+#: The rest of one order's lines, fifty at a time, after the first page.
+SHOPIFY_ORDER_LINES_QUERY = f"""
+query OrderLines($id: ID!, $cursor: String) {{
+  order(id: $id) {{
+    lineItems(first: 50, after: $cursor) {{
+      pageInfo {{ hasNextPage endCursor }}
+      nodes {{{_LINE_FIELDS}
+      }}
+    }}
+  }}
+}}
+"""
+
+
+def more_lines_cursor(node: Mapping[str, Any]) -> str | None:
+    """The cursor to fetch an order's remaining lines from, or None if it has them all."""
+    page = ((node.get("lineItems") or {}).get("pageInfo")) or {}
+    return page.get("endCursor") if page.get("hasNextPage") else None
 
 #: The cart attribute #108 sets: PostHog's anonymous id, which joins an order
 #: to the experiment exposures of the visitor who placed it (ADR 0013).

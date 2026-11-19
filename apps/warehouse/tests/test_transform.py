@@ -160,3 +160,27 @@ class Orders(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ShopifyQueries(unittest.TestCase):
+    def test_orders_page_stays_under_the_cost_limit(self):
+        # Shopify multiplies nested page sizes; 10 x 10 keeps a page's price
+        # well under its 1,000-point limit. Raise these only after checking
+        # the price with the Shopify-GraphQL-Cost-Debug header.
+        self.assertLessEqual(transform.ORDERS_PAGE_SIZE * transform.LINES_PAGE_SIZE, 100)
+        self.assertIn(f"orders(first: {transform.ORDERS_PAGE_SIZE},", transform.SHOPIFY_ORDERS_QUERY)
+        self.assertIn(f"lineItems(first: {transform.LINES_PAGE_SIZE})", transform.SHOPIFY_ORDERS_QUERY)
+
+    def test_both_queries_ask_for_the_same_line_fields(self):
+        self.assertIn(transform._LINE_FIELDS, transform.SHOPIFY_ORDERS_QUERY)
+        self.assertIn(transform._LINE_FIELDS, transform.SHOPIFY_ORDER_LINES_QUERY)
+
+    def test_lines_have_page_info(self):
+        self.assertIn("pageInfo", transform.SHOPIFY_ORDERS_QUERY.split("lineItems")[1])
+
+    def test_more_lines_cursor(self):
+        full = {"lineItems": {"pageInfo": {"hasNextPage": False, "endCursor": "c1"}, "nodes": []}}
+        more = {"lineItems": {"pageInfo": {"hasNextPage": True, "endCursor": "c2"}, "nodes": []}}
+        self.assertIsNone(transform.more_lines_cursor(full))
+        self.assertEqual(transform.more_lines_cursor(more), "c2")
+        self.assertIsNone(transform.more_lines_cursor({}))

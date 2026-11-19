@@ -44,15 +44,35 @@ variant name to the page's query string: `?product-page-aa=control-copy`.
 
 In GrowthBook, **Metrics and Data → Data Sources → Add**, type **Databricks**:
 
-| Field     | Value                                                           |
-| --------- | --------------------------------------------------------------- |
-| Host      | The workspace host, without `https://`                          |
-| Port      | 443                                                             |
-| HTTP path | From the SQL warehouse's **Connection details**                 |
-| Token     | A Databricks token that can only read the `double_helix` schema |
-| Catalog   | `workspace`                                                     |
+| Field     | Value                                                         |
+| --------- | ------------------------------------------------------------- |
+| Host      | The workspace host, without `https://`                        |
+| Port      | 443                                                           |
+| HTTP path | From the SQL warehouse's **Connection details**               |
+| Token     | A token for the `growthbook-reader` service principal (below) |
+| Catalog   | `workspace`                                                   |
 
 Identifier type: `user_id`.
+
+**The token reads the two views and nothing else.** The tables under them hold
+browsing details and customer hashes the views leave out, so GrowthBook gets
+no grant on the schema as a whole. In Databricks, add a service principal
+called `growthbook-reader` (**Settings → Identity and access → Service
+principals**), give it **Can use** on the SQL warehouse, and grant it this in
+the SQL editor:
+
+```sql
+GRANT USE CATALOG ON CATALOG workspace TO `growthbook-reader`;
+GRANT USE SCHEMA ON SCHEMA workspace.double_helix TO `growthbook-reader`;
+GRANT SELECT ON TABLE workspace.double_helix.experiment_exposures TO `growthbook-reader`;
+GRANT SELECT ON TABLE workspace.double_helix.attributed_orders TO `growthbook-reader`;
+```
+
+`ON TABLE` covers views. A view runs with its owner's rights, so the
+principal can read the views without being able to read `posthog_events`,
+`orders` or `order_lines`. Make its token with
+`databricks token-management create-obo-token <application-id>`, which prints
+it once: paste it straight into GrowthBook.
 
 **Experiment assignment query:**
 
@@ -80,9 +100,12 @@ second currency would need converting first.
 
 ## What to check before trusting a result
 
-- **The A/A test first.** Both arms render the same page. GrowthBook should
-  show no sample ratio mismatch and no significant difference. If it shows
-  either, the pipeline is wrong, not the page.
+- **The A/A test first.** Both arms render the same page. A sample ratio
+  mismatch means the pipeline is wrong, not the page: assignment or exposure
+  is losing visitors from one arm. A significant difference in a metric is a
+  reason to look, not proof of a fault, since an A/A test shows one by
+  chance about one time in twenty. Check the pipeline, and if it's sound,
+  run the test again before trusting a real one.
 - **Orders without `_posthog_id`** can't be attributed: those from shoppers
   who didn't accept tracking, from the theme, and any placed before the cart
   attribute (#108) went live.

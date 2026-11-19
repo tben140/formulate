@@ -19,8 +19,13 @@ variables:
   shop_domain:
     description: The store's *.myshopify.com domain.
   backfill_days:
-    description: How far back the first run loads.
+    description: How far back the first run loads PostHog events.
     default: "90"
+  order_backfill_days:
+    description: >-
+      How far back the first run loads orders. At most 60: a read_orders token
+      sees only the last 60 days.
+    default: "60"
 
 resources:
   jobs:
@@ -30,6 +35,8 @@ resources:
         quartz_cron_expression: "0 30 4 * * ?"
         timezone_id: Europe/London
         pause_status: PAUSED
+      # One run at a time: setup.py creates the customer id salt once, and two
+      # setups racing could each write one.
       max_concurrent_runs: 1
       tasks:
         - task_key: setup
@@ -48,6 +55,7 @@ resources:
               schema: ${var.schema}
               posthog_project_id: ${var.posthog_project_id}
               backfill_days: ${var.backfill_days}
+              src_dir: ${workspace.file_path}/src
         - task_key: shopify_orders
           depends_on:
             - task_key: setup
@@ -57,7 +65,8 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
               shop_domain: ${var.shop_domain}
-              backfill_days: ${var.backfill_days}
+              backfill_days: ${var.order_backfill_days}
+              src_dir: ${workspace.file_path}/src
 
 targets:
   demo:

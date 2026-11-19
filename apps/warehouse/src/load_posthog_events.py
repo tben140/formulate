@@ -16,6 +16,7 @@ dbutils.widgets.text("catalog", "workspace")
 dbutils.widgets.text("schema", "double_helix")
 dbutils.widgets.text("posthog_project_id", "")
 dbutils.widgets.text("backfill_days", "90")
+dbutils.widgets.text("src_dir", "")
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
 project_id = dbutils.widgets.get("posthog_project_id").strip()
@@ -27,10 +28,21 @@ if not project_id.isdigit():
 # COMMAND ----------
 
 import json
+import os
+import sys
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
+
+# transform.py sits beside this notebook. Serverless compute doesn't promise
+# the notebook's folder is on the path, so the job passes it (databricks.yml);
+# a run by hand falls back to the notebook's own folder.
+src_dir = dbutils.widgets.get("src_dir").strip() or "/Workspace" + os.path.dirname(
+    dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+)
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
 
 import transform
 
