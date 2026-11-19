@@ -187,6 +187,7 @@ every override is listed here with its reason. An unlisted gap is a bug.
 | Feature                                          | Surfaces   | Why not everywhere                                                                                                                                                                                                                                       |
 | ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SEO: metadata, structured data, sitemap (SHO-64) | Web, theme | A native app has no crawlable pages. The theme already gets it from Shopify (`structured_data`, `canonical_url`, the platform sitemap), so only `apps/web` needs code. Its routes are in `app/robots.ts`, `app/sitemap.ts` and `lib/structured-data.ts`. |
+| A/B tests on GrowthBook (ADR 0013)               | Web, app   | The theme serves no real traffic while `shop.` is dormant, so an experiment there would never collect a result. Web decides variants in `lib/experiments.ts`; the app follows in its own change. Revisit if the theme takes real traffic.                |
 
 ## The shared package rule
 
@@ -208,7 +209,10 @@ hand-edit `theme.css`, `tokens.css`, or `apps/theme/assets/tokens.css`.
 ## Git
 
 - Branch from `main`; never commit to it directly. Branch protection enforces
-  this, with linear history and required up-to-date status checks.
+  this, with required up-to-date status checks and resolved review threads.
+  Linear history is **not** required: pull requests land with merge commits
+  (`gh pr merge --merge`), never by squash or rebase, so the history of a
+  branch survives its landing.
 - Commit incrementally as work lands. Do not batch a day of work into one commit
   and reconstruct the history afterwards.
 - Commit messages explain **why**, at length where the reason is not obvious.

@@ -67,9 +67,28 @@ describe("request shape", () => {
     expect(res.status).toBe(413);
   });
 
-  it("measures the limit in bytes, not characters", async () => {
-    // 600 three-byte characters: 600 long as a string, about 1.8 KB on the wire.
-    const res = await run(post(`{"email":"${"€".repeat(600)}@b.co"}`));
+  it("stops reading a chunked body past the limit instead of buffering it", async () => {
+    // A stream with no end in sight: only a reader that gives up past the
+    // limit can answer at all, so a 413 here proves the body was cut off. It
+    // errors after sixteen chunks (four times the limit), so a reader that
+    // waited for the end would fail the test rather than hang it.
+    const chunk = new TextEncoder().encode("a".repeat(256));
+    let pulls = 0;
+    const endless = new ReadableStream<Uint8Array>({
+      pull: (controller) => {
+        if (++pulls > 16) throw new Error("read past the limit without giving up");
+        controller.enqueue(chunk);
+      },
+    });
+    const res = await run(
+      new Request("https://api.example/", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: endless,
+        // Required by the fetch spec for a streaming body; not in the type yet.
+        ...({ duplex: "half" } as object),
+      }),
+    );
     expect(res.status).toBe(413);
   });
 

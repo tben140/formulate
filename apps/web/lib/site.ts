@@ -1,3 +1,5 @@
+import { BRAND_NAME } from "@formulate/tokens";
+
 /**
  * Where this deployment lives, and whether search engines may index it.
  *
@@ -17,6 +19,11 @@ export const isIndexable = process.env.VERCEL_ENV === "production";
  * `SITE_URL` as a URL, forgiving the natural mistake of leaving out the scheme
  * (`shop.example.com`).
  *
+ * Only its origin is kept. A path (`https://example.com/store`) would reach
+ * Next's canonicals, which join `metadataBase`'s path onto theirs, but not
+ * `absoluteUrl()`, which resolves from the root, so the JSON-LD and sitemap
+ * would name different addresses from the canonicals.
+ *
  * ⚠️ This runs when the module loads, and the root layout, robots and sitemap
  * all import it. A bare `new URL()` that throws here takes down every route,
  * not just the canonicals, so an unusable value is logged and ignored instead.
@@ -30,7 +37,7 @@ export const parseSiteUrl = (value: string | undefined): URL | null => {
     : `https://${trimmed}`;
   try {
     const url = new URL(withScheme);
-    if (url.protocol === "https:" || url.protocol === "http:") return url;
+    if (url.protocol === "https:" || url.protocol === "http:") return new URL(url.origin);
   } catch {
     // Falls through to the warning.
   }
@@ -62,7 +69,7 @@ export const siteUrl = resolveSiteUrl();
 /** An absolute URL on this site, for places that do not accept relative ones. */
 export const absoluteUrl = (path: string): string => new URL(path, siteUrl).toString();
 
-export const SITE_NAME = "Double Helix";
+export const SITE_NAME = BRAND_NAME;
 
 /**
  * The Open Graph fields every page shares. A page that sets its own
