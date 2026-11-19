@@ -280,10 +280,26 @@ class CartDrawer extends Component {
     try {
       const result = await changeItem(key, Number(data.get("quantity") ?? 0));
       this.replace(result.sections?.[DRAWER_SECTION] ?? "");
-    } catch {
+    } catch (error) {
       // A failed quantity change leaves the drawer showing the previous state,
       // which is accurate — the change did not happen. Reloading would be
-      // worse: it would close the drawer and lose the shopper's place.
+      // worse: it would close the drawer and lose the shopper's place. But the
+      // shopper is told, as on web and in the app: Shopify's description when
+      // it gives one (a quantity rule), otherwise a connection message.
+      const body = form.closest(".cart-line")?.querySelector(".cart-line__body");
+      if (body) {
+        let message = body.querySelector(".cart-line__error");
+        if (!message) {
+          message = document.createElement("p");
+          message.className = "cart-line__error";
+          message.setAttribute("role", "alert");
+          body.append(message);
+        }
+        message.textContent =
+          (error instanceof Error && error.message) ||
+          this.dataset.changeErrorLabel ||
+          "Your cart couldn't be updated. Check your connection and try again.";
+      }
     }
   };
 
