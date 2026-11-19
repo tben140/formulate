@@ -24,11 +24,21 @@
 const SECTIONS = "cart-drawer";
 
 /**
+ * Shopify refused the change. Its message is Shopify's reason, written for
+ * shoppers, or empty when there is none. Anything else a cart call throws (a
+ * network failure, say) is not a refusal, and its message is not for shoppers.
+ */
+export class CartRefusal extends Error {
+  /** @override */
+  name = "CartRefusal";
+}
+
+/**
  * @param {string} url
  * @param {Record<string, unknown>} body
  * @returns {Promise<CartResponse>}
- * @throws {Error} When Shopify refuses the change — sold out, quantity rules.
- *   Its message is Shopify's reason, or empty when there is none.
+ * @throws {CartRefusal} When Shopify refuses the change — sold out, quantity
+ *   rules.
  */
 const post = async (url, body) => {
   const response = await fetch(url, {
@@ -48,7 +58,7 @@ const post = async (url, body) => {
     // A failed response with an empty or non-JSON body (a proxy's error
     // page, say): no reason to show, so the caller shows its own translated
     // line rather than the parser's message.
-    if (!response.ok) throw new Error("");
+    if (!response.ok) throw new CartRefusal("");
     throw error;
   }
 
@@ -58,7 +68,7 @@ const post = async (url, body) => {
      * the HTTP status in `message`. `description` is the one worth showing a
      * shopper: "All 3 Ski Wax are in your cart." rather than "422".
      */
-    throw new Error(data.description || "");
+    throw new CartRefusal(data.description || "");
   }
 
   return data;

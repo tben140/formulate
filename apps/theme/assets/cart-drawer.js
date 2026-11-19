@@ -1,5 +1,5 @@
 import { Component } from "@theme/component";
-import { addItem, changeItem } from "@theme/cart-api";
+import { addItem, CartRefusal, changeItem } from "@theme/cart-api";
 
 /**
  * @typedef {Object} CartDrawerRefs
@@ -286,7 +286,12 @@ class CartDrawer extends Component {
       // worse: it would close the drawer and lose the shopper's place. But the
       // shopper is told, as on web and in the app: Shopify's description when
       // it gives one (a quantity rule), otherwise a connection message.
-      const body = form.closest(".cart-line")?.querySelector(".cart-line__body");
+      // Found again by its key: a change that succeeded meanwhile re-rendered
+      // the drawer, and `form` may now be a detached copy.
+      const line = [...this.querySelectorAll('.cart-line input[name="id"]')]
+        .find((input) => input instanceof HTMLInputElement && input.value === key)
+        ?.closest(".cart-line");
+      const body = line?.querySelector(".cart-line__body");
       if (body) {
         let message = body.querySelector(".cart-line__error");
         if (!message) {
@@ -296,7 +301,7 @@ class CartDrawer extends Component {
           body.append(message);
         }
         message.textContent =
-          (error instanceof Error && error.message) ||
+          (error instanceof CartRefusal && error.message) ||
           this.dataset.changeErrorLabel ||
           "Your cart couldn't be updated. Check your connection and try again.";
       }
