@@ -13,10 +13,12 @@ reviewer where to find each one, what to try, and what's real.
 
 - **The store is a Shopify development store.** Checkout runs in test mode:
   nobody is charged and nothing ships. Every page says so in a bar at the top.
-- **Pay with the test card:** card number `1`, any future expiry date, any
-  security code, any name. `2` shows a decline.
+- **Pay with the test card:** the store uses Shopify Payments in test mode,
+  which takes subscriptions. Card number `4242 4242 4242 4242`, any future
+  expiry date, any security code, any name. `4000 0000 0000 0002` shows a
+  decline. (The Bogus Gateway's card `1` doesn't take subscriptions.)
 - **Orders are real orders** in Shopify. A subscription purchase also creates
-  a real Recharge subscription, which you can then manage.
+  a real Recharge subscription, which you can then see in your account.
 - **Development stores are always password protected.** Browsing the web store
   needs no password. Checkout, and the whole Liquid theme, ask for the store's
   password first: **[given on request]**.
@@ -46,8 +48,9 @@ reviewer where to find each one, what to try, and what's real.
    something, so the next step has data.
 5. **Your account.** Sign in with your own email. Shopify sends a one-time
    code, so there's no shared demo password. You'll see your order, and your
-   subscription in the portal: skip, reschedule, change frequency, pause and
-   cancel. _The portal is after the batch._
+   subscription in the portal: its next charge date and what's in it. The
+   portal is read-only; skipping, rescheduling, pausing and cancelling come
+   later (#136). _The portal is after the batch._
 6. **The same on the app**, from the TestFlight link: the tab bar, the cart
    sheet, and Shopify's native checkout sheet.
 7. **The same on the theme**, to compare a Liquid build of the same features.
