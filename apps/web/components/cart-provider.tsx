@@ -23,24 +23,22 @@ interface CartUiValue {
   readonly openCart: () => void;
   readonly closeCart: () => void;
   /**
-   * The Online Store domain, threaded down from the server.
-   *
-   * Klaviyo payloads must carry Online Store product URLs so email links work
-   * whichever surface fired the event. Passing it here keeps
-   * `SHOPIFY_STORE_DOMAIN` server-only rather than adding a `NEXT_PUBLIC_`
-   * twin of a variable the repo deliberately keeps private.
+   * This site's origin (`siteUrl.origin`, lib/site.ts), threaded down from the
+   * server so Klaviyo payloads carry product URLs on the public site: a flow
+   * email links to whatever is in `URL`. A preview deployment resolves to
+   * production's origin, which is the right place for an email to point.
    */
-  readonly storeDomain: string;
+  readonly siteOrigin: string;
 }
 
 const CartUiContext = createContext<CartUiValue | null>(null);
 
 export const CartProvider = ({
   children,
-  storeDomain,
+  siteOrigin,
 }: {
   children: ReactNode;
-  storeDomain: string;
+  siteOrigin: string;
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -48,8 +46,8 @@ export const CartProvider = ({
   const closeCart = useCallback(() => setOpen(false), []);
 
   const value = useMemo(
-    () => ({ open, openCart, closeCart, storeDomain }),
-    [open, openCart, closeCart, storeDomain],
+    () => ({ open, openCart, closeCart, siteOrigin }),
+    [open, openCart, closeCart, siteOrigin],
   );
 
   return <CartUiContext value={value}>{children}</CartUiContext>;

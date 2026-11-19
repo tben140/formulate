@@ -1494,7 +1494,7 @@ export type ProductByHandleQueryVariables = Exact<{
 }>;
 
 
-export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, vendor: string, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
+export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, descriptionHtml: string, vendor: string, subtitle: { value: string } | null, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
 
 export type FilterFieldsFragment = { id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> };
 
@@ -1533,7 +1533,7 @@ export type NavMenuQueryVariables = Exact<{
 }>;
 
 
-export type NavMenuQuery = { menu: { items: Array<{ id: string, title: string, type: MenuItemType, url: string | null }> } | null };
+export type NavMenuQuery = { menu: { title: string, items: Array<{ id: string, title: string, type: MenuItemType, url: string | null }> } | null };
 
 export type CollectionCardsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1550,9 +1550,9 @@ export type ShopNameQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type ShopNameQuery = { shop: { name: string, primaryDomain: { url: string } } };
 
-export type CartFieldsFragment = { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
-      | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
-      | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+export type CartFieldsFragment = { id: string, checkoutUrl: string, totalQuantity: number, attributes: Array<{ key: string, value: string | null }>, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+      | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+      | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
     > } };
 
 export type CartQueryVariables = Exact<{
@@ -1561,9 +1561,9 @@ export type CartQueryVariables = Exact<{
 }>;
 
 
-export type CartQuery = { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
-        | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
-        | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+export type CartQuery = { cart: { id: string, checkoutUrl: string, totalQuantity: number, attributes: Array<{ key: string, value: string | null }>, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+        | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+        | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
       > } } | null };
 
 export type CartCreateMutationVariables = Exact<{
@@ -1572,10 +1572,22 @@ export type CartCreateMutationVariables = Exact<{
 }>;
 
 
-export type CartCreateMutation = { cartCreate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+export type CartCreateMutation = { cartCreate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, attributes: Array<{ key: string, value: string | null }>, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
         > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }>, warnings: Array<{ code: CartWarningCode, message: string, target: string }> } | null };
+
+export type CartAttributesUpdateMutationVariables = Exact<{
+  cartId: string | number;
+  attributes: Array<AttributeInput> | AttributeInput;
+  visitorConsent: VisitorConsent;
+}>;
+
+
+export type CartAttributesUpdateMutation = { cartAttributesUpdate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, attributes: Array<{ key: string, value: string | null }>, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+        > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }> } | null };
 
 export type CartLinesAddMutationVariables = Exact<{
   cartId: string | number;
@@ -1584,9 +1596,9 @@ export type CartLinesAddMutationVariables = Exact<{
 }>;
 
 
-export type CartLinesAddMutation = { cartLinesAdd: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+export type CartLinesAddMutation = { cartLinesAdd: { cart: { id: string, checkoutUrl: string, totalQuantity: number, attributes: Array<{ key: string, value: string | null }>, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
         > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }>, warnings: Array<{ code: CartWarningCode, message: string, target: string }> } | null };
 
 export type CartLinesUpdateMutationVariables = Exact<{
@@ -1596,9 +1608,9 @@ export type CartLinesUpdateMutationVariables = Exact<{
 }>;
 
 
-export type CartLinesUpdateMutation = { cartLinesUpdate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+export type CartLinesUpdateMutation = { cartLinesUpdate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, attributes: Array<{ key: string, value: string | null }>, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
         > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }> } | null };
 
 export type CartLinesRemoveMutationVariables = Exact<{
@@ -1608,9 +1620,9 @@ export type CartLinesRemoveMutationVariables = Exact<{
 }>;
 
 
-export type CartLinesRemoveMutation = { cartLinesRemove: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+export type CartLinesRemoveMutation = { cartLinesRemove: { cart: { id: string, checkoutUrl: string, totalQuantity: number, attributes: Array<{ key: string, value: string | null }>, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
         > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }> } | null };
 
 export type CartBuyerIdentityUpdateMutationVariables = Exact<{
@@ -1620,9 +1632,9 @@ export type CartBuyerIdentityUpdateMutationVariables = Exact<{
 }>;
 
 
-export type CartBuyerIdentityUpdateMutation = { cartBuyerIdentityUpdate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
-          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+export type CartBuyerIdentityUpdateMutation = { cartBuyerIdentityUpdate: { cart: { id: string, checkoutUrl: string, totalQuantity: number, attributes: Array<{ key: string, value: string | null }>, buyerIdentity: { countryCode: CountryCode | null }, cost: { subtotalAmount: { amount: string, currencyCode: CurrencyCode }, totalAmount: { amount: string, currencyCode: CurrencyCode }, totalTaxAmount: { amount: string, currencyCode: CurrencyCode } | null }, lines: { nodes: Array<
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
+          | { id: string, quantity: number, cost: { totalAmount: { amount: string, currencyCode: CurrencyCode } }, merchandise: { id: string, title: string, availableForSale: boolean, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, price: { amount: string, currencyCode: CurrencyCode }, selectedOptions: Array<{ name: string, value: string }>, product: { id: string, handle: string, title: string, collections: { nodes: Array<{ title: string }> } } }, sellingPlanAllocation: { sellingPlan: { id: string, name: string } } | null }
         > } } | null, userErrors: Array<{ field: Array<string> | null, message: string, code: CartErrorCode | null }> } | null };
 
 export type SitemapProductsQueryVariables = Exact<{
@@ -1706,6 +1718,10 @@ export const CartFieldsFragmentDoc = new TypedDocumentString(`
   id
   checkoutUrl
   totalQuantity
+  attributes {
+    key
+    value
+  }
   buyerIdentity {
     countryCode
   }
@@ -1756,6 +1772,11 @@ export const CartFieldsFragmentDoc = new TypedDocumentString(`
             id
             handle
             title
+            collections(first: 50) {
+              nodes {
+                title
+              }
+            }
           }
         }
       }
@@ -1820,7 +1841,11 @@ export const ProductByHandleDocument = new TypedDocumentString(`
     id
     handle
     title
+    subtitle: metafield(namespace: "descriptors", key: "subtitle") {
+      value
+    }
     description
+    descriptionHtml
     seo {
       title
       description
@@ -2034,6 +2059,7 @@ export const ComplementaryProductsDocument = new TypedDocumentString(`
 export const NavMenuDocument = new TypedDocumentString(`
     query NavMenu($handle: String!) {
   menu(handle: $handle) {
+    title
     items {
       id
       title
@@ -2122,6 +2148,10 @@ export const CartDocument = new TypedDocumentString(`
   id
   checkoutUrl
   totalQuantity
+  attributes {
+    key
+    value
+  }
   buyerIdentity {
     countryCode
   }
@@ -2172,6 +2202,11 @@ export const CartDocument = new TypedDocumentString(`
             id
             handle
             title
+            collections(first: 50) {
+              nodes {
+                title
+              }
+            }
           }
         }
       }
@@ -2206,6 +2241,10 @@ export const CartCreateDocument = new TypedDocumentString(`
   id
   checkoutUrl
   totalQuantity
+  attributes {
+    key
+    value
+  }
   buyerIdentity {
     countryCode
   }
@@ -2256,6 +2295,11 @@ export const CartCreateDocument = new TypedDocumentString(`
             id
             handle
             title
+            collections(first: 50) {
+              nodes {
+                title
+              }
+            }
           }
         }
       }
@@ -2268,6 +2312,94 @@ export const CartCreateDocument = new TypedDocumentString(`
     }
   }
 }`) as unknown as TypedDocumentString<CartCreateMutation, CartCreateMutationVariables>;
+export const CartAttributesUpdateDocument = new TypedDocumentString(`
+    mutation CartAttributesUpdate($cartId: ID!, $attributes: [AttributeInput!]!, $visitorConsent: VisitorConsent!) @inContext(visitorConsent: $visitorConsent) {
+  cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+    cart {
+      ...CartFields
+    }
+    userErrors {
+      field
+      message
+      code
+    }
+  }
+}
+    fragment CartFields on Cart {
+  id
+  checkoutUrl
+  totalQuantity
+  attributes {
+    key
+    value
+  }
+  buyerIdentity {
+    countryCode
+  }
+  cost {
+    subtotalAmount {
+      amount
+      currencyCode
+    }
+    totalAmount {
+      amount
+      currencyCode
+    }
+    totalTaxAmount {
+      amount
+      currencyCode
+    }
+  }
+  lines(first: 100) {
+    nodes {
+      id
+      quantity
+      cost {
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+      merchandise {
+        ... on ProductVariant {
+          id
+          title
+          availableForSale
+          image {
+            url
+            altText
+            width
+            height
+          }
+          price {
+            amount
+            currencyCode
+          }
+          selectedOptions {
+            name
+            value
+          }
+          product {
+            id
+            handle
+            title
+            collections(first: 50) {
+              nodes {
+                title
+              }
+            }
+          }
+        }
+      }
+      sellingPlanAllocation {
+        sellingPlan {
+          id
+          name
+        }
+      }
+    }
+  }
+}`) as unknown as TypedDocumentString<CartAttributesUpdateMutation, CartAttributesUpdateMutationVariables>;
 export const CartLinesAddDocument = new TypedDocumentString(`
     mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!, $visitorConsent: VisitorConsent!) @inContext(visitorConsent: $visitorConsent) {
   cartLinesAdd(cartId: $cartId, lines: $lines) {
@@ -2290,6 +2422,10 @@ export const CartLinesAddDocument = new TypedDocumentString(`
   id
   checkoutUrl
   totalQuantity
+  attributes {
+    key
+    value
+  }
   buyerIdentity {
     countryCode
   }
@@ -2340,6 +2476,11 @@ export const CartLinesAddDocument = new TypedDocumentString(`
             id
             handle
             title
+            collections(first: 50) {
+              nodes {
+                title
+              }
+            }
           }
         }
       }
@@ -2369,6 +2510,10 @@ export const CartLinesUpdateDocument = new TypedDocumentString(`
   id
   checkoutUrl
   totalQuantity
+  attributes {
+    key
+    value
+  }
   buyerIdentity {
     countryCode
   }
@@ -2419,6 +2564,11 @@ export const CartLinesUpdateDocument = new TypedDocumentString(`
             id
             handle
             title
+            collections(first: 50) {
+              nodes {
+                title
+              }
+            }
           }
         }
       }
@@ -2448,6 +2598,10 @@ export const CartLinesRemoveDocument = new TypedDocumentString(`
   id
   checkoutUrl
   totalQuantity
+  attributes {
+    key
+    value
+  }
   buyerIdentity {
     countryCode
   }
@@ -2498,6 +2652,11 @@ export const CartLinesRemoveDocument = new TypedDocumentString(`
             id
             handle
             title
+            collections(first: 50) {
+              nodes {
+                title
+              }
+            }
           }
         }
       }
@@ -2527,6 +2686,10 @@ export const CartBuyerIdentityUpdateDocument = new TypedDocumentString(`
   id
   checkoutUrl
   totalQuantity
+  attributes {
+    key
+    value
+  }
   buyerIdentity {
     countryCode
   }
@@ -2577,6 +2740,11 @@ export const CartBuyerIdentityUpdateDocument = new TypedDocumentString(`
             id
             handle
             title
+            collections(first: 50) {
+              nodes {
+                title
+              }
+            }
           }
         }
       }

@@ -67,11 +67,13 @@ export {
   LEGAL_MENU_HANDLE,
   NAV_MENU_HANDLE,
   POLICY_HANDLES,
+  SHOP_MENU_HANDLES,
   breadcrumbCollection,
   isPolicyHandle,
+  toNavGroup,
   toNavLinks,
 } from "./nav";
-export type { NavLink, PolicyHandle } from "./nav";
+export type { NavGroup, NavLink, PolicyHandle } from "./nav";
 
 export {
   DEFAULT_API_VERSION,
@@ -102,8 +104,8 @@ export {
 export type { FilterLike, FilterValueLike } from "./filters";
 export type { ProductFilter } from "./generated/graphql";
 
-export { policyBlocks } from "./policy-text";
-export type { PolicyBlock } from "./policy-text";
+export { policyBlocks, richTextBlocks } from "./rich-text";
+export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";
 export { PLANNED_PAYMENT_ICON_IDS, payLaterIds, paymentIconIds } from "./payment-icons";
 export type { PayLaterId, PaymentIconId } from "./payment-icons";
 export {
