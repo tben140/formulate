@@ -23,6 +23,16 @@
   }
 
   /*
+   * DM Sans ships 400, 500 and 600 only. Preflight sets <b> and <strong> to
+   * `bolder` (700), which the browser would synthesise, a smeared fake bold.
+   * The theme makes the same choice: bold means 600.
+   */
+  b,
+  strong {
+    font-weight: 600;
+  }
+
+  /*
    * The phone filter sheet (FilteredListing) is the sidebar shown full screen
    * by #filters:target; the page behind it shouldn't scroll.
    */

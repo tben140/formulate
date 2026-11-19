@@ -5,7 +5,7 @@ import {
   withoutEmptyFilters,
 } from "@formulate/shopify";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/link";
 import { redirect } from "next/navigation";
 
 import { FilteredListing } from "@/components/collection-filters";
@@ -19,6 +19,7 @@ import { storefront } from "@/lib/storefront";
  * engines are asked not to index them (they may still follow the links).
  */
 export const metadata: Metadata = {
+  // The root layout's title template adds " — <brand>".
   title: "Search",
   robots: { index: false, follow: true },
 };

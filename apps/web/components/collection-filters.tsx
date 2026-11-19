@@ -15,10 +15,10 @@ import {
   type FilterLike,
   type FilterValueLike,
 } from "@formulate/shopify";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { AutoSubmitForm, WithJs, WithoutJs } from "@/components/auto-submit-form";
+import Link from "@/components/link";
 
 /**
  * A product listing with its Search & Discovery filters (SHO-153), for a
