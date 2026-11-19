@@ -58,10 +58,17 @@ columns it lists and deletes the rest the same morning.
 1. **In PostHog, first** (project **Settings**): turn on **Discard client IP
    data**, and turn off the **GeoIP** transformation under **Data pipelines**.
    New events then carry no IP address or location.
-2. **Run the job's `setup` task once** (`databricks bundle deploy`, then run
+1. **Clear the location PostHog already stored** on its person profiles, from
+   before GeoIP was off. The export copies person properties with every
+   event, so a returning visitor's old city would otherwise reach the landing
+   table. `apps/warehouse/scripts/clear_posthog_geoip.py` lists what it
+   would clear, and with `--apply` unsets it; run it again afterwards and it
+   should find none. It needs a personal API key with **Query: Read** and the
+   project's public key, in your own shell (its docstring lists them).
+1. **Run the job's `setup` task once** (`databricks bundle deploy`, then run
    the job by hand). It creates the schema and the landing table, so the
    job owns the table and can read and delete its rows.
-3. **In Databricks**, add a service principal called `posthog-exporter`
+1. **In Databricks**, add a service principal called `posthog-exporter`
    (**Settings → Identity and access → Service principals**). On its
    **Secrets** tab, generate an OAuth secret; note the client id and the
    secret, which is shown once. Give it **Can use** on the SQL warehouse, and
@@ -78,14 +85,14 @@ columns it lists and deletes the rest the same morning.
    No `CREATE TABLE`: the table already exists. `CREATE VOLUME` is for the
    files PostHog stages before its `COPY INTO`.
 
-4. **In PostHog**, **Data pipelines → Destinations → New → Databricks**:
+1. **In PostHog**, **Data pipelines → Destinations → New → Databricks**:
 
    | Field            | Value                                                  |
    | ---------------- | ------------------------------------------------------ |
-   | Integration      | Server hostname, and the client id and secret from 3   |
+   | Integration      | Server hostname, and the client id and secret from 4   |
    | HTTP path        | From the SQL warehouse's **Connection details**        |
    | Catalog / schema | `workspace` / `double_helix`                           |
-   | Table name       | `posthog_events_landing` (made in step 2)              |
+   | Table name       | `posthog_events_landing` (made in step 3)              |
    | Model            | Events                                                 |
    | Interval         | Daily                                                  |
    | Use VARIANT type | On (the default): the loader reads `properties` as one |

@@ -22,8 +22,9 @@ Asset Bundle (`databricks.yml`). Not a pnpm package: turbo and CI don't run it.
   GrowthBook has no grant on it. So PostHog itself must never hold direct
   personal data: no `identify` or person property with a name, email, phone
   number or address. **Discard client IP data** is on and GeoIP off, so new
-  events carry no IP or location; person properties recorded while GeoIP was
-  on can still name a city (`docs/integration-growthbook.md`).
+  events carry no IP or location, and `scripts/clear_posthog_geoip.py` clears
+  the location person profiles stored before that, once, before the export
+  starts (`docs/integration-growthbook.md`).
 - **Loads are idempotent.** Events merge on their uuid, orders on their id,
   and an order's lines are replaced whole. A rerun, or an overlapping window,
   never duplicates a row.
