@@ -179,11 +179,19 @@ const ProductBody = ({ product }: { product: Product }) => {
       >
         <Stack.Screen options={{ title: product.title }} />
 
+        {/*
+         * Labelled with the merchant's alt text, as web and the theme are. An
+         * image without one is hidden from screen readers rather than read as
+         * "image": the title below already names the product.
+         */}
         <Image
           source={product.featuredImage?.url}
           contentFit="cover"
           transition={150}
           style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}
+          accessible={Boolean(product.featuredImage?.altText)}
+          accessibilityLabel={product.featuredImage?.altText ?? undefined}
+          accessibilityRole="image"
           accessibilityIgnoresInvertColors
         />
 
