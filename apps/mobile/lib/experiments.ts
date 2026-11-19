@@ -45,23 +45,33 @@ let cached: {
   readonly payload: Promise<FeatureApiResponse | null>;
 } | null = null;
 
-/** GrowthBook's settings, fetched at most once a minute; null on any failure. */
-const loadPayload = (): Promise<FeatureApiResponse | null> => {
-  if (!CLIENT_KEY) return Promise.resolve(null);
-  const now = Date.now();
-  if (cached && now - cached.at < PAYLOAD_TTL_MS) return cached.payload;
+/** One fetch of GrowthBook's settings; null on any failure, a timeout included. */
+const fetchPayload = async (): Promise<FeatureApiResponse | null> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PAYLOAD_TIMEOUT_MS);
-  const payload = fetch(payloadUrl(CLIENT_KEY), { signal: controller.signal })
-    .then(async (response) => (response.ok ? parsePayload(await response.json()) : null))
-    .catch(() => null)
-    .finally(() => clearTimeout(timer));
+  try {
+    const response = await fetch(payloadUrl(CLIENT_KEY), { signal: controller.signal });
+    return response.ok ? parsePayload(await response.json()) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+/**
+ * GrowthBook's settings, fetched at most once a minute. A failure isn't kept
+ * for the minute: the next screen tries again.
+ */
+const loadPayload = async (): Promise<FeatureApiResponse | null> => {
+  if (!CLIENT_KEY) return null;
+  const now = Date.now();
+  if (cached && now - cached.at < PAYLOAD_TTL_MS) return cached.payload;
+  const payload = fetchPayload();
   cached = { at: now, payload };
-  // A failure isn't kept for a minute: the next screen tries again.
-  void payload.then((result) => {
-    if (result === null && cached?.payload === payload) cached = null;
-  });
-  return payload;
+  const result = await payload;
+  if (result === null && cached?.payload === payload) cached = null;
+  return result;
 };
 
 export interface ExperimentState<V extends string> extends Assignment<V> {
