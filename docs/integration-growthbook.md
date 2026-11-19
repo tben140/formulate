@@ -61,9 +61,11 @@ columns it lists and deletes the rest the same morning.
 1. **Clear the location PostHog already stored** on its person profiles, from
    before GeoIP was off. The export copies person properties with every
    event, so a returning visitor's old city would otherwise reach the landing
-   table. `apps/warehouse/scripts/clear_posthog_geoip.py` lists what it
-   would clear, and with `--apply` unsets it; run it again afterwards and it
-   should find none. It needs a personal API key with **Query: Read** and the
+   table. `apps/warehouse/scripts/clear_posthog_geoip.py` reads every
+   current person profile (including ones whose events have expired), lists
+   what it would clear, and with `--apply` queues the unset. PostHog applies
+   it a few minutes later: run the dry run again then, and start the export
+   only once it finds none. It needs a personal API key with **Query: Read** and the
    project's public key, in your own shell (its docstring lists them).
 1. **Run the job's `setup` task once** (`databricks bundle deploy`, then run
    the job by hand). It creates the schema and the landing table, so the

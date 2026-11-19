@@ -55,8 +55,8 @@ if cutoff is None:
 
 projection = transform.landing_projection_sql(landing)
 # Hashes any distinct id that isn't an anonymous UUID (transform.DISTINCT_ID_SQL).
-salt = dbutils.secrets.get("double-helix", "customer_id_salt")
-params = {"cutoff": cutoff, "salt": salt}
+salt = dbutils.secrets.get("double-helix", "customer_id_salt").encode()
+params = {"cutoff": cutoff, **transform.hmac_params(salt)}
 copied = spark.sql(f"SELECT count(*) AS n FROM ({projection})", args=params).first().n
 
 spark.sql(

@@ -18,7 +18,9 @@ Asset Bundle (`databricks.yml`). Not a pnpm package: turbo and CI don't run it.
   writes whole events, person properties included, to
   `posthog_events_landing`, which `src/setup.py` creates so the job owns it.
   The loader copies the listed columns out and deletes the rows the same run.
-  Nothing else reads it; PostHog's principal can only write to it, and
+  Nothing else reads it. PostHog's principal writes to it, and has `SELECT`
+  as well only because PostHog's export reads the table's schema before
+  each `COPY INTO` (it can read back what it wrote, nothing more).
   GrowthBook has no grant on it. So PostHog itself must never hold direct
   personal data: no `identify` or person property with a name, email, phone
   number or address. **Discard client IP data** is on and GeoIP off, so new

@@ -11,7 +11,9 @@ landing table. Turning GeoIP off stops new ones; this removes the old ones.
 
 Dry run by default: it lists how many persons and which property names it
 would clear. `--apply` sends one `$set` event per person with `$unset` naming
-those properties, through PostHog's public capture endpoint.
+those properties, through PostHog's public capture endpoint. PostHog applies
+them a little later, so wait a few minutes and run the dry run again: it
+reads the current profiles, and should find none.
 
 Environment (put in your own shell, never in the repository):
   POSTHOG_PERSONAL_API_KEY  a personal API key with Query: Read, this project
@@ -45,19 +47,25 @@ def geo_keys(properties: dict[str, Any]) -> list[str]:
 
 def persons_query(after: str | None, limit: int) -> str:
     """
-    One page of persons who carry a GeoIP property, with one of their
-    distinct ids. Keyset paging on the person id (`> after`), since PostHog's
-    query API refuses OFFSET from a personal key. The id is a UUID PostHog
-    made, checked before it goes into the query.
+    One page of persons whose current profile carries any GeoIP property,
+    with one of their distinct ids. It reads the persons table, not events,
+    so it finds profiles whose events have expired too, and every GeoIP key
+    (a profile can hold coordinates without a country code). The match on
+    the raw properties is loose; `geo_keys` decides what is cleared.
+
+    Keyset paging on the person id (`> after`), since PostHog's query API
+    refuses OFFSET from a personal key. The id is a UUID PostHog made,
+    checked before it goes into the query; nothing else is interpolated.
     """
     if after is not None and not _is_uuid(after):
         raise ValueError(f"Not a person id: {after!r}")
-    where = f"AND toString(person_id) > '{after}' " if after else ""
+    where = f"AND toString(p.id) > '{after}' " if after else ""
     return (
-        "SELECT toString(person_id) AS pid, any(distinct_id), any(person.properties) "
-        "FROM events "
-        "WHERE (person.properties.$initial_geoip_country_code IS NOT NULL "
-        "OR person.properties.$geoip_country_code IS NOT NULL) "
+        "SELECT toString(p.id) AS pid, any(pdi.distinct_id), any(p.properties) "  # noqa: S608
+        "FROM persons AS p "
+        "INNER JOIN person_distinct_ids AS pdi ON pdi.person_id = p.id "
+        "WHERE (toString(p.properties) LIKE '%\"$geoip_%' "
+        "OR toString(p.properties) LIKE '%\"$initial_geoip_%') "
         f"{where}"
         f"GROUP BY pid ORDER BY pid LIMIT {int(limit)}"
     )
@@ -131,16 +139,26 @@ def main(argv: list[str]) -> int:
         for event in events:
             names.update(event["properties"]["$unset"])
         if apply and events:
-            _post(CAPTURE, {"api_key": project_key, "batch": events}, {})
+            reply = _post(CAPTURE, {"api_key": project_key, "batch": events}, {})
+            # Over its quota, PostHog answers 200 and drops the events.
+            if reply.get("quota_limited"):
+                raise SystemExit(
+                    f"PostHog's capture quota is used up; {persons - len(events)} persons "
+                    "were queued before this batch. Run again once it resets."
+                )
         after = rows[-1][0]
         if len(rows) < PAGE:
             break
 
-    verb = "Cleared" if apply else "Would clear"
-    print(f"{verb} location from {persons} persons.")
+    if apply:
+        print(f"Queued location removal for {persons} persons; PostHog applies it shortly.")
+    else:
+        print(f"Would clear location from {persons} persons.")
     print("Properties:", ", ".join(sorted(names)) or "none")
     if not apply and persons:
         print("Run again with --apply to clear them.")
+    if apply and persons:
+        print("In a few minutes, run the dry run again: it should find none.")
     return 0
 
 

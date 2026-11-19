@@ -73,13 +73,37 @@ def _property(name: str, sql_type: str) -> str:
 #: PostHog's anonymous ids are UUIDs. Anything else is an id PostHog was
 #: told with `identify`: once SHO-172 (#177) lands, a signed-in shopper's
 #: Shopify customer number. That one is hashed with the customer id salt
-#: (bound as `:salt`) before it's stored, like orders' customer ids, so the
-#: warehouse never holds a Shopify customer number in the clear.
+#: before it's stored, HMAC-SHA256 like orders' customer ids, so the warehouse
+#: never holds a Shopify customer number in the clear. Spark SQL has no HMAC,
+#: so the SQL builds one from two sha2 calls and the salt's padded keys
+#: (`hmac_params`, bound as `:hmac_inner` and `:hmac_outer`).
+#:
+#: Anonymous ids are lower-cased, as `order_row` lower-cases the cart's
+#: `_posthog_id`, so both sides of the order join agree.
 ANONYMOUS_ID_PATTERN = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 DISTINCT_ID_SQL = (
-    f"CASE WHEN lower(distinct_id) RLIKE '{ANONYMOUS_ID_PATTERN}' THEN distinct_id "
-    "ELSE concat('h:', sha2(concat(:salt, ':', distinct_id), 256)) END"
+    f"CASE WHEN lower(distinct_id) RLIKE '{ANONYMOUS_ID_PATTERN}' THEN lower(distinct_id) "
+    "ELSE concat('h:', sha2(concat(unhex(:hmac_outer), "
+    "unhex(sha2(concat(unhex(:hmac_inner), cast(distinct_id AS BINARY)), 256))), 256)) END"
 )
+
+#: SHA-256's block size, which HMAC pads its key to.
+_HMAC_BLOCK = 64
+
+
+def hmac_params(salt: bytes) -> dict[str, str]:
+    """
+    The padded keys DISTINCT_ID_SQL needs to compute HMAC-SHA256 with `salt`,
+    as hex: H((K ^ opad) || H((K ^ ipad) || message)) (RFC 2104).
+    """
+    if len(salt) < 16:
+        raise ValueError("The customer id salt must be at least 16 bytes.")
+    key = hashlib.sha256(salt).digest() if len(salt) > _HMAC_BLOCK else salt
+    key = key.ljust(_HMAC_BLOCK, b"\0")
+    return {
+        "hmac_inner": bytes(b ^ 0x36 for b in key).hex(),
+        "hmac_outer": bytes(b ^ 0x5C for b in key).hex(),
+    }
 
 
 def landing_projection_sql(landing_table: str) -> str:

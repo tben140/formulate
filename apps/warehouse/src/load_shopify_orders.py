@@ -96,7 +96,12 @@ def with_all_lines(node: dict) -> dict:
     while cursor:
         page = graphql(transform.SHOPIFY_ORDER_LINES_QUERY, {"id": node["id"], "cursor": cursor})
         line_items = (page.get("order") or {}).get("lineItems")
-        if not line_items or "pageInfo" not in line_items:
+        page_info = (line_items or {}).get("pageInfo") or {}
+        # "More lines" with no cursor would end the loop on a partial order,
+        # and the order's lines are replaced whole: stop instead.
+        if not line_items or "pageInfo" not in line_items or (
+            page_info.get("hasNextPage") and not page_info.get("endCursor")
+        ):
             raise RuntimeError(f"Shopify returned no line page for order {transform.numeric_id(node['id'])}")
         node["lineItems"]["nodes"].extend(line_items.get("nodes") or [])
         node["lineItems"]["pageInfo"] = line_items["pageInfo"]

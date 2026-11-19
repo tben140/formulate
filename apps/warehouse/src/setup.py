@@ -36,11 +36,22 @@ if "customer_id_salt" not in keys:
     # Generated once. Changing it later would give every customer a new hash,
     # and repeat-purchase metrics would see them all as new. So a missing salt
     # with hashes already loaded is an error, never a reason to make a new one.
-    if spark.catalog.tableExists(f"{catalog}.{schema}.orders") and spark.sql(
-        f"SELECT 1 FROM {target}.orders WHERE customer_hash IS NOT NULL LIMIT 1"
-    ).first():
+    def has_rows(table, condition):
+        return spark.catalog.tableExists(f"{catalog}.{schema}.{table}") and spark.sql(
+            f"SELECT 1 FROM {target}.{table} WHERE {condition} LIMIT 1"
+        ).first()
+
+    hashed = [
+        table
+        for table, condition in (
+            ("orders", "customer_hash IS NOT NULL"),
+            ("posthog_events", "distinct_id LIKE 'h:%'"),
+        )
+        if has_rows(table, condition)
+    ]
+    if hashed:
         raise RuntimeError(
-            "customer_id_salt is missing but orders already carry customer hashes. "
+            f"customer_id_salt is missing but {' and '.join(hashed)} already carry hashes. "
             "Restore the original salt; a new one would break every repeat-purchase join."
         )
     # The job runs one at a time (databricks.yml), but a run by hand could
