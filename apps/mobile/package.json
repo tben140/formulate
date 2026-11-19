@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@formulate/analytics": "workspace:*",
+    "@formulate/experiments": "workspace:*",
     "@formulate/shopify": "workspace:*",
     "@formulate/tokens": "workspace:*",
     "@shopify/checkout-sheet-kit": "3.9.1",
