@@ -70,6 +70,18 @@ def _property(name: str, sql_type: str) -> str:
     return f"try_variant_get(properties, '$[\"{name}\"]', '{sql_type}')"
 
 
+#: PostHog's anonymous ids are UUIDs. Anything else is an id PostHog was
+#: told with `identify`: once SHO-172 (#177) lands, a signed-in shopper's
+#: Shopify customer number. That one is hashed with the customer id salt
+#: (bound as `:salt`) before it's stored, like orders' customer ids, so the
+#: warehouse never holds a Shopify customer number in the clear.
+ANONYMOUS_ID_PATTERN = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+DISTINCT_ID_SQL = (
+    f"CASE WHEN lower(distinct_id) RLIKE '{ANONYMOUS_ID_PATTERN}' THEN distinct_id "
+    "ELSE concat('h:', sha2(concat(:salt, ':', distinct_id), 256)) END"
+)
+
+
 def landing_projection_sql(landing_table: str) -> str:
     """
     The rows to copy out of PostHog's landing table, one per event uuid.
@@ -86,7 +98,9 @@ def landing_projection_sql(landing_table: str) -> str:
     events = ", ".join(f"'{event}'" for event in POSTHOG_EVENTS)
     return (
         "SELECT\n"
-        "  uuid,\n  event,\n  distinct_id,\n  timestamp,\n"
+        "  uuid,\n  event,\n"
+        f"  {DISTINCT_ID_SQL} AS distinct_id,\n"
+        "  timestamp,\n"
         f"  {properties}\n"
         f"FROM {landing_table}\n"
         "WHERE databricks_ingested_timestamp <= :cutoff\n"

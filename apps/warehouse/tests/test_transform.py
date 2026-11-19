@@ -37,6 +37,17 @@ class LandingProjection(unittest.TestCase):
         self.assertIn("databricks_ingested_timestamp <= :cutoff", self.sql)
         self.assertIn("PARTITION BY uuid", self.sql)
 
+    def test_hashes_a_distinct_id_that_is_not_anonymous(self):
+        # A Shopify customer number from identify (#177) is never stored as is.
+        self.assertIn("sha2(concat(:salt, ':', distinct_id), 256)", self.sql)
+        self.assertIn("AS distinct_id", self.sql)
+        self.assertNotIn("  distinct_id,\n", self.sql)
+        import re
+
+        pattern = re.compile(transform.ANONYMOUS_ID_PATTERN)
+        self.assertTrue(pattern.match("01934f6e-2c4b-7a1d-9e3f-0123456789ab"))
+        self.assertFalse(pattern.match("7712345678901"))
+
     def test_refuses_an_unqualified_or_odd_table_name(self):
         for bad in ["posthog_events_landing", "`a`.`b`.`c`; DROP TABLE x", ""]:
             with self.assertRaises(ValueError):

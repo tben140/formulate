@@ -11,7 +11,8 @@ Asset Bundle (`databricks.yml`). Not a pnpm package: turbo and CI don't run it.
 - **No direct personal data.** The workspace is hosted in the US (AWS
   us-east-2). Load no names, emails, phone numbers, addresses or IP addresses.
   Visitors are PostHog's anonymous ids; Shopify customers are salted HMAC
-  hashes. What is loaded is decided in `src/transform.py`, and its tests check
+  hashes, and so is any PostHog distinct id that isn't an anonymous UUID (a
+  signed-in shopper's customer number, once #177 identifies them). What is loaded is decided in `src/transform.py`, and its tests check
   it. A new column is a privacy decision, not just a schema change.
 - **PostHog's landing table is a staging area, not a source.** The export
   writes whole events, person properties included, to

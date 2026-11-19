@@ -54,7 +54,10 @@ if cutoff is None:
     dbutils.notebook.exit("The landing table is empty. Nothing to load.")
 
 projection = transform.landing_projection_sql(landing)
-copied = spark.sql(f"SELECT count(*) AS n FROM ({projection})", args={"cutoff": cutoff}).first().n
+# Hashes any distinct id that isn't an anonymous UUID (transform.DISTINCT_ID_SQL).
+salt = dbutils.secrets.get("double-helix", "customer_id_salt")
+params = {"cutoff": cutoff, "salt": salt}
+copied = spark.sql(f"SELECT count(*) AS n FROM ({projection})", args=params).first().n
 
 spark.sql(
     f"""
@@ -64,7 +67,7 @@ spark.sql(
     WHEN MATCHED THEN UPDATE SET *
     WHEN NOT MATCHED THEN INSERT *
     """,
-    args={"cutoff": cutoff},
+    args=params,
 )
 
 # Only after the merge succeeded: a failed merge leaves the rows for the next
