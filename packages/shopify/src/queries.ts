@@ -10,7 +10,13 @@ import { graphql } from "./generated";
  */
 
 export const CollectionProductsQuery = graphql(`
-  query CollectionProducts($handle: String!, $first: Int!, $filters: [ProductFilter!]) {
+  query CollectionProducts(
+    $handle: String!
+    $first: Int!
+    $filters: [ProductFilter!]
+    $sortKey: ProductCollectionSortKeys = COLLECTION_DEFAULT
+    $reverse: Boolean = false
+  ) {
     collection(handle: $handle) {
       id
       title
@@ -19,11 +25,11 @@ export const CollectionProductsQuery = graphql(`
         title
         description
       }
-      # COLLECTION_DEFAULT is the merchant's configured sort for this
-      # collection, the same order Liquid's collection.products uses, so the
-      # three surfaces agree. It is also the API default: stated here so it is a
-      # decision rather than an inheritance (SHO-111).
-      products(first: $first, sortKey: COLLECTION_DEFAULT, filters: $filters) {
+      # COLLECTION_DEFAULT (the variable's default) is the merchant's configured
+      # sort for this collection, the same order Liquid's collection.products
+      # uses, so the three surfaces agree (SHO-111). A shopper's choice of sort
+      # replaces it: see collectionSort in src/listing.ts.
+      products(first: $first, sortKey: $sortKey, reverse: $reverse, filters: $filters) {
         # The filters Search & Discovery offers for this collection, with counts
         # for the current selection. See src/filters.ts.
         filters {
