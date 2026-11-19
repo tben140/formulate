@@ -12,17 +12,18 @@ vault to browse it as a graph; it is plain markdown either way.
 
 ## Start here
 
-| Note                              | What it covers                                                                                   |
-| --------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [Architecture](architecture.md)   | The three surfaces, what they share, and where they deliberately diverge                         |
-| [Domain model](domain-model.md)   | Customer, product, cart, order, subscription — and where Shopify's shape and ours disagree       |
-| [Decision records](adr/README.md) | Why things are the way they are, with alternatives                                               |
-| [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock   |
-| [Try the demo](try-the-demo.md)   | Draft: where a reviewer finds each storefront, a ten-minute tour, and the owner's open decisions |
-| [Security](security.md)           | Supply-chain and CI defences, and the record of each dependency audit                            |
-| [AI agents](agents.md)            | UCP, WebMCP tools, llms.txt and Markdown pages: how agents read and buy                          |
-| [Compliance](compliance.md)       | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open   |
-| [Domains](domains.md)             | Which address serves what, the DNS behind it, and why checkout has its own subdomain             |
+| Note                                    | What it covers                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [Architecture](architecture.md)         | The three surfaces, what they share, and where they deliberately diverge                         |
+| [Domain model](domain-model.md)         | Customer, product, cart, order, subscription — and where Shopify's shape and ours disagree       |
+| [Decision records](adr/README.md)       | Why things are the way they are, with alternatives                                               |
+| [The demo store](demo-store.md)         | What visitors are told, how the store is configured to behave like a real one, resetting stock   |
+| [Try the demo](try-the-demo.md)         | Draft: where a reviewer finds each storefront, a ten-minute tour, and the owner's open decisions |
+| [Security](security.md)                 | Supply-chain and CI defences, and the record of each dependency audit                            |
+| [AI agents](agents.md)                  | UCP, WebMCP tools, llms.txt and Markdown pages: how agents read and buy                          |
+| [Compliance](compliance.md)             | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open   |
+| [Domains](domains.md)                   | Which address serves what, the DNS behind it, and why checkout has its own subdomain             |
+| [Portfolio drafts](portfolio/README.md) | One-thing pages for clients, and blog outlines (drafts for Ben to rewrite)                       |
 
 ## Surfaces
 
