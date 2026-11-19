@@ -5,9 +5,9 @@ import { openProduct } from "./helpers";
 
 test("a collection renders its products", async ({ page }) => {
   await page.goto("/collections/best-sellers");
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Best Sellers" }),
-  ).toBeVisible();
+  // The page's heading is the collection's title in Shopify, "Featured";
+  // the menu links to it as "Best Sellers".
+  await expect(page.getByRole("heading", { level: 1, name: "Featured" })).toBeVisible();
   // Each product is a link to its page, with a price.
   // A product card is a link in the page with a price in it, which keeps the
   // breadcrumb's links out without leaning on markup.
@@ -58,11 +58,18 @@ test("a product page renders title, price and a buyable button", async ({ page }
 /**
  * Needs one variant sold out (inventory tracked, `inventoryPolicy: DENY`)
  * while its product's other variant stays in stock. The demo store's plan
- * holds **Magnesium Glycinate 200 mg at 0 available** (docs/demo-store.md,
+ * holds **Magnesium Glycinate 200 mg / 30 days at 0 available** (docs/demo-store.md,
  * added with #26). When that variant is back in stock, as before a sale, the
  * test is skipped and says why, rather than failing on the store's stock.
  */
-const SOLD_OUT = { handle: "magnesium-glycinate", option: "200 mg" };
+const SOLD_OUT = {
+  handle: "magnesium-glycinate",
+  // The option value shown on the page, and the variant's full title, which
+  // names its JSON-LD offer. They differ since the pack-size option was added
+  // (8 Nov): the page shows only options with more than one value.
+  option: "200 mg",
+  variant: "200 mg / 30 days",
+};
 
 test("a sold-out option is marked and cannot be bought", async ({ page }) => {
   await openProduct(page, SOLD_OUT.handle);
@@ -76,11 +83,11 @@ test("a sold-out option is marked and cannot be bought", async ({ page }) => {
     .map((text) => JSON.parse(text) as { "@type"?: string; offers?: unknown })
     .filter((data) => data["@type"] === "Product")
     .flatMap((data) => (data.offers ?? []) as { name?: string; availability?: string }[])
-    .find((o) => o.name === SOLD_OUT.option);
-  expect(offer, `no JSON-LD offer for ${SOLD_OUT.option}`).toBeDefined();
+    .find((o) => o.name === SOLD_OUT.variant);
+  expect(offer, `no JSON-LD offer for ${SOLD_OUT.variant}`).toBeDefined();
   test.skip(
     offer?.availability === "https://schema.org/InStock",
-    `${SOLD_OUT.handle} ${SOLD_OUT.option} is in stock; the stock plan needs it at 0`,
+    `${SOLD_OUT.handle} ${SOLD_OUT.variant} is in stock; the stock plan needs it at 0`,
   );
 
   // What a screen reader announces, and what a sighted shopper sees.

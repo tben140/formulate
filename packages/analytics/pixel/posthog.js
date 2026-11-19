@@ -28,7 +28,7 @@
  * visitors who allowed analytics, on the theme and in checkout.
  */
 
-/* global analytics, browser, fetch, setTimeout -- provided by Shopify's custom pixel sandbox */
+/* global analytics, browser, crypto, fetch, setTimeout -- provided by Shopify's custom pixel sandbox */
 
 const POSTHOG_KEY = "__POSTHOG_KEY__";
 const POSTHOG_HOST = "https://eu.i.posthog.com";
@@ -62,10 +62,18 @@ const handleFromUrl = (url) => /\/products\/([^/?#]+)/.exec(url || "")?.[1] ?? "
 
 const amount = (money) => Number(money?.amount ?? 0);
 
+/**
+ * Random hex digits from the platform's cryptographic generator, which
+ * Shopify's pixel sandbox provides like any browser context. Not Math.random:
+ * a session id is how PostHog groups a visitor's events, so it shouldn't be
+ * guessable (CodeQL).
+ */
 const randomHex = (length) => {
-  let out = "";
-  for (let i = 0; i < length; i++) out += ((Math.random() * 16) | 0).toString(16);
-  return out;
+  const bytes = new Uint8Array(Math.ceil(length / 2));
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, length);
 };
 
 /** A time-ordered v7 UUID, the `$session_id` format PostHog's sessions use. */
