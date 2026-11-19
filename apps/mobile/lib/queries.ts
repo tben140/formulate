@@ -5,6 +5,7 @@ import {
   NAV_MENU_HANDLE,
   NavMenuQuery,
   PaymentSettingsQuery,
+  SHOP_MENU_HANDLES,
   ComplementaryProductsQuery,
   ProductByHandleQuery,
   SearchProductsQuery,
@@ -13,6 +14,7 @@ import {
   payLaterIds,
   paymentIconIds,
   productFiltersFromParams,
+  toNavGroup,
   toNavLinks,
 } from "@formulate/shopify";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -87,6 +89,25 @@ export const useNavLinks = () =>
         unwrap(await storefront.request(NavMenuQuery, { handle: NAV_MENU_HANDLE })).menu
           ?.items,
       ),
+    staleTime: 10 * 60_000,
+  });
+
+/**
+ * The Shop screen's groups: one per menu in SHOP_MENU_HANDLES (by goal, by
+ * product family, by format), the ones web's header dropdown shows. Empty or
+ * missing menus are left out.
+ */
+export const useShopGroups = () =>
+  useQuery({
+    queryKey: ["nav", ...SHOP_MENU_HANDLES],
+    queryFn: async () =>
+      (
+        await Promise.all(
+          SHOP_MENU_HANDLES.map(async (handle) =>
+            toNavGroup(unwrap(await storefront.request(NavMenuQuery, { handle })).menu),
+          ),
+        )
+      ).flatMap((group) => group ?? []),
     staleTime: 10 * 60_000,
   });
 
