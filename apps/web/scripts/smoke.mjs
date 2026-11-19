@@ -85,9 +85,11 @@ const jsonLdTypes = (html) =>
 const visibleText = (html) =>
   html
     // `</script >` and `</script foo>` close a script too, so the end tag
-    // allows anything up to its `>` (CodeQL: bad HTML filtering regexp).
-    .replace(/<script\b[\s\S]*?<\/script\b[^>]*>/gi, " ")
-    .replace(/<style\b[\s\S]*?<\/style\b[^>]*>/gi, " ")
+    // allows anything up to its `>` (CodeQL: bad HTML filtering regexp). A
+    // tag name ends at whitespace, `/` or `>`, not at a hyphen, so
+    // `<script-widget>` is an ordinary element.
+    .replace(/<script(?=[\s/>])[\s\S]*?<\/script(?=[\s/>])[^>]*>/gi, " ")
+    .replace(/<style(?=[\s/>])[\s\S]*?<\/style(?=[\s/>])[^>]*>/gi, " ")
     .replace(/<[^>]+>/g, " ");
 
 /** The checks every indexable page gets. */
