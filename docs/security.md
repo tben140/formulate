@@ -87,19 +87,26 @@ date, so CI ignores exactly these and fails on anything new. pnpm counts them
 as production dependencies because the app depends on `expo`; most of the code
 only runs in Expo's command-line tools.
 
-| Advisory            | Package                    | Severity | Path                              | Why it's acceptable                                                                                                                           | Review      |
-| ------------------- | -------------------------- | -------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| GHSA-mrhx-c7xc-m3w5 | zod 3.25.76                | High     | Expo CLI                          | The fix is in zod 4 only; Expo CLI needs 3. Memory exhaustion on oversized input to the CLI's own config validation.                          | 25 Nov 2026 |
-| GHSA-w5hq-g745-h8pq | uuid 7.0.3                 | Moderate | Expo's `xcode` package (prebuild) | The fix needs uuid 11. The bug needs a caller-supplied buffer, which `xcode` doesn't pass.                                                    | 25 Nov 2026 |
-| GHSA-vcc3-ghjq-m6fr | decode-uri-component 0.2.2 | Moderate | expo-router's query-string        | No 0.2 or 0.4 fix exists. A slow decode of a malformed URL, in the shopper's own app.                                                         | 25 Nov 2026 |
-| GHSA-3g3m-2fjr-6pw4 | glob 13.0.6                | Moderate | Expo's config plugins             | The fix is glob 14 only, a major Expo hasn't moved to. The bug lets a cancelled search keep reading files; Expo's prebuild never cancels one. | 25 Nov 2026 |
-| GHSA-g3hv-75wg-m249 | minimatch 3.1.5 and 10.2.5 | Moderate | Expo's config plugins, ESLint     | The fix is minimatch 11 only. A slow match on a crafted pattern; every pattern here is written by us or by Expo.                              | 25 Nov 2026 |
+| Advisory            | Package                    | Severity | Path                                  | Why it's acceptable                                                                                                                            | Review      |
+| ------------------- | -------------------------- | -------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| GHSA-3g3m-2fjr-6pw4 | glob 13.0.6                | Moderate | Expo's config plugins                 | The fix is glob 14 only, a major Expo hasn't moved to. The bug lets a cancelled search keep reading files; Expo's prebuild never cancels one.  | 25 Nov 2026 |
+| GHSA-g3hv-75wg-m249 | minimatch 3.1.5 and 10.2.5 | Moderate | Expo's config plugins, ESLint         | The fix is minimatch 11 only. A slow match on a crafted pattern; every pattern here is written by us or by Expo.                               | 25 Nov 2026 |
+| GHSA-fc5q-39xc-vjpf | picomatch 2.3.2 and 4.0.5  | High     | The app's checkout sheet, build tools | **GitHub has withdrawn the advisory**, but npm's audit data still lists it, naming a fix (4.0.8) that was never published. Nothing to install. | 25 Nov 2026 |
 
 Each comes out of the list once every parent package that pulls in the
-vulnerable version ships the fix. For most that's Expo alone; minimatch also
-comes in through ESLint (eslint-plugin-import), so it stays until both have
-moved to minimatch 11 (`pnpm why minimatch` shows what's left). On the review
-date, check; if a parent still hasn't, move the date on.
+vulnerable version ships the fix. glob comes in through Expo's CLI and
+fingerprint packages; minimatch through those, ESLint and graphql-config, so it
+stays until all of them have moved to minimatch 11.0.1 or later, the first
+patched version (`pnpm why -r minimatch` shows what's left, across every
+workspace package, which the bare command doesn't). On the review date, check;
+if a parent still hasn't, move the date on.
+
+Three earlier entries came off the list on 16 November 2026, because the
+October batch's dependency updates removed the packages themselves: zod 3
+(GHSA-mrhx-c7xc-m3w5, Expo CLI now uses zod 4), uuid 7 (GHSA-w5hq-g745-h8pq)
+and decode-uri-component 0.2 (GHSA-vcc3-ghjq-m6fr). An ignore left in place
+for a package that is gone would hide the advisory if the package ever came
+back.
 
 **Trust-policy exceptions.** Four exact versions in the lockfile fail
 `trustPolicy` without being suspicious, and are listed in

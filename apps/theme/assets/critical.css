@@ -492,10 +492,11 @@ a:hover {
 }
 
 .free-shipping__track {
-  height: 6px;
+  /* 6px, as web's and the app's h-1.5: one and a half steps of the scale. */
+  height: calc(var(--spacing-1) * 1.5);
   margin-top: var(--spacing-2);
   overflow: hidden;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   background: var(--color-ink-100);
 }
 
@@ -585,8 +586,9 @@ a:hover {
   color: var(--color-foreground-muted);
 }
 
-/* A failed one-tap add, added by cart-drawer.js. */
-.cart-suggestion__error {
+/* A failed one-tap add or quantity change, added by cart-drawer.js. */
+.cart-suggestion__error,
+.cart-line__error {
   margin: var(--spacing-1) 0 0;
   font-size: var(--text-xs);
   color: var(--color-danger);

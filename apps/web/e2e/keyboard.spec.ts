@@ -36,7 +36,10 @@ test("keyboard-only: collection to cart, with focus moved into the drawer", asyn
   page,
 }) => {
   await page.goto("/collections/best-sellers", { waitUntil: "networkidle" });
-  const card = page.locator('main a[href="/products/whey-protein"]');
+  const card = page
+    .getByRole("main")
+    .getByRole("link", { name: /Whey Protein/ })
+    .first();
   await tabTo(page, card);
   await page.keyboard.press("Enter");
   await page.waitForURL(/\/products\/whey-protein/);

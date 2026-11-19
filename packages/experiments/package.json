@@ -1,0 +1,25 @@
+{
+  "name": "@formulate/experiments",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@growthbook/growthbook": "~2.0.0"
+  },
+  "devDependencies": {
+    "@formulate/eslint-config": "workspace:*",
+    "@formulate/typescript-config": "workspace:*",
+    "@types/node": "^22.19.0",
+    "eslint": "^10.8.0",
+    "typescript": "~6.0.3",
+    "vitest": "4.1.12"
+  }
+}
