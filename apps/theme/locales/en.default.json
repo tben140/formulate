@@ -15,6 +15,7 @@
   },
   "cart": {
     "add_error": "Could not add this to your cart.",
+    "change_error": "Your cart couldn't be updated. Check your connection and try again.",
     "checkout": "Checkout",
     "title": "Cart",
     "update": "Update",

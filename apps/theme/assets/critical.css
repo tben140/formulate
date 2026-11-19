@@ -586,8 +586,9 @@ a:hover {
   color: var(--color-foreground-muted);
 }
 
-/* A failed one-tap add, added by cart-drawer.js. */
-.cart-suggestion__error {
+/* A failed one-tap add or quantity change, added by cart-drawer.js. */
+.cart-suggestion__error,
+.cart-line__error {
   margin: var(--spacing-1) 0 0;
   font-size: var(--text-xs);
   color: var(--color-danger);
