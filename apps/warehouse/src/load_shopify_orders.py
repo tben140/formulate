@@ -85,14 +85,22 @@ def graphql(query: str, variables: dict) -> dict:
 
 
 def with_all_lines(node: dict) -> dict:
-    """The order with every line, fetching the pages after the first."""
+    """
+    The order with every line, fetching the pages after the first.
+
+    Raises rather than return a partial order: its lines are replaced whole,
+    so a short list would delete real lines. The run fails before the orders'
+    merge, so the checkpoint hasn't moved and the next run fetches it again.
+    """
     cursor = transform.more_lines_cursor(node)
     while cursor:
         page = graphql(transform.SHOPIFY_ORDER_LINES_QUERY, {"id": node["id"], "cursor": cursor})
-        line_items = (page.get("order") or {}).get("lineItems") or {}
+        line_items = (page.get("order") or {}).get("lineItems")
+        if not line_items or "pageInfo" not in line_items:
+            raise RuntimeError(f"Shopify returned no line page for order {transform.numeric_id(node['id'])}")
         node["lineItems"]["nodes"].extend(line_items.get("nodes") or [])
-        node["lineItems"]["pageInfo"] = line_items.get("pageInfo") or {}
-        cursor = transform.more_lines_cursor(node)
+        node["lineItems"]["pageInfo"] = line_items["pageInfo"]
+        cursor = transform.next_cursor(cursor, transform.more_lines_cursor(node))
     return node
 
 
@@ -119,7 +127,7 @@ while True:
         lines.extend(transform.order_line_rows(node))
     if not page["pageInfo"]["hasNextPage"]:
         break
-    cursor = page["pageInfo"]["endCursor"]
+    cursor = transform.next_cursor(cursor, page["pageInfo"]["endCursor"])
 
 # COMMAND ----------
 

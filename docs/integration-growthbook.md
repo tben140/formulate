@@ -57,36 +57,49 @@ columns it lists and deletes the rest the same morning.
 
 1. **In PostHog, first** (project **Settings**): turn on **Discard client IP
    data**, and turn off the **GeoIP** transformation under **Data pipelines**.
-   Then no IP address or location is in an event to begin with.
-2. **In Databricks**, add a service principal called `posthog-exporter`
+   New events then carry no IP address or location.
+2. **Run the job's `setup` task once** (`databricks bundle deploy`, then run
+   the job by hand). It creates the schema and the landing table, so the
+   job owns the table and can read and delete its rows.
+3. **In Databricks**, add a service principal called `posthog-exporter`
    (**Settings → Identity and access → Service principals**). On its
    **Secrets** tab, generate an OAuth secret; note the client id and the
    secret, which is shown once. Give it **Can use** on the SQL warehouse, and
-   grant:
+   grant it the landing table only. SQL names a service principal by its
+   **application id** (on its page), not its display name:
 
    ```sql
-   GRANT USE CATALOG ON CATALOG workspace TO `posthog-exporter`;
-   GRANT USE SCHEMA ON SCHEMA workspace.double_helix TO `posthog-exporter`;
-   GRANT CREATE TABLE ON SCHEMA workspace.double_helix TO `posthog-exporter`;
-   GRANT CREATE VOLUME ON SCHEMA workspace.double_helix TO `posthog-exporter`;
+   GRANT USE CATALOG ON CATALOG workspace TO `<posthog-exporter application id>`;
+   GRANT USE SCHEMA ON SCHEMA workspace.double_helix TO `<posthog-exporter application id>`;
+   GRANT CREATE VOLUME ON SCHEMA workspace.double_helix TO `<posthog-exporter application id>`;
+   GRANT SELECT, MODIFY ON TABLE workspace.double_helix.posthog_events_landing TO `<posthog-exporter application id>`;
    ```
 
-   Run `src/setup.py` once before this, so the schema exists.
+   No `CREATE TABLE`: the table already exists. `CREATE VOLUME` is for the
+   files PostHog stages before its `COPY INTO`.
 
-3. **In PostHog**, **Data pipelines → Destinations → New → Databricks**:
+4. **In PostHog**, **Data pipelines → Destinations → New → Databricks**:
 
    | Field            | Value                                                  |
    | ---------------- | ------------------------------------------------------ |
-   | Integration      | Server hostname, and the client id and secret from 2   |
+   | Integration      | Server hostname, and the client id and secret from 3   |
    | HTTP path        | From the SQL warehouse's **Connection details**        |
    | Catalog / schema | `workspace` / `double_helix`                           |
-   | Table name       | `posthog_events_landing` (PostHog creates it)          |
+   | Table name       | `posthog_events_landing` (made in step 2)              |
    | Model            | Events                                                 |
    | Interval         | Daily                                                  |
    | Use VARIANT type | On (the default): the loader reads `properties` as one |
 
-4. **Backfill** from the destination's page, for the days before it was
-   created. The next morning's job copies them in.
+   **No backfill.** Events from before step 1 can carry GeoIP location, and
+   no experiment ran before the export started, so there's nothing in them
+   the analysis needs.
+
+**PostHog must never hold direct personal data**, because the export copies
+whatever it holds, person properties included, into the landing table before
+the loader filters it. Today nothing sets a PostHog person property, and
+visitors are anonymous ids. A change that calls PostHog's `identify` or sets
+person properties (SHO-172, #177) must not send a name, email, phone number
+or address.
 
 Check PostHog's billing page for what the export costs on the current plan
 before turning it on.
@@ -114,10 +127,10 @@ principals**), give it **Can use** on the SQL warehouse, and grant it this in
 the SQL editor:
 
 ```sql
-GRANT USE CATALOG ON CATALOG workspace TO `growthbook-reader`;
-GRANT USE SCHEMA ON SCHEMA workspace.double_helix TO `growthbook-reader`;
-GRANT SELECT ON TABLE workspace.double_helix.experiment_exposures TO `growthbook-reader`;
-GRANT SELECT ON TABLE workspace.double_helix.attributed_orders TO `growthbook-reader`;
+GRANT USE CATALOG ON CATALOG workspace TO `<growthbook-reader application id>`;
+GRANT USE SCHEMA ON SCHEMA workspace.double_helix TO `<growthbook-reader application id>`;
+GRANT SELECT ON TABLE workspace.double_helix.experiment_exposures TO `<growthbook-reader application id>`;
+GRANT SELECT ON TABLE workspace.double_helix.attributed_orders TO `<growthbook-reader application id>`;
 ```
 
 `ON TABLE` covers views. A view runs with its owner's rights, so the

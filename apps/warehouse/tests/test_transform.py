@@ -46,10 +46,11 @@ class LandingProjection(unittest.TestCase):
         # setup.py's posthog_events, less the four ids and loaded_at.
         names = [name for name, _, _ in transform.POSTHOG_PROPERTIES]
         self.assertEqual(len(names), len(set(names)))
-        setup = open(os.path.join(os.path.dirname(__file__), "..", "src", "setup.py")).read()
+        with open(os.path.join(os.path.dirname(__file__), "..", "src", "setup.py")) as handle:
+            setup = handle.read()
         table = setup.split("posthog_events (")[1].split(") COMMENT")[0]
-        for name in names:
-            self.assertRegex(table, rf"\b{name} (STRING|DOUBLE|BOOLEAN)")
+        for name, _, sql_type in transform.POSTHOG_PROPERTIES:
+            self.assertRegex(table, rf"\b{name} {sql_type.upper()}\b")
 
 
 ORDER = {
@@ -154,6 +155,13 @@ class ShopifyQueries(unittest.TestCase):
 
     def test_lines_have_page_info(self):
         self.assertIn("pageInfo", transform.SHOPIFY_ORDERS_QUERY.split("lineItems")[1])
+
+    def test_next_cursor_refuses_a_cursor_that_did_not_move(self):
+        self.assertEqual(transform.next_cursor(None, "c1"), "c1")
+        self.assertEqual(transform.next_cursor("c1", "c2"), "c2")
+        self.assertIsNone(transform.next_cursor("c1", None))
+        with self.assertRaises(RuntimeError):
+            transform.next_cursor("c1", "c1")
 
     def test_more_lines_cursor(self):
         full = {"lineItems": {"pageInfo": {"hasNextPage": False, "endCursor": "c1"}, "nodes": []}}

@@ -14,10 +14,15 @@ Asset Bundle (`databricks.yml`). Not a pnpm package: turbo and CI don't run it.
   hashes. What is loaded is decided in `src/transform.py`, and its tests check
   it. A new column is a privacy decision, not just a schema change.
 - **PostHog's landing table is a staging area, not a source.** The export
-  writes whole events to `posthog_events_landing`. The loader copies the
-  listed columns out and deletes the rows the same run. Nothing else reads
-  it, and GrowthBook has no grant on it. PostHog must have **Discard client
-  IP data** on and GeoIP off, so no IP or location reaches it at all.
+  writes whole events, person properties included, to
+  `posthog_events_landing`, which `src/setup.py` creates so the job owns it.
+  The loader copies the listed columns out and deletes the rows the same run.
+  Nothing else reads it; PostHog's principal can only write to it, and
+  GrowthBook has no grant on it. So PostHog itself must never hold direct
+  personal data: no `identify` or person property with a name, email, phone
+  number or address. **Discard client IP data** is on and GeoIP off, so new
+  events carry no IP or location; person properties recorded while GeoIP was
+  on can still name a city (`docs/integration-growthbook.md`).
 - **Loads are idempotent.** Events merge on their uuid, orders on their id,
   and an order's lines are replaced whole. A rerun, or an overlapping window,
   never duplicates a row.

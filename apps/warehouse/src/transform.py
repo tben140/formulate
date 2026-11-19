@@ -185,6 +185,16 @@ query OrderLines($id: ID!, $cursor: String) {{
 """
 
 
+def next_cursor(previous: str | None, cursor: str | None) -> str | None:
+    """
+    The cursor for the next page, refusing one that didn't move: a page that
+    says there's more but hands back the same cursor would loop for ever.
+    """
+    if cursor is not None and cursor == previous:
+        raise RuntimeError("Shopify returned the same page cursor twice; stopping.")
+    return cursor
+
+
 def more_lines_cursor(node: Mapping[str, Any]) -> str | None:
     """The cursor to fetch an order's remaining lines from, or None if it has them all."""
     page = ((node.get("lineItems") or {}).get("pageInfo")) or {}

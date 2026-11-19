@@ -81,6 +81,26 @@ CREATE TABLE IF NOT EXISTS {target}.posthog_events (
 ) COMMENT 'PostHog events in the shared vocabulary, copied from the export''s landing table. Anonymous ids only; no IP or person properties.'
 """)
 
+# PostHog's batch export appends to this table. It's created here, in the
+# shape PostHog's Databricks destination writes, so the job owns it and can
+# read and delete its rows; PostHog's service principal only gets SELECT and
+# MODIFY on it (docs/integration-growthbook.md). Whole events land here, so
+# nothing but the loader reads it, and GrowthBook has no grant on it.
+spark.sql(f"""
+CREATE TABLE IF NOT EXISTS {target}.posthog_events_landing (
+  uuid STRING,
+  event STRING,
+  properties VARIANT,
+  person_properties VARIANT,
+  person_id STRING,
+  distinct_id STRING,
+  team_id BIGINT,
+  timestamp TIMESTAMP,
+  created_at TIMESTAMP,
+  databricks_ingested_timestamp TIMESTAMP
+) COMMENT 'Staging for PostHog''s batch export. Rows are copied to posthog_events and deleted each morning.'
+""")
+
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {target}.orders (
   order_id STRING NOT NULL,
