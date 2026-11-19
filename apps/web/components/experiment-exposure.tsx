@@ -4,6 +4,7 @@ import { PRODUCT_EVENTS } from "@formulate/analytics";
 import type { Exposure } from "@formulate/experiments";
 import { useEffect, useRef } from "react";
 
+import { readAnalyticsId } from "@/lib/analytics-id";
 import { analytics } from "@/lib/product-analytics";
 
 /**
@@ -14,8 +15,19 @@ import { analytics } from "@/lib/product-analytics";
  * are never counted. Renders nothing, and sends nothing without consent
  * (`analytics()` is null), which matches the server: without consent there is
  * no exposure to send.
+ *
+ * `visitorId` is the id the server decided the variant for. If the visitor's
+ * id has changed since (consent withdrawn and given again in another tab,
+ * say), the exposure isn't sent: it would credit the new id with a variant
+ * decided for the old one.
  */
-export const ExperimentExposure = ({ exposure }: { readonly exposure: Exposure }) => {
+export const ExperimentExposure = ({
+  exposure,
+  visitorId,
+}: {
+  readonly exposure: Exposure;
+  readonly visitorId: string;
+}) => {
   const { experiment_key, variation_id } = exposure;
   // Strict Mode runs effects twice in development: one exposure per variant,
   // as in TrackViewedProduct.
@@ -24,12 +36,13 @@ export const ExperimentExposure = ({ exposure }: { readonly exposure: Exposure }
   useEffect(() => {
     const key = `${experiment_key}:${variation_id}`;
     if (sent.current === key) return;
+    if (readAnalyticsId() !== visitorId) return;
     sent.current = key;
     analytics()?.capture(PRODUCT_EVENTS.experimentViewed, {
       experiment_key,
       variation_id,
     });
-  }, [experiment_key, variation_id]);
+  }, [experiment_key, variation_id, visitorId]);
 
   return null;
 };

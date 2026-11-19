@@ -50,7 +50,7 @@ const loadPayload = cache(async (): Promise<FeatureApiResponse | null> => {
 });
 
 /**
- * The variant this request's visitor sees.
+ * The variant this request's visitor sees, and the id it was decided for.
  *
  * `forced` is a variant name from the page's query string
  * (`?product-page-aa=control-copy`), for review and demos. It is shown and
@@ -59,13 +59,16 @@ const loadPayload = cache(async (): Promise<FeatureApiResponse | null> => {
 export const assignExperiment = async <D extends ExperimentDefinition>(
   definition: D,
   forced?: string | string[] | null,
-): Promise<Assignment<VariantOf<D>>> => {
+): Promise<Assignment<VariantOf<D>> & { readonly visitorId: string | null }> => {
   const jar = await cookies();
   const consented = parseConsent(jar.get(CONSENT_COOKIE)?.value) === "granted";
   const id = consented ? parseExperimentId(jar.get(ANALYTICS_ID_COOKIE)?.value) : null;
-  return assign(definition, {
+  const assignment = await assign(definition, {
     payload: id ? await loadPayload() : null,
     id,
     forced: typeof forced === "string" ? forced : null,
   });
+  // The id the variant was decided for, so the browser can check it still
+  // holds before recording the exposure (components/experiment-exposure.tsx).
+  return { ...assignment, visitorId: id };
 };

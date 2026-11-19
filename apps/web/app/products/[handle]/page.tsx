@@ -121,8 +121,11 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
         Built here, on the server, so the store domain never reaches the client
         bundle — only the emitting needs a browser.
       */}
-        {aaAssignment.exposure ? (
-          <ExperimentExposure exposure={aaAssignment.exposure} />
+        {aaAssignment.exposure && aaAssignment.visitorId ? (
+          <ExperimentExposure
+            exposure={aaAssignment.exposure}
+            visitorId={aaAssignment.visitorId}
+          />
         ) : null}
 
         <TrackViewedProduct

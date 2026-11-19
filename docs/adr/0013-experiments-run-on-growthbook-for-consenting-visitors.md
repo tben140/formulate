@@ -87,6 +87,13 @@ A/B tests.
 - GrowthBook queries Databricks with a read-only token. Exposures arrive
   from PostHog, and orders from Shopify and subscriptions from Recharge are
   loaded alongside them.
+- **What GrowthBook can read.** The token reads only the views it needs:
+  exposures and attributed orders, keyed by the anonymous id, with order
+  totals and whether an order had a subscription. No names, emails,
+  addresses or IP addresses are in the warehouse at all. GrowthBook's
+  queries summarise in Databricks and it keeps the summaries, but its
+  query tests can show it sample rows, so it is a processor of those
+  pseudonymous rows, not only of aggregates. The privacy notice says so.
 - **The first experiment is an A/A test**, the same page in both arms. It
   proves the split is even and that two identical arms show no difference,
   before any real result is trusted.
