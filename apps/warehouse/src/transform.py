@@ -8,6 +8,8 @@ No Spark and no network here, so they run under plain `python -m unittest`
 (AWS us-east-2), so nothing that identifies a person directly is loaded: no
 names, emails, phone numbers, addresses or IP addresses. Visitor ids are
 PostHog's anonymous ids; Shopify customer ids are hashed with a secret salt.
+PostHog's export lands whole events in a landing table; only the columns
+below are copied out, and the landing rows are deleted the same run.
 See apps/warehouse/AGENTS.md.
 """
 
@@ -15,10 +17,9 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import json
 import re
 from datetime import datetime
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping
 
 # --- PostHog -----------------------------------------------------------------
 
@@ -36,63 +37,73 @@ POSTHOG_EVENTS: tuple[str, ...] = (
     "experiment_viewed",
 )
 
-#: Column name -> HogQL expression. Only these properties are loaded; `$ip`
-#: and the rest of PostHog's automatic properties never are.
-POSTHOG_COLUMNS: tuple[tuple[str, str], ...] = (
-    ("uuid", "toString(uuid)"),
-    ("event", "event"),
-    ("distinct_id", "distinct_id"),
-    ("timestamp", "toString(timestamp)"),
-    ("surface", "properties.surface"),
-    ("session_id", "properties.$session_id"),
-    ("pathname", "properties.$pathname"),
-    ("screen_name", "properties.$screen_name"),
-    ("experiment_key", "properties.experiment_key"),
-    ("variation_id", "properties.variation_id"),
-    ("product_id", "properties.product_id"),
-    ("variant_id", "properties.variant_id"),
-    ("quantity", "properties.quantity"),
-    ("price", "properties.price"),
-    ("cart_value", "properties.cart_value"),
-    ("currency", "properties.currency"),
-    ("selling_plan", "properties.selling_plan"),
-    ("has_subscription", "properties.has_subscription"),
+#: Column name, event property, SQL type. PostHog's Databricks export lands
+#: whole events, every property included; only these are copied out of it.
+#: `$ip`, the person properties and everything else stay behind and are
+#: deleted with the landing rows.
+POSTHOG_PROPERTIES: tuple[tuple[str, str, str], ...] = (
+    ("surface", "surface", "string"),
+    ("session_id", "$session_id", "string"),
+    ("pathname", "$pathname", "string"),
+    ("screen_name", "$screen_name", "string"),
+    ("experiment_key", "experiment_key", "string"),
+    ("variation_id", "variation_id", "string"),
+    ("product_id", "product_id", "string"),
+    ("variant_id", "variant_id", "string"),
+    ("quantity", "quantity", "double"),
+    ("price", "price", "double"),
+    ("cart_value", "cart_value", "double"),
+    ("currency", "currency", "string"),
+    ("selling_plan", "selling_plan", "string"),
+    ("has_subscription", "has_subscription", "boolean"),
 )
+
+_PROPERTY_NAME = re.compile(r"^\$?[a-z_]+$")
+_TABLE_NAME = re.compile(r"^`[A-Za-z0-9_]+`\.`[A-Za-z0-9_]+`\.`?[A-Za-z0-9_]+`?$")
+
+
+def _property(name: str, sql_type: str) -> str:
+    """One property out of the export's VARIANT `properties` column."""
+    if not _PROPERTY_NAME.match(name) or sql_type not in ("string", "double", "boolean"):
+        raise ValueError(f"Unexpected property: {name!r} {sql_type!r}")
+    # try_variant_get: a value of the wrong type becomes NULL, not a failed load.
+    return f"try_variant_get(properties, '$[\"{name}\"]', '{sql_type}')"
+
+
+def landing_projection_sql(landing_table: str) -> str:
+    """
+    The rows to copy out of PostHog's landing table, one per event uuid.
+
+    Takes the rows the export had landed by `:cutoff` (a bound parameter), so
+    a run never deletes rows it didn't copy. The export appends with COPY
+    INTO and can land an event twice on a retry; the newest copy wins.
+    """
+    if not _TABLE_NAME.match(landing_table):
+        raise ValueError(f"Not a qualified table name: {landing_table!r}")
+    properties = ",\n  ".join(
+        f"{_property(prop, sql_type)} AS {name}" for name, prop, sql_type in POSTHOG_PROPERTIES
+    )
+    events = ", ".join(f"'{event}'" for event in POSTHOG_EVENTS)
+    return (
+        "SELECT\n"
+        "  uuid,\n  event,\n  distinct_id,\n  timestamp,\n"
+        f"  {properties}\n"
+        f"FROM {landing_table}\n"
+        "WHERE databricks_ingested_timestamp <= :cutoff\n"
+        f"  AND event IN ({events})\n"
+        "  AND uuid IS NOT NULL AND distinct_id IS NOT NULL AND timestamp IS NOT NULL\n"
+        "QUALIFY row_number() OVER (PARTITION BY uuid ORDER BY databricks_ingested_timestamp DESC) = 1"
+    )
+
 
 _ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$")
 
 
 def _iso(value: str) -> str:
-    """A timestamp safe to put inside a HogQL string literal."""
+    """A timestamp safe to put inside a query string."""
     if not _ISO.match(value):
         raise ValueError(f"Not an ISO timestamp: {value!r}")
     return value
-
-
-def hogql_events_query(start: str, end: str, limit: int, offset: int) -> str:
-    """
-    One page of events in [start, end), oldest first.
-
-    Timestamps are validated rather than escaped: they come from the notebook,
-    but a malformed one should fail loudly, not query the wrong window.
-    """
-    if limit <= 0 or offset < 0:
-        raise ValueError("limit must be positive and offset non-negative")
-    columns = ", ".join(f"{expr} AS {name}" for name, expr in POSTHOG_COLUMNS)
-    events = ", ".join(f"'{event}'" for event in POSTHOG_EVENTS)
-    return (
-        f"SELECT {columns} FROM events "
-        f"WHERE event IN ({events}) "
-        f"AND timestamp >= toDateTime('{_iso(start)}') "
-        f"AND timestamp < toDateTime('{_iso(end)}') "
-        f"ORDER BY timestamp, uuid LIMIT {int(limit)} OFFSET {int(offset)}"
-    )
-
-
-def _text(value: Any) -> str | None:
-    if value is None or value == "":
-        return None
-    return value if isinstance(value, str) else json.dumps(value)
 
 
 def _number(value: Any) -> float | None:
@@ -100,39 +111,6 @@ def _number(value: Any) -> float | None:
         return None if value is None or value == "" else float(value)
     except (TypeError, ValueError):
         return None
-
-
-def _boolean(value: Any) -> bool | None:
-    if isinstance(value, bool):
-        return value
-    if value in ("true", "True", 1, "1"):
-        return True
-    if value in ("false", "False", 0, "0"):
-        return False
-    return None
-
-
-NUMERIC_COLUMNS = {"quantity", "price", "cart_value"}
-BOOLEAN_COLUMNS = {"has_subscription"}
-
-
-def event_rows(columns: Sequence[str], results: Iterable[Sequence[Any]]) -> list[dict[str, Any]]:
-    """PostHog's query response (`columns`, `results`) as typed rows."""
-    rows = []
-    for result in results:
-        raw = dict(zip(columns, result))
-        row: dict[str, Any] = {}
-        for name, _ in POSTHOG_COLUMNS:
-            value = raw.get(name)
-            if name in NUMERIC_COLUMNS:
-                row[name] = _number(value)
-            elif name in BOOLEAN_COLUMNS:
-                row[name] = _boolean(value)
-            else:
-                row[name] = _text(value)
-        if row["uuid"] and row["event"] and row["distinct_id"] and row["timestamp"]:
-            rows.append(row)
-    return rows
 
 
 # --- Shopify -----------------------------------------------------------------

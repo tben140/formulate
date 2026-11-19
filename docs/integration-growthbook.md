@@ -13,7 +13,7 @@ flowchart LR
   Web -- experiment_viewed --> PH[PostHog]
   App -- experiment_viewed --> PH
   Shop[Shopify orders] -- read_orders --> DBX[(Databricks)]
-  PH -- query API --> DBX
+  PH -- batch export --> DBX
   DBX -- read-only SQL --> GB
 ```
 
@@ -24,21 +24,72 @@ flowchart LR
    GrowthBook's experiment tracking key and the variation's key.
 3. **Outcome.** The order carries the same id in its `_posthog_id` cart
    attribute (#108).
-4. **Analysis.** `apps/warehouse` loads both into Databricks every morning.
-   GrowthBook queries the views it creates.
+4. **Analysis.** PostHog's batch export lands events in Databricks;
+   `apps/warehouse` copies what it needs out of them and loads the orders,
+   every morning. GrowthBook queries the views it creates.
 
 ## Setting up GrowthBook
 
 | What                 | Where                                                                                                                                     |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| SDK connections      | One per surface and environment: web (Node.js) and mobile (React Native), each for `production` and `dev`                                 |
-| Web key              | `GROWTHBOOK_CLIENT_KEY` on Vercel: the `production` key on Production, the `dev` key on Preview. Not `NEXT_PUBLIC_`                       |
+| SDK connections      | One per surface, in the `production` environment: web (Node.js) and, when the app's change lands, mobile (React Native)                   |
+| Web key              | `GROWTHBOOK_CLIENT_KEY` on Vercel, Production only. Not `NEXT_PUBLIC_`                                                                    |
 | App key              | `EXPO_PUBLIC_GROWTHBOOK_CLIENT_KEY` in EAS, when the app's change lands                                                                   |
 | An experiment        | A **feature** whose key is in `packages/experiments`, with an **experiment rule** whose variation values are that experiment's `variants` |
 | Assignment attribute | `id`, hashed with GrowthBook's v2 hashing                                                                                                 |
 
-To look at a variant without being counted, add the experiment's key and a
-variant name to the page's query string: `?product-page-aa=control-copy`.
+**Previews have no key, on purpose.** Without one, a preview always shows the
+control and sends no exposures, so reviewers' visits never reach the results.
+A `dev` environment wouldn't stop that: its exposures would go to the same
+PostHog project under the same experiment key. Add one later if rule changes
+need trying out before production.
+
+To look at a variant without being counted, on a preview or in production,
+add the experiment's key and a variant name to the page's query string:
+`?product-page-aa=control-copy`. It works without a key.
+
+## Connecting PostHog
+
+PostHog sends events to Databricks with its **batch export**, the route it
+supports for a regular copy (its query API is for ad-hoc questions, not
+exports). The export lands whole events; `apps/warehouse` keeps only the
+columns it lists and deletes the rest the same morning.
+
+1. **In PostHog, first** (project **Settings**): turn on **Discard client IP
+   data**, and turn off the **GeoIP** transformation under **Data pipelines**.
+   Then no IP address or location is in an event to begin with.
+2. **In Databricks**, add a service principal called `posthog-exporter`
+   (**Settings → Identity and access → Service principals**). On its
+   **Secrets** tab, generate an OAuth secret; note the client id and the
+   secret, which is shown once. Give it **Can use** on the SQL warehouse, and
+   grant:
+
+   ```sql
+   GRANT USE CATALOG ON CATALOG workspace TO `posthog-exporter`;
+   GRANT USE SCHEMA ON SCHEMA workspace.double_helix TO `posthog-exporter`;
+   GRANT CREATE TABLE ON SCHEMA workspace.double_helix TO `posthog-exporter`;
+   GRANT CREATE VOLUME ON SCHEMA workspace.double_helix TO `posthog-exporter`;
+   ```
+
+   Run `src/setup.py` once before this, so the schema exists.
+
+3. **In PostHog**, **Data pipelines → Destinations → New → Databricks**:
+
+   | Field            | Value                                                  |
+   | ---------------- | ------------------------------------------------------ |
+   | Integration      | Server hostname, and the client id and secret from 2   |
+   | HTTP path        | From the SQL warehouse's **Connection details**        |
+   | Catalog / schema | `workspace` / `double_helix`                           |
+   | Table name       | `posthog_events_landing` (PostHog creates it)          |
+   | Model            | Events                                                 |
+   | Interval         | Daily                                                  |
+   | Use VARIANT type | On (the default): the loader reads `properties` as one |
+
+4. **Backfill** from the destination's page, for the days before it was
+   created. The next morning's job copies them in.
+
+Check PostHog's billing page for what the export costs on the current plan
+before turning it on.
 
 ## Connecting Databricks
 
@@ -55,8 +106,9 @@ In GrowthBook, **Metrics and Data → Data Sources → Add**, type **Databricks*
 Identifier type: `user_id`.
 
 **The token reads the two views and nothing else.** The tables under them hold
-browsing details and customer hashes the views leave out, so GrowthBook gets
-no grant on the schema as a whole. In Databricks, add a service principal
+browsing details and customer hashes the views leave out, and the landing
+table holds whole events, so GrowthBook gets no grant on the schema as a
+whole. In Databricks, add a service principal
 called `growthbook-reader` (**Settings → Identity and access → Service
 principals**), give it **Can use** on the SQL warehouse, and grant it this in
 the SQL editor:

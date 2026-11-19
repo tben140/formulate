@@ -1,7 +1,7 @@
 # Databricks Asset Bundle: the warehouse loaders as one daily job (ADR 0013).
 #
 # Deploy from this folder with the Databricks CLI, signed in to the workspace:
-#   databricks bundle deploy --var posthog_project_id=<id> --var shop_domain=<store>.myshopify.com
+#   databricks bundle deploy --var shop_domain=<store>.myshopify.com
 # The workspace host comes from the CLI's profile (DATABRICKS_HOST), not from
 # this file. The schedule is deployed paused; unpause it in the Jobs UI.
 bundle:
@@ -14,17 +14,18 @@ variables:
   schema:
     description: Schema the loaders write and GrowthBook reads.
     default: double_helix
-  posthog_project_id:
-    description: The number in the PostHog project's URL.
   shop_domain:
     description: The store's *.myshopify.com domain.
+  landing_table:
+    description: >-
+      The table PostHog's Databricks export writes, in the same schema
+      (docs/integration-growthbook.md).
+    default: posthog_events_landing
   backfill_days:
-    description: How far back the first run loads PostHog events.
-    default: "90"
-  order_backfill_days:
     description: >-
       How far back the first run loads orders. At most 60: a read_orders token
-      sees only the last 60 days.
+      sees only the last 60 days. PostHog's history is backfilled from its
+      export instead.
     default: "60"
 
 resources:
@@ -53,8 +54,7 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
-              posthog_project_id: ${var.posthog_project_id}
-              backfill_days: ${var.backfill_days}
+              landing_table: ${var.landing_table}
               src_dir: ${workspace.file_path}/src
         - task_key: shopify_orders
           depends_on:
@@ -65,7 +65,7 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
               shop_domain: ${var.shop_domain}
-              backfill_days: ${var.order_backfill_days}
+              backfill_days: ${var.backfill_days}
               src_dir: ${workspace.file_path}/src
 
 targets:

@@ -1,7 +1,8 @@
 # apps/warehouse
 
 The Databricks side of A/B testing ([ADR 0013](../../docs/adr/0013-experiments-run-on-growthbook-for-consenting-visitors.md)):
-daily loaders that copy PostHog events and Shopify orders into Delta tables,
+daily loaders that copy PostHog events (from PostHog's own Databricks
+export) and Shopify orders into Delta tables,
 and the views GrowthBook reads. Python notebooks, deployed as a Databricks
 Asset Bundle (`databricks.yml`). Not a pnpm package: turbo and CI don't run it.
 
@@ -12,13 +13,16 @@ Asset Bundle (`databricks.yml`). Not a pnpm package: turbo and CI don't run it.
   Visitors are PostHog's anonymous ids; Shopify customers are salted HMAC
   hashes. What is loaded is decided in `src/transform.py`, and its tests check
   it. A new column is a privacy decision, not just a schema change.
+- **PostHog's landing table is a staging area, not a source.** The export
+  writes whole events to `posthog_events_landing`. The loader copies the
+  listed columns out and deletes the rows the same run. Nothing else reads
+  it, and GrowthBook has no grant on it. PostHog must have **Discard client
+  IP data** on and GeoIP off, so no IP or location reaches it at all.
 - **Loads are idempotent.** Events merge on their uuid, orders on their id,
   and an order's lines are replaced whole. A rerun, or an overlapping window,
   never duplicates a row.
 - **Secrets live in the `double-helix` secret scope**, read with
   `dbutils.secrets.get`, and never printed or put in an error message.
-  - `posthog_personal_api_key`: a PostHog personal API key with only
-    **Query: Read**, limited to this project.
   - `shopify_admin_token`: the Admin token of a custom app with only
     `read_orders`, made for the warehouse alone, so its access can be revoked
     without touching anything else.
@@ -28,7 +32,10 @@ Asset Bundle (`databricks.yml`). Not a pnpm package: turbo and CI don't run it.
 
   Put a key in with the Databricks CLI, which asks for the value without
   showing it:
-  `databricks secrets put-secret double-helix posthog_personal_api_key`
+  `databricks secrets put-secret double-helix shopify_admin_token`
+
+  PostHog needs no secret here: its export signs in with its own service
+  principal (`docs/integration-growthbook.md`).
 
 - **Orders go back 60 days at most.** A `read_orders` token sees only the
   last 60 days; older orders need `read_all_orders`, a separate request.

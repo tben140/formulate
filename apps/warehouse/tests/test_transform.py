@@ -11,68 +11,45 @@ import transform  # noqa: E402
 SALT = b"0123456789abcdef0123456789abcdef"
 
 
-class HogQLQuery(unittest.TestCase):
-    def test_window_and_page(self):
-        query = transform.hogql_events_query(
-            "2026-11-01T00:00:00Z", "2026-11-02T00:00:00Z", 10000, 20000
-        )
-        self.assertIn("timestamp >= toDateTime('2026-11-01T00:00:00Z')", query)
-        self.assertIn("timestamp < toDateTime('2026-11-02T00:00:00Z')", query)
-        self.assertTrue(query.endswith("LIMIT 10000 OFFSET 20000"))
-        self.assertIn("'experiment_viewed'", query)
+LANDING = "`workspace`.`double_helix`.`posthog_events_landing`"
 
-    def test_never_selects_the_ip(self):
-        query = transform.hogql_events_query(
-            "2026-11-01T00:00:00Z", "2026-11-02T00:00:00Z", 1, 0
-        )
-        self.assertNotIn("$ip", query)
-        self.assertNotIn("person", query)
 
-    def test_refuses_a_malformed_timestamp(self):
-        for bad in ["2026-11-01", "2026-11-01T00:00:00Z') OR (1=1", ""]:
+class LandingProjection(unittest.TestCase):
+    def setUp(self):
+        self.sql = transform.landing_projection_sql(LANDING)
+
+    def test_copies_only_the_listed_properties(self):
+        for name, prop, _ in transform.POSTHOG_PROPERTIES:
+            self.assertIn(f"""'$["{prop}"]'""", self.sql)
+            self.assertIn(f" AS {name}", self.sql)
+        self.assertEqual(self.sql.count("try_variant_get("), len(transform.POSTHOG_PROPERTIES))
+
+    def test_never_copies_the_ip_or_the_person(self):
+        self.assertNotIn("$ip", self.sql)
+        self.assertNotIn("person", self.sql)
+        self.assertNotIn("SELECT *", self.sql)
+
+    def test_only_the_shared_vocabulary(self):
+        self.assertIn("'experiment_viewed'", self.sql)
+        self.assertIn("AND event IN (", self.sql)
+
+    def test_one_row_per_uuid_up_to_the_cutoff(self):
+        self.assertIn("databricks_ingested_timestamp <= :cutoff", self.sql)
+        self.assertIn("PARTITION BY uuid", self.sql)
+
+    def test_refuses_an_unqualified_or_odd_table_name(self):
+        for bad in ["posthog_events_landing", "`a`.`b`.`c`; DROP TABLE x", ""]:
             with self.assertRaises(ValueError):
-                transform.hogql_events_query(bad, "2026-11-02T00:00:00Z", 1, 0)
+                transform.landing_projection_sql(bad)
 
-    def test_refuses_a_bad_page(self):
-        with self.assertRaises(ValueError):
-            transform.hogql_events_query(
-                "2026-11-01T00:00:00Z", "2026-11-02T00:00:00Z", 0, 0
-            )
-
-
-class EventRows(unittest.TestCase):
-    def test_types_the_columns(self):
-        columns = [name for name, _ in transform.POSTHOG_COLUMNS]
-        result = dict.fromkeys(columns)
-        result.update(
-            uuid="u1",
-            event="product_added_to_cart",
-            distinct_id="d1",
-            timestamp="2026-11-01T10:00:00Z",
-            quantity="2",
-            price=12.5,
-            has_subscription="true",
-            surface="web",
-        )
-        (row,) = transform.event_rows(columns, [[result[c] for c in columns]])
-        self.assertEqual(row["quantity"], 2.0)
-        self.assertEqual(row["price"], 12.5)
-        self.assertIs(row["has_subscription"], True)
-        self.assertEqual(row["surface"], "web")
-        self.assertIsNone(row["experiment_key"])
-
-    def test_drops_rows_without_ids(self):
-        columns = ["uuid", "event", "distinct_id", "timestamp"]
-        rows = transform.event_rows(columns, [["u1", "x", None, "2026-11-01T00:00:00Z"]])
-        self.assertEqual(rows, [])
-
-    def test_ignores_columns_it_did_not_ask_for(self):
-        columns = ["uuid", "event", "distinct_id", "timestamp", "ip"]
-        (row,) = transform.event_rows(
-            columns, [["u1", "x", "d1", "2026-11-01T00:00:00Z", "203.0.113.9"]]
-        )
-        self.assertNotIn("ip", row)
-        self.assertNotIn("203.0.113.9", row.values())
+    def test_matches_the_table_columns(self):
+        # setup.py's posthog_events, less the four ids and loaded_at.
+        names = [name for name, _, _ in transform.POSTHOG_PROPERTIES]
+        self.assertEqual(len(names), len(set(names)))
+        setup = open(os.path.join(os.path.dirname(__file__), "..", "src", "setup.py")).read()
+        table = setup.split("posthog_events (")[1].split(") COMMENT")[0]
+        for name in names:
+            self.assertRegex(table, rf"\b{name} (STRING|DOUBLE|BOOLEAN)")
 
 
 ORDER = {

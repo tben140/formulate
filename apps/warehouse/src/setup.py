@@ -8,8 +8,9 @@
 # MAGIC
 # MAGIC Also makes sure the secret scope exists and holds a salt for hashing
 # MAGIC Shopify customer ids. The salt is generated here and never shown to
-# MAGIC anyone. The two API keys are put in by hand, with the Databricks CLI
-# MAGIC (apps/warehouse/AGENTS.md).
+# MAGIC anyone. The Shopify token is put in by hand, with the Databricks CLI
+# MAGIC (apps/warehouse/AGENTS.md). PostHog needs no key here: its export
+# MAGIC signs in to Databricks with its own service principal.
 
 # COMMAND ----------
 
@@ -49,7 +50,7 @@ if "customer_id_salt" not in keys:
     workspace.secrets.put_secret(SCOPE, "customer_id_salt", string_value=salt)
     if dbutils.secrets.get(SCOPE, "customer_id_salt") != salt:
         raise RuntimeError("Another setup run wrote customer_id_salt at the same time. Run setup again.")
-missing = {"posthog_personal_api_key", "shopify_admin_token"} - keys
+missing = {"shopify_admin_token"} - keys
 print("Secrets still to add with the CLI:", ", ".join(sorted(missing)) or "none")
 
 # COMMAND ----------
@@ -77,7 +78,7 @@ CREATE TABLE IF NOT EXISTS {target}.posthog_events (
   selling_plan STRING,
   has_subscription BOOLEAN,
   loaded_at TIMESTAMP NOT NULL
-) COMMENT 'PostHog events in the shared vocabulary. Anonymous ids only; no IP or person properties.'
+) COMMENT 'PostHog events in the shared vocabulary, copied from the export''s landing table. Anonymous ids only; no IP or person properties.'
 """)
 
 spark.sql(f"""
