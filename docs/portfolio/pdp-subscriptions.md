@@ -7,17 +7,20 @@
 Recharge, who wants it to look trustworthy and charge correctly.
 
 **The claim:** most theme work stops at one-time purchases, because selling
-plans are fiddly and Recharge adds a layer. One shared package
-decides which subscription plans can be offered and at what price, for a
-Liquid theme, a headless web store and a native app; how each surface shows
-them is its own.
+plans are fiddly and Recharge adds a layer. The same rules decide which
+subscription plans can be offered and at what price on a Liquid theme, a
+headless web store and a native app. One shared package holds them for the
+web store and the app; the theme applies them in its own Liquid
+(`snippets/product-form.liquid`). How each surface shows the plans is its
+own.
 
 **What it gets right, each from a real mistake caught first:**
 
 - **Only plans that will actually renew.** A store can carry selling plans
   that no app manages: Shopify's seed data. They add to the cart and check out
   fine, then never charge or ship again. Only plans owned by an installed app
-  are offered (`purchasableSellingPlanGroups` in `packages/shopify`).
+  are offered (`purchasableSellingPlanGroups` in `packages/shopify`, and
+  `group.app_id` in the theme).
 - **The price Shopify will charge**, from each plan's own price allocation,
   never computed by discounting in the browser.
 - **Plans that match the supply.** 30-, 60- and 90-day plans once all showed
