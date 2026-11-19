@@ -169,6 +169,11 @@ whenever the choice comes up.
 Always consider accessibility (WCAG 2.1 AA), mobile responsiveness, and loading
 and error states. Flag security concerns with ⚠️.
 
+**Never present an underpowered experiment result as a finding.** A test that
+hasn't reached its planned sample size has no result: say "not enough visitors
+to tell", with the size it reached and the size it needed
+([docs/experiments.md](docs/experiments.md)).
+
 ## Comments
 
 Comments explain **why**, not what. The codebase is dense with them because most
