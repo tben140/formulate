@@ -18,6 +18,7 @@ import {
 import type { ReactNode } from "react";
 
 import { AutoSubmitForm, WithJs, WithoutJs } from "@/components/auto-submit-form";
+import { FilterSheetFocus } from "@/components/filter-sheet-focus";
 import Link from "@/components/link";
 
 /**
@@ -28,7 +29,9 @@ import Link from "@/components/link";
  * - From `lg` up the filters are a sidebar beside the products. Below that a
  *   Filter button opens them as a full-screen sheet with a "Show N products"
  *   button. The sheet is the sidebar itself, shown by `#filters:target`, so it
- *   opens and closes without JavaScript, and Back closes it.
+ *   opens and closes without JavaScript, and Back closes it. With JavaScript
+ *   it is also modal (FilterSheetFocus): the page behind is inert, focus
+ *   moves in and back, and Escape closes it.
  * - Groups collapse (<details>). The first few start open, in the order set in
  *   Search & Discovery, and long ones show five values and "Show more".
  *   Values that would change nothing are left out (`filterGroups`).
@@ -92,6 +95,11 @@ export const FilteredListing = ({
           aria-label="Filters"
           className="bg-surface max-lg:hidden max-lg:target:fixed max-lg:target:inset-0 max-lg:target:z-50 max-lg:target:flex max-lg:target:flex-col lg:sticky lg:top-6"
         >
+          <FilterSheetFocus
+            sheetId="filters"
+            openerId="filters-open"
+            closeHash="results"
+          />
           <div className="flex items-center justify-between border-b border-border px-4 py-4 lg:hidden">
             <h2 className="text-lg font-semibold">Filter</h2>
             <a
@@ -146,6 +154,7 @@ export const FilteredListing = ({
         <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
           {hasPanel ? (
             <a
+              id="filters-open"
               href="#filters"
               className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:border-brand-400 lg:hidden"
             >
