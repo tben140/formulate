@@ -187,6 +187,7 @@ every override is listed here with its reason. An unlisted gap is a bug.
 | Feature                                          | Surfaces   | Why not everywhere                                                                                                                                                                                                                                       |
 | ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SEO: metadata, structured data, sitemap (SHO-64) | Web, theme | A native app has no crawlable pages. The theme already gets it from Shopify (`structured_data`, `canonical_url`, the platform sitemap), so only `apps/web` needs code. Its routes are in `app/robots.ts`, `app/sitemap.ts` and `lib/structured-data.ts`. |
+| A/B tests on GrowthBook (ADR 0013)               | Web, app   | The theme serves no real traffic while `shop.` is dormant, so an experiment there would never collect a result. Web decides variants in `lib/experiments.ts`; the app follows in its own change. Revisit if the theme takes real traffic.                |
 
 ## The shared package rule
 

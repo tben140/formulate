@@ -7,6 +7,7 @@ import {
   type ProductAnalytics,
 } from "@formulate/analytics";
 
+import { clearAnalyticsId, readAnalyticsId, writeAnalyticsId } from "./analytics-id";
 import { readConsent } from "./consent";
 
 /**
@@ -19,8 +20,11 @@ import { readConsent } from "./consent";
  * consent banner sends the current page view instead, which is all a funnel
  * needs.
  *
- * The anonymous id and session live in localStorage, first-party, under one
- * key that `forgetProductAnalytics()` removes when consent is withdrawn.
+ * The anonymous id lives in a first-party cookie (lib/analytics-id.ts), so the
+ * server can read it to decide experiment variants (ADR 0013); the session
+ * lives in localStorage. `forgetProductAnalytics()` removes both when consent
+ * is withdrawn. Ids stored only in localStorage, from before the cookie, are
+ * carried over on the next event, so a returning visitor keeps their id.
  */
 
 /** A public project key, safe in the bundle (like the Klaviyo public key). */
@@ -76,7 +80,7 @@ export const notifyAnalyticsConsentChanged = (): void => notifyId();
 const identity = (): AnalyticsIdentity => {
   const now = Date.now();
   const stored = read();
-  const distinctId = stored?.distinctId ?? anonymousId();
+  const distinctId = readAnalyticsId() ?? stored?.distinctId ?? anonymousId();
   const sessionId =
     stored && now - stored.lastActive < SESSION_IDLE_MS
       ? stored.sessionId
@@ -89,7 +93,10 @@ const identity = (): AnalyticsIdentity => {
   } catch {
     // Storage blocked: this event still goes, with ids that won't persist.
   }
-  if (!stored) notifyId();
+  writeAnalyticsId(distinctId);
+  // A new id, or the cookie's replacing a different stored one: the cart's
+  // analytics id field re-reads.
+  if (stored?.distinctId !== distinctId) notifyId();
   return { distinctId, sessionId };
 };
 
@@ -100,7 +107,7 @@ const identity = (): AnalyticsIdentity => {
  */
 export const storedDistinctId = (): string | null =>
   POSTHOG_KEY && typeof window !== "undefined" && readConsent() === "granted"
-    ? (read()?.distinctId ?? null)
+    ? (readAnalyticsId() ?? read()?.distinctId ?? null)
     : null;
 
 let client: ProductAnalytics | null = null;
@@ -134,6 +141,7 @@ export const analytics = (): ProductAnalytics | null => {
 /** On withdrawal of consent: the ids go, and so does the client. */
 export const forgetProductAnalytics = (): void => {
   client = null;
+  clearAnalyticsId();
   try {
     window.localStorage.removeItem(STORAGE_KEY);
   } catch {
