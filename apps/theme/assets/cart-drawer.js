@@ -1,5 +1,5 @@
 import { Component } from "@theme/component";
-import { addItem, changeItem } from "@theme/cart-api";
+import { addItem, CartRefusal, changeItem } from "@theme/cart-api";
 
 /**
  * @typedef {Object} CartDrawerRefs
@@ -98,7 +98,8 @@ class CartDrawer extends Component {
     this.#pendingAnnouncement = null;
     const announcer = this.#announcer;
     announcer.textContent = "";
-    requestAnimationFrame(() => {
+    this.#announceFrame = requestAnimationFrame(() => {
+      this.#announceFrame = 0;
       announcer.textContent = pending;
     });
   }
@@ -211,6 +212,16 @@ class CartDrawer extends Component {
     if (!this.#announcer || message === this.#lastAnnounced) return;
     this.#lastAnnounced = message;
 
+    // A newer message supersedes one open() is still waiting a frame to
+    // write, which would otherwise overwrite this one (an emptied cart would
+    // get its old delivery message back). Cancelled before the closed check
+    // below: a message held while the drawer is closed must also stop a frame
+    // open() scheduled just before it closed.
+    if (this.#announceFrame) {
+      cancelAnimationFrame(this.#announceFrame);
+      this.#announceFrame = 0;
+    }
+
     // A closed dialog is hidden, so a live region inside it isn't announced,
     // and the message would then count as said (review of #27). Held until
     // open() instead.
@@ -221,6 +232,9 @@ class CartDrawer extends Component {
     this.#pendingAnnouncement = null;
     this.#announcer.textContent = message;
   }
+
+  /** The frame open() writes a held message in, while it's pending. */
+  #announceFrame = 0;
 
   /**
    * A message from a change made while the drawer was closed, waiting for
@@ -266,10 +280,31 @@ class CartDrawer extends Component {
     try {
       const result = await changeItem(key, Number(data.get("quantity") ?? 0));
       this.replace(result.sections?.[DRAWER_SECTION] ?? "");
-    } catch {
+    } catch (error) {
       // A failed quantity change leaves the drawer showing the previous state,
       // which is accurate — the change did not happen. Reloading would be
-      // worse: it would close the drawer and lose the shopper's place.
+      // worse: it would close the drawer and lose the shopper's place. But the
+      // shopper is told, as on web and in the app: Shopify's description when
+      // it gives one (a quantity rule), otherwise a connection message.
+      // Found again by its key: a change that succeeded meanwhile re-rendered
+      // the drawer, and `form` may now be a detached copy.
+      const line = [...this.querySelectorAll('.cart-line input[name="id"]')]
+        .find((input) => input instanceof HTMLInputElement && input.value === key)
+        ?.closest(".cart-line");
+      const body = line?.querySelector(".cart-line__body");
+      if (body) {
+        let message = body.querySelector(".cart-line__error");
+        if (!message) {
+          message = document.createElement("p");
+          message.className = "cart-line__error";
+          message.setAttribute("role", "alert");
+          body.append(message);
+        }
+        message.textContent =
+          (error instanceof CartRefusal && error.message) ||
+          this.dataset.changeErrorLabel ||
+          "Your cart couldn't be updated. Check your connection and try again.";
+      }
     }
   };
 
@@ -305,7 +340,9 @@ class CartDrawer extends Component {
       // the tap failed (sold out, a quantity rule): Shopify's description is
       // written for shoppers, as on the product page.
       button?.removeAttribute("aria-disabled");
-      const body = form.closest(".cart-suggestion")?.querySelector(".cart-suggestion__body");
+      const body = form
+        .closest(".cart-suggestion")
+        ?.querySelector(".cart-suggestion__body");
       if (body) {
         let message = body.querySelector(".cart-suggestion__error");
         if (!message) {
@@ -315,7 +352,9 @@ class CartDrawer extends Component {
           body.append(message);
         }
         message.textContent =
-          error instanceof Error ? error.message : "Could not add this to your cart.";
+          (error instanceof Error && error.message) ||
+          this.dataset.addErrorLabel ||
+          "Could not add this to your cart.";
       }
     }
   }

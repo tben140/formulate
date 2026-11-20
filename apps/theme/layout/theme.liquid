@@ -66,7 +66,10 @@
       top layer, and any transition mid-flight. Re-rendering the dialog itself
       would close the drawer on every quantity change.
     {% endcomment %}
-    <cart-drawer>
+    <cart-drawer
+      data-add-error-label="{{ 'cart.add_error' | t }}"
+      data-change-error-label="{{ 'cart.change_error' | t }}"
+    >
       <dialog class="cart-drawer" aria-label="{{ 'cart.title' | t }}">
         {% section 'cart-drawer' %}
       </dialog>

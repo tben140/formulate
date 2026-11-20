@@ -12,6 +12,7 @@ import type {
 } from "./generated/graphql";
 
 import {
+  CartAttributesUpdateMutation,
   CartBuyerIdentityUpdateMutation,
   CartCreateMutation,
   CartLinesAddMutation,
@@ -116,6 +117,12 @@ export interface AddLinesOutcome {
    * the one the shopper chose.
    */
   readonly notice?: string;
+  /**
+   * Set when the add succeeded but the cart's attributes couldn't be brought
+   * up to date, e.g. an analytics id that should have come off is still on.
+   * The add stands; the caller can retry with `removeAttributes`.
+   */
+  readonly attributesFailed?: true;
 }
 
 export interface CartClient {
@@ -155,6 +162,13 @@ export interface CartClient {
      * seen from the shopper's side.
      */
     readonly email?: string;
+    /**
+     * Cart attributes, carried through to checkout and onto the order. Used to
+     * hand checkout the shopper's analytics id and surface, which is how a
+     * purchase is credited to the visit that led to it (packages/analytics,
+     * `cartAttributes`). Set only at creation.
+     */
+    readonly attributes?: readonly { readonly key: string; readonly value: string }[];
   }) => Promise<StorefrontResult<Cart>>;
 
   readonly addLines: (
@@ -186,7 +200,28 @@ export interface CartClient {
      * it goes through the Klaviyo SDK. See `create` for why it matters.
      */
     readonly email?: () => Promise<string | null | undefined>;
+    /**
+     * Attributes the cart should carry; see `create`. A new cart gets them at
+     * creation; an existing one is updated only when one is missing or
+     * different, e.g. the shopper consented after the cart was made.
+     */
+    readonly attributes?: readonly { readonly key: string; readonly value: string }[];
+    /**
+     * Attribute keys an existing cart must not carry, e.g. the analytics id
+     * after the shopper refused tracking. Removed only when present.
+     */
+    readonly removeAttributes?: readonly string[];
   }) => Promise<AddLinesOutcome>;
+
+  /**
+   * The cart without the given attribute keys: one update when any is
+   * present, none otherwise. Used when a shopper refuses tracking, so an
+   * analytics id added under earlier consent doesn't reach the order.
+   */
+  readonly removeAttributes: (
+    cart: Cart,
+    keys: readonly string[],
+  ) => Promise<StorefrontResult<Cart>>;
 
   readonly updateLines: (
     cartId: string,
@@ -361,6 +396,7 @@ export const createCartClient = (
           // Omitted rather than sent empty — Shopify rejects "" as an address.
           ...(options?.email ? { email: options.email } : {}),
         },
+        ...(options?.attributes?.length ? { attributes: [...options.attributes] } : {}),
       },
     });
 
@@ -370,6 +406,46 @@ export const createCartClient = (
       lines: [...lines],
       visitorConsent: await consent(),
     });
+
+  /**
+   * The cart's attributes with `set` merged in and `remove` taken out, written
+   * only when that changes something. Shopify's update replaces the whole
+   * list, so the others are sent back as they were.
+   */
+  const changeAttributes = async (
+    cart: Cart,
+    set: readonly { readonly key: string; readonly value: string }[] = [],
+    remove: readonly string[] = [],
+  ): Promise<StorefrontResult<Cart>> => {
+    const current = new Map(cart.attributes.map((a) => [a.key, a.value ?? ""]));
+    const changed =
+      set.some((a) => current.get(a.key) !== a.value) ||
+      remove.some((key) => current.has(key));
+    if (!changed) return { ok: true, data: cart };
+    for (const a of set) current.set(a.key, a.value);
+    for (const key of remove) current.delete(key);
+    const updated = await storefront.request(CartAttributesUpdateMutation, {
+      cartId: cart.id,
+      attributes: [...current].map(([key, value]) => ({ key, value })),
+      visitorConsent: await consent(),
+    });
+    return updated.ok ? fromPayload(updated.data.cartAttributesUpdate) : updated;
+  };
+
+  /**
+   * After an add: the attributes brought up to date. If the update fails, the
+   * add still stands, and `failed` says so (see `attributesFailed`).
+   */
+  const withAttributes = async (
+    result: StorefrontResult<Cart>,
+    attributes: readonly { readonly key: string; readonly value: string }[] | undefined,
+    remove: readonly string[] | undefined,
+  ): Promise<{ readonly result: StorefrontResult<Cart>; readonly failed: boolean }> => {
+    if (!result.ok || (!attributes?.length && !remove?.length))
+      return { result, failed: false };
+    const changed = await changeAttributes(result.data, attributes, remove);
+    return changed.ok ? { result: changed, failed: false } : { result, failed: true };
+  };
 
   const client: Omit<CartClient, "addLinesOrCreate"> = {
     get: async (cartId) => {
@@ -416,24 +492,35 @@ export const createCartClient = (
       });
       return result.ok ? fromPayload(result.data.cartBuyerIdentityUpdate) : result;
     },
+
+    removeAttributes: (cart, keys) => changeAttributes(cart, [], keys),
   };
 
   return {
     ...client,
 
-    addLinesOrCreate: async ({ cartId, lines, email }) => {
+    addLinesOrCreate: async ({ cartId, lines, email, attributes, removeAttributes }) => {
       if (cartId) {
         const added = await requestAdd(cartId, lines);
         const result = added.ok ? fromPayload(added.data.cartLinesAdd) : added;
         if (result.ok || !isCartGone(result.error)) {
           const warnings = added.ok ? (added.data.cartLinesAdd?.warnings ?? []) : [];
-          return settleStock(client, result, warnings, lines, false);
+          const updated = await withAttributes(result, attributes, removeAttributes);
+          const outcome = await settleStock(
+            client,
+            updated.result,
+            warnings,
+            lines,
+            false,
+          );
+          return updated.failed ? { ...outcome, attributesFailed: true } : outcome;
         }
       }
 
       const created = await requestCreate({
         lines,
         email: (await email?.()) ?? undefined,
+        attributes,
       });
       const result = created.ok ? fromPayload(created.data.cartCreate) : created;
       const warnings = created.ok ? (created.data.cartCreate?.warnings ?? []) : [];
