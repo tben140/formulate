@@ -9,7 +9,8 @@ import {
   type FeatureApiResponse,
   type VariantOf,
 } from "@formulate/experiments";
-import { useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { analytics, analyticsDistinctId } from "./product-analytics";
 import { useTrackingConsent } from "./tracking-consent";
@@ -86,9 +87,14 @@ export interface ExperimentState<V extends string> extends Assignment<V> {
  * (`/products/x?product-page-aa=control-copy`, as on web), for review and
  * demos. It is shown and never recorded.
  *
- * `experiment_viewed` goes out once per screen per variant, and only if the
- * shopper's id is still the one the variant was decided for: a withdrawal in
- * the meantime deletes the id, and a new one must not be credited with it.
+ * `experiment_viewed` goes out once per screen per variant, only while the
+ * screen is focused (a screen further down the stack can re-decide when
+ * consent changes, but the shopper hasn't seen it, so its exposure waits
+ * until they come back to it), and only if the shopper's id is still the one
+ * the variant was decided for: a withdrawal in the meantime deletes the id,
+ * and a new one must not be credited with it.
+ *
+ * Call it from a screen: it needs the navigator, for focus.
  */
 export const useExperiment = <D extends ExperimentDefinition>(
   definition: D,
@@ -101,7 +107,16 @@ export const useExperiment = <D extends ExperimentDefinition>(
     exposure: null,
     decided: false,
   });
+  const [decidedFor, setDecidedFor] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
   const sent = useRef<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
 
   useEffect(() => {
     let current = true;
@@ -114,21 +129,25 @@ export const useExperiment = <D extends ExperimentDefinition>(
       });
       if (!current) return;
       setState({ ...assignment, decided: true });
-
-      const exposure = assignment.exposure;
-      if (!exposure || !id) return;
-      const key = `${exposure.experiment_key}:${exposure.variation_id}`;
-      if (sent.current === key || analyticsDistinctId() !== id) return;
-      sent.current = key;
-      analytics()?.capture(PRODUCT_EVENTS.experimentViewed, {
-        experiment_key: exposure.experiment_key,
-        variation_id: exposure.variation_id,
-      });
+      setDecidedFor(id);
     })();
     return () => {
       current = false;
     };
   }, [definition, consent, forcedVariant]);
+
+  // The exposure, once the variant is decided and the screen is in front.
+  const { exposure } = state;
+  useEffect(() => {
+    if (!focused || !exposure || !decidedFor) return;
+    const key = `${exposure.experiment_key}:${exposure.variation_id}`;
+    if (sent.current === key || analyticsDistinctId() !== decidedFor) return;
+    sent.current = key;
+    analytics()?.capture(PRODUCT_EVENTS.experimentViewed, {
+      experiment_key: exposure.experiment_key,
+      variation_id: exposure.variation_id,
+    });
+  }, [focused, exposure, decidedFor]);
 
   return state;
 };
