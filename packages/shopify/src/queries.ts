@@ -12,7 +12,10 @@ import { graphql } from "./generated";
 export const CollectionProductsQuery = graphql(`
   query CollectionProducts(
     $handle: String!
-    $first: Int!
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
     $filters: [ProductFilter!]
     $sortKey: ProductCollectionSortKeys = COLLECTION_DEFAULT
     $reverse: Boolean = false
@@ -29,7 +32,23 @@ export const CollectionProductsQuery = graphql(`
       # sort for this collection, the same order Liquid's collection.products
       # uses, so the three surfaces agree (SHO-111). A shopper's choice of sort
       # replaces it: see collectionSort in src/listing.ts.
-      products(first: $first, sortKey: $sortKey, reverse: $reverse, filters: $filters) {
+      # Cursor paging (SHO-43): first/after forward, last/before back. See
+      # src/pagination.ts for how the URL maps onto these.
+      products(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        sortKey: $sortKey
+        reverse: $reverse
+        filters: $filters
+      ) {
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
         # The filters Search & Discovery offers for this collection, with counts
         # for the current selection. See src/filters.ts.
         filters {
