@@ -83,23 +83,59 @@ const queue = (): { push: (args: unknown[]) => void } => {
 };
 
 /**
- * Whether a push should happen at all.
+ * Whether events fired before the shopper has chosen may wait in memory.
  *
- * ⚠️ **The consent gate is not here — it is `klaviyo.js` never loading.** The
- * script is rendered only once the shopper has accepted (see
+ * Only for visitors in the **US**, whose state privacy laws work on notice and
+ * opt-out; the privacy notice says these events are held and sent if the
+ * shopper then accepts on the same page. Everywhere else, the UK and EU
+ * especially, events before a choice are **dropped**: PECR expects nothing
+ * about the visit to reach Klaviyo unless the shopper agreed first, and sending
+ * earlier events after a later "yes" is a grey area (Ben, 2026-10-20).
+ *
+ * Asked once per page load from `/api/region` (Vercel's IP geolocation; nothing
+ * stored). Unknown, failed or not "US" all count as no.
+ */
+let holdsBeforeChoice: Promise<boolean> | undefined;
+const holdsEventsBeforeChoice = (): Promise<boolean> =>
+  (holdsBeforeChoice ??= fetch("/api/region", { cache: "no-store" })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((body: unknown) => (body as { country?: unknown } | null)?.country === "US")
+    .catch(() => false));
+
+/**
+ * Queues one call for Klaviyo, if the tracking choice allows it.
+ *
+ * ⚠️ **The consent gate is also `klaviyo.js` never loading.** The script is
+ * rendered only once the shopper has accepted (see
  * `components/tracking-consent.tsx`), and without it `_learnq` is a plain array
  * that nothing reads and nothing transmits.
  *
- * So `unset` still pushes. Events fired before a decision wait in memory, and if
- * the shopper accepts on this page the script arrives and drains them — the same
- * behaviour as Klaviyo's embed on the theme, where the queue accumulates until
- * Shopify's consent API says yes. `denied` drops them outright, so a refusal
- * does not quietly build up a session's worth of events in the tab.
+ * - `granted`: straight onto the queue, which `klaviyo.js` sends.
+ * - `denied`: dropped.
+ * - `unset`: held in memory only where `holdsEventsBeforeChoice` says so (US
+ *   visitors), so that accepting on this page sends them, as Klaviyo's embed on
+ *   the theme does. Otherwise dropped, even if the shopper accepts later.
  */
-const canPush = (): boolean =>
-  Boolean(KLAVIYO_PUBLIC_KEY) &&
-  typeof window !== "undefined" &&
-  readConsent() !== "denied";
+// Bumped by `discardQueuedEvents`, so a call still waiting on the region
+// answer when the shopper declines is dropped, even if they accept later.
+let generation = 0;
+
+const push = (call: unknown[]): void => {
+  if (!KLAVIYO_PUBLIC_KEY || typeof window === "undefined") return;
+  const consent = readConsent();
+  if (consent === "denied") return;
+  if (consent === "granted") {
+    queue().push(call);
+    return;
+  }
+  const startedIn = generation;
+  void holdsEventsBeforeChoice().then((holds) => {
+    // The shopper may have declined while the answer was on its way.
+    if (holds && startedIn === generation && readConsent() !== "denied") {
+      queue().push(call);
+    }
+  });
+};
 
 /**
  * Emits an event, safely.
@@ -109,8 +145,7 @@ const canPush = (): boolean =>
  * product page.
  */
 export const track = (name: EventName, payload: Readonly<object>): void => {
-  if (!canPush()) return;
-  queue().push(["track", name, payload]);
+  push(["track", name, payload]);
 };
 
 /**
@@ -120,12 +155,12 @@ export const track = (name: EventName, payload: Readonly<object>): void => {
  * means guessing, and a confidently wrong profile is worse than an anonymous
  * one — see the identity section of docs/integration-klaviyo.md.
  *
- * Gated like `track`. Identifying is what makes Klaviyo transmit, so an
+ * Gated like `track`, through `push`. Identifying is what makes Klaviyo transmit, so an
  * ungated `identify` would be an ungated everything.
  */
 export const identify = (email: string): void => {
-  if (!canPush() || !email) return;
-  queue().push(["identify", { $email: email }]);
+  if (!email) return;
+  push(["identify", { $email: email }]);
 };
 
 /**
@@ -136,6 +171,7 @@ export const identify = (email: string): void => {
  * immediately — and withdrawing consent reloads the page instead.
  */
 export const discardQueuedEvents = (): void => {
+  generation += 1;
   if (Array.isArray(window._learnq)) window._learnq.length = 0;
 };
 
