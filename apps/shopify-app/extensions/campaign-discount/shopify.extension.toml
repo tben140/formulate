@@ -1,0 +1,23 @@
+api_version = "2026-07"
+
+[[extensions]]
+name = "t:name"
+handle = "campaign-discount"
+type = "function"
+description = "t:description"
+
+  [[extensions.targeting]]
+  target = "cart.lines.discounts.generate.run"
+  input_query = "src/cart_lines_discounts_generate_run.graphql"
+  export = "cart-lines-discounts-generate-run"
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"
+
+  # The campaign's products, as query variables: the discount's config
+  # metafield is written by `pnpm campaigns sync` (docs/campaigns.md), and its
+  # `collectionIds` fill $collectionIds below.
+  [extensions.input.variables]
+  namespace = "$app:campaign-discount"
+  key = "config"
