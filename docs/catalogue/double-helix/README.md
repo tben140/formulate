@@ -63,28 +63,28 @@ for the title matrix, content fields, catalog setup, and market launch gates.
 
 ## Product schedule — agreed direction
 
-| SKU | Global Shopify title | 30-day format | Variant axis | Draft price | Collection memberships |
-| --- | --- | --- | --- | ---: | --- |
-| DH-VD3-001 | Vitamin D3 | 30 tablets | 25 µg, 50 µg | £9.95 | Daily Essentials |
-| DH-CZ-002 | Vitamin C + Zinc | 30 tablets | None | £11.95 | Daily Essentials |
-| DH-MULTI-003 | Daily Multivitamin | 30 tablets | None | £15.95 | Daily Essentials, Cellular |
-| DH-MAG-004 | Magnesium Glycinate | 30 capsules | 200 mg, 375 mg | £17.95 | Daily Essentials, Mind & Focus |
-| DH-FOCUS-005 | Citicoline + L-Theanine Daily Sticks | 30 stick packs | Berry, Citrus, Peach, Unflavoured; sweetened or unsweetened | £24.95 | Mind & Focus |
-| DH-THEAN-006 | L-Theanine | 30 vegan capsules | None | £17.95 | Mind & Focus |
-| DH-LION-007 | Lion's Mane Mushroom | 30 vegan capsules | None | £21.95 | Mind & Focus |
-| DH-CITI-008 | Citicoline | 30 vegan capsules | None | £25.95 | Mind & Focus |
-| DH-COQ10-009 | CoQ10 + Vitamin E | 30 softgels | None | £24.95 | Cellular |
-| DH-VESEL-010 | Vitamin E + Selenium | 30 vegan capsules | None | £14.95 | Daily Essentials, Cellular |
-| DH-LIVE-011 | Live Cultures | 30 vegan capsules | None | £19.95 | Gut Health |
-| DH-FIBRE-012 | Fibre Powder | 30 servings powder | Unflavoured; sweetened or unsweetened | £14.95 | Gut Health |
-| DH-FISH-013 | Omega-3 Fish Oil | 30-day softgels | Standard, High Strength | £18.95 | Cellular |
-| DH-ALGAE-014 | Omega-3 Algae Oil | 30-day vegan softgels | None | £22.95 | Cellular |
-| DH-CREA-015 | Creatine Monohydrate | 30 servings tub | Unflavoured | £21.95 | Performance |
-| DH-WHEY-016 | Whey Protein | 30 servings tub | Vanilla, Chocolate, Strawberry; sweetened or unsweetened | £32.95 | Performance |
-| DH-PLANT-017 | Plant Protein | 30 servings tub | Vanilla, Chocolate, Strawberry; sweetened or unsweetened | £29.95 | Performance |
-| DH-ELEC-018 | Electrolyte Powder | 30 servings pouch | Citrus or Berry; sweetened or unsweetened | £19.95 | Performance |
-| DH-COLL-019 | Marine Collagen | 30 servings pouch | Unflavoured | £25.95 | Performance |
-| DH-TURM-020 | Turmeric Curcumin | 30-day vegan capsules | None | £16.95 | Performance |
+| SKU          | Global Shopify title                 | 30-day format         | Variant axis                                                | Draft price | Collection memberships         |
+| ------------ | ------------------------------------ | --------------------- | ----------------------------------------------------------- | ----------: | ------------------------------ |
+| DH-VD3-001   | Vitamin D3                           | 30 tablets            | 25 µg, 50 µg                                                |       £9.95 | Daily Essentials               |
+| DH-CZ-002    | Vitamin C + Zinc                     | 30 tablets            | None                                                        |      £11.95 | Daily Essentials               |
+| DH-MULTI-003 | Daily Multivitamin                   | 30 tablets            | None                                                        |      £15.95 | Daily Essentials, Cellular     |
+| DH-MAG-004   | Magnesium Glycinate                  | 30 capsules           | 200 mg, 375 mg                                              |      £17.95 | Daily Essentials, Mind & Focus |
+| DH-FOCUS-005 | Citicoline + L-Theanine Daily Sticks | 30 stick packs        | Berry, Citrus, Peach, Unflavoured; sweetened or unsweetened |      £24.95 | Mind & Focus                   |
+| DH-THEAN-006 | L-Theanine                           | 30 vegan capsules     | None                                                        |      £17.95 | Mind & Focus                   |
+| DH-LION-007  | Lion's Mane Mushroom                 | 30 vegan capsules     | None                                                        |      £21.95 | Mind & Focus                   |
+| DH-CITI-008  | Citicoline                           | 30 vegan capsules     | None                                                        |      £25.95 | Mind & Focus                   |
+| DH-COQ10-009 | CoQ10 + Vitamin E                    | 30 softgels           | None                                                        |      £24.95 | Cellular                       |
+| DH-VESEL-010 | Vitamin E + Selenium                 | 30 vegan capsules     | None                                                        |      £14.95 | Daily Essentials, Cellular     |
+| DH-LIVE-011  | Live Cultures                        | 30 vegan capsules     | None                                                        |      £19.95 | Gut Health                     |
+| DH-FIBRE-012 | Fibre Powder                         | 30 servings powder    | Unflavoured; sweetened or unsweetened                       |      £14.95 | Gut Health                     |
+| DH-FISH-013  | Omega-3 Fish Oil                     | 30-day softgels       | Standard, High Strength                                     |      £18.95 | Cellular                       |
+| DH-ALGAE-014 | Omega-3 Algae Oil                    | 30-day vegan softgels | None                                                        |      £22.95 | Cellular                       |
+| DH-CREA-015  | Creatine Monohydrate                 | 30 servings tub       | Unflavoured                                                 |      £21.95 | Performance                    |
+| DH-WHEY-016  | Whey Protein                         | 30 servings tub       | Vanilla, Chocolate, Strawberry; sweetened or unsweetened    |      £32.95 | Performance                    |
+| DH-PLANT-017 | Plant Protein                        | 30 servings tub       | Vanilla, Chocolate, Strawberry; sweetened or unsweetened    |      £29.95 | Performance                    |
+| DH-ELEC-018  | Electrolyte Powder                   | 30 servings pouch     | Citrus or Berry; sweetened or unsweetened                   |      £19.95 | Performance                    |
+| DH-COLL-019  | Marine Collagen                      | 30 servings pouch     | Unflavoured                                                 |      £25.95 | Performance                    |
+| DH-TURM-020  | Turmeric Curcumin                    | 30-day vegan capsules | None                                                        |      £16.95 | Performance                    |
 
 ### Ingredient-status note
 
@@ -102,15 +102,15 @@ product schedule, warning matrix, and packshot direction have been approved.
 
 ## Shopify collections
 
-| Collection | Type | Membership rule |
-| --- | --- | --- |
-| Daily Essentials | Manual | Curated overlap shown in the product schedule |
-| Mind & Focus | Manual | Curated stimulant-free cognitive-format range; UK claim review required |
-| Cellular | Manual | Curated cellular-nutrient range; no implied medical benefit |
-| Gut Health | Manual | Live Cultures and Daily Fibre |
-| Performance | Manual | Sports and training-adjacent products |
-| Best Sellers | Automated | Product tag `bestseller` |
-| Vegan | Automated | Product tag `vegan` |
+| Collection       | Type      | Membership rule                                                         |
+| ---------------- | --------- | ----------------------------------------------------------------------- |
+| Daily Essentials | Manual    | Curated overlap shown in the product schedule                           |
+| Mind & Focus     | Manual    | Curated stimulant-free cognitive-format range; UK claim review required |
+| Cellular         | Manual    | Curated cellular-nutrient range; no implied medical benefit             |
+| Gut Health       | Manual    | Live Cultures and Daily Fibre                                           |
+| Performance      | Manual    | Sports and training-adjacent products                                   |
+| Best Sellers     | Automated | Product tag `bestseller`                                                |
+| Vegan            | Automated | Product tag `vegan`                                                     |
 
 Initial `bestseller` tags: Magnesium Glycinate, Daily Multivitamin, Mind &
 Focus Sticks, Creatine Monohydrate, Whey Protein, and Electrolyte Powder.
@@ -119,11 +119,11 @@ Focus Sticks, Creatine Monohydrate, Whey Protein, and Electrolyte Powder.
 
 All products offer one-time purchase plus Recharge purchase options:
 
-| Purchase option | Delivery | Charge timing | Draft discount |
-| --- | --- | --- | ---: |
-| Subscribe & Save | Every 30 days | Every 30 days | 10% |
-| Two-month prepaid | Every 30 days | Two deliveries paid up front | 12% |
-| Three-month prepaid | Every 30 days | Three deliveries paid up front | 15% |
+| Purchase option     | Delivery      | Charge timing                  | Draft discount |
+| ------------------- | ------------- | ------------------------------ | -------------: |
+| Subscribe & Save    | Every 30 days | Every 30 days                  |            10% |
+| Two-month prepaid   | Every 30 days | Two deliveries paid up front   |            12% |
+| Three-month prepaid | Every 30 days | Three deliveries paid up front |            15% |
 
 Customers should be able to pause, skip, and cancel. The final policy must
 explain how cancellation and any refund is handled once prepaid £0 shipment
@@ -148,13 +148,13 @@ The proposed visual system uses a warm off-white background, near-black
 midnight-blue packs, a simple two-strand helix mark, and one high-chroma colour
 per family:
 
-| Family | Accent | Products |
-| --- | --- | --- |
+| Family           | Accent        | Products     |
+| ---------------- | ------------- | ------------ |
 | Daily Essentials | electric teal | 001–004, 010 |
-| Mind & Focus | violet | 005–008 |
-| Cellular & Omega | cobalt blue | 009, 013–014 |
-| Gut Health | amber | 011–012 |
-| Performance | coral orange | 015–020 |
+| Mind & Focus     | violet        | 005–008      |
+| Cellular & Omega | cobalt blue   | 009, 013–014 |
+| Gut Health       | amber         | 011–012      |
+| Performance      | coral orange  | 015–020      |
 
 Packshots should be front-three-quarter, centred, with crisp studio lighting in
 a square 1:1 frame. **Packshots are the next review stage.** Lifestyle images
@@ -166,7 +166,7 @@ medicine.
 
 ## What still needs business input
 
-The superseded CSV must be regenerated as a v2 *draft merchandising file*, not
+The superseded CSV must be regenerated as a v2 _draft merchandising file_, not
 verified regulatory artwork. Before a live Shopify import, supply or confirm:
 
 1. Manufacturer-approved formula and active quantities for every SKU.
