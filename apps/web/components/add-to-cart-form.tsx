@@ -29,6 +29,7 @@ import { track } from "@/lib/klaviyo";
 import { analytics } from "@/lib/product-analytics";
 
 import { BlendPicker } from "./blend-picker";
+import { AnalyticsIdField } from "./analytics-id-field";
 import { useCartUi } from "./cart-provider";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -57,7 +58,7 @@ export const AddToCartForm = ({
   /** For a custom-blend pack: the range to choose from (see lib/blend.ts). */
   blendIngredients?: readonly BlendIngredient[];
 }) => {
-  const { openCart, storeDomain } = useCartUi();
+  const { openCart, siteOrigin } = useCartUi();
   const [state, formAction, pending] = useActionState(addToCart, IDLE);
 
   const [selected, setSelected] = useState<readonly SelectedOption[]>(() =>
@@ -128,9 +129,10 @@ export const AddToCartForm = ({
     openCart();
 
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
-    if (state.cart && line) {
-      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
-      const added = addedToCartProperties(line, state.addedQuantity ?? 1);
+    const quantity = state.addedQuantity ?? 1;
+    if (state.cart && line && quantity > 0) {
+      track(EVENTS.addedToCart, addedToCart(state.cart, line, siteOrigin, quantity));
+      const added = addedToCartProperties(line, quantity);
       if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
     }
   }, [
@@ -140,7 +142,7 @@ export const AddToCartForm = ({
     state.addedLineId,
     state.addedQuantity,
     openCart,
-    storeDomain,
+    siteOrigin,
   ]);
 
   const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
@@ -180,6 +182,7 @@ export const AddToCartForm = ({
       className="mt-6"
     >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
+      <AnalyticsIdField />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
       {isBlend ? <input type="hidden" name="blend" value={picked.join(",")} /> : null}
 

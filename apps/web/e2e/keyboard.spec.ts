@@ -40,7 +40,9 @@ test("keyboard-only: collection to cart, with focus moved into the drawer", asyn
     .getByRole("main")
     .getByRole("link", { name: /Whey Protein/ })
     .first();
-  await tabTo(page, card);
+  // The filter sidebar comes first on desktop, so the products are a long
+  // way down the tab order.
+  await tabTo(page, card, 120);
   await page.keyboard.press("Enter");
   await page.waitForURL(/\/products\/whey-protein/);
   await page.waitForLoadState("networkidle");
