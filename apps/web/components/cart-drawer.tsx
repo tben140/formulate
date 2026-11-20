@@ -104,7 +104,7 @@ export const CartDrawer = ({
   cart: Cart | null;
   suggestions?: Suggestions;
 }) => {
-  const { open, closeCart, storeDomain } = useCartUi();
+  const { open, closeCart, siteOrigin } = useCartUi();
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -211,6 +211,7 @@ export const CartDrawer = ({
         {/* Above the lines, so it is read before the list rather than after it. */}
         <FreeShippingBar
           subtotal={lines.length > 0 ? (shown?.cost.subtotalAmount ?? null) : null}
+          open={open}
         />
 
         {error ? (
@@ -382,7 +383,7 @@ export const CartDrawer = ({
                 // Klaviyo's onsite script queues and flushes, which is what makes
                 // a beacon unnecessary here.
                 onClick={() => {
-                  track(EVENTS.startedCheckout, startedCheckout(cart, storeDomain));
+                  track(EVENTS.startedCheckout, startedCheckout(cart, siteOrigin));
                   analytics()?.capture(
                     PRODUCT_EVENTS.checkoutStarted,
                     checkoutStartedProperties(cart),

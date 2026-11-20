@@ -14,6 +14,8 @@
     "comment_form_title": "Add a comment"
   },
   "cart": {
+    "add_error": "Could not add this to your cart.",
+    "change_error": "Your cart couldn't be updated. Check your connection and try again.",
     "checkout": "Checkout",
     "title": "Cart",
     "update": "Update",
@@ -58,6 +60,18 @@
     "active_filters": "Active filters",
     "remove_filter": "remove filter",
     "no_matches": "No products match these filters.",
+    "filters": "Filters",
+    "close": "Close",
+    "selected": "selected",
+    "show": "Show",
+    "show_more": "Show {{ count }} more",
+    "show_fewer": "Show fewer",
+    "price_range": "Range {{ min }} – {{ max }}",
+    "sort": "Sort",
+    "sort_featured": "Featured",
+    "sort_price_ascending": "Price, low to high",
+    "sort_price_descending": "Price, high to low",
+    "sort_newest": "Newest",
     "product_count": {
       "one": "{{ count }} product",
       "other": "{{ count }} products"
@@ -101,6 +115,7 @@
     "sold_out": "Sold out",
     "unavailable": "Unavailable in this combination",
     "added": "Added to your cart.",
+    "cart_error": "Could not update your cart.",
     "purchase_options": "Purchase options",
     "one_time": "One-time purchase",
     "variant": "Variant",
@@ -122,6 +137,7 @@
     "home": "Home",
     "shop_collection": "Shop {{ title }}",
     "search_link": "Search",
+    "shop": "Shop",
     "skip_to_content": "Skip to content"
   },
   "footer": {
