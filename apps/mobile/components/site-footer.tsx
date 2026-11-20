@@ -1,8 +1,9 @@
+import { BRAND_NAME } from "@formulate/tokens";
 import { Link } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
-import { POSTHOG_KEY, reopenAnalyticsChoice } from "../lib/product-analytics";
 import { useLegalLinks } from "../lib/queries";
+import { reopenTrackingChoice, TRACKING_AVAILABLE } from "../lib/tracking-consent";
 import { EmailCapture } from "./email-capture";
 import { PaymentIcons } from "./payment-icons";
 import { SocialLinks } from "./social-links";
@@ -67,14 +68,14 @@ export const SiteFooter = () => {
       ) : null}
 
       <Text className="mt-4 text-sm text-foreground-muted">
-        &copy; {new Date().getFullYear()} Double Helix
+        &copy; {new Date().getFullYear()} {BRAND_NAME}
       </Text>
 
-      {/* Web's "Cookie preferences": changing the analytics choice (SHO-87). */}
-      {POSTHOG_KEY ? (
+      {/* Web's "Cookie preferences": changing the tracking choice. */}
+      {TRACKING_AVAILABLE ? (
         <Pressable
           accessibilityRole="button"
-          onPress={reopenAnalyticsChoice}
+          onPress={reopenTrackingChoice}
           className="mt-2 self-start py-1"
         >
           <Text className="text-sm text-foreground-muted underline">Privacy choices</Text>
