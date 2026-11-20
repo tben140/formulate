@@ -1,13 +1,29 @@
 import { Image } from "expo-image";
-import { Link } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Link, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
-import { useCollection, useCollectionCards, useNavLinks } from "../lib/queries";
+import {
+  useCollection,
+  useCollectionCards,
+  useNavLinks,
+  useShopGroups,
+} from "../lib/queries";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
 
 /** How many featured products the home screen lists before "View all". */
 const FEATURED_COUNT = 4;
+
+const LOAD_ERROR = "Could not load from Shopify";
 
 /**
  * The home screen (SHO-61), matching apps/web's home page: an introduction,
@@ -19,15 +35,38 @@ const FEATURED_COUNT = 4;
  * screen waiting on the slowest query.
  */
 export const HomeView = () => {
-  const { data: navLinks } = useNavLinks();
-  const { data: cards } = useCollectionCards();
+  const nav = useNavLinks();
+  const shopGroups = useShopGroups();
+  const cardsQuery = useCollectionCards();
+  const navLinks = nav.data;
+  const cards = cardsQuery.data;
 
   const menuCollections = navLinks?.filter((link) => link.kind === "collection") ?? [];
   const featuredLink = menuCollections[0];
-  const { data: featuredData } = useCollection(featuredLink?.handle ?? "", {
+  const featuredQuery = useCollection(featuredLink?.handle ?? "", {
     enabled: featuredLink !== undefined,
   });
+  const featuredData = featuredQuery.data;
+  // The introduction always shows; what's below it comes from Shopify, so it
+  // gets the same loading and error states as every other screen.
+  const loading =
+    nav.isPending ||
+    cardsQuery.isPending ||
+    (featuredLink !== undefined && featuredQuery.isPending);
+  const failed = nav.isError || cardsQuery.isError || featuredQuery.isError;
   const featured = featuredData?.collection;
+
+  // The error and its retry appear below the introduction, so a screen reader
+  // is told: a live region does that on Android, and iOS needs the call.
+  // Only while Home is the screen in front: it stays mounted behind Search, and
+  // a late failure there would interrupt VoiceOver on another screen. On
+  // coming back, an error still showing is announced then.
+  useFocusEffect(
+    useCallback(() => {
+      if (failed && Platform.OS === "ios")
+        AccessibilityInfo.announceForAccessibility(LOAD_ERROR);
+    }, [failed]),
+  );
 
   const byHandle = new Map((cards ?? []).map((card) => [card.handle, card]));
   const categories = menuCollections.flatMap((link) => {
@@ -67,14 +106,49 @@ export const HomeView = () => {
         ) : null}
       </View>
 
+      {failed ? (
+        <View className="items-start gap-3">
+          <Text
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
+            className="text-base font-semibold text-danger"
+          >
+            {LOAD_ERROR}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              void nav.refetch();
+              void cardsQuery.refetch();
+              if (featuredLink) void featuredQuery.refetch();
+            }}
+            className="rounded-md border border-border px-4 py-2"
+          >
+            <Text className="text-sm font-medium text-foreground">Try again</Text>
+          </Pressable>
+        </View>
+      ) : loading ? (
+        <ActivityIndicator accessibilityLabel="Loading the shop" />
+      ) : null}
+
       {categories.length > 0 ? (
         <View>
-          <Text
-            accessibilityRole="header"
-            className="text-xl font-semibold text-foreground"
-          >
-            Shop by category
-          </Text>
+          <View className="flex-row items-baseline justify-between">
+            <Text
+              accessibilityRole="header"
+              className="text-xl font-semibold text-foreground"
+            >
+              Shop by category
+            </Text>
+            {/* Every grouping (goal, product family, format), on the Shop screen. */}
+            {shopGroups.data && shopGroups.data.length > 0 ? (
+              <Link href="/shop" asChild>
+                <Pressable accessibilityRole="link" hitSlop={8}>
+                  <Text className="text-sm font-medium text-brand-600">Browse all</Text>
+                </Pressable>
+              </Link>
+            ) : null}
+          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}

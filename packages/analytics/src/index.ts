@@ -1,6 +1,7 @@
 export {
   EVENTS,
   addedToCart,
+  collectionTitles,
   formatEventPrice,
   legacyIdFromGid,
   productUrl,
@@ -37,3 +38,37 @@ export {
   catalogVariantId,
   submitBackInStock,
 } from "./back-in-stock";
+
+export {
+  CART_ATTRIBUTES,
+  CART_ATTRIBUTE_KEYS,
+  PAGEVIEW,
+  POSTHOG_HOST,
+  PRODUCT_EVENTS,
+  SCREEN,
+  SESSION_IDLE_MS,
+  addedToCartProperties,
+  anonymousId,
+  cartAttributes,
+  cartViewedProperties,
+  checkoutStartedProperties,
+  productRef,
+  productViewedProperties,
+  captureBody,
+  createProductAnalytics,
+  numericId,
+  sessionUuid,
+} from "./product-analytics";
+
+export type {
+  AnalyticsIdentity,
+  FetchLike,
+  ProductAnalytics,
+  ProductAnalyticsConfig,
+  ProductEventName,
+  ProductEventProperties,
+  ProductRef,
+  Surface,
+} from "./product-analytics";
+export { POSTHOG_CAPTURE_URL, orderCompletedEvent, orderEventUuid } from "./order-event";
+export type { CapturedOrderEvent, WebhookOrder } from "./order-event";
