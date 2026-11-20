@@ -8,6 +8,17 @@
  */
 export const NAV_MENU_HANDLE = "shop";
 
+/**
+ * The menus behind the header's Shop dropdown, one group each, in this order
+ * (Content → Menus). An empty or missing menu is left out, and with none the
+ * header has no Shop button.
+ */
+export const SHOP_MENU_HANDLES = [
+  "shop-by-goal",
+  "shop-by-family",
+  "shop-by-format",
+] as const;
+
 /** The footer's policy links (Content → Menus → Legal). */
 export const LEGAL_MENU_HANDLE = "legal";
 
@@ -128,4 +139,28 @@ export const breadcrumbCollection = (
     navLinks.find((link) => link.kind === "collection" && handles.has(link.handle)) ??
     null
   );
+};
+
+/** One column of the header's Shop dropdown: a menu's title and its links. */
+export type NavGroup = {
+  readonly title: string;
+  readonly links: readonly NavLink[];
+};
+
+/**
+ * A Shop dropdown group from a Shopify menu, or null when it has nothing a
+ * shopper can browse to. "Shop by goal" is shown as "By goal": the button
+ * already says Shop.
+ */
+export const toNavGroup = (
+  menu:
+    | { readonly title: string; readonly items?: readonly MenuItemLike[] | null }
+    | null
+    | undefined,
+): NavGroup | null => {
+  if (!menu) return null;
+  const links = toNavLinks(menu.items).filter((link) => link.kind !== "policy");
+  if (links.length === 0) return null;
+  const title = menu.title.trim().replace(/^shop\s+/i, "");
+  return { title: title.charAt(0).toUpperCase() + title.slice(1), links };
 };

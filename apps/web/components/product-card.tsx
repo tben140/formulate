@@ -1,6 +1,6 @@
 import { formatMoney, type MoneyLike } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
-import Link from "next/link";
+import Link from "@/components/link";
 
 type CardImage = {
   readonly url: string;

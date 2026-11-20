@@ -19,7 +19,7 @@ const meta = {
   parameters: { layout: "fullscreen" },
   decorators: [
     (Story) => (
-      <CartProvider storeDomain="example.myshopify.com">
+      <CartProvider siteOrigin="https://www.doublehelixsupplements.co.uk">
         <Opened>
           <Story />
         </Opened>

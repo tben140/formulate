@@ -96,6 +96,7 @@ const line = (
         id: `gid://shopify/Product/${id}`,
         handle: item.handle,
         title: item.title,
+        collections: { nodes: [] },
       },
     },
     sellingPlanAllocation: options.plan
@@ -113,6 +114,7 @@ const cart = (lines: readonly CartLine[]): Cart => {
     checkoutUrl: "https://example.com/checkout",
     totalQuantity: lines.reduce((sum, l) => sum + l.quantity, 0),
     buyerIdentity: { countryCode: "GB" },
+    attributes: [],
     cost: {
       subtotalAmount: gbp(subtotal),
       totalAmount: gbp(subtotal),
