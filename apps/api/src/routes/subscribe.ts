@@ -8,6 +8,7 @@ import {
 import { readBounded } from "../body";
 import { json } from "../http";
 import type { RateLimiter } from "../rate-limiter";
+import { reportError, type SentryEnv } from "../sentry";
 
 /**
  * Klaviyo consent proxy: the app's newsletter sign-up.
@@ -48,7 +49,8 @@ const MAX_BODY_BYTES = 1024;
 
 export const handleSubscribe = async (
   request: Request,
-  env: SubscribeEnv,
+  env: SubscribeEnv & SentryEnv,
+  ctx?: Pick<ExecutionContext, "waitUntil">,
 ): Promise<Response> => {
   if (request.method !== "POST") {
     return json({ ok: false, reason: "rejected" }, 405);
@@ -124,6 +126,14 @@ export const handleSubscribe = async (
       status: response.status,
       detail: (await response.text()).slice(0, 500),
     });
+    // Sentry gets the status only. Klaviyo's message can quote the address.
+    if (ctx) {
+      reportError(env.SENTRY_DSN, ctx, {
+        message: "Klaviyo subscribe failed",
+        level: "error",
+        extra: { status: response.status },
+      });
+    }
     return json({ ok: false, reason: "rejected" }, 502);
   }
 

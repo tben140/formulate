@@ -21,3 +21,7 @@ SHOPIFY_WEBHOOK_SECRET=
 # Not secret (PostHog's public project key, phc_…), but kept beside the
 # webhook secret so the route is configured in one place.
 POSTHOG_KEY=
+
+# Overrides the Sentry DSN in wrangler.jsonc so local runs don't report to the
+# production project. Leave it empty.
+SENTRY_DSN=

@@ -71,7 +71,9 @@ const webhook = async (body: string, headers: Record<string, string> = {}) =>
 
 /** The stubs stand in for Cloudflare's bindings. */
 const call = (request: Request, e = env()) =>
-  worker.fetch(request, e as unknown as Parameters<typeof worker.fetch>[1]);
+  worker.fetch(request, e as unknown as Parameters<typeof worker.fetch>[1], {
+    waitUntil: () => {},
+  });
 
 afterEach(() => {
   vi.unstubAllGlobals();

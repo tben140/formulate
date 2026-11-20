@@ -11,6 +11,7 @@ import { CartProvider } from "../components/cart-provider";
 import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
 import { initKlaviyo } from "../lib/klaviyo";
+import { initSentry } from "../lib/sentry";
 import { analytics, loadAnalyticsIdentity } from "../lib/product-analytics";
 import { loadTrackingConsent, useTrackingConsent } from "../lib/tracking-consent";
 
@@ -26,6 +27,7 @@ import "../global.css";
  * until the choice, loaded last, says yes.
  */
 initKlaviyo();
+initSentry();
 void loadAnalyticsIdentity().then(loadTrackingConsent);
 
 /** A PostHog screen view per route (SHO-87); nothing without consent. */
