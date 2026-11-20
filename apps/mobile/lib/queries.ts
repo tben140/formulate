@@ -1,10 +1,12 @@
 import {
   CollectionCardsQuery,
+  collectionSort,
   CollectionProductsQuery,
   LEGAL_MENU_HANDLE,
   NAV_MENU_HANDLE,
   NavMenuQuery,
   PaymentSettingsQuery,
+  SHOP_MENU_HANDLES,
   ComplementaryProductsQuery,
   ProductByHandleQuery,
   SearchProductsQuery,
@@ -13,6 +15,7 @@ import {
   payLaterIds,
   paymentIconIds,
   productFiltersFromParams,
+  toNavGroup,
   toNavLinks,
   suggestionTerm,
 } from "@formulate/shopify";
@@ -47,22 +50,32 @@ const unwrap = <T>(
  * The previous results stay on screen while a new filter loads, rather than
  * the list flashing to a spinner on every change.
  */
+/** How many products a collection screen lists. */
+export const COLLECTION_PAGE_SIZE = 24;
+
+/**
+ * A collection's products. `filterQuery` is the Liquid-style query string web
+ * and the theme keep in the URL: `filter.*` parameters and `sort_by`.
+ */
 export const useCollection = (
   handle: string,
   options: { enabled?: boolean; filterQuery?: string } = {},
 ) =>
   useQuery({
     queryKey: ["collection", handle, options.filterQuery ?? ""],
-    queryFn: async () =>
-      unwrap(
+    queryFn: async () => {
+      const params = new URLSearchParams(options.filterQuery ?? "");
+      const { sortKey, reverse } = collectionSort(params);
+      return unwrap(
         await storefront.request(CollectionProductsQuery, {
           handle,
-          first: 24,
-          filters: productFiltersFromParams(
-            new URLSearchParams(options.filterQuery ?? ""),
-          ),
+          first: COLLECTION_PAGE_SIZE,
+          filters: productFiltersFromParams(params),
+          sortKey,
+          reverse,
         }),
-      ),
+      );
+    },
     enabled: options.enabled ?? true,
     placeholderData: keepPreviousData,
   });
@@ -88,6 +101,25 @@ export const useNavLinks = () =>
         unwrap(await storefront.request(NavMenuQuery, { handle: NAV_MENU_HANDLE })).menu
           ?.items,
       ),
+    staleTime: 10 * 60_000,
+  });
+
+/**
+ * The Shop screen's groups: one per menu in SHOP_MENU_HANDLES (by goal, by
+ * product family, by format), the ones web's header dropdown shows. Empty or
+ * missing menus are left out.
+ */
+export const useShopGroups = () =>
+  useQuery({
+    queryKey: ["nav", ...SHOP_MENU_HANDLES],
+    queryFn: async () =>
+      (
+        await Promise.all(
+          SHOP_MENU_HANDLES.map(async (handle) =>
+            toNavGroup(unwrap(await storefront.request(NavMenuQuery, { handle })).menu),
+          ),
+        )
+      ).flatMap((group) => group ?? []),
     staleTime: 10 * 60_000,
   });
 

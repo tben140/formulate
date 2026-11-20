@@ -25,7 +25,7 @@ export const CollectionView = ({
   readonly titleInHeader?: boolean;
   readonly onSelectCollection?: (handle: string) => void;
 }) => {
-  // The same filter query string web and the theme keep in the URL.
+  // The same filter and sort query string web and the theme keep in the URL.
   const [filterQuery, setFilterQuery] = useState("");
   const { data, isPending, isError, error, isPlaceholderData } = useCollection(handle, {
     filterQuery,
@@ -100,6 +100,7 @@ export const CollectionView = ({
           ) : null}
           <View className="mt-4">
             <CollectionFilters
+              handle={handle}
               filters={collection.products.filters}
               query={filterQuery}
               onChange={setFilterQuery}

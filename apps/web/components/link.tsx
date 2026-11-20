@@ -11,7 +11,7 @@ import type { ComponentProps } from "react";
  * collection page that was about 20 requests per visit, half of everything a
  * page view costs, nearly all for products nobody opens. Vercel's free plan
  * counts each one against a monthly allowance (1,000,000 CDN requests) and
- * pauses the site past it.
+ * pauses the site past it (apps/web/AGENTS.md).
  *
  * Here a link prefetches when a mouse or pen rests on it or keyboard focus
  * reaches it: still ahead of the click, for the one link that's about to be
