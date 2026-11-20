@@ -12,6 +12,16 @@
 # subscriptions, write).
 KLAVIYO_PRIVATE_KEY=
 
+# The order webhook (POST /webhooks/orders-create). Without either, it answers
+# 503 and Shopify retries. Set both in production with `wrangler secret put`.
+#
+# SECRET. The client secret of the app that subscribes to the orders/create
+# webhook; Shopify signs each webhook with it.
+SHOPIFY_WEBHOOK_SECRET=
+# Not secret (PostHog's public project key, phc_…), but kept beside the
+# webhook secret so the route is configured in one place.
+POSTHOG_KEY=
+
 # Overrides the Sentry DSN in wrangler.jsonc so local runs don't report to the
 # production project. Leave it empty.
 SENTRY_DSN=

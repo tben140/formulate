@@ -7,6 +7,7 @@ import {
   type ProductAnalytics,
 } from "@formulate/analytics";
 
+import { clearAnalyticsId, readAnalyticsId, writeAnalyticsId } from "./analytics-id";
 import { readConsent } from "./consent";
 
 /**
@@ -19,8 +20,11 @@ import { readConsent } from "./consent";
  * consent banner sends the current page view instead, which is all a funnel
  * needs.
  *
- * The anonymous id and session live in localStorage, first-party, under one
- * key that `forgetProductAnalytics()` removes when consent is withdrawn.
+ * The anonymous id lives in a first-party cookie (lib/analytics-id.ts), so the
+ * server can read it to decide experiment variants (ADR 0013); the session
+ * lives in localStorage. `forgetProductAnalytics()` removes both when consent
+ * is withdrawn. Ids stored only in localStorage, from before the cookie, are
+ * carried over on the next event, so a returning visitor keeps their id.
  */
 
 /** A public project key, safe in the bundle (like the Klaviyo public key). */
@@ -45,11 +49,38 @@ const read = (): Stored | null => {
   }
 };
 
+const idListeners = new Set<() => void>();
+const notifyId = () => idListeners.forEach((listener) => listener());
+
+/**
+ * Calls `listener` when the stored id appears or goes, in this tab (the first
+ * event after consent creates it; withdrawal removes it) or in another.
+ */
+export const subscribeToStoredDistinctId = (listener: () => void): (() => void) => {
+  idListeners.add(listener);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY || event.key === null) listener();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    idListeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+};
+
+/**
+ * For the consent banner, on every choice: `storedDistinctId` depends on
+ * consent too, and an id kept from before (the consent cookie expires after
+ * six months, localStorage doesn't) becomes readable on Accept without
+ * anything being written.
+ */
+export const notifyAnalyticsConsentChanged = (): void => notifyId();
+
 /** The visitor's ids, starting a new session after 30 idle minutes. */
 const identity = (): AnalyticsIdentity => {
   const now = Date.now();
   const stored = read();
-  const distinctId = stored?.distinctId ?? anonymousId();
+  const distinctId = readAnalyticsId() ?? stored?.distinctId ?? anonymousId();
   const sessionId =
     stored && now - stored.lastActive < SESSION_IDLE_MS
       ? stored.sessionId
@@ -62,8 +93,22 @@ const identity = (): AnalyticsIdentity => {
   } catch {
     // Storage blocked: this event still goes, with ids that won't persist.
   }
+  writeAnalyticsId(distinctId);
+  // A new id, or the cookie's replacing a different stored one: the cart's
+  // analytics id field re-reads.
+  if (stored?.distinctId !== distinctId) notifyId();
   return { distinctId, sessionId };
 };
+
+/**
+ * The visitor's PostHog id, read without side effects, or null without consent
+ * or before the first event has created one. For tagging a new cart so its
+ * order is credited to this visitor (components/analytics-id-field.tsx).
+ */
+export const storedDistinctId = (): string | null =>
+  POSTHOG_KEY && typeof window !== "undefined" && readConsent() === "granted"
+    ? (readAnalyticsId() ?? read()?.distinctId ?? null)
+    : null;
 
 let client: ProductAnalytics | null = null;
 let referrerSent = false;
@@ -96,9 +141,11 @@ export const analytics = (): ProductAnalytics | null => {
 /** On withdrawal of consent: the ids go, and so does the client. */
 export const forgetProductAnalytics = (): void => {
   client = null;
+  clearAnalyticsId();
   try {
     window.localStorage.removeItem(STORAGE_KEY);
   } catch {
     // Storage blocked: nothing was kept.
   }
+  notifyId();
 };

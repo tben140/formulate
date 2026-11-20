@@ -19,6 +19,15 @@
  * https://develop.sentry.dev/sdk/data-model/envelopes/
  */
 
+/** What a route needs to report to Sentry. */
+export interface SentryEnv {
+  /**
+   * Sentry's DSN for the `worker` project, in `vars`. Public by design: it can
+   * only submit events. Unset means Sentry is off (local runs, tests).
+   */
+  readonly SENTRY_DSN?: string;
+}
+
 export interface ErrorReport {
   readonly message: string;
   readonly level: "error" | "warning";
