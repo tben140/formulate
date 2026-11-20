@@ -24,7 +24,14 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { colours, fontFaces, fontFamily, fontSize, radius, spacing } from "../src/tokens.ts";
+import {
+  colours,
+  fontFaces,
+  fontFamily,
+  fontSize,
+  radius,
+  spacing,
+} from "../src/tokens.ts";
 
 const isColourScale = (value: unknown): value is Record<string, string> =>
   typeof value === "object" && value !== null;
