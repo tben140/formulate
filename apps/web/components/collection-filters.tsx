@@ -260,14 +260,16 @@ const FilterGroupView = ({
       ) : (
         <fieldset className="mt-3">
           <legend className="sr-only">{filter.label}</legend>
-          <ul className="space-y-2">{shown.map(value)}</ul>
+          {/* 12px apart, so each 16px box has the 24px of clear space WCAG
+              2.5.8 (target size) asks for. */}
+          <ul className="space-y-3">{shown.map(value)}</ul>
           {more.length > 0 ? (
             <details open={group.moreOpen} className="group/more mt-2">
               <summary className="cursor-pointer list-none text-sm text-brand-600 underline underline-offset-4 [&::-webkit-details-marker]:hidden">
                 <span className="group-open/more:hidden">Show {more.length} more</span>
                 <span className="hidden group-open/more:inline">Show fewer</span>
               </summary>
-              <ul className="mt-2 space-y-2">{more.map(value)}</ul>
+              <ul className="mt-3 space-y-3">{more.map(value)}</ul>
             </details>
           ) : null}
         </fieldset>
