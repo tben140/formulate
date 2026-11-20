@@ -44,6 +44,10 @@ export const checkCampaign = (snapshot: Snapshot, now: Date = new Date()): Findi
   if (campaign.endsAt <= now)
     warn("It has already ended. Delete it, its collection and discount (Housekeeping).");
   if (entry.fields.image && !entry.imageAlt?.trim()) warn("The image has no alt text.");
+  if (entry.fields.subscriber_perk && !entry.fields.perk_variant)
+    warn(
+      "The subscriber perk is described but has no perk_variant, so campaigns perks can't add it.",
+    );
   if (entry.fields.early_access_starts_at && !campaign.earlyAccessStartsAt)
     error("early_access_starts_at isn't before starts_at, so it's ignored.");
 
