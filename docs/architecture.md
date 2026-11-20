@@ -9,7 +9,7 @@ disagree.
 ```
 apps/
   web/      Next.js 16 · App Router · React Server Components → Vercel
-  mobile/   Expo SDK 57 · Expo Router · TanStack Query        → EAS / device
+  mobile/   Expo SDK 58 · Expo Router · TanStack Query        → EAS / device
   theme/    Liquid · web components · no bundler              → Shopify Online Store
 
 packages/

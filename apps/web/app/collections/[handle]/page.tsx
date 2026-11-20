@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { withoutEmptyFilters } from "@formulate/shopify";
+import { priorityIndex, SORT_PARAM, withoutEmptyFilters } from "@formulate/shopify";
 import { notFound, redirect } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { CollectionFilters } from "@/components/collection-filters";
+import { FilteredListing } from "@/components/collection-filters";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
-import { getCollection } from "@/lib/catalogue";
+import { COLLECTION_PAGE_SIZE, getCollection } from "@/lib/catalogue";
 import { toSearchParams } from "@/lib/search-params";
 import { baseOpenGraph } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription } from "@/lib/structured-data";
@@ -49,9 +49,6 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   };
 };
 
-/** Products per row at the widest breakpoint (`lg:grid-cols-3`). */
-const FIRST_ROW = 3;
-
 const CollectionPage = async ({ params, searchParams }: PageProps) => {
   const { handle } = await params;
   const query = toSearchParams(await searchParams);
@@ -62,15 +59,16 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
   if (tidy)
     redirect(tidy.size ? `/collections/${handle}?${tidy}` : `/collections/${handle}`);
 
-  const filterQuery = new URLSearchParams(
-    [...query].filter(([name]) => name.startsWith("filter.")),
+  const listingQuery = new URLSearchParams(
+    [...query].filter(([name]) => name.startsWith("filter.") || name === SORT_PARAM),
   ).toString();
-  const result = await getCollection(handle, filterQuery);
+  const result = await getCollection(handle, listingQuery);
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
   const collection = result.data.collection;
   if (!collection) notFound();
+  const firstWithImage = priorityIndex(collection.products.nodes);
 
   return (
     <>
@@ -90,35 +88,38 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
         ) : null}
       </header>
 
-      <CollectionFilters
+      <FilteredListing
         filters={collection.products.filters}
         params={query}
         path={`/collections/${handle}`}
         productCount={collection.products.nodes.length}
-      />
+        // A full page may not be all of them; then the total isn't known.
+        total={
+          collection.products.nodes.length < COLLECTION_PAGE_SIZE
+            ? collection.products.nodes.length
+            : null
+        }
+        sortable
+      >
+        {collection.products.nodes.length === 0 ? (
+          <p className="py-12 text-center text-foreground-muted">
+            No products match these filters.
+          </p>
+        ) : null}
 
-      {collection.products.nodes.length === 0 ? (
-        <p className="py-12 text-center text-foreground-muted">
-          No products match these filters.
-        </p>
-      ) : null}
-
-      <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {collection.products.nodes.map((product, index) => (
-          <li key={product.id}>
-            <ProductCard
-              product={product}
-              sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-              // The first row is on screen at load, and its first image is the
-              // Largest Contentful Paint on a phone. Hydrogen's Image defaults
-              // to lazy, which delayed it (SHO-143). Three is the widest row;
-              // everything below stays lazy.
-              loading={index < FIRST_ROW ? "eager" : "lazy"}
-              fetchPriority={index === 0 ? "high" : "auto"}
-            />
-          </li>
-        ))}
-      </ul>
+        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {collection.products.nodes.map((product, index) => (
+            <li key={product.id}>
+              <ProductCard
+                product={product}
+                sizes="(min-width: 1024px) 240px, (min-width: 640px) 45vw, 90vw"
+                // The LCP image: the first card with a photo (see ProductCard).
+                priority={index === firstWithImage}
+              />
+            </li>
+          ))}
+        </ul>
+      </FilteredListing>
     </>
   );
 };

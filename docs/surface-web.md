@@ -78,6 +78,14 @@ Vercel is linked to the repository with `apps/web` as the root directory.
   produced build is never reused for a Vercel build where the environment
   genuinely differs.
 
+After a production deploy, `node apps/web/scripts/smoke.mjs` checks the site
+from outside: the home page is a page and not a redirect, `robots.txt` allows
+crawling and names the sitemap, the sitemap lists products and collections, a
+real product and collection page from it carry their canonical and JSON-LD, the
+search page asks not to be indexed, the security headers are present, and no
+page shows the old working name. It exits non-zero on any failure, so it can
+gate a workflow later.
+
 ### Analytics
 
 `<Analytics />` and `<SpeedInsights />` are mounted in `app/layout.tsx`, after
@@ -113,19 +121,57 @@ from the reports before they are uploaded.
 Budgets are generous on purpose: for now the gate only has to exist and catch
 a regression. They ratchet at phase exit (SHO-68).
 
-| Metric | Budget (error) | Baseline, 28 Sep 2026 |
-| --- | --- | --- |
-| Performance score | ≥ 50 | 57–73 |
-| Accessibility score | ≥ 95 | 100 |
-| LCP | ≤ 6.0 s | 2.9–5.2 s |
-| CLS | ≤ 0.1 | 0.000 |
-| TBT | ≤ 1200 ms | 360–1025 ms |
+| Metric              | Budget (error) | Baseline, 28 Sep 2026 |
+| ------------------- | -------------- | --------------------- |
+| Performance score   | ≥ 50           | 57–73                 |
+| Accessibility score | ≥ 95           | 100                   |
+| LCP                 | ≤ 6.0 s        | 2.9–5.2 s             |
+| CLS                 | ≤ 0.1          | 0.000                 |
+| TBT                 | ≤ 1200 ms      | 360–1025 ms           |
 
 The baseline comes from a production build of the combined September PR batch,
 measured on the development droplet. That machine is a shared CPU, so TBT
 varies about twofold between runs, and the budget allows for it. LCP is the
 metric to watch: on both pages the LCP element is a product image with
 `loading="lazy"`, which delays the most important image on the page.
+
+#### LCP, 4 Oct 2026 (SHO-148)
+
+⚠️ **Lighthouse's default simulated throttling overstates LCP here, by about
+1.5 s.** It loads the page unthrottled, then models a slow phone from that trace.
+Unthrottled, the JavaScript arrives from our host before the image arrives from
+Shopify's CDN, so the scripts run before the image paints, and the model counts
+every one of them as blocking it. That is the "2.2–2.7 s render delay" SHO-148
+was opened for. With real throttling (`--settings.throttlingMethod=devtools`,
+the same 4× CPU and slow 4G), render delay is 50–130 ms. The time goes on
+**downloading** the image, not on painting it.
+
+The fix that moved the real number was the first row: an eager image is also
+preloaded in `<head>` (React 19 does this), so the collection's three eager
+images raced each other and the JavaScript on a phone, where one is on screen.
+Now only the first result is eager, on collections and search (search had none,
+the bug SHO-143 fixed on collections). It is the first card _with a photo_
+(`priorityIndex` in `packages/shopify`), and `ProductCard`'s `priority` prop
+sets both attributes. The rule doesn't depend on the column count: the first
+card with a photo is the first photo painted in one, two or three columns, so it
+holds when phones get a two-column grid. That is the top-left card whenever the
+first product has a photo, as every product in the demo store does; if earlier
+products had none, it would sit further along the grid. An e2e test checks
+there is exactly one eager, high-priority image.
+
+Mobile, median of 3–5 runs, production build on the droplet:
+
+| Page                      | Real throttling, before | Real throttling, after | Simulated (CI's method), after |
+| ------------------------- | ----------------------- | ---------------------- | ------------------------------ |
+| Collection                | 2.81 s                  | **2.20 s**             | 3.5 s                          |
+| Product                   | 1.93 s                  | 1.92 s                 | 3.7 s                          |
+| Search                    | 2.92 s                  | **1.98 s**             | —                              |
+| Home (LCP is the heading) | 1.61 s                  | 1.61 s                 | —                              |
+
+Desktop collection LCP is 0.7–0.9 s with real throttling; the lazy cards start
+about 200 ms after the first. All four pages are under the 2.5 s "good"
+threshold in real conditions. Field data (Speed Insights) is the arbiter; the
+lab budget stays on the simulated number CI produces.
 
 ## Not built yet
 

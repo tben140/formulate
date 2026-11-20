@@ -1,12 +1,14 @@
 import {
+  priorityIndex,
   productFiltersFromParams,
   SearchProductsQuery,
   withoutEmptyFilters,
 } from "@formulate/shopify";
 import type { Metadata } from "next";
+import Link from "@/components/link";
 import { redirect } from "next/navigation";
 
-import { CollectionFilters } from "@/components/collection-filters";
+import { FilteredListing } from "@/components/collection-filters";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { toSearchParams } from "@/lib/search-params";
@@ -17,6 +19,7 @@ import { storefront } from "@/lib/storefront";
  * engines are asked not to index them (they may still follow the links).
  */
 export const metadata: Metadata = {
+  // The root layout's title template adds " — <brand>".
   title: "Search",
   robots: { index: false, follow: true },
 };
@@ -47,6 +50,7 @@ const SearchPage = async ({ searchParams }: PageProps) => {
         filters: productFiltersFromParams(query),
       })
     : null;
+  const firstWithImage = result?.ok ? priorityIndex(result.data.search.nodes) : -1;
 
   return (
     <>
@@ -88,31 +92,48 @@ const SearchPage = async ({ searchParams }: PageProps) => {
           </h2>
           {/* The filter panel only appears when there are results to filter. */}
           {result.data.search.totalCount > 0 || query.toString().includes("filter.") ? (
-            <CollectionFilters
+            <FilteredListing
               filters={result.data.search.productFilters}
               params={query}
               path="/search"
               productCount={result.data.search.nodes.length}
-            />
-          ) : null}
-
-          {result.data.search.nodes.length === 0 ? (
-            <p className="py-12 text-center text-foreground-muted">
-              No products match “{term}”. Try a different word, or browse the collections.
-            </p>
-          ) : (
-            <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {result.data.search.nodes.map((product) =>
-                product.__typename === "Product" ? (
-                  <li key={product.id}>
-                    <ProductCard
-                      product={product}
-                      sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-                    />
-                  </li>
-                ) : null,
+              total={result.data.search.totalCount}
+            >
+              {result.data.search.nodes.length === 0 ? (
+                <p className="py-12 text-center text-foreground-muted">
+                  No products match “{term}”. Try a different word, or{" "}
+                  {/* The home page lists the collections; there's no index route. */}
+                  <Link href="/" className="text-brand-600 underline underline-offset-4">
+                    browse the collections
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {result.data.search.nodes.map((product, index) =>
+                    product.__typename === "Product" ? (
+                      <li key={product.id}>
+                        <ProductCard
+                          product={product}
+                          sizes="(min-width: 1024px) 240px, (min-width: 640px) 45vw, 90vw"
+                          // The LCP image: the first result with a photo. Lazy,
+                          // it waited ~1.3 s to start on a phone (SHO-148).
+                          priority={index === firstWithImage}
+                        />
+                      </li>
+                    ) : null,
+                  )}
+                </ul>
               )}
-            </ul>
+            </FilteredListing>
+          ) : (
+            <p className="py-12 text-center text-foreground-muted">
+              No products match “{term}”. Try a different word, or{" "}
+              <Link href="/" className="text-brand-600 underline underline-offset-4">
+                browse the collections
+              </Link>
+              .
+            </p>
           )}
         </section>
       ) : null}

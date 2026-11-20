@@ -55,12 +55,17 @@ deserialises its output inside `react-native-css`, and any newer version fails
 names deserialisation rather than versions. See
 [ADR 0004](../../docs/adr/0004-pin-lightningcss-to-1-30-1.md).
 
-NativeWind is pinned exactly at `5.0.0-preview.4`, no range, because preview
-releases can break between versions —
+NativeWind is pinned exactly at `5.0.0-rc.0` (with `react-native-css`
+`3.1.0-rc.0`), no range, because pre-releases can break between versions —
 [ADR 0003](../../docs/adr/0003-nativewind-v5-and-tailwind-v4.md).
 
-React is pinned to `19.2.3` workspace-wide. Under the hoisted node linker a
-second React copy would break hooks here.
+React is pinned to `19.3.0` workspace-wide (Expo SDK 58's version). Under the
+hoisted node linker a second React copy would break hooks here.
+
+`metro.config.js` sends expo-asset's `react-native` import to the real module.
+NativeWind's runtime swaps `react-native` for a stand-in everywhere, and that
+stand-in has no `AssetRegistry`, so without the rule every icon font fails to
+load. See ADR 0003, "Update, October 2026".
 
 ## Environment variables
 
@@ -237,9 +242,10 @@ Maestro flows follow the same rule: select by the text or accessibility label a
 user would hear (`tapOn: "Add to cart"`), and use `id:` (a `testID`) only as a
 last resort.
 
-On web the same rule is enforced two ways: `eslint-plugin-jsx-a11y` at lint time
-(shared config), and role-based Playwright specs with axe scans in
-`apps/web/e2e`.
+On web the query rule is a convention, as here: no lint rule enforces it.
+`eslint-plugin-jsx-a11y` (shared config) is a separate check, of accessibility
+patterns in JSX. Role-based Playwright specs with axe scans in `apps/web/e2e`
+are planned, and arrive with #40.
 
 ## Verification
 

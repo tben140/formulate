@@ -12,27 +12,43 @@ vault to browse it as a graph; it is plain markdown either way.
 
 ## Start here
 
-| Note                              | What it covers                                                                                 |
-| --------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [Architecture](architecture.md)   | The three surfaces, what they share, and where they deliberately diverge                       |
-| [Domain model](domain-model.md)   | Customer, product, cart, order, subscription — and where Shopify's shape and ours disagree     |
-| [Decision records](adr/README.md) | Why things are the way they are, with alternatives                                             |
-| [The demo store](demo-store.md)   | What visitors are told, how the store is configured to behave like a real one, resetting stock |
+| Note                                    | What it covers                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [Architecture](architecture.md)         | The three surfaces, what they share, and where they deliberately diverge                         |
+| [Domain model](domain-model.md)         | Customer, product, cart, order, subscription — and where Shopify's shape and ours disagree       |
+| [Decision records](adr/README.md)       | Why things are the way they are, with alternatives                                               |
+| [The demo store](demo-store.md)         | What visitors are told, how the store is configured to behave like a real one, resetting stock   |
+| [Try the demo](try-the-demo.md)         | Draft: where a reviewer finds each storefront, a ten-minute tour, and the owner's open decisions |
+| [Security](security.md)                 | Supply-chain and CI defences, and the record of each dependency audit                            |
+| [AI agents](agents.md)                  | UCP, WebMCP tools, llms.txt and Markdown pages: how agents read and buy                          |
+| [Compliance](compliance.md)             | Subscription rules (UK and California): cancelling, reminders, notices, and what is still open   |
+| [Domains](domains.md)                   | Which address serves what, the DNS behind it, and why checkout has its own subdomain             |
+| [Portfolio drafts](portfolio/README.md) | One-thing pages for clients, and blog outlines (drafts for Ben to rewrite)                       |
 
 ## Surfaces
 
 | Note                             | Surface                                                            |
 | -------------------------------- | ------------------------------------------------------------------ |
 | [Web storefront](surface-web.md) | `apps/web` — Next.js 16, React Server Components, Vercel           |
-| [Mobile app](surface-mobile.md)  | `apps/mobile` — Expo SDK 57, TanStack Query, Checkout Sheet Kit    |
+| [Mobile app](surface-mobile.md)  | `apps/mobile` — Expo SDK 58, TanStack Query, Checkout Sheet Kit    |
 | [Liquid theme](surface-theme.md) | `apps/theme` — Shopify Online Store, web components, no build step |
 
 ## Integrations
 
-| Note                                | Status                                                                               |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| [Recharge](integration-recharge.md) | Installed; subscription flows live in Klaviyo. Read-only portal in review (#80)      |
-| [Klaviyo](integration-klaviyo.md)   | Live on web and the theme: email capture, events, flows. App events in review (#107) |
+| Note                                    | Status                                                                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [Recharge](integration-recharge.md)     | Installed; subscription flows live in Klaviyo. Read-only portal in review (#80)           |
+| [Klaviyo](integration-klaviyo.md)       | Live on web and the theme: email capture, events, flows. App events in review (#107)      |
+| [PostHog](integration-posthog.md)       | Web, app and theme, with orders from a Shopify custom pixel                               |
+| [Pay later](integration-pay-later.md)   | Klarna and Clearpay: storefront side ready; providers not set up yet                      |
+| [GrowthBook](integration-growthbook.md) | A/B tests, analysed in Databricks. Web code in review (#265)                              |
+| [Experiments](experiments.md)           | What a test can show at this size, the A/A test, the statistics checked on synthetic data |
+
+## Operations
+
+| Note                                        | What it covers                                                                                                   |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [API Worker runbook](runbook-api-worker.md) | What the Worker serves, which secrets and Durable Objects each route needs, deploying, checking and rolling back |
 
 ## Out of scope, kept for reference
 

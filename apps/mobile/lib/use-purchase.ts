@@ -1,4 +1,10 @@
 import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  addedToCart,
+  addedToCartProperties,
+} from "@formulate/analytics";
+import {
   defaultSelectedOptions,
   findVariantByOptions,
   purchasableAllocations,
@@ -7,6 +13,9 @@ import {
 } from "@formulate/shopify";
 import { useState } from "react";
 
+import { trackEvent } from "./klaviyo";
+import { analytics } from "./product-analytics";
+import { SITE_ORIGIN } from "./site";
 import { useAddToCart } from "./use-cart";
 
 export type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -92,7 +101,27 @@ export const usePurchase = (product: Product) => {
         quantity: 1,
         ...(effectivePlanId ? { sellingPlanId: effectivePlanId } : {}),
       },
-      { onSuccess: onAdded },
+      {
+        onSuccess: ({ cart, notice }) => {
+          onAdded();
+          // Stock cut the add short: Shopify doesn't say how many went in,
+          // possibly none, so it isn't reported rather than over-counted.
+          if (notice) return;
+          // PostHog's product_added_to_cart (SHO-87): the line this add
+          // landed in, reported as one unit at the price actually charged.
+          const line = cart.lines.nodes.find(
+            (l) =>
+              "id" in l.merchandise &&
+              l.merchandise.id === variant.id &&
+              (l.sellingPlanAllocation?.sellingPlan.id ?? ONE_TIME) === effectivePlanId,
+          );
+          const added = line ? addedToCartProperties(line, 1) : null;
+          if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
+          // Klaviyo's Added to Cart (SHO-109), built exactly as web builds it.
+          if (line && "product" in line.merchandise)
+            trackEvent(EVENTS.addedToCart, addedToCart(cart, line, SITE_ORIGIN, 1));
+        },
+      },
     );
   };
 

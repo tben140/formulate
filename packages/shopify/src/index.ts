@@ -26,6 +26,7 @@ export {
   freeShippingProgress,
 } from "./free-shipping";
 export type { FreeShippingProgress } from "./free-shipping";
+export { priorityIndex } from "./priority-image";
 export { RECOMMENDATION_LIMIT, selectCartSuggestions } from "./recommendations";
 export type { CartSuggestion } from "./recommendations";
 export type { MoneyLike } from "./format-money";
@@ -58,6 +59,7 @@ export {
   ShopNameQuery,
   SitemapCollectionsQuery,
   SitemapProductsQuery,
+  PaymentSettingsQuery,
   ShopPoliciesQuery,
 } from "./queries";
 
@@ -65,11 +67,13 @@ export {
   LEGAL_MENU_HANDLE,
   NAV_MENU_HANDLE,
   POLICY_HANDLES,
+  SHOP_MENU_HANDLES,
   breadcrumbCollection,
   isPolicyHandle,
+  toNavGroup,
   toNavLinks,
 } from "./nav";
-export type { NavLink, PolicyHandle } from "./nav";
+export type { NavGroup, NavLink, PolicyHandle } from "./nav";
 
 export {
   DEFAULT_API_VERSION,
@@ -98,4 +102,34 @@ export {
   withValueToggled,
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
+export {
+  FILTER_GROUPS_OPEN,
+  FILTER_VALUES_SHOWN,
+  SORT_OPTIONS,
+  SORT_PARAM,
+  collectionSort,
+  filterGroups,
+  priceBounds,
+  priceRangeLabel,
+  withSort,
+} from "./listing";
+export type { FilterGroup, SortOption } from "./listing";
 export type { ProductFilter } from "./generated/graphql";
+
+export { policyBlocks, richTextBlocks } from "./rich-text";
+export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";
+export { PLANNED_PAYMENT_ICON_IDS, payLaterIds, paymentIconIds } from "./payment-icons";
+export type { PayLaterId, PaymentIconId } from "./payment-icons";
+export {
+  initialOptimisticCart,
+  optimisticCart,
+  optimisticCartReducer,
+  pendingAddQuantity,
+  pendingLineIds,
+} from "./cart-optimistic";
+export type {
+  CartChange,
+  OptimisticCartAction,
+  OptimisticCartLike,
+  OptimisticCartState,
+} from "./cart-optimistic";

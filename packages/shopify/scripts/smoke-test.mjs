@@ -46,7 +46,7 @@ const response = await fetch(`https://${domain}/api/${apiVersion}/graphql.json`,
   body: JSON.stringify({
     query,
     // A copy of DEFAULT_COLLECTION_HANDLE in src/config.ts; this script runs as
-    // plain Node and cannot import TypeScript. Change both together.
+    // plain Node and cannot import TypeScript. src/config.test.ts checks it.
     variables: { handle: "best-sellers" },
   }),
 });
@@ -64,7 +64,9 @@ if (body.errors) {
 }
 
 console.log(`Shop:       ${body.data.shop.name}`);
-console.log(`Collection: ${body.data.collection?.title ?? "(not visible to this token)"}`);
+console.log(
+  `Collection: ${body.data.collection?.title ?? "(not visible to this token)"}`,
+);
 
 const products = body.data.collection?.products.nodes ?? [];
 console.log(`Products:   ${products.length}`);

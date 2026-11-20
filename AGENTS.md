@@ -41,16 +41,44 @@ this (`minimumReleaseAge` in `pnpm-workspace.yaml`) and Renovate uses the same
 number. The wait keeps out hijacked releases, which are usually caught and
 pulled within hours to days.
 
-- **Security fast track: 2 days.** A version that fixes a published advisory
-  may be installed once it's 2 days old, if it's a patch or minor release from
-  the same publisher and CI passes. Add it to `minimumReleaseAgeExclude` with a
-  comment naming the advisory, and remove the line once the version is 7 days
-  old. Renovate applies the 2 days to security PRs by itself.
+- **Security fast track: as soon as it's verified.** A version that fixes a
+  published advisory may be installed straight away, with no wait, when all of
+  these hold:
+  1. A **GitHub-reviewed advisory** names this exact version as patched.
+  2. It's a **patch or minor** release, from the **same publisher** as the
+     version it replaces.
+  3. pnpm's **trust policy** passes (no drop in provenance; see
+     `trustPolicy` in `pnpm-workspace.yaml`).
+  4. **CI passes.**
+
+  Add it to `minimumReleaseAgeExclude` with a comment naming the advisory, and
+  remove the line once the version is 7 days old. `pnpm audit --fix`, and
+  Renovate's security PRs, may write the line for you; a person still checks
+  the four conditions before merging (nothing here merges automatically).
+
+  When a check fails, what happens next depends on which one:
+  - **1 or 2** (no reviewed advisory names it, or it's a major release or from
+    a new publisher): it isn't fast-tracked, and waits the normal 7 days.
+  - **3 or 4** (the trust policy rejects it, or CI fails): **stop and
+    investigate**. Waiting doesn't change either result, and a trust failure
+    on a "security fix" can be the attack itself.
+
+  Until a fix can be installed, **mitigate**: turn off the affected feature,
+  or block the attack at the edge (a Vercel firewall rule). docs/security.md
+  has the full process.
+
 - **Prefer a range that can't reach a release that's too new.** A caret can
   resolve to a release from yesterday: `~16.3.8` instead of `^16.3.8` kept Next
   off a two-day-old 16.4.2.
 - **Major versions** also need their changelog read and the full checks run.
   The age rule doesn't cover breaking changes.
+- **Renovate opens the update PRs; Dependabot only raises alerts.** There is
+  no `dependabot.yml`, and Dependabot security updates stay off. Dependabot
+  version updates would duplicate every Renovate update, and its security
+  updates would duplicate Renovate's security PRs; neither copy follows the
+  age rule, the groups or the pins. Renovate reads the Dependabot alerts (and
+  OSV) to open its security PRs. It keeps each Action pinned to a commit SHA,
+  updating the SHA and the version comment together.
 
 ## Environments and secrets
 
@@ -141,6 +169,11 @@ whenever the choice comes up.
 Always consider accessibility (WCAG 2.1 AA), mobile responsiveness, and loading
 and error states. Flag security concerns with ⚠️.
 
+**Never present an underpowered experiment result as a finding.** A test that
+hasn't reached its planned sample size has no result: say "not enough visitors
+to tell", with the size it reached and the size it needed
+([docs/experiments.md](docs/experiments.md)).
+
 ## Comments
 
 Comments explain **why**, not what. The codebase is dense with them because most
@@ -159,6 +192,7 @@ every override is listed here with its reason. An unlisted gap is a bug.
 | Feature                                          | Surfaces   | Why not everywhere                                                                                                                                                                                                                                       |
 | ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SEO: metadata, structured data, sitemap (SHO-64) | Web, theme | A native app has no crawlable pages. The theme already gets it from Shopify (`structured_data`, `canonical_url`, the platform sitemap), so only `apps/web` needs code. Its routes are in `app/robots.ts`, `app/sitemap.ts` and `lib/structured-data.ts`. |
+| A/B tests on GrowthBook (ADR 0013)               | Web, app   | The theme serves no real traffic while `shop.` is dormant, so an experiment there would never collect a result. Web decides variants in `lib/experiments.ts`; the app follows in its own change. Revisit if the theme takes real traffic.                |
 
 ## The shared package rule
 
@@ -180,7 +214,10 @@ hand-edit `theme.css`, `tokens.css`, or `apps/theme/assets/tokens.css`.
 ## Git
 
 - Branch from `main`; never commit to it directly. Branch protection enforces
-  this, with linear history and required up-to-date status checks.
+  this, with required up-to-date status checks and resolved review threads.
+  Linear history is **not** required: pull requests land with merge commits
+  (`gh pr merge --merge`), never by squash or rebase, so the history of a
+  branch survives its landing.
 - Commit incrementally as work lands. Do not batch a day of work into one commit
   and reconstruct the history afterwards.
 - Commit messages explain **why**, at length where the reason is not obvious.

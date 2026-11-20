@@ -8,6 +8,17 @@
  */
 export const NAV_MENU_HANDLE = "shop";
 
+/**
+ * The menus behind the header's Shop dropdown, one group each, in this order
+ * (Content → Menus). An empty or missing menu is left out, and with none the
+ * header has no Shop button.
+ */
+export const SHOP_MENU_HANDLES = [
+  "shop-by-goal",
+  "shop-by-family",
+  "shop-by-format",
+] as const;
+
 /** The footer's policy links (Content → Menus → Legal). */
 export const LEGAL_MENU_HANDLE = "legal";
 
@@ -19,8 +30,9 @@ export type NavLink = {
   readonly handle: string;
   /**
    * The app path: `/collections/<handle>`, `/products/<handle>` or
-   * `/policies/<handle>`. Web routes all three; mobile has no policy screen,
-   * so it keeps only the first two.
+   * `/policies/<handle>`. All three surfaces route all three; the app's
+   * header chips keep only collections and products, and its footer the
+   * policies.
    */
   readonly path: string;
 };
@@ -93,7 +105,14 @@ export const toNavLinks = (
     if (!segment || !rawHandle) return [];
 
     const kind = KINDS[segment as keyof typeof KINDS];
-    const handle = decodeURIComponent(rawHandle);
+    // A merchant typo like "/collections/50%off" survives the URL parser and
+    // makes decodeURIComponent throw; drop that item rather than every page.
+    let handle: string;
+    try {
+      handle = decodeURIComponent(rawHandle);
+    } catch {
+      return [];
+    }
     if (kind === "collection" && RESERVED_COLLECTION_PATHS.has(handle)) return [];
     if (kind === "policy" && !isPolicyHandle(handle)) return [];
 
@@ -120,4 +139,28 @@ export const breadcrumbCollection = (
     navLinks.find((link) => link.kind === "collection" && handles.has(link.handle)) ??
     null
   );
+};
+
+/** One column of the header's Shop dropdown: a menu's title and its links. */
+export type NavGroup = {
+  readonly title: string;
+  readonly links: readonly NavLink[];
+};
+
+/**
+ * A Shop dropdown group from a Shopify menu, or null when it has nothing a
+ * shopper can browse to. "Shop by goal" is shown as "By goal": the button
+ * already says Shop.
+ */
+export const toNavGroup = (
+  menu:
+    | { readonly title: string; readonly items?: readonly MenuItemLike[] | null }
+    | null
+    | undefined,
+): NavGroup | null => {
+  if (!menu) return null;
+  const links = toNavLinks(menu.items).filter((link) => link.kind !== "policy");
+  if (links.length === 0) return null;
+  const title = menu.title.trim().replace(/^shop\s+/i, "");
+  return { title: title.charAt(0).toUpperCase() + title.slice(1), links };
 };

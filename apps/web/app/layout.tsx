@@ -2,21 +2,25 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import Link from "next/link";
+import Link from "@/components/link";
 import type { ReactNode } from "react";
 
+import { AnalyticsPageviews } from "@/components/analytics-pageviews";
 import { CartButton } from "@/components/cart-button";
+import { AgentTools } from "@/components/agent-tools";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
 import { DemoNotice } from "@/components/demo-notice";
 import { EmailCapture } from "@/components/email-capture";
+import { PaymentIcons } from "@/components/payment-icons";
 import { SiteNav } from "@/components/site-nav";
+import { SocialLinks } from "@/components/social-links";
 import {
   CookiePreferencesButton,
   TrackingConsentProvider,
 } from "@/components/tracking-consent";
 import { getCart } from "@/lib/cart";
-import { getLegalLinks, getNavLinks } from "@/lib/nav";
+import { getLegalLinks, getNavLinks, getShopGroups } from "@/lib/nav";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 import { baseOpenGraph, isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
 import { getCartSuggestions } from "@/lib/recommendations";
@@ -33,7 +37,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: siteUrl,
   title: { default: SITE_NAME, template: `%s — ${SITE_NAME}` },
-  description: "Supplements built around a 30-day rhythm, from Double Helix.",
+  description: `Supplements built around a 30-day rhythm, from ${SITE_NAME}.`,
   applicationName: SITE_NAME,
   openGraph: baseOpenGraph,
   twitter: { card: "summary_large_image" },
@@ -55,14 +59,17 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   // In parallel: neither depends on the other, and both are on every page.
-  const [cart, navLinks, legalLinks] = await Promise.all([
+  const [cart, navLinks, shopGroups, legalLinks] = await Promise.all([
     getCart(),
     getNavLinks(),
+    getShopGroups(),
     getLegalLinks(),
   ]);
   // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
-  // no request at all.
-  const suggestions = await getCartSuggestions(cart);
+  // no request at all. Passed unawaited: the page renders now and the drawer's
+  // suggestions follow when they arrive (CartDrawer), so an optional extra
+  // never holds every page.
+  const suggestions = getCartSuggestions(cart);
 
   // Read on the server so the first render is already right: no banner flash
   // for someone who has decided, and no script tag for someone who declined.
@@ -76,14 +83,26 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
       */}
       <body className="flex min-h-screen flex-col">
         {/*
+          First thing on the page, so one Tab reaches it and Enter skips the
+          header and its collection links (WCAG 2.4.1, SHO-152). Off screen
+          until focused, like the theme's.
+        */}
+        <a
+          href="#main-content"
+          className="fixed top-4 left-4 z-[100] -translate-y-[200%] rounded-md bg-surface px-4 py-2 text-sm font-semibold text-foreground outline-2 outline-offset-2 outline-brand-600 focus:translate-y-0"
+        >
+          Skip to content
+        </a>
+        {/*
           Also where Klaviyo onsite is loaded — and only once the shopper
           accepts. The Liquid theme gets that from an app embed deferring to
           Shopify's consent API; here it is ours. See ADR 0008.
         */}
         <TrackingConsentProvider initialConsent={consent}>
-          <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
+          <CartProvider siteOrigin={siteUrl.origin}>
             <DemoNotice />
-            <header className="border-b border-border">
+            {/* relative: the Shop dropdown's panel hangs from the header's full width. */}
+            <header className="relative z-30 border-b border-border">
               {/*
                 One row from md up: wordmark, collections, cart. Below that the
                 collections drop to their own scrolling row, via `order`, so the
@@ -97,9 +116,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                   href="/"
                   className="order-1 text-lg font-semibold tracking-tight text-foreground"
                 >
-                  Double Helix
+                  {SITE_NAME}
                 </Link>
-                <SiteNav links={navLinks} />
+                <SiteNav links={navLinks} shopGroups={shopGroups} />
                 <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
                   {/* A link to the search page, not an inline field: it works
                       without JavaScript and keeps the header compact on a phone. */}
@@ -125,7 +144,14 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
               </nav>
             </header>
 
-            <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
+            {/* tabIndex -1: the skip link moves focus here, not just the scroll. */}
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 focus:outline-none"
+            >
+              {children}
+            </main>
 
             {/*
               Mirrors apps/theme's sections/footer.liquid so the surfaces match.
@@ -134,13 +160,19 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             <footer className="border-t border-border">
               <div className="mx-auto max-w-5xl px-4 py-6">
                 <EmailCapture />
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+                  <SocialLinks />
+                  <PaymentIcons />
+                </div>
                 {/*
                   The footer's links come from the Shopify menu "Legal"
                   (SHO-60), the same menu the theme's footer reads.
                 */}
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground-muted">
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                    <p>&copy; {new Date().getFullYear()} Double Helix</p>
+                    <p>
+                      &copy; {new Date().getFullYear()} {SITE_NAME}
+                    </p>
                     {legalLinks.length > 0 ? (
                       <nav aria-label="Legal">
                         <ul className="flex flex-wrap gap-x-4 gap-y-1">
@@ -164,6 +196,8 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             </footer>
 
             <CartDrawer cart={cart} suggestions={suggestions} />
+            {/* WebMCP tools for AI agents in the shopper's browser. */}
+            <AgentTools />
           </CartProvider>
         </TrackingConsentProvider>
 
@@ -177,6 +211,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           — they output no visible markup, but keeping them last leaves the
           document outline clean.
         */}
+        <AnalyticsPageviews />
         <Analytics />
         <SpeedInsights />
       </body>

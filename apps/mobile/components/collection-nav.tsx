@@ -1,8 +1,8 @@
 import { Link } from "expo-router";
-import { useRef } from "react";
-import { Pressable, ScrollView, Text } from "react-native";
+import { Fragment, useRef } from "react";
+import { Pressable, ScrollView, Text, type ScrollViewInstance } from "react-native";
 
-import { useNavLinks } from "../lib/queries";
+import { useNavLinks, useShopGroups } from "../lib/queries";
 
 /**
  * The collection links from the Shopify menu (SHO-60), as a row of chips
@@ -13,16 +13,34 @@ import { useNavLinks } from "../lib/queries";
  * once it has been measured, since it may start past the edge. It's marked
  * selected for VoiceOver rather than being a link to the screen you're on.
  *
+ * With `onSelect`, a collection chip switches the collection on the screen
+ * you're on instead of pushing another one: the chips look like a control on
+ * the page, so they shouldn't slide a new screen in, or stack one per tap for
+ * Back to walk through. Product links in the menu still navigate.
+ *
+ * A Shop chip comes first when the store has its Shop menus: it opens the
+ * Shop screen, the app's version of web's header dropdown.
+ *
  * Nothing renders while the menu loads or if it fails: the products below
  * matter more than the links, and shouldn't wait on them.
  */
-export const CollectionNav = ({ current }: { readonly current: string }) => {
+export const CollectionNav = ({
+  current,
+  onSelect,
+}: {
+  readonly current: string;
+  readonly onSelect?: (handle: string) => void;
+}) => {
   const { data } = useNavLinks();
-  const scroller = useRef<ScrollView>(null);
+  const { data: groups } = useShopGroups();
+  // React Native 0.88 types ScrollView as a function component, so the ref
+  // is its instance type, not the component.
+  const scroller = useRef<ScrollViewInstance>(null);
 
-  // The app has no policy screens; those menu items are web and theme only.
+  // Policies belong in the footer (the Legal menu), not the header chips.
   const links = data?.filter((link) => link.kind !== "policy") ?? [];
-  if (links.length === 0) return null;
+  const hasShop = (groups?.length ?? 0) > 0;
+  if (links.length === 0 && !hasShop) return null;
 
   return (
     <ScrollView
@@ -32,12 +50,28 @@ export const CollectionNav = ({ current }: { readonly current: string }) => {
       accessibilityLabel="Collections"
       contentContainerClassName="gap-2 pb-4"
     >
+      {hasShop ? (
+        <Link href="/shop" asChild>
+          <Pressable
+            accessibilityRole="link"
+            // Without it the › would be read aloud.
+            accessibilityLabel="Shop"
+            className="rounded-full border border-border bg-surface px-4 py-2"
+          >
+            <Text className="text-sm font-medium text-foreground">Shop ›</Text>
+          </Pressable>
+        </Link>
+      ) : null}
       {links.map((link) => {
-        const selected = link.kind === "collection" && link.handle === current;
+        const isCollection = link.kind === "collection";
+        const selected = isCollection && link.handle === current;
+        const inPlace = isCollection && onSelect !== undefined;
         const chip = (
           <Pressable
-            accessibilityRole={selected ? "text" : "link"}
+            accessibilityRole={inPlace ? "button" : selected ? "text" : "link"}
             accessibilityState={{ selected }}
+            // Only set in place: a Link's child must not override its onPress.
+            {...(inPlace && !selected ? { onPress: () => onSelect(link.handle) } : {})}
             onLayout={
               selected
                 ? (e) => {
@@ -60,6 +94,10 @@ export const CollectionNav = ({ current }: { readonly current: string }) => {
             </Text>
           </Pressable>
         );
+
+        // A Fragment, not a View: a wrapper would make the onLayout x above
+        // relative to itself (0) instead of to the scrolling row.
+        if (inPlace) return <Fragment key={link.id}>{chip}</Fragment>;
 
         return (
           <Link key={link.id} href={link.path} asChild disabled={selected}>
