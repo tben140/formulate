@@ -62,6 +62,7 @@ export const toRoutineProduct = (node: ProductNode): RoutineProduct | null => {
     format: formatKind(node.tags),
     variantId: variant.id,
     sellingPlanId: plan?.id ?? null,
+    planDays: plan?.frequencyDays ?? null,
     monthlyPrice: plan?.monthlyPrice ?? Number(variant.price.amount),
     currencyCode: variant.price.currencyCode,
     image: node.featuredImage
