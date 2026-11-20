@@ -1,6 +1,6 @@
 import { productViewedProperties, viewedProduct } from "@formulate/analytics";
 import { EXPERIMENTS } from "@formulate/experiments";
-import { breadcrumbCollection } from "@formulate/shopify";
+import { breadcrumbCollection, isBlendProduct } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -14,6 +14,7 @@ import { PairsWellWith } from "@/components/pairs-well-with";
 import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
+import { getBlendIngredients } from "@/lib/blend";
 import { getProduct } from "@/lib/catalogue";
 import { assignExperiment } from "@/lib/experiments";
 import { getNavLinks, getShopGroups } from "@/lib/nav";
@@ -97,6 +98,7 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
     ...shopGroups.flatMap((group) => group.links),
     ...navLinks,
   ]);
+  const blendIngredients = isBlendProduct(product) ? await getBlendIngredients() : [];
 
   return (
     <>
@@ -179,7 +181,7 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
           showing the product's `minVariantPrice` alongside it would contradict
           whatever the shopper had chosen.
         */}
-          <AddToCartForm product={product} />
+          <AddToCartForm product={product} blendIngredients={blendIngredients} />
 
           {/* No fallback: nothing at all is better than a loading box here. */}
           <Suspense fallback={null}>
