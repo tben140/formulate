@@ -56,6 +56,22 @@ export const activeSubscriptions = async (token: string): Promise<PerkSubscripti
     nextChargeDate: s.next_charge_scheduled_at?.slice(0, 10) ?? null,
   }));
 
+/**
+ * One subscription's next charge date right now, or null if it has none or
+ * is no longer active. The plan reads every date up front; this is the check
+ * just before a write, in case the subscriber moved the date meanwhile.
+ */
+export const currentChargeDate = async (
+  token: string,
+  subscriptionId: number,
+): Promise<string | null> => {
+  const body = await call(token, `/subscriptions/${subscriptionId}`);
+  const s = body.subscription as
+    { status?: string; next_charge_scheduled_at?: string | null } | undefined;
+  if (s?.status !== "active") return null;
+  return s.next_charge_scheduled_at?.slice(0, 10) ?? null;
+};
+
 /** One-time products that already carry a perk mark. */
 export const perkOnetimes = async (token: string): Promise<PerkOnetime[]> =>
   (
