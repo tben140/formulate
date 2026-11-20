@@ -192,7 +192,11 @@ const FilterSheet = ({
                         setDraft(withValueToggled(params, filter, value).toString())
                       }
                       accessibilityRole="checkbox"
-                      accessibilityState={{ checked, disabled: empty }}
+                      // aria- props: react-native-web drops a false
+                      // accessibilityState.checked, so unticked boxes had no
+                      // state at all on web. The same on native.
+                      aria-checked={checked}
+                      aria-disabled={empty}
                       accessibilityLabel={`${value.label}, ${value.count} ${value.count === 1 ? "product" : "products"}`}
                       className="flex-row items-center gap-3 py-2"
                     >
