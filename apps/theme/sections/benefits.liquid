@@ -1,0 +1,93 @@
+{% comment %}
+  A strip of short reasons to buy, one block each, under the homepage hero
+  (as homeBenefits in packages/shopify/src/home.ts on web and the app). Add,
+  remove and reorder them in the theme editor.
+
+  ⚠️ Each is a promise: the defaults match the plans (15%), the free-delivery
+  threshold (£40) and the refund policy (30 days). Change them together.
+{% endcomment %}
+
+{%- if section.blocks.size > 0 -%}
+  <div class="container">
+    <ul class="benefits" role="list" aria-label="{{ section.settings.label | escape }}">
+      {%- for block in section.blocks -%}
+        <li class="benefits__item" {{ block.shopify_attributes }}>
+          <span class="benefits__tick" aria-hidden="true">✓</span>
+          {{ block.settings.text | escape }}
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .benefits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-3);
+    margin: var(--spacing-6) 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-sm);
+  }
+
+  @media (min-width: 40rem) {
+    .benefits {
+      grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    }
+  }
+
+  .benefits__item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-2);
+    padding: var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .benefits__tick {
+    font-weight: 600;
+    color: var(--color-brand-600);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Benefits",
+  "max_blocks": 6,
+  "settings": [
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Name for screen readers",
+      "default": "Why Double Helix"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "benefit",
+      "name": "Benefit",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Text",
+          "default": "Skip, pause or cancel any time"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Benefits",
+      "blocks": [
+        { "type": "benefit", "settings": { "text": "Save 15% when you subscribe" } },
+        { "type": "benefit", "settings": { "text": "Free UK delivery on subscriptions, and over £40" } },
+        { "type": "benefit", "settings": { "text": "Skip, pause or cancel any time" } },
+        { "type": "benefit", "settings": { "text": "30-day money-back guarantee" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

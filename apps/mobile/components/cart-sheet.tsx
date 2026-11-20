@@ -3,6 +3,7 @@ import {
   formatMoney,
   isNestedLine,
   packSize,
+  planDisplayName,
   supplyLabel,
   supplyUnits,
 } from "@formulate/shopify";
@@ -225,7 +226,7 @@ export const CartSheet = ({
                     */}
                     {line.sellingPlanAllocation ? (
                       <Text className="mt-0.5 text-xs font-medium text-brand-600">
-                        {line.sellingPlanAllocation.sellingPlan.name}
+                        {planDisplayName(line.sellingPlanAllocation.sellingPlan)}
                       </Text>
                     ) : null}
 

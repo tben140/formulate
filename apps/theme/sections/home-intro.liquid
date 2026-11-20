@@ -1,8 +1,12 @@
 {% comment %}
-  The homepage introduction, matching the top of apps/web's app/page.tsx
-  (SHO-61). The copy is editable in the theme editor. The button goes to the
-  first collection in the Shop menu, as it does on web, unless the merchant
-  sets a link.
+  The homepage hero, matching the top of apps/web's app/page.tsx (SHO-61):
+  the offer in words, two buttons and a product image. Everything is editable
+  in the theme editor. The main button goes to the first collection in the
+  Shop menu, as it does on web, unless the merchant sets a link. The image
+  falls back to that collection's first product.
+
+  ⚠️ The default text promises a 15% saving, which web and the app read from
+  the plans themselves (home.ts). Change it here if the plans change.
 {% endcomment %}
 
 {% liquid
@@ -16,6 +20,11 @@
 
   assign button_url = section.settings.button_url
   assign button_label = section.settings.button_label
+  assign image = section.settings.image
+  if image == blank and first_link
+    assign image = first_link.object.products.first.featured_image
+  endif
+
   if button_url == blank and first_link
     assign button_url = first_link.url
     if button_label == blank
@@ -25,23 +34,86 @@
 %}
 
 <div class="container">
-  <section class="home-intro" aria-labelledby="home-intro-{{ section.id }}">
-    <h1 id="home-intro-{{ section.id }}" class="home-intro__heading">{{ section.settings.heading }}</h1>
-    {% if section.settings.text != blank %}
-      <p class="home-intro__text">{{ section.settings.text }}</p>
-    {% endif %}
-    {% if button_url != blank and button_label != blank %}
-      <a class="home-intro__button" href="{{ button_url }}">{{ button_label }}</a>
+  <section class="home-intro{% if image != blank %} home-intro--image{% endif %}" aria-labelledby="home-intro-{{ section.id }}">
+    <div class="home-intro__content">
+      <h1 id="home-intro-{{ section.id }}" class="home-intro__heading">{{ section.settings.heading }}</h1>
+      {% if section.settings.text != blank %}
+        <p class="home-intro__text">{{ section.settings.text }}</p>
+      {% endif %}
+      <div class="home-intro__buttons">
+        {% if button_url != blank and button_label != blank %}
+          <a class="home-intro__button" href="{{ button_url }}">{{ button_label }}</a>
+        {% endif %}
+        {% if section.settings.secondary_url != blank and section.settings.secondary_label != blank %}
+          <a class="home-intro__button home-intro__button--secondary" href="{{ section.settings.secondary_url }}">
+            {{- section.settings.secondary_label -}}
+          </a>
+        {% endif %}
+      </div>
+    </div>
+    {% if image != blank %}
+      <div class="home-intro__media">
+        {{
+          image
+          | image_url: width: 800, height: 800, crop: 'center'
+          | image_tag:
+            class: 'home-intro__image',
+            width: 400,
+            height: 400,
+            sizes: '(min-width: 48rem) 384px, 240px',
+            loading: 'eager',
+            fetchpriority: 'high',
+            alt: image.alt
+        }}
+      </div>
     {% endif %}
   </section>
 </div>
 
 {% stylesheet %}
   .home-intro {
+    display: grid;
+    gap: var(--spacing-8);
+    align-items: center;
     margin-block-start: var(--spacing-8);
-    padding: var(--spacing-12) var(--spacing-6);
+    padding: var(--spacing-10) var(--spacing-6);
+    overflow: hidden;
     border-radius: var(--radius-xl);
     background: var(--color-surface-muted);
+  }
+
+  @media (min-width: 48rem) {
+    .home-intro--image {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .home-intro__media {
+    inline-size: 100%;
+    max-inline-size: 15rem;
+    margin-inline: auto;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+  }
+
+  @media (min-width: 48rem) {
+    .home-intro__media {
+      max-inline-size: 24rem;
+    }
+  }
+
+  .home-intro__image {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  .home-intro__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-3);
+    margin-block-start: var(--spacing-8);
   }
 
   @media (min-width: 40rem) {
@@ -69,7 +141,6 @@
 
   .home-intro__button {
     display: inline-block;
-    margin-block-start: var(--spacing-8);
     padding: var(--spacing-3) var(--spacing-6);
     border-radius: var(--radius-md);
     background: var(--color-brand-600);
@@ -81,23 +152,33 @@
   .home-intro__button:hover {
     background: var(--color-brand-700);
   }
+
+  .home-intro__button--secondary {
+    border: 1px solid var(--color-brand-600);
+    background: transparent;
+    color: var(--color-brand-700);
+  }
+
+  .home-intro__button--secondary:hover {
+    background: var(--color-brand-50);
+  }
 {% endstylesheet %}
 
 {% schema %}
 {
-  "name": "Home introduction",
+  "name": "Home hero",
   "settings": [
     {
       "type": "text",
       "id": "heading",
       "label": "Heading",
-      "default": "Everyday supplements, delivered on your schedule"
+      "default": "Everyday supplements that never run out"
     },
     {
       "type": "textarea",
       "id": "text",
       "label": "Text",
-      "default": "Buy once or subscribe. Subscriptions can be skipped, paused or cancelled at any time."
+      "default": "Subscribe and save 15% on every delivery, with free UK delivery. Skip, pause or cancel any time."
     },
     {
       "type": "text",
@@ -110,8 +191,26 @@
       "id": "button_url",
       "label": "Button link",
       "info": "Leave blank to link to the first collection in the Shop menu."
+    },
+    {
+      "type": "text",
+      "id": "secondary_label",
+      "label": "Second button label",
+      "default": "Take the quiz"
+    },
+    {
+      "type": "url",
+      "id": "secondary_url",
+      "label": "Second button link",
+      "info": "The routine quiz, for example. Leave blank to hide the button."
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image",
+      "info": "Leave blank to use the first product of the first collection in the Shop menu."
     }
   ],
-  "presets": [{ "name": "Home introduction" }]
+  "presets": [{ "name": "Home hero" }]
 }
 {% endschema %}

@@ -23,7 +23,7 @@ export const PairsWellWith = ({ productId }: { readonly productId: string }) => 
   if (products.length === 0) return null;
 
   return (
-    <View className="mt-4 gap-3 border-t border-border pt-4">
+    <View className="mt-6 gap-3">
       <Text
         accessibilityRole="header"
         className="text-base font-semibold text-foreground"

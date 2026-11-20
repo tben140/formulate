@@ -5,6 +5,8 @@ import {
   packSize,
   plansForPack,
   supplyTitle,
+  planDisplayName,
+  savingBadge,
   deliveryPromise,
   deliveryQuote,
   planIntervalDays,
@@ -199,5 +201,31 @@ describe("pack sizes", () => {
     expect(
       renewalTerms(gbp("40.00"), "Plan", null, 2, { count: 30, unit: "serving" }),
     ).toContain("each delivery of 60 servings");
+  });
+});
+
+describe("planDisplayName", () => {
+  it("names a plan by its interval, from Recharge's options", () => {
+    expect(
+      planDisplayName({
+        name: "60 day subscription with 15% discount",
+        options: [{ name: "Order Frequency and Unit", value: "60-day" }],
+      }),
+    ).toBe("Subscribe, every 60 days");
+  });
+
+  it("keeps the plan's own name when the interval can't be read", () => {
+    expect(planDisplayName({ name: "Delivery every month", options: [] })).toBe(
+      "Delivery every month",
+    );
+    expect(planDisplayName({ name: "Monthly" })).toBe("Monthly");
+  });
+});
+
+describe("savingBadge", () => {
+  it("states the percentage only", () => {
+    expect(
+      savingBadge({ amount: { amount: "3.75", currencyCode: "GBP" }, percent: 15 }),
+    ).toBe("Save 15%");
   });
 });

@@ -16,18 +16,22 @@ import {
   renewalTerms,
   savingMessage,
   SUBSCRIPTION_PERKS,
+  planDisplayName,
   deliveryPromise,
   expressCheckoutOnProduct,
   FREE_GIFT_CONDITION,
   FREE_GIFT_LABEL,
   FREE_GIFT_PRICE,
   freeGiftFor,
+  GUARANTEE_TITLE,
+  REFUND_POLICY_PATH,
   selectionStatus,
   withOption,
   type ProductByHandleResult,
   type SelectedOption,
 } from "@formulate/shopify";
 import { ShopPayButton } from "@shopify/hydrogen/react";
+import Link from "next/link";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
@@ -125,9 +129,8 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
   // The selection rules are shared with the app (packages/shopify,
   // SHO-127); only the words and the rendering are this surface's.
   const displayPrice = quote?.price ?? priceForSelection(variant, allocations, planId);
-  const planName =
-    allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
-    null;
+  const chosenPlan = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
+  const planName = chosenPlan ? planDisplayName(chosenPlan.sellingPlan) : null;
   const status = selectionStatus(variant);
   const soldOut = status === "soldOut";
 
@@ -436,6 +439,27 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
           {renewalTerms(displayPrice, planName, quote?.later, quote?.units, quote?.pack)}
         </p>
       ) : null}
+
+      {/*
+        The guarantee, where the decision is made. Links to the refund policy,
+        which is what it promises (packages/shopify/src/guarantee.ts).
+      */}
+      <p className="mt-3 flex items-center justify-center gap-2 text-sm text-foreground">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 20 20"
+          className="h-4 w-4 shrink-0 fill-none stroke-current stroke-2 text-brand-600"
+        >
+          <path d="M10 2 3.5 4.5v5c0 4 2.8 7 6.5 8.5 3.7-1.5 6.5-4.5 6.5-8.5v-5L10 2Z" />
+          <path d="m7 10 2 2 4-4" />
+        </svg>
+        <Link
+          href={REFUND_POLICY_PATH}
+          className="underline underline-offset-2 hover:no-underline"
+        >
+          {GUARANTEE_TITLE}
+        </Link>
+      </p>
 
       {/*
         The drawer opening is a visual event a screen reader does not narrate,

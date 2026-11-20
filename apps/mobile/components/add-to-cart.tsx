@@ -8,6 +8,9 @@ import {
   findVariantByOptions,
   formatMoney,
   ONE_TIME,
+  GUARANTEE_DETAIL,
+  GUARANTEE_TITLE,
+  planDisplayName,
   renewalTerms,
   savingMessage,
   SUBSCRIPTION_PERKS,
@@ -57,9 +60,8 @@ export const AddToCart = ({
     add,
   } = purchase;
 
-  const planName =
-    allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
-    null;
+  const chosenPlan = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
+  const planName = chosenPlan ? planDisplayName(chosenPlan.sellingPlan) : null;
 
   return (
     // No outer margin here: the product screen measures this view's top to
@@ -324,6 +326,17 @@ export const AddToCart = ({
           {renewalTerms(displayPrice, planName, quote?.later, quote?.units, quote?.pack)}
         </Text>
       ) : null}
+
+      {/*
+        The guarantee, where the decision is made (packages/shopify/src/guarantee.ts).
+        Its detail is written out: the app has no policy pages to link to.
+      */}
+      <View accessible className="items-center gap-0.5">
+        <Text className="text-sm font-semibold text-foreground">{GUARANTEE_TITLE}</Text>
+        <Text className="text-center text-xs text-foreground-muted">
+          {GUARANTEE_DETAIL}
+        </Text>
+      </View>
 
       {/*
         The sheet sliding up is a visual event VoiceOver does not narrate, and

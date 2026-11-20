@@ -29,22 +29,9 @@ export const CollectionProductsQuery = graphql(`
         filters {
           ...FilterFields
         }
+        # The same card everywhere: stars, saving and quick add included.
         nodes {
-          id
-          handle
-          title
-          featuredImage {
-            url
-            altText
-            width
-            height
-          }
-          priceRange {
-            minVariantPrice {
-              amount
-              currencyCode
-            }
-          }
+          ...ProductCardFields
         }
       }
     }
@@ -74,6 +61,13 @@ export const ProductByHandleQuery = graphql(`
       id
       handle
       title
+      # Standard review metafields (see ProductCardFields and reviews.ts).
+      rating: metafield(namespace: "reviews", key: "rating") {
+        value
+      }
+      ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+        value
+      }
       description
       # Rendered through descriptionBlocks (src/description.ts): the plain
       # description above runs headings into paragraphs, and stays for the
@@ -289,6 +283,51 @@ export const ProductCardFields = graphql(`
       minVariantPrice {
         amount
         currencyCode
+      }
+    }
+    # Shopify's standard review metafields, kept in sync by the reviews app
+    # (Judge.me). Null until a product has reviews. See reviews.ts.
+    rating: metafield(namespace: "reviews", key: "rating") {
+      value
+    }
+    ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+      value
+    }
+    # Which plans an app owns, so the card's saving is one the product page
+    # actually offers (purchasableAllocations in product-selection.ts).
+    sellingPlanGroups(first: 5) {
+      nodes {
+        appName
+        sellingPlans(first: 10) {
+          nodes {
+            id
+          }
+        }
+      }
+    }
+    # For the card's subscription saving and quick add (card-offer.ts): two
+    # variants say whether there's more than one.
+    variants(first: 2) {
+      nodes {
+        id
+        availableForSale
+        price {
+          amount
+          currencyCode
+        }
+        sellingPlanAllocations(first: 5) {
+          nodes {
+            sellingPlan {
+              id
+            }
+            priceAdjustments {
+              price {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
       }
     }
   }
