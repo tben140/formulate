@@ -4,6 +4,7 @@ import {
   productViewedProperties,
   viewedProduct,
 } from "@formulate/analytics";
+import { EXPERIMENTS } from "@formulate/experiments";
 import { ratingLabel, reviewSummary } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -19,6 +20,7 @@ import { RichText } from "../../components/rich-text";
 import { Stars } from "../../components/stars";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
+import { useExperiment } from "../../lib/experiments";
 import { trackEvent } from "../../lib/klaviyo";
 import { analytics } from "../../lib/product-analytics";
 import { useProduct } from "../../lib/queries";
@@ -112,6 +114,15 @@ const ProductBody = ({ product }: { product: Product }) => {
       trackEvent(EVENTS.viewedProduct, viewedProduct(product, SITE_ORIGIN));
     }, [product, consent]),
   );
+  /*
+   * The A/A test (ADR 0013): both arms render this same screen, so nothing
+   * below depends on the variant; the hook only records the exposure. A route
+   * parameter forces a variant for review, as `?product-page-aa=` does on web.
+   */
+  const aa = EXPERIMENTS.productPageAa;
+  const params = useLocalSearchParams<Record<string, string | string[]>>();
+  useExperiment(aa, params[aa.key]);
+
   const { bottom } = useSafeAreaInsets();
   const purchase = usePurchase(product);
 
@@ -183,11 +194,19 @@ const ProductBody = ({ product }: { product: Product }) => {
       >
         <Stack.Screen options={{ title: product.title }} />
 
+        {/*
+         * Labelled with the merchant's alt text, as web and the theme are. An
+         * image without one is hidden from screen readers rather than read as
+         * "image": the title below already names the product.
+         */}
         <Image
           source={product.featuredImage?.url}
           contentFit="cover"
           transition={150}
           style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}
+          accessible={Boolean(product.featuredImage?.altText)}
+          accessibilityLabel={product.featuredImage?.altText ?? undefined}
+          accessibilityRole="image"
           accessibilityIgnoresInvertColors
         />
 

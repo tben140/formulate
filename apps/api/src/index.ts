@@ -1,3 +1,5 @@
+import { handleOrderCounted, type OrderCountedEnv } from "./order-backup";
+import { handleOrderWebhook, type OrderWebhookEnv } from "./order-webhook";
 import { handleReviews, type ReviewsRouteEnv } from "./routes/reviews";
 import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 
@@ -12,9 +14,10 @@ import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
  * and one line in the table.
  */
 
+export { OrderBackup } from "./order-backup";
 export { RateLimiter } from "./rate-limiter";
 
-export type Env = SubscribeEnv & ReviewsRouteEnv;
+export type Env = SubscribeEnv & ReviewsRouteEnv & OrderWebhookEnv & OrderCountedEnv;
 
 type Route = (request: Request, env: Env) => Promise<Response>;
 
@@ -28,6 +31,11 @@ type Route = (request: Request, env: Env) => Promise<Response>;
  * today.
  */
 const routes: ReadonlyMap<string, Route> = new Map<string, Route>([
+  // Shopify's order webhook (SHO-88): checked by its HMAC, not rate limited.
+  ["/webhooks/orders-create", handleOrderWebhook],
+  // The checkout pixel's "order counted" note (SHO-88). The one route with a
+  // CORS header: see order-backup.ts and AGENTS.md.
+  ["/orders/counted", handleOrderCounted],
   // Product reviews (Judge.me): public, read-only. See src/reviews.ts.
   ["/reviews", handleReviews],
 ]);

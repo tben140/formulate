@@ -169,6 +169,11 @@ whenever the choice comes up.
 Always consider accessibility (WCAG 2.1 AA), mobile responsiveness, and loading
 and error states. Flag security concerns with ⚠️.
 
+**Never present an underpowered experiment result as a finding.** A test that
+hasn't reached its planned sample size has no result: say "not enough visitors
+to tell", with the size it reached and the size it needed
+([docs/experiments.md](docs/experiments.md)).
+
 ## Comments
 
 Comments explain **why**, not what. The codebase is dense with them because most
@@ -187,6 +192,7 @@ every override is listed here with its reason. An unlisted gap is a bug.
 | Feature                                          | Surfaces   | Why not everywhere                                                                                                                                                                                                                                       |
 | ------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SEO: metadata, structured data, sitemap (SHO-64) | Web, theme | A native app has no crawlable pages. The theme already gets it from Shopify (`structured_data`, `canonical_url`, the platform sitemap), so only `apps/web` needs code. Its routes are in `app/robots.ts`, `app/sitemap.ts` and `lib/structured-data.ts`. |
+| A/B tests on GrowthBook (ADR 0013)               | Web, app   | The theme serves no real traffic while `shop.` is dormant, so an experiment there would never collect a result. Web decides variants in `lib/experiments.ts`; the app follows in its own change. Revisit if the theme takes real traffic.                |
 
 ## The shared package rule
 
