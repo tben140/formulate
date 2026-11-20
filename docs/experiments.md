@@ -19,14 +19,17 @@ effect):
 
 | Conversion rate | Lift to detect | Visitors needed, both arms together |
 | --------------- | -------------- | ----------------------------------- |
-| 3%              | 50%            | 5,030                               |
-| 3%              | 20%            | 27,822                              |
-| 3%              | 10%            | 106,416                             |
-| 3%              | 5%             | 415,872                             |
-| 2%              | 20%            | 42,212                              |
-| 2%              | 10%            | 161,358                             |
+| 3%              | 50%            | 7,568                               |
+| 3%              | 20%            | 33,406                              |
+| 3%              | 10%            | 117,074                             |
+| 3%              | 5%             | 436,682                             |
+| 2%              | 20%            | 50,674                              |
+| 2%              | 10%            | 177,512                             |
 
-`required_visitors` in `apps/warehouse/simulation/simulate.py` computes these.
+`required_visitors` in `apps/warehouse/simulation/simulate.py` computes these,
+with the variance of the relative lift the analysis tests. That's more than
+the textbook difference-in-proportions formula gives, most of all for large
+lifts.
 Most real changes to a product page move conversion by a few percent, not 20
 or 50, so the realistic rows are the bottom ones.
 
@@ -54,9 +57,11 @@ So the experiment work here proves the **apparatus**, not any result:
 `product-page-aa` shows both arms the same page. Run on real traffic, it
 checks the pipeline, not the page:
 
-- **A sample ratio mismatch (SRM) means a fault.** The split is 50/50, so an
-  uneven count of exposed visitors means assignment or exposure is losing
-  people from one arm. GrowthBook flags it below p = 0.001.
+- **A sample ratio mismatch (SRM) is a reason to investigate.** A 50/50
+  split never comes out exactly even, so a small gap (1,001 against 999) is
+  normal. GrowthBook flags an SRM when the gap is too big for chance, below
+  p = 0.001. That usually means assignment or exposure is losing people from
+  one arm, so check the pipeline first; rarely, it is chance.
 - **A significant difference is a reason to look, not proof of a fault.** At
   a 5% false-positive rate an A/A test shows one by chance about one time in
   twenty. Check the pipeline; if it's sound, run the test again.
@@ -67,21 +72,25 @@ checks the pipeline, not the page:
 
 `apps/warehouse/simulation/simulate.py` makes up visitors with a chosen
 conversion rate, order value and true lift, splits them 50/50, and analyses
-them the way GrowthBook's frequentist engine reports a result: relative lift
-with a delta-method confidence interval, and an SRM check. **All of its data
+them much as GrowthBook's frequentist engine reports a result: relative lift
+with a delta-method confidence interval, and an SRM check. It uses normal
+quantiles where GrowthBook uses Student's t, so the two agree at the sample
+sizes a test needs and differ on small samples. **All of its data
 is synthetic**, and it says so in everything it prints.
 
 `python3 -I apps/warehouse/simulation/simulate.py` reports, on its last run
-(19 November 2026):
+(20 November 2026):
 
 | Check                                                   | Found | Expected |
 | ------------------------------------------------------- | ----- | -------- |
 | A/A, 1,000 runs of 4,000 visitors: a significant result | 5.0%  | ~5%      |
 | A/A, the same runs: an SRM                              | 0.0%  | ~0.1%    |
-| A real 20% lift at the planned size: found              | 78%   | ~80%     |
+| A real 20% lift at the planned size: found              | 86%   | ~80%     |
 | The same runs: the 95% interval holds the true lift     | 94%   | ~95%     |
 
-Its tests (`apps/warehouse/tests/test_simulation.py`) repeat the same checks
+The 86% comes from 200 runs; over 1,000 more runs the planned size found the
+lift 83% of the time, close to the 80% it plans for. Its tests
+(`apps/warehouse/tests/test_simulation.py`) repeat the same checks
 with fewer runs and looser bounds, so they run in a couple of seconds.
 
 ## When a test can't answer: watching people use it
@@ -89,8 +98,8 @@ with fewer runs and looser bounds, so they run in a couple of seconds.
 At this size, the right tool for "is this page better?" is moderated
 usability sessions: five to eight people, each given a task ("find a
 magnesium supplement for sleep and subscribe to it"), watched and asked to
-think aloud. Five sessions find most of the problems a page has; they don't
-measure how big an effect is, and nobody should report them as if they did.
+think aloud. Five sessions can show the common problems a page has, though
+not every one; they don't measure how big an effect is, and nobody should report them as if they did.
 
 Use a test when the shop has the traffic in the table above, and sessions
 until then. Either way, write down before starting what would count as a

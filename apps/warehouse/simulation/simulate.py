@@ -9,9 +9,11 @@ It does three things:
 
 - `simulate` makes an experiment's visitors with a chosen conversion rate,
   order value and true lift, split 50/50 the way GrowthBook splits them;
-- `analyse` runs the same statistics GrowthBook's frequentist engine reports:
+- `analyse` approximates what GrowthBook's frequentist engine reports:
   relative lift with a delta-method confidence interval, and a sample ratio
-  mismatch (SRM) check;
+  mismatch (SRM) check. It uses normal quantiles where GrowthBook uses
+  Student's t (Welch); the two agree at the sample sizes a test needs, and
+  differ on small samples;
 - `required_visitors` says how many visitors a test needs to detect a lift.
 
 Run it for a report (`python3 -I apps/warehouse/simulation/simulate.py`):
@@ -63,6 +65,11 @@ class MetricResult:
     p_value: float
 
     @property
+    def available(self) -> bool:
+        """False when the sample has no variance to test (see relative_lift)."""
+        return not math.isnan(self.p_value)
+
+    @property
     def significant(self) -> bool:
         return self.p_value < 0.05
 
@@ -92,7 +99,7 @@ def simulate(
     treatment's conversion rate by that fraction; order value is the same in
     both arms, so revenue per visitor moves by the same lift.
     """
-    if not 0 < conversion < 1 or conversion * (1 + lift) >= 1:
+    if not 0 < conversion < 1 or not 0 < conversion * (1 + lift) < 1:
         raise ValueError("Conversion rates must stay between 0 and 1.")
     rng = rng or random.Random()
     sigma = 0.5
@@ -119,9 +126,12 @@ def relative_lift(
     control: Sequence[float], treatment: Sequence[float], confidence: float = 0.95
 ) -> MetricResult:
     """
-    Relative lift with a delta-method interval, as GrowthBook's frequentist
-    engine reports it. Raises if the control's mean is zero: a lift on
-    nothing has no meaning.
+    Relative lift with a delta-method interval, a normal approximation of
+    what GrowthBook's frequentist engine reports (see the module docstring).
+    Raises if the control's mean is zero: a lift on nothing has no meaning.
+    If the standard error is zero (a treatment where nobody ordered, say),
+    the method can't test anything: the interval and p-value are NaN and
+    `available` is False, rather than reporting "no difference".
     """
     mean_c, var_c = _mean_var(control)
     mean_t, var_t = _mean_var(treatment)
@@ -131,8 +141,10 @@ def relative_lift(
     se = math.sqrt(
         var_t / len(treatment) / mean_c**2 + mean_t**2 * var_c / len(control) / mean_c**4
     )
+    if se == 0:
+        return MetricResult(mean_c, mean_t, lift, math.nan, math.nan, math.nan)
     z = _NORMAL.inv_cdf(1 - (1 - confidence) / 2)
-    p = 2 * (1 - _NORMAL.cdf(abs(lift) / se)) if se > 0 else 1.0
+    p = 2 * (1 - _NORMAL.cdf(abs(lift) / se))
     return MetricResult(mean_c, mean_t, lift, lift - z * se, lift + z * se, p)
 
 
@@ -161,10 +173,15 @@ def required_visitors(
     """
     Visitors needed in total (both arms) for a two-sided test of `alpha` to
     detect a relative `lift` in a conversion rate with the given power.
+
+    Planned with the variance `relative_lift` tests (the delta method on the
+    ratio of means), not the textbook difference in proportions: the ratio's
+    variance carries the control's noise scaled by (p2 / p1)^2, so the
+    textbook figure under-sizes a test, badly for large lifts.
     """
     p1, p2 = conversion, conversion * (1 + lift)
     z = _NORMAL.inv_cdf(1 - alpha / 2) + _NORMAL.inv_cdf(power)
-    per_arm = z**2 * (p1 * (1 - p1) + p2 * (1 - p2)) / (p2 - p1) ** 2
+    per_arm = z**2 * (p2 * (1 - p2) + p2**2 * (1 - p1) / p1) / (p2 - p1) ** 2
     return 2 * math.ceil(per_arm)
 
 
@@ -173,9 +190,10 @@ def repeat(
 ) -> dict[str, float]:
     """Run the same synthetic experiment many times and count what it found."""
     rng = random.Random(seed)
-    significant = srm = covered = 0
+    significant = srm = covered = unavailable = 0
     for _ in range(runs):
         result = analyse(*simulate(visitors, conversion, lift, rng=rng))
+        unavailable += not result.conversion.available
         significant += result.conversion.significant
         srm += result.srm
         covered += result.conversion.low <= lift <= result.conversion.high
@@ -184,6 +202,7 @@ def repeat(
         "significant": significant / runs,
         "srm": srm / runs,
         "interval_holds_true_lift": covered / runs,
+        "unavailable": unavailable / runs,
     }
 
 

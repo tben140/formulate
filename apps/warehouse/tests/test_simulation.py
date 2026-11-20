@@ -34,14 +34,38 @@ class Arithmetic(unittest.TestCase):
         self.assertAlmostEqual(sim.srm_p_value(450, 550), 0.00157, places=4)
         self.assertLess(sim.srm_p_value(400, 600), sim.SRM_THRESHOLD)
 
-    def test_required_visitors_matches_the_textbook(self):
-        # 10% to 12% at alpha 0.05, power 0.8: about 3,841 per arm.
-        self.assertAlmostEqual(sim.required_visitors(0.10, 0.20) / 2, 3841, delta=5)
+    def test_a_zero_standard_error_is_unavailable_not_no_difference(self):
+        result = sim.relative_lift([1, 0] * 50, [0] * 100)
+        self.assertAlmostEqual(result.lift, -1)
+        self.assertFalse(result.available)
+        self.assertFalse(result.significant)
+
+    def test_required_visitors_uses_the_tested_variance(self):
+        # 10% to 12% at alpha 0.05, power 0.8: the textbook difference in
+        # proportions says 3,841 per arm; the ratio relative_lift tests needs
+        # about 4,616.
+        self.assertAlmostEqual(sim.required_visitors(0.10, 0.20) / 2, 4616, delta=5)
 
     def test_simulate_splits_in_half(self):
         control, treatment = sim.simulate(10_000, 0.05, rng=random.Random(1))
         self.assertEqual(control.visitors + treatment.visitors, 10_000)
         self.assertAlmostEqual(control.visitors / 10_000, 0.5, delta=0.02)
+
+    def test_refuses_a_rate_outside_zero_and_one(self):
+        for lift in (-2, -1, 40):
+            with self.assertRaises(ValueError):
+                sim.simulate(10, 0.03, lift)
+        sim.simulate(10, 0.03, -0.2)  # a real drop is fine
+
+    def test_the_same_seed_gives_the_same_output(self):
+        self.assertEqual(
+            sim.simulate(2000, 0.05, 0.2, rng=random.Random(1)),
+            sim.simulate(2000, 0.05, 0.2, rng=random.Random(1)),
+        )
+        self.assertEqual(
+            sim.repeat(20, 1000, 0.05, 0.2, seed=7),
+            sim.repeat(20, 1000, 0.05, 0.2, seed=7),
+        )
 
 
 class KnownAnswers(unittest.TestCase):
