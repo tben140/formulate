@@ -1,6 +1,6 @@
 import { scoreRoutine } from "@formulate/shopify";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/link";
 
 import { RoutineUnavailable, RoutineView } from "@/components/routine-shared";
 import { getRoutineGoals, readSavedAnswers } from "@/lib/routine";

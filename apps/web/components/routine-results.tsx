@@ -6,7 +6,7 @@ import {
   type RoutineGoal,
   type RoutineItem,
 } from "@formulate/shopify";
-import Link from "next/link";
+import Link from "@/components/link";
 import { useActionState, useEffect, useState } from "react";
 
 import { addRoutineToCart } from "@/app/actions/routine";

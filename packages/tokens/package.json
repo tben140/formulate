@@ -13,7 +13,7 @@
     "./fonts/*": "./fonts/*"
   },
   "scripts": {
-    "build": "node scripts/build-css.ts",
+    "build": "node scripts/build-css.ts && node scripts/check-brand.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
