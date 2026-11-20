@@ -150,7 +150,7 @@ export const CartSheet = ({
 
         {isPending ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator accessibilityLabel="Loading your cart" />
+            <ActivityIndicator accessible accessibilityLabel="Loading your cart" />
           </View>
         ) : lines.length === 0 ? (
           <Text className="p-8 text-sm text-foreground-muted">Your cart is empty.</Text>
