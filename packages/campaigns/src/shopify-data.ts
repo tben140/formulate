@@ -1,4 +1,5 @@
 import type { Admin } from "./admin";
+import { parseHistory, type PriceChange } from "./price-history";
 import type { ReportOrder } from "./report";
 import type { CampaignEntry, CollectionInfo, DiscountInfo, ProductInfo } from "./types";
 
@@ -6,6 +7,10 @@ import type { CampaignEntry, CollectionInfo, DiscountInfo, ProductInfo } from ".
  * The Admin API reads and writes behind the commands, kept apart from their
  * logic so that's tested without a store. API version: see admin.ts.
  */
+
+/** Where `campaigns prices record` keeps each variant's price history: owned by the app. */
+export const PRICE_NAMESPACE = "$app:campaigns";
+export const PRICE_KEY = "price_history";
 
 const ENTRY_FIELDS = `
   id
@@ -97,7 +102,14 @@ export const getCollection = async (
           onOnlineStore?: boolean;
           campaign: { value: string } | null;
           variants: {
-            nodes: { id: string; price: string; campaign: { value: string } | null }[];
+            nodes: {
+              id: string;
+              title: string;
+              price: string;
+              campaign: { value: string } | null;
+              inventoryItem: { unitCost: { amount: string } | null } | null;
+              priceHistory: { value: string } | null;
+            }[];
           };
         }[];
       };
@@ -122,8 +134,11 @@ export const getCollection = async (
             variants(first: 50) {
               nodes {
                 id
+                title
                 price
                 campaign: metafield(namespace: "double_helix", key: "campaign") { value }
+                inventoryItem { unitCost { amount } }
+                priceHistory: metafield(namespace: "${PRICE_NAMESPACE}", key: "${PRICE_KEY}") { value }
               }
             }
           }
@@ -160,8 +175,11 @@ export const getCollection = async (
       campaignId: product.campaign?.value ?? null,
       variants: product.variants.nodes.map((variant) => ({
         id: variant.id,
+        title: variant.title,
         price: variant.price,
         campaignId: variant.campaign?.value ?? null,
+        cost: variant.inventoryItem?.unitCost?.amount ?? null,
+        priceHistory: parseHistory(variant.priceHistory?.value),
       })),
     })),
   };
@@ -636,4 +654,86 @@ export const getPerkVariant = async (
         ? variant.product.title
         : `${variant.product.title} (${variant.title})`,
   };
+};
+
+/** Every variant's price and recorded history, for `campaigns prices record`. */
+export const getVariantPrices = async (
+  admin: Admin,
+): Promise<{ id: string; label: string; price: string; history: PriceChange[] }[]> => {
+  const variants: { id: string; label: string; price: string; history: PriceChange[] }[] =
+    [];
+  let after: string | null = null;
+  do {
+    const data: {
+      productVariants: {
+        nodes: {
+          id: string;
+          title: string;
+          price: string;
+          product: { title: string };
+          history: { value: string } | null;
+        }[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    } = await admin.request(
+      `query VariantPrices($after: String) {
+        productVariants(first: 250, after: $after) {
+          nodes {
+            id
+            title
+            price
+            product { title }
+            history: metafield(namespace: "${PRICE_NAMESPACE}", key: "${PRICE_KEY}") { value }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`,
+      { after },
+    );
+    for (const node of data.productVariants.nodes)
+      variants.push({
+        id: node.id,
+        label:
+          node.title === "Default Title"
+            ? node.product.title
+            : `${node.product.title}, ${node.title}`,
+        price: node.price,
+        history: parseHistory(node.history?.value),
+      });
+    after = data.productVariants.pageInfo.hasNextPage
+      ? data.productVariants.pageInfo.endCursor
+      : null;
+  } while (after);
+  return variants;
+};
+
+/** Writes price histories, 25 at a time (metafieldsSet's limit). */
+export const writePriceHistories = async (
+  admin: Admin,
+  updates: readonly { id: string; history: readonly PriceChange[] }[],
+): Promise<void> => {
+  for (let i = 0; i < updates.length; i += 25) {
+    const batch = updates.slice(i, i + 25);
+    const data = await admin.request<{
+      metafieldsSet: { userErrors: { field: string[] | null; message: string }[] };
+    }>(
+      `mutation PriceHistory($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) { userErrors { field message } }
+      }`,
+      {
+        metafields: batch.map((update) => ({
+          ownerId: update.id,
+          namespace: PRICE_NAMESPACE,
+          key: PRICE_KEY,
+          type: "json",
+          value: JSON.stringify(update.history),
+        })),
+      },
+    );
+    const errors = data.metafieldsSet.userErrors;
+    if (errors.length > 0)
+      throw new Error(
+        `Price history not saved: ${errors.map((e) => e.message).join("; ")}`,
+      );
+  }
 };
