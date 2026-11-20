@@ -1,9 +1,24 @@
 "use client";
 
 import Script from "next/script";
-import { createContext, useContext, useId, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
+import { forgetCartAnalytics } from "@/app/actions/cart";
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
+import {
+  analytics,
+  forgetProductAnalytics,
+  notifyAnalyticsConsentChanged,
+  POSTHOG_KEY,
+} from "@/lib/product-analytics";
 import {
   discardQueuedEvents,
   KLAVIYO_PUBLIC_KEY,
@@ -35,8 +50,9 @@ const ConsentContext = createContext<ConsentContextValue | null>(null);
 /**
  * Deletes what `klaviyo.js` left behind.
  *
- * Needed only when consent is withdrawn after being given. Declining first time
- * round leaves nothing to delete, because the script never ran.
+ * Run on every refusal. Declining the very first time leaves nothing to
+ * delete, because the script never ran, but a shopper asked again after the
+ * consent cookie expired may still have Klaviyo's cookies from before.
  */
 const forgetKlaviyo = (): void => {
   const expired = "Max-Age=0; Path=/";
@@ -87,6 +103,51 @@ const forgetKlaviyo = (): void => {
   }
 };
 
+/** Session-scoped: a withdrawal's cart clean-up, carried across its reload. */
+const CART_CLEANUP_KEY = "formulate_cart_cleanup";
+
+const leaveCartCleanup = () => {
+  try {
+    window.sessionStorage.setItem(CART_CLEANUP_KEY, "1");
+  } catch {
+    // Storage blocked: the next add takes the id off instead.
+  }
+};
+
+const isCartCleanupDue = (): boolean => {
+  try {
+    return window.sessionStorage.getItem(CART_CLEANUP_KEY) !== null;
+  } catch {
+    return false;
+  }
+};
+
+const clearCartCleanup = () => {
+  try {
+    window.sessionStorage.removeItem(CART_CLEANUP_KEY);
+  } catch {
+    // Storage blocked: nothing was left there.
+  }
+};
+
+/**
+ * Tells the shopper's other open tabs about a refusal. A tab that loaded
+ * `klaviyo.js` under the old choice keeps running it, and only a reload stops
+ * it, so the refusal has to reach every tab, not just the one it was made in.
+ * Same-origin only; a browser without it leaves other tabs as they were.
+ */
+const CONSENT_CHANNEL = "formulate_consent";
+
+const announceRefusal = () => {
+  try {
+    const channel = new BroadcastChannel(CONSENT_CHANNEL);
+    channel.postMessage("denied");
+    channel.close();
+  } catch {
+    // No BroadcastChannel: other tabs pick the cookie up on their next load.
+  }
+};
+
 export const TrackingConsentProvider = ({
   initialConsent,
   children,
@@ -97,30 +158,102 @@ export const TrackingConsentProvider = ({
   const [consent, setConsent] = useState(initialConsent);
   const [reopened, setReopened] = useState(false);
 
-  const choose = (next: Exclude<TrackingConsent, "unset">) => {
-    writeConsent(next);
+  // One choice at a time: a Decline still clearing the cart mustn't finish
+  // after a later Accept and leave the state saying the opposite of the cookie.
+  const pending = useRef(false);
 
-    if (next === "denied") {
+  // A withdrawal reloads at once (below), which would cancel the cart
+  // clean-up, so it's left for the reloaded page to do. The marker stays
+  // until the clean-up succeeds, so a failure is retried on the next page.
+  // An Accept since then cancels it (here, in `choose` and in the action).
+  useEffect(() => {
+    if (!isCartCleanupDue()) return;
+    if (initialConsent === "granted") {
+      clearCartCleanup();
+      return;
+    }
+    forgetCartAnalytics()
+      .then((done) => {
+        if (done) clearCartCleanup();
+      })
+      .catch(() => undefined);
+  }, [initialConsent]);
+
+  // A refusal made in another tab. The cookie already says so; this tab's
+  // state and scripts don't yet. With the scripts running, clear their
+  // storage again (they may have rewritten it) and reload without them.
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel(CONSENT_CHANNEL);
+    channel.onmessage = (event: MessageEvent) => {
+      if (event.data !== "denied") return;
       discardQueuedEvents();
-
-      /*
-       * Withdrawing after accepting. `klaviyo.js` is already running and there
-       * is no API to stop it, so delete what it stored and reload into a page
-       * the server renders without it. Heavy-handed, but it is the only way
-       * the refusal is actually true for the rest of the visit.
-       */
       if (consent === "granted") {
         forgetKlaviyo();
+        forgetProductAnalytics();
         window.location.reload();
         return;
       }
-    }
+      setConsent("denied");
+      setReopened(false);
+    };
+    return () => channel.close();
+  }, [consent]);
 
-    setConsent(next);
-    setReopened(false);
+  const choose = async (next: Exclude<TrackingConsent, "unset">) => {
+    if (pending.current) return;
+    pending.current = true;
+    try {
+      writeConsent(next);
+      // The add-to-cart forms' id field reads consent; tell it.
+      notifyAnalyticsConsentChanged();
+
+      if (next === "denied") {
+        discardQueuedEvents();
+        /*
+         * On every refusal, not only a withdrawal: the consent cookie expires
+         * after six months while localStorage and Klaviyo's cookies don't, so
+         * a shopper asked again ("unset") may still have an old id here.
+         */
+        forgetKlaviyo();
+        forgetProductAnalytics();
+        announceRefusal();
+
+        /*
+         * Withdrawing after accepting. `klaviyo.js` is already running and
+         * there is no API to stop it, so reload into a page the server renders
+         * without it, straight away. Heavy-handed, but it is the only way the
+         * refusal is actually true for the rest of the visit. The cart's
+         * analytics id comes off on the reloaded page.
+         */
+        if (consent === "granted") {
+          leaveCartCleanup();
+          window.location.reload();
+          return;
+        }
+
+        // No script to stop: take the cart's analytics id off now, so it
+        // doesn't reach the order. Two seconds at most.
+        await Promise.race([
+          forgetCartAnalytics().catch(() => undefined),
+          new Promise((resolve) => setTimeout(resolve, 2000)),
+        ]);
+      }
+
+      if (next === "granted") clearCartCleanup();
+      setConsent(next);
+      setReopened(false);
+
+      // Events before Accept were dropped, not queued (lib/product-analytics.ts),
+      // so the page the shopper accepted on is counted from here.
+      if (next === "granted") analytics()?.pageview();
+    } finally {
+      pending.current = false;
+    }
   };
 
-  const showBanner = Boolean(KLAVIYO_PUBLIC_KEY) && (consent === "unset" || reopened);
+  const showBanner =
+    Boolean(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY) && (consent === "unset" || reopened);
 
   return (
     <ConsentContext.Provider value={{ reopen: () => setReopened(true) }}>
@@ -128,15 +261,16 @@ export const TrackingConsentProvider = ({
 
       {showBanner ? (
         <ConsentBanner
-          onAccept={() => choose("granted")}
-          onDecline={() => choose("denied")}
+          onAccept={() => void choose("granted")}
+          onDecline={() => void choose("denied")}
         />
       ) : null}
 
       {/*
         `afterInteractive` rather than `beforeInteractive`: tracking must not
         block first paint, and lib/klaviyo.ts queues events that fire before
-        the script arrives. Mounting it later, on Accept, drains that queue.
+        the script arrives. Mounting it later, on Accept, drains that queue
+        (events from before the choice are only held for US visitors).
 
         Omitted entirely when the key is unset, so local dev and CI without
         Klaviyo credentials render a clean page.
@@ -186,8 +320,9 @@ const ConsentBanner = ({
           </h2>
           <p className="mt-1 text-foreground-muted">
             With your permission, Klaviyo remembers what you browse and add to your basket
-            so we can email you reminders. Nothing is tracked unless you accept. You can
-            change your mind from the footer at any time.
+            so we can email you reminders, and PostHog measures how the shop is used so we
+            can improve it. Nothing is tracked unless you accept. You can change your mind
+            from the footer at any time.
           </p>
         </div>
 
@@ -210,7 +345,9 @@ const ConsentBanner = ({
  */
 export const CookiePreferencesButton = () => {
   const context = useContext(ConsentContext);
-  if (!context || !KLAVIYO_PUBLIC_KEY) return null;
+  // The same condition as the banner: withdrawal must be reachable whenever
+  // there was anything to accept (ADR 0008).
+  if (!context || !(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY)) return null;
 
   return (
     <button

@@ -31,7 +31,10 @@ export const FreeShippingBar = ({
 
   useEffect(() => {
     if (previous.current !== null && message && message !== previous.current) {
-      if (Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(message);
+      // Queued: a routine update mustn't cut off whatever VoiceOver is
+      // reading, such as the quantity control that caused it.
+      if (Platform.OS === "ios")
+        AccessibilityInfo.announceForAccessibilityWithOptions(message, { queue: true });
     }
     previous.current = message;
   }, [message]);
