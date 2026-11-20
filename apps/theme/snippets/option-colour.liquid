@@ -1,0 +1,33 @@
+{% doc %}
+  The swatch colour for an option value Shopify gives no swatch (a flavour),
+  from the shop metafield double_helix.option_colours: a JSON object of option
+  name to value name to colour. Names match whatever the case. The Liquid twin
+  of optionColour in packages/shopify/src/option-colours.ts.
+
+  Outputs a hex colour, or nothing. Capture it.
+
+  @param {string} option_name - The option's name.
+  @param {string} value_name - The value's name.
+{% enddoc %}
+{%- liquid
+  assign colours = shop.metafields.double_helix.option_colours.value
+  assign option_key = option_name | strip | downcase
+  assign value_key = value_name | strip | downcase
+  for option_pair in colours
+    assign key = option_pair[0] | strip | downcase
+    if key == option_key
+      for value_pair in option_pair[1]
+        assign key = value_pair[0] | strip | downcase
+        if key == value_key
+          assign colour = value_pair[1] | strip
+          assign hash = colour | slice: 0
+          if hash == '#' and colour.size <= 7
+            echo colour | escape
+          endif
+          break
+        endif
+      endfor
+      break
+    endif
+  endfor
+-%}

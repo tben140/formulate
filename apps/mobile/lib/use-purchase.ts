@@ -1,13 +1,14 @@
 import {
   ONE_TIME,
+  addButtonLabel,
   defaultSelectedOptions,
-  deliveryQuote,
   freeGiftFor,
   displayPrice as priceForSelection,
   effectivePlanId as resolvePlanId,
   findVariantByOptions,
+  plansForPack,
   purchasableAllocations,
-  purchaseOptions,
+  purchaseCards,
   selectionStatus,
   type ProductByHandleResult,
   type SelectedOption,
@@ -53,9 +54,14 @@ export const usePurchase = (product: Product) => {
    * complete at checkout, then never charge or ship again.
    */
   const allocations = variant
-    ? purchasableAllocations(
-        product.sellingPlanGroups.nodes,
-        variant.sellingPlanAllocations.nodes,
+    ? plansForPack(
+        purchasableAllocations(
+          product.sellingPlanGroups.nodes,
+          variant.sellingPlanAllocations.nodes,
+        ),
+        // The pack size sets the plan: a 90-day pack offers the 90-day plan.
+        variant,
+        product.variants.nodes,
       )
     : [];
 
@@ -63,21 +69,15 @@ export const usePurchase = (product: Product) => {
   // plan in effect falls back to one-time on a variant without it, without
   // destroying the choice, and the price is the plan's price now.
   const effectivePlanId = resolvePlanId(allocations, planId);
-  // One delivery of an option: a 60- or 90-day plan ships two or three
-  // 30-day supplies, so the shopper never runs out, and the plan sets the
-  // quantity (deliveryQuote in packages/shopify). Null without a variant.
-  const quoteFor = (id: string) =>
-    variant
-      ? deliveryQuote(
-          variant.price,
-          allocations.find((a) => a.sellingPlan.id === id),
-        )
-      : null;
-  const quote = quoteFor(effectivePlanId);
+  // Each option as a card, plans first and one-time last (purchase-cards.ts).
+  // A plan ships whole packs, and sets the quantity: three 30-day packs every
+  // 90 days, or one 90-day pack.
+  const cards = purchaseCards(variant, allocations);
+  const chosenCard = cards.find((card) => card.id === effectivePlanId);
+  const quote = chosenCard?.quote ?? null;
   // This selection's free gift, in stock: added nested under it (free-gift.ts).
   const gift = variant ? freeGiftFor(product, variant) : null;
   const displayPrice = quote?.price ?? priceForSelection(variant, allocations, planId);
-  const choices = purchaseOptions(variant, allocations);
   const status = selectionStatus(variant);
   const soldOut = status === "soldOut";
   const disabled = status !== "available" || addToCart.isPending;
@@ -89,7 +89,7 @@ export const usePurchase = (product: Product) => {
       ? "Sold out"
       : status === "unavailable"
         ? "Unavailable in this combination"
-        : "Add to cart";
+        : addButtonLabel(chosenCard);
 
   const add = (onAdded: () => void) => {
     if (!variant) return;
@@ -114,11 +114,11 @@ export const usePurchase = (product: Product) => {
     effectivePlanId,
     displayPrice,
     quote,
-    quoteFor,
+    cards,
+    chosenCard,
     gift,
     soldOut,
     disabled,
-    choices,
     label,
     add,
   };
