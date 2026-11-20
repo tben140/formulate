@@ -64,8 +64,14 @@ columns it lists and deletes the rest the same morning.
    table. `apps/warehouse/scripts/clear_posthog_geoip.py` reads every
    current person profile (including ones whose events have expired), lists
    what it would clear, and with `--apply` queues the unset. PostHog applies
-   it a few minutes later: run the dry run again then, and start the export
-   only once it finds none. It needs a personal API key with **Query: Read** and the
+   it a few minutes later: run the dry run again then. Create the export
+   only once it finds none, **and on a later day than the cleanup**. A daily
+   export's first run covers every event PostHog received from midnight on
+   the day it's created, and the dry run checks profiles, not events: events
+   sent that day before the cleanup finished still carry the old location in
+   their `person_properties`, and events from before GeoIP was off can carry
+   IP or location in their own properties, which the script doesn't touch.
+   Starting the export the next day leaves those out. It needs a personal API key with **Query: Read** and the
    project's public key, in your own shell (its docstring lists them).
 1. **Run the job's `setup` task once** (`databricks bundle deploy`, then run
    the job by hand). It creates the schema and the landing table, so the
