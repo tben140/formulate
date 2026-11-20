@@ -400,14 +400,14 @@ describe("plannedPushes", () => {
   it("times the pushes like the emails and opens the campaign screen", () => {
     expect(plannedPushes(live.entry)).toEqual([
       {
-        name: "Black Friday 2026: launch push",
+        name: "Black Friday 2026 (black-friday-2026): launch push",
         sendAt: "2026-11-27T00:00:00.000Z",
         title: "Black Friday is on",
         body: "25% off one-time orders, taken at checkout",
         deepLink: "formulate://pages/campaigns/black-friday-2026",
       },
       {
-        name: "Black Friday 2026: last day push",
+        name: "Black Friday 2026 (black-friday-2026): last day push",
         sendAt: "2026-11-30T00:00:00.000Z",
         title: "Last day of Black Friday",
         body: "25% off one-time orders, taken at checkout. Ends 23:59 Mon 30 Nov.",

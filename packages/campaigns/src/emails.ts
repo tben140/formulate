@@ -80,7 +80,7 @@ export const plannedPushes = (entry: CampaignEntry): PlannedPush[] => {
   const deepLink = `${APP_SCHEME}://${campaignPath(campaign.handle).slice(1)}`;
   const pushes: PlannedPush[] = [
     {
-      name: `${campaign.title}: launch push`,
+      name: `${campaign.title} (${campaign.handle}): launch push`,
       sendAt: campaign.startsAt.toISOString(),
       title: `${campaign.badge} is on`,
       body: campaign.offer,
@@ -90,7 +90,7 @@ export const plannedPushes = (entry: CampaignEntry): PlannedPush[] => {
   const lastDay = campaign.endsAt.getTime() - 24 * HOUR;
   if (lastDay > campaign.startsAt.getTime() + 12 * HOUR) {
     pushes.push({
-      name: `${campaign.title}: last day push`,
+      name: `${campaign.title} (${campaign.handle}): last day push`,
       sendAt: new Date(lastDay).toISOString(),
       title: `Last day of ${campaign.badge}`,
       body: `${campaign.offer}. ${campaignEndsLabel(campaign)}.`,
