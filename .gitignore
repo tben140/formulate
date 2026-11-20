@@ -78,3 +78,7 @@ apps/theme/e2e/.auth/
 
 # Lighthouse CI output (apps/web/lighthouserc.cjs)
 .lighthouseci/
+
+# Python bytecode (apps/warehouse)
+__pycache__/
+*.pyc

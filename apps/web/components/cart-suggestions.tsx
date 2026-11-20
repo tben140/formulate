@@ -1,13 +1,20 @@
 "use client";
 
-import { EVENTS, addedToCart } from "@formulate/analytics";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  addedToCart,
+  addedToCartProperties,
+} from "@formulate/analytics";
 import { formatMoney, type CartSuggestion } from "@formulate/shopify";
-import Link from "next/link";
+import Link from "@/components/link";
 import { useActionState, useId } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
+import { analytics } from "@/lib/product-analytics";
 
+import { AnalyticsIdField } from "./analytics-id-field";
 import { CART_DRAWER_TITLE_ID, useCartUi } from "./cart-provider";
 
 const IDLE: CartActionState = { status: "idle" };
@@ -43,7 +50,7 @@ export const CartSuggestions = ({
 
 const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
   const { product } = suggestion;
-  const { closeCart, storeDomain } = useCartUi();
+  const { closeCart, siteOrigin } = useCartUi();
   /*
    * The add, wrapped so the follow-up runs when the server answers, not in an
    * effect. A successful add revalidates the layout, which drops this product
@@ -58,8 +65,12 @@ const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
         // The same Klaviyo event as the product page's add, so a drawer add
         // counts as an add.
         const line = next.cart?.lines.nodes.find((l) => l.id === next.addedLineId);
-        if (next.cart && line)
-          track(EVENTS.addedToCart, addedToCart(next.cart, line, storeDomain));
+        const quantity = next.addedQuantity ?? 1;
+        if (next.cart && line && quantity > 0) {
+          track(EVENTS.addedToCart, addedToCart(next.cart, line, siteOrigin, quantity));
+          const added = addedToCartProperties(line, quantity);
+          if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
+        }
         // The drawer's heading survives the re-render and announces the new
         // count, which is also the confirmation a screen reader needs. Made
         // focusable only now: a tabindex in the markup would make the heading
@@ -110,6 +121,7 @@ const Suggestion = ({ suggestion }: { suggestion: CartSuggestion }) => {
           }}
         >
           <input type="hidden" name="merchandiseId" value={suggestion.variantId} />
+          <AnalyticsIdField />
           <button
             type="submit"
             aria-disabled={pending || undefined}
