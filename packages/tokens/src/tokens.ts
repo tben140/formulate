@@ -136,16 +136,20 @@ export const fontSize = {
  * theme under the family name exactly as written here. Web deliberately does
  * not use `next/font`, which renames the family to a hash and would break
  * parity with the theme.
+ *
+ * Each stack's second entry is a metric-matched fallback (`fallbackFaces`
+ * below), so text set in it while the web font loads takes the same space.
  */
 export const fontFamily = {
   sans: {
     family: "DM Sans",
     stack:
-      '"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+      '"DM Sans", "DM Sans Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
   },
   mono: {
     family: "DM Mono",
-    stack: '"DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    stack:
+      '"DM Mono", "DM Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
   },
 } as const;
 
@@ -202,3 +206,30 @@ export const fontFaces = [
 export const tokens = { colours, spacing, radius, fontSize, fontFamily } as const;
 
 export type Tokens = typeof tokens;
+
+/**
+ * A local font scaled to match each web font's metrics, so the swap to the web
+ * font (`font-display: swap`) doesn't move the page. Unscaled, text first laid
+ * out in the system font reflowed when DM Sans arrived, and Lighthouse put the
+ * theme's collection page at 0.04-0.08 CLS against a 0.05 budget (20 Nov 2026).
+ * This is what `next/font` generates, without its renamed family.
+ *
+ * `local` lists the font and its metric-compatible stand-ins: Linux, including
+ * CI's runners, has Liberation or Arimo rather than Arial. The metrics are each
+ * font's average character width and vertical metrics in font units, from
+ * @capsizecss/metrics 4.4.0; build-css.ts turns them into the overrides.
+ */
+export const fallbackFaces = [
+  {
+    family: "DM Sans Fallback",
+    local: ["Arial", "Liberation Sans", "Arimo"],
+    font: { xWidthAvg: 466, ascent: 992, descent: -310, lineGap: 0, unitsPerEm: 1000 },
+    fallback: { xWidthAvg: 913, unitsPerEm: 2048 },
+  },
+  {
+    family: "DM Mono Fallback",
+    local: ["Courier New", "Liberation Mono", "Cousine"],
+    font: { xWidthAvg: 600, ascent: 992, descent: -310, lineGap: 0, unitsPerEm: 1000 },
+    fallback: { xWidthAvg: 1229, unitsPerEm: 2048 },
+  },
+] as const;
