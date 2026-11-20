@@ -34,9 +34,21 @@
   </head>
 
   <body>
+    {% comment %}
+      First thing on the page, so one Tab reaches it and Enter skips the header
+      and its collection links (WCAG 2.4.1, SHO-152). Hidden until focused.
+    {% endcomment %}
+    <a class="skip-link" href="#MainContent">{{ 'general.skip_to_content' | t }}</a>
+
     {% sections 'header-group' %}
 
-    {{ content_for_layout }}
+    {% comment %}
+      The page's main landmark, which the theme didn't have. tabindex="-1" so
+      the skip link moves focus here, not only the scroll position.
+    {% endcomment %}
+    <main id="MainContent" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
 
     {% sections 'footer-group' %}
 

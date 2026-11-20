@@ -23,10 +23,13 @@ reviews:
 
   auto_review:
     enabled: true
-    # Drafts are skipped. This repo keeps work in draft until it's ready to
-    # review, and reviewing 30 open drafts at once would bury them in comments.
-    # Mark a PR ready, or comment `@coderabbitai review`, to have one reviewed.
-    drafts: false
+    # Drafts are reviewed too. Nearly every PR here opens as a draft and stays
+    # one until just before it merges, so skipping drafts meant almost nothing
+    # was reviewed (Ben, 2026-10-19). CodeRabbit reads this file from the PR's
+    # own branch, so a branch made before this setting gets automatic reviews
+    # only once it has this file (merge the base in); until then, ask with
+    # `@coderabbitai full review`.
+    drafts: true
     # Most PRs here don't target main: they target the integration branch or
     # stack on each other's branches. Without these, CodeRabbit would skip them.
     base_branches:

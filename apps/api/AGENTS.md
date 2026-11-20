@@ -73,8 +73,14 @@ This is the same runtime (`workerd`) that Shopify's Oxygen is built on.
 
 ```bash
 pnpm --filter @formulate/api dev      # local, on workerd
-pnpm --filter @formulate/api deploy   # publish
+pnpm --filter @formulate/api deploy   # publish by hand
 ```
+
+A push to `main` that changes `apps/api` or `packages/analytics` deploys it
+from CI (`.github/workflows/deploy-api.yml`), after the Worker's tests pass.
+It needs both `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository
+secrets. Without them the run skips the tests and the deploy and still shows
+green, so check the run for the "API deploy skipped" notice.
 
 Secrets are per-environment and set from the CLI:
 
@@ -90,7 +96,7 @@ It is documented as "permissive, eventually consistent, and intentionally
 designed to not be used as an accurate accounting system". Do not reinstate it.
 
 A Durable Object replaces it: single-threaded and serialised, so the
-read-modify-write cannot interleave. The *rule* lives in
+read-modify-write cannot interleave. The _rule_ lives in
 `src/rate-limit-policy.ts` as a pure function so it can be tested without a
 runtime; the DO is a storage shell.
 

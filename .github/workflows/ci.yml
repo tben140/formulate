@@ -37,16 +37,44 @@ jobs:
       EXPO_PUBLIC_SHOPIFY_API_VERSION: "2026-04"
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          # No token left in .git/config for later steps to read.
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      # Known vulnerabilities (docs/security.md). High or critical anywhere
+      # in the tree fails, and moderate too in what the apps run (--prod).
+      # Findings with no usable fix are listed, with a reason and a review
+      # date, under auditConfig.ignoreGhsas in pnpm-workspace.yaml; anything
+      # else fails until it's upgraded or overridden.
+      - name: No known vulnerabilities
+        run: |
+          pnpm audit --audit-level high
+          pnpm audit --prod --audit-level moderate
+
+      # Lints the workflows themselves for injection, over-broad permissions
+      # and unpinned or known-bad Actions. The binary is pinned by version and
+      # checksum; bump both together (the checksum is on the release page).
+      - name: Workflow security lint (zizmor)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ZIZMOR_VERSION: 1.31.1
+          ZIZMOR_SHA256: d185f726bdaf92df78273217dfdd24ebcd6b0ef48cf3ce776ff5762b6e138c99
+        run: |
+          gh release download "v$ZIZMOR_VERSION" --repo zizmorcore/zizmor \
+            --pattern zizmor-x86_64-unknown-linux-gnu.tar.gz --output "$RUNNER_TEMP/zizmor.tar.gz"
+          echo "$ZIZMOR_SHA256  $RUNNER_TEMP/zizmor.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/zizmor.tar.gz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/zizmor" --format github .github/workflows
 
       # Proves the committed codegen output is genuinely generated and has not
       # drifted from the query documents. `git diff --exit-code` fails the run

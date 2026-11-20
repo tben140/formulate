@@ -19,8 +19,9 @@ export type NavLink = {
   readonly handle: string;
   /**
    * The app path: `/collections/<handle>`, `/products/<handle>` or
-   * `/policies/<handle>`. Web routes all three; mobile has no policy screen,
-   * so it keeps only the first two.
+   * `/policies/<handle>`. All three surfaces route all three; the app's
+   * header chips keep only collections and products, and its footer the
+   * policies.
    */
   readonly path: string;
 };

@@ -104,15 +104,23 @@ export const ExpressCheckout = (
   const [failedFor, setFailedFor] = useState<string | null>(null);
   if (!sheetKit || Platform.OS !== "ios" || failedFor === key) return null;
   const { AcceleratedCheckoutButtons, AcceleratedCheckoutWallet, RenderState } = sheetKit;
+  const wallets = [
+    AcceleratedCheckoutWallet.shopPay,
+    ...(applePayMerchantId ? [AcceleratedCheckoutWallet.applePay] : []),
+  ];
   return (
-    <View className="mt-2">
+    // A fixed height, the one the native view asks for (48pt a button, 8pt
+    // between): the component starts at flex: 1 with no height and waits for
+    // a resize event from iOS, and until that arrives (if it does) the buttons
+    // spill out of a zero-height box over the Checkout button above.
+    <View
+      className="mt-2 overflow-hidden"
+      style={{ height: wallets.length * 48 + (wallets.length - 1) * 8 }}
+    >
       <AcceleratedCheckoutButtons
         {...identifier}
         cornerRadius={8}
-        wallets={[
-          AcceleratedCheckoutWallet.shopPay,
-          ...(applePayMerchantId ? [AcceleratedCheckoutWallet.applePay] : []),
-        ]}
+        wallets={wallets}
         onComplete={() => onComplete?.()}
         onRenderStateChange={(event) => {
           if (event.state === RenderState.Error) setFailedFor(key);

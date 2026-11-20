@@ -38,21 +38,22 @@ export type ProductCardData = CardOfferLike & {
  * The card is a box with one link (the title, stretched over the card) and,
  * beside it, the quick-add form: a button can't sit inside a link.
  *
- * `loading` and `fetchPriority` pass through to the image, for a grid's first
- * row, which is on screen at load (SHO-143). Hydrogen's Image defaults to lazy.
+ * `priority` marks the one card whose image is the page's LCP: it loads eagerly
+ * at high priority. Every other card is lazy (Hydrogen's Image default). Only
+ * one: React preloads every eager image in <head>, and several eager images
+ * raced the LCP image and the JavaScript on a phone (SHO-148). Use
+ * `priorityIndex` from @formulate/shopify to pick it.
  */
 export const ProductCard = ({
   product,
   sizes,
   headingLevel = "h2",
-  loading,
-  fetchPriority,
+  priority = false,
 }: {
   readonly product: ProductCardData;
   readonly sizes: string;
   readonly headingLevel?: "h2" | "h3";
-  readonly loading?: "eager" | "lazy";
-  readonly fetchPriority?: "high" | "auto";
+  readonly priority?: boolean;
 }) => {
   const Heading = headingLevel;
   const summary = reviewSummary(product);
@@ -65,8 +66,8 @@ export const ProductCard = ({
             data={product.featuredImage}
             sizes={sizes}
             className="h-full w-full object-cover"
-            loading={loading}
-            fetchPriority={fetchPriority}
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
           />
         ) : (
           <div

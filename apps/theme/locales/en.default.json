@@ -143,6 +143,11 @@
     "home": "Home",
     "shop_collection": "Shop {{ title }}",
     "search_link": "Search",
-    "view_all": "View all"
+    "view_all": "View all",
+    "skip_to_content": "Skip to content"
+  },
+  "footer": {
+    "social": "Social media",
+    "payment_methods": "Payment methods"
   }
 }
