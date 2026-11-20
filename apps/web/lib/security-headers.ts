@@ -36,8 +36,9 @@ const policy: Record<string, readonly string[]> = {
     "https://*.klaviyo.com",
   ],
   "font-src": ["'self'", "data:", "https://*.klaviyo.com"],
-  // Klaviyo's tracking and form submissions.
-  "connect-src": ["'self'", "https://*.klaviyo.com"],
+  // Klaviyo's tracking and form submissions; PostHog's capture endpoint
+  // (POSTHOG_HOST in @formulate/analytics), after consent.
+  "connect-src": ["'self'", "https://*.klaviyo.com", "https://eu.i.posthog.com"],
   "frame-src": ["'none'"],
   "object-src": ["'none'"],
   "base-uri": ["'self'"],

@@ -172,7 +172,10 @@ block every merge. Turn it on when there's a second maintainer.
 without blocking anything. The batch still has PRs that add third parties
 (PostHog, Sentry, ad tags); each adds its hosts to the policy, and the e2e test
 says when one is missing. Once those have merged and the test has stayed
-clean, switch the header to `Content-Security-Policy`. `script-src` allows
+clean, switch the header to `Content-Security-Policy`. The tracking-accepted
+test skips itself when the deployment has no consent banner, and it waits for
+Klaviyo's script, so only a run against a deployment with Klaviyo configured
+counts towards that switch. `script-src` allows
 `'unsafe-inline'` because Next's App Router inlines its hydration data;
 per-request nonces would make every page dynamic and undo the cached
 catalogue. So the policy limits where scripts come from, not inline
@@ -192,7 +195,10 @@ the Worker and is billed. A flood from many addresses would get through it.
 **To switch on (owner):** a Cloudflare rate-limiting rule in front of the
 Worker (Security → WAF → Rate limiting rules; the free plan includes one),
 for example 20 requests per 10 seconds per IP on the Worker's hostname, with
-the action "Block". It stops a flood before the Worker runs.
+the action "Block". It stops a flood before the Worker runs. A WAF rule only
+covers hostnames on our own zone, so the `workers.dev` address stays open:
+flood traffic to it still reaches the Worker until the app builds that call it
+have been replaced and `workers_dev` is set to `false` in `wrangler.jsonc`.
 
 ## If something goes wrong
 
@@ -204,7 +210,7 @@ an unknown script):
 1. **Roll back.** Vercel → the project → Deployments → the last good one →
    Instant Rollback. The Worker: `pnpm --filter @formulate/api exec wrangler
 deployments list`, pick the last version you know was good, then
-   `wrangler rollback <version-id>`. Without an id it goes back one version
+   `pnpm --filter @formulate/api exec wrangler rollback <version-id>`. Without an id it goes back one version
    only, which is still bad if the last two deploys were. The theme: Online Store → Themes → publish the previous copy.
 2. **Find the cause** before redeploying: the commits since the good
    deployment, the lockfile diff, and the Vercel and Worker logs.
@@ -214,16 +220,16 @@ deployments list`, pick the last version you know was good, then
 1. **Revoke it first**, then replace it. Deleting the commit doesn't help: a
    public repository is copied within minutes.
 
-   | Secret                               | Revoke and replace in                                           | Then update                                     |
-   | ------------------------------------ | --------------------------------------------------------------- | ----------------------------------------------- |
-   | Shopify Storefront tokens (web, app) | Shopify admin → Headless channel → storefront → tokens          | Vercel env vars; EAS env vars, then a new build |
-   | Shopify Admin API token              | Shopify admin → Apps → develop apps → the app → API credentials | wherever the owner uses it                      |
-   | Theme Access password, shop password | Shopify admin → Theme Access app; Online Store → Preferences    | GitHub Actions secrets                          |
-   | Klaviyo private key                  | Klaviyo → Settings → API keys                                   | `wrangler secret put KLAVIYO_PRIVATE_KEY`       |
-   | Judge.me private token               | Judge.me → Settings → Integrations                              | `wrangler secret put JUDGEME_PRIVATE_TOKEN`     |
-   | Recharge API token                   | Recharge → Apps & integrations → API tokens                     | the owner's local config                        |
-   | Vercel deployment-protection bypass  | Vercel → project → Settings → Deployment Protection             | GitHub Actions secret                           |
-   | GitHub, npm, Expo, Cloudflare tokens | each account's token settings                                   | wherever it was used                            |
+   | Secret                               | Revoke and replace in                                           | Then update                                                               |
+   | ------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------- |
+   | Shopify Storefront tokens (web, app) | Shopify admin → Headless channel → storefront → tokens          | Vercel env vars, then redeploy production; EAS env vars, then a new build |
+   | Shopify Admin API token              | Shopify admin → Apps → develop apps → the app → API credentials | wherever the owner uses it                                                |
+   | Theme Access password, shop password | Shopify admin → Theme Access app; Online Store → Preferences    | GitHub Actions secrets                                                    |
+   | Klaviyo private key                  | Klaviyo → Settings → API keys                                   | `wrangler secret put KLAVIYO_PRIVATE_KEY`                                 |
+   | Judge.me private token               | Judge.me → Settings → Integrations                              | `wrangler secret put JUDGEME_PRIVATE_TOKEN`                               |
+   | Recharge API token                   | Recharge → Apps & integrations → API tokens                     | the owner's local config                                                  |
+   | Vercel deployment-protection bypass  | Vercel → project → Settings → Deployment Protection             | GitHub Actions secret                                                     |
+   | GitHub, npm, Expo, Cloudflare tokens | each account's token settings                                   | wherever it was used                                                      |
 
 2. **Check what it was used for:** the service's own logs (Shopify's audit
    log, Klaviyo's API key activity, Cloudflare's audit log).
