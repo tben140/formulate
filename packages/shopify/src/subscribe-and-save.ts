@@ -225,5 +225,25 @@ export const renewalTerms = (
   return `${plan}: ${charge} until you cancel. You can skip, pause or cancel any time from your account.`;
 };
 
+/**
+ * A selling plan's name as shoppers read it: "Subscribe, every 60 days".
+ *
+ * Recharge names plans for the admin ("60 day subscription with 15%
+ * discount"), and every option repeated the discount, which the option's own
+ * badge and price already show. The interval comes from the plan's options
+ * (planIntervalDays); a plan without a readable one keeps its own name.
+ */
+export const planDisplayName = (plan: {
+  readonly name: string;
+  readonly options?: readonly PlanOptionLike[] | null;
+}): string => {
+  const days = planIntervalDays(plan.options);
+  return days ? `Subscribe, every ${days} days` : plan.name;
+};
+
+/** The badge on a subscription option: "Save 15%". */
+export const savingBadge = (saving: SubscriptionSaving): string =>
+  `Save ${saving.percent}%`;
+
 /** For the sticky bars, which have room for one line beside their button. */
 export const RENEWAL_SHORT = "Renews automatically until you cancel";

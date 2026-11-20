@@ -11,6 +11,7 @@ import {
   optimisticCartReducer,
   pendingLineIds,
   supplyLabel,
+  planDisplayName,
   supplyUnits,
   type Cart,
   type CartChange,
@@ -263,7 +264,7 @@ export const CartDrawer = ({
                     */}
                       {line.sellingPlanAllocation ? (
                         <p className="mt-0.5 text-xs font-medium text-brand-600">
-                          {line.sellingPlanAllocation.sellingPlan.name}
+                          {planDisplayName(line.sellingPlanAllocation.sellingPlan)}
                         </p>
                       ) : null}
 

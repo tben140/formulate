@@ -26,7 +26,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
  * @property {string} was The same units bought once, formatted.
  * @property {string | null} supply "90-day supply (3 × 30-day packs) …", or
  *   null for one supply.
- * @property {string | null} saving "Save £2.39 a delivery (15%) · …", built in
+ * @property {string | null} saving "Save 15%", the badge, built in
  *   Liquid from the locale, or null when subscribing saves nothing.
  */
 
@@ -339,17 +339,21 @@ class ProductForm extends Component {
       input.name = "selling_plan";
       input.value = value;
       input.checked = value === (effectivePlan ? String(effectivePlan.id) : "");
-      text.append(input, " ", name);
+      // The name, with the saving as a badge beside it ("Save 15%").
+      const title = document.createElement("span");
+      title.className = "product-form__plan-name";
+      title.append(name);
+      if (saving) {
+        const badge = document.createElement("span");
+        badge.className = "product-form__plan-badge";
+        badge.textContent = saving;
+        title.append(badge);
+      }
+      text.append(input, " ", title);
       if (supply) {
         const note = document.createElement("span");
         note.className = "product-form__plan-saving";
         note.textContent = supply;
-        text.append(note);
-      }
-      if (saving) {
-        const note = document.createElement("span");
-        note.className = "product-form__plan-saving";
-        note.textContent = saving;
         text.append(note);
       }
 
