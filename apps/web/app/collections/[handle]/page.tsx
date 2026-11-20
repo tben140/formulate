@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { withoutEmptyFilters } from "@formulate/shopify";
+import { priorityIndex, withoutEmptyFilters } from "@formulate/shopify";
 import { notFound, redirect } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
@@ -49,9 +49,6 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   };
 };
 
-/** Products per row at the widest breakpoint (`lg:grid-cols-3`). */
-const FIRST_ROW = 3;
-
 const CollectionPage = async ({ params, searchParams }: PageProps) => {
   const { handle } = await params;
   const query = toSearchParams(await searchParams);
@@ -71,6 +68,7 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
 
   const collection = result.data.collection;
   if (!collection) notFound();
+  const firstWithImage = priorityIndex(collection.products.nodes);
 
   return (
     <>
@@ -109,12 +107,8 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
             <ProductCard
               product={product}
               sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-              // The first row is on screen at load, and its first image is the
-              // Largest Contentful Paint on a phone. Hydrogen's Image defaults
-              // to lazy, which delayed it (SHO-143). Three is the widest row;
-              // everything below stays lazy.
-              loading={index < FIRST_ROW ? "eager" : "lazy"}
-              fetchPriority={index === 0 ? "high" : "auto"}
+              // The LCP image: the first card with a photo (see ProductCard).
+              priority={index === firstWithImage}
             />
           </li>
         ))}

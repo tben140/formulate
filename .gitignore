@@ -6,11 +6,18 @@
 
 # Dependencies
 node_modules/
+# pnpm's package store, when it lands inside the clone (e.g. a drive where
+# the default location is unusable). Never committed.
+.pnpm-store/
 .pnp.*
 .yarn/*
 
 # Build output
 .next/
+# Written by Next.js, differently by `next dev` (.next/dev/types) and by
+# `next build` or `next typegen` (.next/types), so a local dev run rewrote it
+# in PRs. apps/web's `typecheck` runs `next typegen` first.
+apps/web/next-env.d.ts
 out/
 dist/
 build/

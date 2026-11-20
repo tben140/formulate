@@ -1,0 +1,84 @@
+# Compliance register: subscriptions
+
+What the subscription rules ask of this store, what already meets them, and
+what's still open. Written for building against, not as legal advice: before
+real customers, a lawyer should read the final rules against the live flows.
+
+Two sets of rules matter. The **UK subscription contracts regime** (DMCC Act 2024) applies to qualifying consumer subscription contracts made or renewed once it starts, subject to its exclusions; every Double Helix subscription is a consumer one. **California's Automatic Renewal Law**
+applies only to customers in California, which matters only if the store sells
+to the US.
+
+## 1. Cancelling a subscription (SHO-91)
+
+The principle both sets of rules share: **cancelling must be at least as easy
+as subscribing.** Save offers are fine; obstruction isn't. The flows are in
+#136 (web `/account/subscriptions/[id]/cancel`, the app's matching screen).
+
+| Rule                                                                                  | Status                                                                                                      |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Cancel online, from the account area, without contacting anyone                       | ✅ Web and the app                                                                                          |
+| No more steps than subscribing (counts below)                                         | ✅ 5 taps to cancel from any page; about the same to subscribe from a product page                          |
+| Save offers once, on one screen, with the cancel button always visible alongside them | ✅ Offers sit above the cancel button on the same screen                                                    |
+| The cancel button is never hidden, greyed out, delayed or below the fold              | ✅ Since #136's SHO-91 fix: the optional reasons start closed, so the button is on a phone's first screen   |
+| A reason is optional                                                                  | ✅ Reasons and comment are optional; with none given, "other" is recorded                                   |
+| At most one confirmation                                                              | ✅ The cancel page is the confirmation: one press                                                           |
+| Confirmed at once on screen and by email                                              | ✅ "Your subscription is cancelled…" on return; Recharge's cancelled flow in Klaviyo sends the email (live) |
+| The same on both platforms                                                            | ✅ The app's screen mirrors web's, step for step                                                            |
+
+**Step counts**, from any page, signed in:
+
+| Subscribing (product page)                     | Cancelling                       |
+| ---------------------------------------------- | -------------------------------- |
+| 1. Choose "Subscribe & save"                   | 1. Account                       |
+| 2. Add to cart                                 | 2. Subscriptions                 |
+| 3. Checkout                                    | 3. The subscription              |
+| 4. Fill in the checkout (email, address, card) | 4. Cancel subscription           |
+| 5. Pay                                         | 5. Cancel subscription (confirm) |
+
+Signing in takes an email code on both sides: Shopify's checkout asks for the
+email too, so neither side counts it.
+
+**Checked by hand on each change to the cancel flow:** follow it on a phone and
+on desktop; at no point should the shopper have to scroll, wait, answer, or
+decline more than once to cancel.
+
+## 2. UK: subscription contracts regime (DMCC Act 2024)
+
+**When:** January 2027. The Prime Minister brought it forward from spring 2027
+on 10 August 2026. Draft regulations, the Consumer Subscription Contracts
+(Cancellation and Information) Regulations 2026, were laid before Parliament on
+19 October 2026 with draft guidance. **Recheck everything below against the
+final text when it's made.**
+
+| Obligation                                                                                                                                                                                              | This store                                                                                                                                                                                                        | Open                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Key information** together, apart from the full terms, as close as possible to sign-up                                                                                                                | The renewal line by the button (#141): price, how often, cancel any time                                                                                                                                          | Compare its wording with the final regulations                                                                                                                                                                                                                                                                                                                 |
+| **Express acknowledgement** of the payment obligation at the final sign-up step                                                                                                                         | Shopify's checkout shows, above Pay now: "By clicking 'Pay now,' you expressly and affirmatively agree that you will be automatically charged the recurring amount(s)… You may cancel anytime…" (seen 2026-10-28) | Likely met. Check the wording against the final regulations                                                                                                                                                                                                                                                                                                    |
+| **Reminder notices** before renewals: once every six months for regular payments, a reasonable time before the last day to cancel, on a durable medium (email), with their purpose immediately apparent | Recharge's "upcoming order" flow emails before every charge (live)                                                                                                                                                | **Not yet checked against the full content list.** The notice must give, together and prominently: the renewal date and amount, the previous amount and any difference, how often and how much future payments are, any minimum, and how to cancel. Check the Recharge schedule (lead time) and the Klaviyo template for each item before calling this covered |
+| **Renewal cooling-off**: 14 days after a "relevant renewal" (the first payment after a free or discounted trial, or a renewal onto 12 months or more)                                                   | No trials and no 12-month plans today, so probably none apply                                                                                                                                                     | Ask: does the 10% sign-up code on a first subscription order make the second order the end of a "discounted trial"? If so, refunds and a notice are needed                                                                                                                                                                                                     |
+| **Easy exit**: cancel online, accept any clear statement of cancelling, send an end-of-contract notice on a durable medium                                                                              | Section 1; Recharge's cancelled email                                                                                                                                                                             | Support emails saying "cancel" must be acted on too: a runbook line for whoever reads the inbox                                                                                                                                                                                                                                                                |
+
+## 3. California: Automatic Renewal Law (AB 2863, since 1 July 2025)
+
+Applies to contracts made, amended or extended since 1 July 2025 with
+customers in California. **This table is partial:** it covers what the
+store's flows touch most. AB 2863 also requires express affirmative consent
+to the renewal terms before charging, an acknowledgement (with the terms and
+how to cancel) after sign-up, keeping proof of that consent, and notices
+before a promotional or trial price of more than 31 days ends and before an
+initial term of a year or more renews. Check those against the statute before
+selling into California.
+
+| Obligation                                                                                                                                  | This store                                                                | Open                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fee-change notice** 7 to 30 days before any change in the fee takes effect (up or down), stating the change and how to cancel             | Nothing yet                                                               | A process: change subscription prices with a future date, and a Klaviyo flow (or a one-off campaign) that lands 7–30 days ahead with old and new fee and the cancel link. Which Recharge event fires on a price change still needs checking |
+| **Annual reminder** for annual plans: the product, its charges and how to cancel, in the medium used to sign up or the customer's usual one | No annual plans today (30-, 60- and 90-day only), so it doesn't apply yet | If an annual plan is added: a yearly email (the sign-up medium is online, so email qualifies), with that content. The per-charge email doesn't cover it by itself                                                                           |
+| **Click to cancel**: online if signed up online; a save offer only with a prominent cancel button shown continuously beside it              | Section 1                                                                 | None                                                                                                                                                                                                                                        |
+
+## Sources
+
+- Fenwick, [California tightens requirements for automatically renewing subscriptions](https://fenwick.com/insights/publications/california-tightens-requirements-for-automatically-renewing-subscriptions)
+- Kutak Rock, [California's latest Automatic Renewal Law amendments take effect in July 2025](https://ktslaw.com/insights/alert/2024/10/california-latest-automatic-renewal-law-amendments-take-effect-in-july-2025)
+- TLT, [DMCC Act subscription contracts regime brought forward by the PM](https://www.tlt.com/insights-and-events/insight/dmcc-act-subscription-contracts-regime-brought-forward-by-the-pm-what-do-businesses-need-to-know) (updated October 2026)
+- Taylor Wessing, [Subscription contracts: new regime delayed to spring 2027](https://www.taylorwessing.com/en/insights-and-events/insights/2026/04/subscription-contracts) (April 2026, before the change of date)
+- Osborne Clarke, [Subscription contracts regime to take shape by 2027](https://www.osborneclarke.com/insights/uk-digital-markets-competition-and-consumers-act-subscription-contracts-regime-take-shape)
