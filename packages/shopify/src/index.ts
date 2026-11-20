@@ -56,6 +56,7 @@ export {
   NavMenuQuery,
   ProductByHandleQuery,
   ProductRecommendationsQuery,
+  RoutineGoalsQuery,
   ShopNameQuery,
   SitemapCollectionsQuery,
   SitemapProductsQuery,
@@ -116,6 +117,27 @@ export {
 export type { FilterGroup, SortOption } from "./listing";
 export type { ProductFilter } from "./generated/graphql";
 
+export {
+  BUDGETS,
+  DIETS,
+  FORMATS,
+  MAX_GOALS,
+  MAX_PRODUCTS,
+  parseAnswers,
+  scoreRoutine,
+  serializeAnswers,
+} from "./routine-quiz";
+export type {
+  Budget,
+  Diet,
+  FormatPreference,
+  QuizAnswers,
+  Routine,
+  RoutineGoal,
+  RoutineItem,
+  RoutineProduct,
+} from "./routine-quiz";
+export { toRoutineGoals } from "./routine-quiz-data";
 export { policyBlocks, richTextBlocks } from "./rich-text";
 export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";
 export { PLANNED_PAYMENT_ICON_IDS, payLaterIds, paymentIconIds } from "./payment-icons";
