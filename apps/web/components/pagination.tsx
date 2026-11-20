@@ -3,7 +3,7 @@ import {
   previousPageParams,
   type PageInfoLike,
 } from "@formulate/shopify";
-import Link from "next/link";
+import { Link } from "@/components/link";
 
 /**
  * Previous and Next links for a cursor-paged listing (SHO-44).
