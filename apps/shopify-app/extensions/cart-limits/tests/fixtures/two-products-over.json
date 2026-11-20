@@ -7,8 +7,10 @@
         "lines": [
           {
             "quantity": 7,
+            "blend": null,
             "merchandise": {
               "__typename": "ProductVariant",
+              "blendSize": null,
               "product": {
                 "id": "gid://shopify/Product/1",
                 "title": "Magnesium Glycinate"
@@ -17,8 +19,10 @@
           },
           {
             "quantity": 10,
+            "blend": null,
             "merchandise": {
               "__typename": "ProductVariant",
+              "blendSize": null,
               "product": {
                 "id": "gid://shopify/Product/3",
                 "title": "Creatine Monohydrate"

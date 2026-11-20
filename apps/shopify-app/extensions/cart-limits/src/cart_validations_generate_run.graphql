@@ -2,9 +2,17 @@ query CartValidationsGenerateRunInput {
   cart {
     lines {
       quantity
+      # Your Daily Pack: the chosen ingredients' codes, e.g. "d3,k2,mg".
+      blend: attribute(key: "_blend") {
+        value
+      }
       merchandise {
         __typename
         ... on ProductVariant {
+          # How many ingredients this pack size holds; absent on other products.
+          blendSize: metafield(namespace: "double_helix", key: "blend_size") {
+            value
+          }
           product {
             id
             title

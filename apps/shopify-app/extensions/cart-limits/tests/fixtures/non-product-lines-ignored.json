@@ -7,14 +7,17 @@
         "lines": [
           {
             "quantity": 20,
+            "blend": null,
             "merchandise": {
               "__typename": "CustomProduct"
             }
           },
           {
             "quantity": 1,
+            "blend": null,
             "merchandise": {
               "__typename": "ProductVariant",
+              "blendSize": null,
               "product": {
                 "id": "gid://shopify/Product/1",
                 "title": "Magnesium Glycinate"

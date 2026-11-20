@@ -1,0 +1,62 @@
+{
+  "payload": {
+    "export": "cart-validations-generate-run",
+    "target": "cart.validations.generate.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "quantity": 1,
+            "blend": {
+              "value": "d3,d3"
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "blendSize": {
+                "value": "2"
+              },
+              "product": {
+                "id": "gid://shopify/Product/10",
+                "title": "Your Daily Pack"
+              }
+            }
+          },
+          {
+            "quantity": 1,
+            "blend": {
+              "value": "d3,<script>,mg,b12"
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "blendSize": {
+                "value": "4"
+              },
+              "product": {
+                "id": "gid://shopify/Product/10",
+                "title": "Your Daily Pack"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "output": {
+      "operations": [
+        {
+          "validationAdd": {
+            "errors": [
+              {
+                "message": "Your Daily Pack (2 ingredients) doesn't have its ingredients chosen. Remove it and build it again.",
+                "target": "$.cart"
+              },
+              {
+                "message": "Your Daily Pack (4 ingredients) doesn't have its ingredients chosen. Remove it and build it again.",
+                "target": "$.cart"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
