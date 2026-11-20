@@ -5,6 +5,7 @@ import {
   viewedProduct,
 } from "@formulate/analytics";
 import { EXPERIMENTS } from "@formulate/experiments";
+import { ratingLabel, reviewSummary } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -14,7 +15,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddToCart } from "../../components/add-to-cart";
 import { useCartUi } from "../../components/cart-provider";
 import { PairsWellWith } from "../../components/pairs-well-with";
+import { ProductReviews } from "../../components/product-reviews";
 import { RichText } from "../../components/rich-text";
+import { Stars } from "../../components/stars";
 import { SiteFooter } from "../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
 import { useExperiment } from "../../lib/experiments";
@@ -85,6 +88,7 @@ const ProductScreen = () => {
  * returns above.
  */
 const ProductBody = ({ product }: { product: Product }) => {
+  const summary = reviewSummary(product);
   const { openCart } = useCartUi();
 
   /*
@@ -213,6 +217,18 @@ const ProductBody = ({ product }: { product: Product }) => {
               {product.subtitle.value}
             </Text>
           ) : null}
+          {summary ? (
+            <View className="mt-1 flex-row items-center gap-2">
+              <Stars value={summary.average} label={ratingLabel(summary)} />
+              <Text
+                importantForAccessibility="no-hide-descendants"
+                accessibilityElementsHidden
+                className="text-sm text-foreground-muted"
+              >
+                {summary.count} {summary.count === 1 ? "review" : "reviews"}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {product.descriptionHtml ? <RichText html={product.descriptionHtml} /> : null}
@@ -240,6 +256,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         </View>
 
         <PairsWellWith productId={product.id} />
+
+        <ProductReviews handle={product.handle} summary={summary} />
 
         <SiteFooter />
       </ScrollView>

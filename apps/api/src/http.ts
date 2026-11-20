@@ -19,7 +19,10 @@ export type Outcome =
       readonly reason: "invalid-email" | "rate-limited" | "rejected";
     };
 
-export const json = (body: Outcome, status: number): Response =>
+export const json = (body: Outcome, status: number): Response => respond(body, status);
+
+/** Any JSON body, with the same headers (and the same reasons for them). */
+export const respond = (body: unknown, status: number): Response =>
   new Response(JSON.stringify(body), {
     status,
     headers: {

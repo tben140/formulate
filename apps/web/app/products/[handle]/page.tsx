@@ -1,6 +1,6 @@
 import { productViewedProperties, viewedProduct } from "@formulate/analytics";
 import { EXPERIMENTS } from "@formulate/experiments";
-import { breadcrumbCollection } from "@formulate/shopify";
+import { breadcrumbCollection, ratingLabel, reviewSummary } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -11,6 +11,8 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ExperimentExposure } from "@/components/experiment-exposure";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
+import { ProductReviews } from "@/components/product-reviews";
+import { Stars } from "@/components/stars";
 import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
@@ -90,6 +92,9 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
   const product = result.data.product;
   if (!product) notFound();
 
+  // Average and count from Shopify's standard review metafields (Judge.me).
+  const summary = reviewSummary(product);
+
   // The same trail for people and for search engines.
   // The Shop dropdown's groups first (a goal says more than "Best Sellers"),
   // then the bar's links, so a product in neither still gets one if it can.
@@ -167,6 +172,17 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
           {product.subtitle?.value ? (
             <p className="mt-2 text-lg text-foreground-muted">{product.subtitle.value}</p>
           ) : null}
+          {summary ? (
+            <a
+              href="#reviews"
+              className="mt-2 inline-flex items-center gap-2 text-sm hover:underline"
+            >
+              <Stars value={summary.average} label={ratingLabel(summary)} />
+              <span aria-hidden="true">
+                {summary.count} {summary.count === 1 ? "review" : "reviews"}
+              </span>
+            </a>
+          ) : null}
 
           {product.descriptionHtml ? (
             // Its first paragraph's own top margin spaces it from the title.
@@ -187,6 +203,11 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
           </Suspense>
         </div>
       </article>
+
+      {/* Reviews stream in after the product, like "Pairs well with". */}
+      <Suspense fallback={null}>
+        <ProductReviews handle={product.handle} summary={summary} />
+      </Suspense>
     </>
   );
 };
