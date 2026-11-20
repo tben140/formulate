@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { pageVariables, priorityIndex, withoutEmptyFilters } from "@formulate/shopify";
+import {
+  pageVariables,
+  priorityIndex,
+  SORT_PARAM,
+  withoutEmptyFilters,
+} from "@formulate/shopify";
 import { notFound, redirect } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { CollectionFilters } from "@/components/collection-filters";
+import { FilteredListing } from "@/components/collection-filters";
 import { Pagination } from "@/components/pagination";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
@@ -20,10 +25,10 @@ interface PageProps {
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-/** The filter part of a query string (`filter.…`), for the loader. */
-const filterQueryOf = (query: URLSearchParams): string =>
+/** The filter and sort part of a query string (`filter.…`, `sort_by`), for the loader. */
+const listingQueryOf = (query: URLSearchParams): string =>
   new URLSearchParams(
-    [...query].filter(([name]) => name.startsWith("filter.")),
+    [...query].filter(([name]) => name.startsWith("filter.") || name === SORT_PARAM),
   ).toString();
 
 /**
@@ -58,7 +63,7 @@ export const generateMetadata = async ({
     : `/collections/${handle}`;
   // The same arguments as the page, so React's cache serves both from one
   // request.
-  const result = await getCollection(handle, filterQueryOf(query), pageQuery);
+  const result = await getCollection(handle, listingQueryOf(query), pageQuery);
   const collection = result.ok ? result.data.collection : null;
   if (!collection) return {};
 
@@ -89,7 +94,7 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
   if (tidy)
     redirect(tidy.size ? `/collections/${handle}?${tidy}` : `/collections/${handle}`);
 
-  const result = await getCollection(handle, filterQueryOf(query), pageQueryOf(query));
+  const result = await getCollection(handle, listingQueryOf(query), pageQueryOf(query));
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
@@ -115,37 +120,45 @@ const CollectionPage = async ({ params, searchParams }: PageProps) => {
         ) : null}
       </header>
 
-      <CollectionFilters
+      <FilteredListing
         filters={collection.products.filters}
         params={query}
         path={`/collections/${handle}`}
         productCount={collection.products.nodes.length}
-      />
+        // Known only when this one page holds every match.
+        total={
+          collection.products.pageInfo.hasNextPage ||
+          collection.products.pageInfo.hasPreviousPage
+            ? null
+            : collection.products.nodes.length
+        }
+        sortable
+      >
+        {collection.products.nodes.length === 0 ? (
+          <p className="py-12 text-center text-foreground-muted">
+            No products match these filters.
+          </p>
+        ) : null}
 
-      {collection.products.nodes.length === 0 ? (
-        <p className="py-12 text-center text-foreground-muted">
-          No products match these filters.
-        </p>
-      ) : null}
+        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {collection.products.nodes.map((product, index) => (
+            <li key={product.id}>
+              <ProductCard
+                product={product}
+                sizes="(min-width: 1024px) 240px, (min-width: 640px) 45vw, 90vw"
+                // The LCP image: the first card with a photo (see ProductCard).
+                priority={index === firstWithImage}
+              />
+            </li>
+          ))}
+        </ul>
 
-      <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {collection.products.nodes.map((product, index) => (
-          <li key={product.id}>
-            <ProductCard
-              product={product}
-              sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-              // The LCP image: the first card with a photo (see ProductCard).
-              priority={index === firstWithImage}
-            />
-          </li>
-        ))}
-      </ul>
-
-      <Pagination
-        path={`/collections/${handle}`}
-        params={query}
-        pageInfo={collection.products.pageInfo}
-      />
+        <Pagination
+          path={`/collections/${handle}`}
+          params={query}
+          pageInfo={collection.products.pageInfo}
+        />
+      </FilteredListing>
     </>
   );
 };

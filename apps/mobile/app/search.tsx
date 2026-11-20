@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Text, TextInput, View } from "react-native";
 
 import { CollectionFilters } from "../components/collection-filters";
+import { SiteFooter } from "../components/site-footer";
 import { useSearch } from "../lib/queries";
 
 /** How long typing must pause before a search runs. */
@@ -52,6 +53,19 @@ const SearchScreen = () => {
       contentContainerClassName="p-4 gap-3"
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
+      // The footer's email field is last; see collection-view.tsx.
+      automaticallyAdjustKeyboardInsets
+      ListFooterComponent={
+        <>
+          {isFetchingNextPage ? (
+            <ActivityIndicator
+              className="py-4"
+              accessibilityLabel="Loading more results"
+            />
+          ) : null}
+          <SiteFooter />
+        </>
+      }
       ListHeaderComponent={
         <View className="mb-2 gap-4">
           <View className="flex-row items-center gap-2">
@@ -106,11 +120,6 @@ const SearchScreen = () => {
         if (hasNextPage && !isFetching) void fetchNextPage();
       }}
       onEndReachedThreshold={0.5}
-      ListFooterComponent={
-        isFetchingNextPage ? (
-          <ActivityIndicator className="py-4" accessibilityLabel="Loading more results" />
-        ) : undefined
-      }
       renderItem={({ item }) => (
         <Link href={`/products/${item.handle}`} asChild>
           <View
