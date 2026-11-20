@@ -1,4 +1,5 @@
 import { productViewedProperties, viewedProduct } from "@formulate/analytics";
+import { EXPERIMENTS } from "@formulate/experiments";
 import { breadcrumbCollection, galleryImages } from "@formulate/shopify";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -6,18 +7,26 @@ import { Suspense } from "react";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { ExperimentExposure } from "@/components/experiment-exposure";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { ProductGallery } from "@/components/product-gallery";
+import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
-import { getNavLinks } from "@/lib/nav";
-import { baseOpenGraph } from "@/lib/site";
+import { assignExperiment } from "@/lib/experiments";
+import { getNavLinks, getShopGroups } from "@/lib/nav";
+import { baseOpenGraph, siteUrl } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "@/lib/structured-data";
 
 interface PageProps {
   readonly params: Promise<{ handle: string }>;
+}
+
+interface ProductPageProps extends PageProps {
+  /** Only read to force an experiment's variant for review (lib/experiments.ts). */
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 /**
@@ -61,12 +70,20 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   };
 };
 
-const ProductPage = async ({ params }: PageProps) => {
+const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
   const { handle } = await params;
+  const aa = EXPERIMENTS.productPageAa;
 
   // Both cached per render: generateMetadata already fetched the product, and
   // the header the menu.
-  const [result, navLinks] = await Promise.all([getProduct(handle), getNavLinks()]);
+  const [result, navLinks, shopGroups, aaAssignment] = await Promise.all([
+    getProduct(handle),
+    getNavLinks(),
+    getShopGroups(),
+    // The A/A test (ADR 0013): both arms render this same page, so only the
+    // exposure below depends on it.
+    searchParams.then((query) => assignExperiment(aa, query[aa.key])),
+  ]);
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
@@ -74,7 +91,12 @@ const ProductPage = async ({ params }: PageProps) => {
   if (!product) notFound();
 
   // The same trail for people and for search engines.
-  const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, navLinks);
+  // The Shop dropdown's groups first (a goal says more than "Best Sellers"),
+  // then the bar's links, so a product in neither still gets one if it can.
+  const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, [
+    ...shopGroups.flatMap((group) => group.links),
+    ...navLinks,
+  ]);
 
   return (
     <>
@@ -99,8 +121,15 @@ const ProductPage = async ({ params }: PageProps) => {
         Built here, on the server, so the store domain never reaches the client
         bundle — only the emitting needs a browser.
       */}
+        {aaAssignment.exposure && aaAssignment.visitorId ? (
+          <ExperimentExposure
+            exposure={aaAssignment.exposure}
+            visitorId={aaAssignment.visitorId}
+          />
+        ) : null}
+
         <TrackViewedProduct
-          payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
+          payload={viewedProduct(product, siteUrl.origin)}
           productViewed={productViewedProperties(product)}
         />
 
@@ -117,9 +146,13 @@ const ProductPage = async ({ params }: PageProps) => {
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+          {product.subtitle?.value ? (
+            <p className="mt-2 text-lg text-foreground-muted">{product.subtitle.value}</p>
+          ) : null}
 
-          {product.description ? (
-            <p className="mt-4 text-foreground-muted">{product.description}</p>
+          {product.descriptionHtml ? (
+            // Its first paragraph's own top margin spaces it from the title.
+            <StoreHtml html={product.descriptionHtml} />
           ) : null}
 
           {/*
