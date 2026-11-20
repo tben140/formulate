@@ -3,6 +3,7 @@ import { DEFAULT_COUNTRY_CODE } from "./config";
 import type { StorefrontClient } from "./client";
 import type { StorefrontError, StorefrontResult, UserErrorShape } from "./errors";
 import type {
+  VisitorConsent,
   CartBuyerIdentityInput,
   CartFieldsFragment,
   CartLineInput,
@@ -11,6 +12,7 @@ import type {
 } from "./generated/graphql";
 
 import {
+  CartAttributesUpdateMutation,
   CartBuyerIdentityUpdateMutation,
   CartCreateMutation,
   CartLinesAddMutation,
@@ -52,6 +54,13 @@ export type Cart = CartFieldsFragment;
 interface CartMutationPayload {
   readonly cart?: Cart | null;
   readonly userErrors: readonly UserErrorShape[];
+}
+
+/** A `warnings` entry. `target` is the id of the cart line it is about. */
+interface CartWarningShape {
+  readonly code: string;
+  readonly message: string;
+  readonly target: string;
 }
 
 /**
@@ -102,6 +111,18 @@ export interface AddLinesOutcome {
    * either way.
    */
   readonly storedCartGone: boolean;
+  /**
+   * Set when the add succeeded but not in full: fewer were in stock than asked
+   * for. Worth showing, because the cart now holds a different quantity from
+   * the one the shopper chose.
+   */
+  readonly notice?: string;
+  /**
+   * Set when the add succeeded but the cart's attributes couldn't be brought
+   * up to date, e.g. an analytics id that should have come off is still on.
+   * The add stands; the caller can retry with `removeAttributes`.
+   */
+  readonly attributesFailed?: true;
 }
 
 export interface CartClient {
@@ -141,6 +162,13 @@ export interface CartClient {
      * seen from the shopper's side.
      */
     readonly email?: string;
+    /**
+     * Cart attributes, carried through to checkout and onto the order. Used to
+     * hand checkout the shopper's analytics id and surface, which is how a
+     * purchase is credited to the visit that led to it (packages/analytics,
+     * `cartAttributes`). Set only at creation.
+     */
+    readonly attributes?: readonly { readonly key: string; readonly value: string }[];
   }) => Promise<StorefrontResult<Cart>>;
 
   readonly addLines: (
@@ -172,7 +200,28 @@ export interface CartClient {
      * it goes through the Klaviyo SDK. See `create` for why it matters.
      */
     readonly email?: () => Promise<string | null | undefined>;
+    /**
+     * Attributes the cart should carry; see `create`. A new cart gets them at
+     * creation; an existing one is updated only when one is missing or
+     * different, e.g. the shopper consented after the cart was made.
+     */
+    readonly attributes?: readonly { readonly key: string; readonly value: string }[];
+    /**
+     * Attribute keys an existing cart must not carry, e.g. the analytics id
+     * after the shopper refused tracking. Removed only when present.
+     */
+    readonly removeAttributes?: readonly string[];
   }) => Promise<AddLinesOutcome>;
+
+  /**
+   * The cart without the given attribute keys: one update when any is
+   * present, none otherwise. Used when a shopper refuses tracking, so an
+   * analytics id added under earlier consent doesn't reach the order.
+   */
+  readonly removeAttributes: (
+    cart: Cart,
+    keys: readonly string[],
+  ) => Promise<StorefrontResult<Cart>>;
 
   readonly updateLines: (
     cartId: string,
@@ -191,32 +240,229 @@ export interface CartClient {
   ) => Promise<StorefrontResult<Cart>>;
 }
 
-export const createCartClient = (storefront: StorefrontClient): CartClient => {
+/**
+ * Turns Shopify's stock warnings for the lines just requested into an outcome.
+ *
+ * ⚠️ **A sold-out or short add is not a userError.** Measured on the live store
+ * on 2026-09-26 (SHO-131): it "succeeds", and the only sign is a `warnings`
+ * entry whose `target` is the affected cart line.
+ *
+ * | Asked for | Cart line after | Warning |
+ * | --- | --- | --- |
+ * | 1 of a sold-out variant | quantity **0**, but present | `MERCHANDISE_OUT_OF_STOCK`: "…is already sold out." |
+ * | 5 with 3 in stock | quantity 3 | `MERCHANDISE_NOT_ENOUGH_STOCK`: "Only 3 items were added…" |
+ * | 1 more with all 3 already in the cart | still 3 | the same "Only 3 items were added…" — now false |
+ *
+ * Two things follow:
+ *
+ *   - **Warnings describe the whole cart, not this call.** A sold-out line added
+ *     earlier reports on every later mutation, so only warnings targeting the
+ *     line for the merchandise just requested count here.
+ *   - **A sold-out add leaves a zero-quantity line behind**, which would sit in
+ *     the cart (and keep warning) indefinitely. It is removed.
+ */
+const settleStock = async (
+  client: Pick<CartClient, "removeLines">,
+  result: StorefrontResult<Cart>,
+  warnings: readonly CartWarningShape[],
+  requested: readonly CartLineInput[],
+  storedCartGone: boolean,
+): Promise<AddLinesOutcome> => {
+  if (!result.ok) return { result, storedCartGone };
+
+  const cart = result.data;
+  const requestedLines = cart.lines.nodes.filter((line) =>
+    requested.some(
+      (input) =>
+        input.merchandiseId === line.merchandise.id &&
+        (input.sellingPlanId ?? null) ===
+          (line.sellingPlanAllocation?.sellingPlan.id ?? null),
+    ),
+  );
+  const warningFor = (lineId: string) =>
+    warnings.find((warning) => warning.target === lineId);
+
+  const soldOut = requestedLines.filter((line) => line.quantity === 0);
+  const [firstSoldOut] = soldOut;
+  if (firstSoldOut) {
+    // Best effort: if removal fails the cart still works, with a stray line.
+    await client.removeLines(
+      cart.id,
+      soldOut.map((line) => line.id),
+    );
+    return {
+      result: {
+        ok: false,
+        error: {
+          kind: "userError",
+          errors: [
+            {
+              code: "MERCHANDISE_OUT_OF_STOCK",
+              field: null,
+              message: warningFor(firstSoldOut.id)?.message ?? "That item is sold out.",
+            },
+          ],
+        },
+      },
+      storedCartGone,
+    };
+  }
+
+  const short = requestedLines.find(
+    (line) => warningFor(line.id)?.code === "MERCHANDISE_NOT_ENOUGH_STOCK",
+  );
+  if (!short) return { result, storedCartGone };
+
+  // The stock is per variant, and one variant can sit on two lines: one-time
+  // and on a subscription. So the total is every line for this merchandise,
+  // not just the line that was short (review of #25).
+  const inCart = cart.lines.nodes
+    .filter((line) => line.merchandise.id === short.merchandise.id)
+    .reduce((sum, line) => sum + line.quantity, 0);
+
+  return {
+    result,
+    storedCartGone,
+    // Our wording, not Shopify's "Only 3 items were added": that is false
+    // when all 3 were already in the cart and nothing was added this time.
+    notice: stockNotice(inCart),
+  };
+};
+
+/** "Only 3 are available, and all 3 are in your cart", singular for one. */
+export const stockNotice = (available: number): string =>
+  available === 1
+    ? "Only 1 is available, and it's in your cart."
+    : `Only ${available} are available, and all ${available} are in your cart.`;
+
+/**
+ * The shopper's answer to the tracking question, as each surface stores it.
+ * "unset" means they haven't answered yet.
+ */
+export type TrackingChoice = "granted" | "denied" | "unset";
+
+/**
+ * Shopify's four consent purposes for a choice. One opt-in covers all four
+ * (ADR 0008); not answering is refusing.
+ *
+ * ⚠️ **Why every cart request sends this.** Measured on 2026-10-17: a cart
+ * request that states no consent gets Shopify's regional default for the
+ * *server's* location, which allows tracking. Its `checkoutUrl` then carries
+ * visitor ids (`_s`, `_y`) and the response sets `_shopify_analytics` and
+ * `_shopify_marketing`, so a shopper who declined reached checkout tracked.
+ * Stated consent instead puts `_cs=3amps` (refused) or `_cs=3AMPS` (allowed)
+ * on the checkout URL, and checkout honours it. The cart query needs it too,
+ * because `checkoutUrl` is rebuilt on every read.
+ */
+export const visitorConsentFor = (choice: TrackingChoice): VisitorConsent => {
+  const allowed = choice === "granted";
+  return {
+    analytics: allowed,
+    marketing: allowed,
+    preferences: allowed,
+    saleOfData: allowed,
+  };
+};
+
+export interface CartClientOptions {
+  /**
+   * Reads the current shopper's choice, once per request. Without it every
+   * request states "refused", which is right until a surface asks.
+   */
+  readonly trackingChoice?: () => TrackingChoice | Promise<TrackingChoice>;
+}
+
+export const createCartClient = (
+  storefront: StorefrontClient,
+  { trackingChoice }: CartClientOptions = {},
+): CartClient => {
+  // A choice that can't be read counts as refused: the safe direction, and
+  // the cart request (and dead-cart recovery) still goes ahead.
+  const consent = async (): Promise<VisitorConsent> => {
+    try {
+      return visitorConsentFor((await trackingChoice?.()) ?? "unset");
+    } catch {
+      return visitorConsentFor("unset");
+    }
+  };
+
+  const requestCreate = async (options: Parameters<CartClient["create"]>[0]) =>
+    storefront.request(CartCreateMutation, {
+      visitorConsent: await consent(),
+      input: {
+        lines: options?.lines ? [...options.lines] : undefined,
+        buyerIdentity: {
+          countryCode: options?.countryCode ?? (DEFAULT_COUNTRY_CODE as CountryCode),
+          // Omitted rather than sent empty — Shopify rejects "" as an address.
+          ...(options?.email ? { email: options.email } : {}),
+        },
+        ...(options?.attributes?.length ? { attributes: [...options.attributes] } : {}),
+      },
+    });
+
+  const requestAdd = async (cartId: string, lines: readonly CartLineInput[]) =>
+    storefront.request(CartLinesAddMutation, {
+      cartId,
+      lines: [...lines],
+      visitorConsent: await consent(),
+    });
+
+  /**
+   * The cart's attributes with `set` merged in and `remove` taken out, written
+   * only when that changes something. Shopify's update replaces the whole
+   * list, so the others are sent back as they were.
+   */
+  const changeAttributes = async (
+    cart: Cart,
+    set: readonly { readonly key: string; readonly value: string }[] = [],
+    remove: readonly string[] = [],
+  ): Promise<StorefrontResult<Cart>> => {
+    const current = new Map(cart.attributes.map((a) => [a.key, a.value ?? ""]));
+    const changed =
+      set.some((a) => current.get(a.key) !== a.value) ||
+      remove.some((key) => current.has(key));
+    if (!changed) return { ok: true, data: cart };
+    for (const a of set) current.set(a.key, a.value);
+    for (const key of remove) current.delete(key);
+    const updated = await storefront.request(CartAttributesUpdateMutation, {
+      cartId: cart.id,
+      attributes: [...current].map(([key, value]) => ({ key, value })),
+      visitorConsent: await consent(),
+    });
+    return updated.ok ? fromPayload(updated.data.cartAttributesUpdate) : updated;
+  };
+
+  /**
+   * After an add: the attributes brought up to date. If the update fails, the
+   * add still stands, and `failed` says so (see `attributesFailed`).
+   */
+  const withAttributes = async (
+    result: StorefrontResult<Cart>,
+    attributes: readonly { readonly key: string; readonly value: string }[] | undefined,
+    remove: readonly string[] | undefined,
+  ): Promise<{ readonly result: StorefrontResult<Cart>; readonly failed: boolean }> => {
+    if (!result.ok || (!attributes?.length && !remove?.length))
+      return { result, failed: false };
+    const changed = await changeAttributes(result.data, attributes, remove);
+    return changed.ok ? { result: changed, failed: false } : { result, failed: true };
+  };
+
   const client: Omit<CartClient, "addLinesOrCreate"> = {
     get: async (cartId) => {
-      const result = await storefront.request(CartQuery, { id: cartId });
+      const result = await storefront.request(CartQuery, {
+        id: cartId,
+        visitorConsent: await consent(),
+      });
       return result.ok ? { ok: true, data: result.data.cart ?? null } : result;
     },
 
     create: async (options) => {
-      const result = await storefront.request(CartCreateMutation, {
-        input: {
-          lines: options?.lines ? [...options.lines] : undefined,
-          buyerIdentity: {
-            countryCode: options?.countryCode ?? (DEFAULT_COUNTRY_CODE as CountryCode),
-            // Omitted rather than sent empty — Shopify rejects "" as an address.
-            ...(options?.email ? { email: options.email } : {}),
-          },
-        },
-      });
+      const result = await requestCreate(options);
       return result.ok ? fromPayload(result.data.cartCreate) : result;
     },
 
     addLines: async (cartId, lines) => {
-      const result = await storefront.request(CartLinesAddMutation, {
-        cartId,
-        lines: [...lines],
-      });
+      const result = await requestAdd(cartId, lines);
       return result.ok ? fromPayload(result.data.cartLinesAdd) : result;
     },
 
@@ -224,6 +470,7 @@ export const createCartClient = (storefront: StorefrontClient): CartClient => {
       const result = await storefront.request(CartLinesUpdateMutation, {
         cartId,
         lines: [...lines],
+        visitorConsent: await consent(),
       });
       return result.ok ? fromPayload(result.data.cartLinesUpdate) : result;
     },
@@ -232,6 +479,7 @@ export const createCartClient = (storefront: StorefrontClient): CartClient => {
       const result = await storefront.request(CartLinesRemoveMutation, {
         cartId,
         lineIds: [...lineIds],
+        visitorConsent: await consent(),
       });
       return result.ok ? fromPayload(result.data.cartLinesRemove) : result;
     },
@@ -240,27 +488,43 @@ export const createCartClient = (storefront: StorefrontClient): CartClient => {
       const result = await storefront.request(CartBuyerIdentityUpdateMutation, {
         cartId,
         buyerIdentity,
+        visitorConsent: await consent(),
       });
       return result.ok ? fromPayload(result.data.cartBuyerIdentityUpdate) : result;
     },
+
+    removeAttributes: (cart, keys) => changeAttributes(cart, [], keys),
   };
 
   return {
     ...client,
 
-    addLinesOrCreate: async ({ cartId, lines, email }) => {
+    addLinesOrCreate: async ({ cartId, lines, email, attributes, removeAttributes }) => {
       if (cartId) {
-        const added = await client.addLines(cartId, lines);
-        if (added.ok || !isCartGone(added.error)) {
-          return { result: added, storedCartGone: false };
+        const added = await requestAdd(cartId, lines);
+        const result = added.ok ? fromPayload(added.data.cartLinesAdd) : added;
+        if (result.ok || !isCartGone(result.error)) {
+          const warnings = added.ok ? (added.data.cartLinesAdd?.warnings ?? []) : [];
+          const updated = await withAttributes(result, attributes, removeAttributes);
+          const outcome = await settleStock(
+            client,
+            updated.result,
+            warnings,
+            lines,
+            false,
+          );
+          return updated.failed ? { ...outcome, attributesFailed: true } : outcome;
         }
       }
 
-      const created = await client.create({
+      const created = await requestCreate({
         lines,
         email: (await email?.()) ?? undefined,
+        attributes,
       });
-      return { result: created, storedCartGone: cartId !== null };
+      const result = created.ok ? fromPayload(created.data.cartCreate) : created;
+      const warnings = created.ok ? (created.data.cartCreate?.warnings ?? []) : [];
+      return settleStock(client, result, warnings, lines, cartId !== null);
     },
   };
 };

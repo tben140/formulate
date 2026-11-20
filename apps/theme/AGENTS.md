@@ -42,7 +42,10 @@ Without it the CLI walks up to the monorepo root looking for a theme. Theme chec
 then inspects 183 files and reports existing assets as missing. Every script in
 `package.json` already carries the flag; keep it on anything new.
 
-`@shopify/cli` is a **devDependency**, pinned to 4.6.0. Do not rely on a global
+`@shopify/cli` is a **devDependency**, pinned to 5.0.1 (SHO-196). 5.0 changed the theme
+commands' JSON (one result document on stdout, theme IDs as strings) and can stop for a
+browser identity check; `.github/workflows/lighthouse-theme.yml` reads the 5.0 output.
+Do not rely on a global
 Homebrew install — a clean CI runner has none, and that turned CI red once
 already. `pnpm` places the local `node_modules/.bin` first on `PATH`, so scripts
 resolve the pinned binary.
@@ -81,6 +84,23 @@ preserving:
 Everything is **progressive enhancement**. The first product image renders with
 no JavaScript at all. A component that leaves the page broken until it hydrates
 is not acceptable here.
+
+## Composition and contracts
+
+- **Templates are JSON; sections own a page region; theme blocks (`blocks/`)
+  are what merchants add and reorder inside a section; snippets are shared
+  markup that merchants never see.** A new piece that a merchant should
+  place, hide or reorder is a theme block, rendered with
+  `{% content_for 'blocks' %}`; anything else is a snippet. Don't add section
+  blocks (defined inside a section's schema): they can't be reused, can't nest
+  and can't sit beside theme blocks in one section.
+- **Every snippet and every block opens with `{% doc %}`** (LiquidDoc): what
+  it renders, why, and an `@param` for each input, with its type and `[name]`
+  for optional ones. Theme Check reads these, so a missing or misspelt
+  argument at a `render` call is caught before review. The comment is the
+  contract: update it in the same change as the parameters.
+- **Copy belongs in `locales/`**, read with `| t`; schema labels with
+  `t:` keys in `locales/en.default.schema.json`.
 
 ## Styling
 
@@ -147,7 +167,7 @@ judges fake and returns `202` regardless. `klaviyo_list_id` must also be a
 ## ⚠️ Theme settings are direct children of `current`
 
 In `config/settings_data.json` there is **no `settings` object** to nest them
-in. `blocks` is a reserved key that sits *alongside* the settings, which makes
+in. `blocks` is a reserved key that sits _alongside_ the settings, which makes
 it look like a sibling of some wrapper. It is not:
 
 ```jsonc

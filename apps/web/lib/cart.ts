@@ -1,6 +1,8 @@
 import { createCartClient, isCartId, type Cart } from "@formulate/shopify";
 import { cookies } from "next/headers";
 
+import { CONSENT_COOKIE, parseConsent } from "./consent";
+
 import { storefront } from "./storefront";
 
 /**
@@ -17,7 +19,14 @@ import { storefront } from "./storefront";
  * docs/adr/0005-parity-means-design-not-data.md.
  */
 
-export const cartClient = createCartClient(storefront);
+/**
+ * Every cart request states the shopper's answer from our banner, so the
+ * checkout URL carries it too: refused until they accept. Without it Shopify
+ * assumes consent from the server's location (see visitorConsentFor).
+ */
+export const cartClient = createCartClient(storefront, {
+  trackingChoice: async () => parseConsent((await cookies()).get(CONSENT_COOKIE)?.value),
+});
 
 const CART_COOKIE = "formulate_cart";
 

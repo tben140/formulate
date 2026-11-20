@@ -14,7 +14,6 @@
     "column": "Column",
     "content": "Content",
     "custom_section": "Custom section",
-    "fonts": "Fonts",
     "footer": "Footer",
     "group": "Group",
     "header": "Header",
@@ -24,7 +23,6 @@
     "main": "Main",
     "page": "Page",
     "password": "Password",
-    "primary": "Primary",
     "product": "Product",
     "row": "Row",
     "search": "Search",
@@ -34,7 +32,8 @@
     "sidebar": "Sidebar",
     "text": "Text",
     "theme": "Theme",
-    "typography": "Typography"
+    "typography": "Typography",
+    "cart_suggestions": "Cart suggestions"
   },
   "labels": {
     "alignment": "Alignment",
@@ -48,6 +47,9 @@
     "klaviyo_public_key": "Public API key (site ID)",
     "layout_direction": "Layout direction",
     "menu": "Menu",
+    "shop_menu_1": "Shop dropdown: first group",
+    "shop_menu_2": "Shop dropdown: second group",
+    "shop_menu_3": "Shop dropdown: third group",
     "padding": "Padding",
     "page_margin": "Page margin",
     "page_width": "Page width",

@@ -4,7 +4,14 @@
     // No `baseUrl` — deprecated in TypeScript 6, removed in 7. Since TS 5,
     // `paths` resolves relative to this file's directory anyway.
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      // Checkout Kit points `types` at its TypeScript source, which fails
+      // this project's checks under React Native 0.88 (an event-callback
+      // signature in src/index.ts). Its compiled declarations are fine, and
+      // skipLibCheck covers .d.ts files only, so type against those.
+      "@shopify/checkout-sheet-kit": [
+        "./node_modules/@shopify/checkout-sheet-kit/lib/typescript/src/index.d.ts"
+      ]
     }
   },
   "include": [
