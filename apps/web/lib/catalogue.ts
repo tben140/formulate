@@ -1,4 +1,5 @@
 import {
+  collectionSort,
   CollectionProductsQuery,
   productFiltersFromParams,
   ProductByHandleQuery,
@@ -24,13 +25,18 @@ export const getProduct = cache(async (handle: string) =>
 export const COLLECTION_PAGE_SIZE = 24;
 
 /**
- * `filterQuery` is the Liquid-style filter query string (SHO-153). A string,
- * not the parsed filters, so React's per-render cache can match it.
+ * `listingQuery` is the Liquid-style filter and sort query string (SHO-153):
+ * `filter.*` parameters and `sort_by`. A string, not the parsed values, so
+ * React's per-render cache can match it.
  */
-export const getCollection = cache(async (handle: string, filterQuery = "") =>
-  storefront.request(CollectionProductsQuery, {
+export const getCollection = cache(async (handle: string, listingQuery = "") => {
+  const params = new URLSearchParams(listingQuery);
+  const { sortKey, reverse } = collectionSort(params);
+  return storefront.request(CollectionProductsQuery, {
     handle,
     first: COLLECTION_PAGE_SIZE,
-    filters: productFiltersFromParams(new URLSearchParams(filterQuery)),
-  }),
-);
+    filters: productFiltersFromParams(params),
+    sortKey,
+    reverse,
+  });
+});

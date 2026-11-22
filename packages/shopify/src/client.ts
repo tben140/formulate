@@ -17,7 +17,15 @@ export interface StorefrontClientConfig {
   readonly token: string;
   /** e.g. "2026-04". Must match the schema codegen ran against. */
   readonly apiVersion: string;
+  /**
+   * How long a request may take before it's abandoned as a network error.
+   * Defaults to 10 s, so a stalled Storefront call can't hold a page render
+   * (web awaits these on the server) or a spinner forever.
+   */
+  readonly timeoutMs?: number;
 }
+
+export const DEFAULT_TIMEOUT_MS = 10_000;
 
 export interface StorefrontClient {
   readonly request: <TResult, TVariables>(
@@ -54,9 +62,49 @@ export const createStorefrontClient = (
 
     const url = `https://${domain}/api/${apiVersion}/graphql.json`;
 
+    // AbortController and a timer rather than AbortSignal.timeout, which
+    // Hermes doesn't have. The timer covers reading the body too, and it
+    // settles the request itself rather than relying on the abort: on iOS a
+    // buffered body read can stay pending after abort(), so `send` alone
+    // might never return.
+    const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<StorefrontResult<TResult>>((resolve) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        resolve({
+          ok: false,
+          error: {
+            kind: "network",
+            message: `Storefront request timed out after ${timeoutMs} ms`,
+            cause: null,
+          },
+        });
+      }, timeoutMs);
+    });
+    try {
+      return await Promise.race([
+        send(url, token, document, variables, controller.signal, timeoutMs),
+        timedOut,
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  const send = async <TResult, TVariables>(
+    url: string,
+    token: string,
+    document: TypedDocumentString<TResult, TVariables>,
+    variables: TVariables | undefined,
+    signal: AbortSignal,
+    timeoutMs: number,
+  ): Promise<StorefrontResult<TResult>> => {
     let response: Response;
     try {
       response = await fetch(url, {
+        signal,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +118,11 @@ export const createStorefrontClient = (
         ok: false,
         error: {
           kind: "network",
-          message: cause instanceof Error ? cause.message : "fetch failed",
+          message: signal.aborted
+            ? `Storefront request timed out after ${timeoutMs} ms`
+            : cause instanceof Error
+              ? cause.message
+              : "fetch failed",
           cause,
         },
       };
@@ -87,7 +139,21 @@ export const createStorefrontClient = (
       };
     }
 
-    const body = (await response.json()) as GraphQLResponseBody<TResult>;
+    let body: GraphQLResponseBody<TResult>;
+    try {
+      body = (await response.json()) as GraphQLResponseBody<TResult>;
+    } catch (cause) {
+      return {
+        ok: false,
+        error: {
+          kind: "network",
+          message: signal.aborted
+            ? `Storefront request timed out after ${timeoutMs} ms`
+            : "Storefront returned a body that isn't JSON",
+          cause,
+        },
+      };
+    }
 
     if (body.errors?.length) {
       return { ok: false, error: { kind: "graphql", errors: body.errors } };
