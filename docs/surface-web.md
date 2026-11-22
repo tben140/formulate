@@ -106,10 +106,12 @@ tracing, no session replay.
 - **Off without a DSN.** `NEXT_PUBLIC_SENTRY_DSN` is public by design and
   set in Vercel. Local builds and forks run without Sentry.
 - **No personal data** (`lib/sentry.ts`). `sendDefaultPii` is off, and
-  `beforeSend` removes the user, cookies, headers, request body and every
-  query string. Query strings matter because Shopify's sign-in callback
-  carries an authorisation code there and search pages carry what the
-  shopper typed. Sentry sets no cookies, so it sits outside the consent
+  `beforeSend` removes the user, cookies, headers and request body, and
+  the query string from the request URL, Next.js's request path, stack
+  frame file names and breadcrumb URLs. Query strings matter because
+  Shopify's sign-in callback carries an authorisation code there and search
+  pages carry what the shopper typed. Error messages aren't scanned, so keep
+  URLs and what the shopper typed out of them. Sentry sets no cookies, so it sits outside the consent
   banner.
 - **Loaded after the page** (`lib/sentry-client.ts`). Importing the SDK up
   front added 57 KB of gzipped JavaScript to every page (home page 204 KB →

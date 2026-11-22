@@ -50,6 +50,14 @@ export const scrubEvent = (event: ErrorEvent): ErrorEvent => {
   if (nextjs && typeof nextjs.request_path === "string") {
     nextjs.request_path = stripQuery(nextjs.request_path);
   }
+  // Stack frames name the page an inline script ran on, query included
+  // (CodeRabbit on #97): an error on /search?q=… would send the search.
+  for (const exception of event.exception?.values ?? []) {
+    for (const frame of exception.stacktrace?.frames ?? []) {
+      if (frame.filename) frame.filename = stripQuery(frame.filename);
+      if (frame.abs_path) frame.abs_path = stripQuery(frame.abs_path);
+    }
+  }
   delete event.user;
   return event;
 };
