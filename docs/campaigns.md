@@ -258,14 +258,15 @@ campaign even without its discount, for example a tiered offer just missed.
 
 `pnpm campaigns <command>` (packages/campaigns) runs a campaign from the record:
 
-| Command                                               | What it does                                                                                                                        |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `calendar`                                            | Every campaign by date: upcoming, live, ended, draft. Flags overlaps, ended ones to delete, and the theme's 50 limit                |
-| `check <handle>`                                      | Everything that must agree before go-live (below). Exits 1 on an error                                                              |
-| `new <template> <handle> --starts <ISO> --ends <ISO>` | A draft campaign from `black-friday`, `january-reset` (tiered) or `summer` (3 for 2), with its smart collection                     |
-| `sync <handle> [--activate]`                          | Creates or updates the campaign's discount on the campaign Function, with the record's dates and rules. New ones start switched off |
-| `emails <handle> [--create]`                          | The launch and last-day emails, timed from the dates; `--create` makes them Klaviyo drafts (never scheduled)                        |
-| `report <handle>`                                     | Orders, revenue, discount cost, first orders, subscriptions started, by surface and email source, top products                      |
+| Command                                               | What it does                                                                                                                                        |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `calendar`                                            | Every campaign by date: upcoming, live, ended, draft. Flags overlaps, ended ones to delete, and the theme's 50 limit                                |
+| `check <handle>`                                      | Everything that must agree before go-live (below). Exits 1 on an error                                                                              |
+| `new <template> <handle> --starts <ISO> --ends <ISO>` | A draft campaign from `black-friday`, `january-reset` (tiered) or `summer` (3 for 2), with its smart collection                                     |
+| `sync <handle> [--activate]`                          | Creates or updates the campaign's discount on the campaign Function, with the record's dates and rules. New ones start switched off                 |
+| `emails <handle> [--create]`                          | The launch and last-day emails, timed from the dates; `--create` makes them Klaviyo drafts (never scheduled)                                        |
+| `pushes <handle> [--create]`                          | Launch and last-day pushes, opening the campaign screen; `--create` makes Klaviyo drafts for `KLAVIYO_PUSH_SEGMENT_ID` (needs push set up: SHO-165) |
+| `report <handle>`                                     | Orders, revenue, discount cost, first orders, subscriptions started, by surface and email source, top products                                      |
 
 **What `check` compares:** the record parses as the surfaces read it; every
 percentage in the copy is one the offer gives (or the 15% subscribe and save);
