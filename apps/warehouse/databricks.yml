@@ -1,0 +1,73 @@
+# Databricks Asset Bundle: the warehouse loaders as one daily job (ADR 0013).
+#
+# Deploy from this folder with the Databricks CLI, signed in to the workspace:
+#   databricks bundle deploy --var shop_domain=<store>.myshopify.com
+# The workspace host comes from the CLI's profile (DATABRICKS_HOST), not from
+# this file. The schedule is deployed paused; unpause it in the Jobs UI.
+bundle:
+  name: double-helix-warehouse
+
+variables:
+  catalog:
+    description: Unity Catalog catalog. Free Edition provides "workspace".
+    default: workspace
+  schema:
+    description: Schema the loaders write and GrowthBook reads.
+    default: double_helix
+  shop_domain:
+    description: The store's *.myshopify.com domain.
+  landing_table:
+    description: >-
+      The table PostHog's Databricks export writes, in the same schema
+      (docs/integration-growthbook.md).
+    default: posthog_events_landing
+  backfill_days:
+    description: >-
+      How far back the first run loads orders. At most 60: a read_orders token
+      sees only the last 60 days. PostHog's history is backfilled from its
+      export instead.
+    default: "60"
+
+resources:
+  jobs:
+    warehouse_daily:
+      name: double-helix-warehouse-daily
+      schedule:
+        quartz_cron_expression: "0 30 4 * * ?"
+        timezone_id: Europe/London
+        pause_status: PAUSED
+      # One run at a time: setup.py creates the customer id salt once, and two
+      # setups racing could each write one.
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: setup
+          notebook_task:
+            notebook_path: ./src/setup.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+        - task_key: posthog_events
+          depends_on:
+            - task_key: setup
+          notebook_task:
+            notebook_path: ./src/load_posthog_events.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              landing_table: ${var.landing_table}
+              src_dir: ${workspace.file_path}/src
+        - task_key: shopify_orders
+          depends_on:
+            - task_key: setup
+          notebook_task:
+            notebook_path: ./src/load_shopify_orders.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              shop_domain: ${var.shop_domain}
+              backfill_days: ${var.backfill_days}
+              src_dir: ${workspace.file_path}/src
+
+targets:
+  demo:
+    default: true

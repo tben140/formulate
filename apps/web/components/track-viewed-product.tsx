@@ -1,9 +1,15 @@
 "use client";
 
-import { EVENTS, type ViewedProductPayload } from "@formulate/analytics";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  type ProductEventProperties,
+  type ViewedProductPayload,
+} from "@formulate/analytics";
 import { useEffect, useRef } from "react";
 
 import { track } from "@/lib/klaviyo";
+import { analytics } from "@/lib/product-analytics";
 
 /**
  * Fires `Viewed Product` for the product page.
@@ -18,8 +24,11 @@ import { track } from "@/lib/klaviyo";
  */
 export const TrackViewedProduct = ({
   payload,
+  productViewed,
 }: {
   readonly payload: ViewedProductPayload;
+  /** PostHog's product_viewed (SHO-87), also built on the server. */
+  readonly productViewed: ProductEventProperties["product_viewed"];
 }) => {
   // React Strict Mode runs effects twice in development. Without this guard
   // every local page view would post two events, and the Klaviyo feed used to
@@ -30,7 +39,8 @@ export const TrackViewedProduct = ({
     if (sent.current === payload.ProductID) return;
     sent.current = payload.ProductID;
     track(EVENTS.viewedProduct, payload);
-  }, [payload]);
+    analytics()?.capture(PRODUCT_EVENTS.productViewed, productViewed);
+  }, [payload, productViewed]);
 
   return null;
 };

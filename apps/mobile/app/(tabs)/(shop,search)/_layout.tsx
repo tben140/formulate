@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@formulate/tokens";
 import { Stack } from "expo-router";
 import { View } from "react-native";
 
@@ -35,11 +36,12 @@ const SharedStack = () => (
       contentStyle: { backgroundColor: "#ffffff" },
     }}
   >
-    <Stack.Screen name="index" options={{ title: "Double Helix" }} />
+    <Stack.Screen name="index" options={{ title: BRAND_NAME }} />
     <Stack.Screen name="search" options={{ title: "Search" }} />
     <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
     <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
     <Stack.Screen name="policies/[handle]" options={{ title: "" }} />
+    <Stack.Screen name="shop" options={{ title: "Shop" }} />
   </Stack>
 );
 

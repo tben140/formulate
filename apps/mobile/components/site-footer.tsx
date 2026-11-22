@@ -1,7 +1,9 @@
+import { BRAND_NAME } from "@formulate/tokens";
 import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { useLegalLinks } from "../lib/queries";
+import { reopenTrackingChoice, TRACKING_AVAILABLE } from "../lib/tracking-consent";
 import { EmailCapture } from "./email-capture";
 import { PaymentIcons } from "./payment-icons";
 import { SocialLinks } from "./social-links";
@@ -68,8 +70,19 @@ export const SiteFooter = () => {
       ) : null}
 
       <Text className="mt-4 text-sm text-foreground-muted">
-        &copy; {new Date().getFullYear()} Double Helix
+        &copy; {new Date().getFullYear()} {BRAND_NAME}
       </Text>
+
+      {/* Web's "Cookie preferences": changing the tracking choice. */}
+      {TRACKING_AVAILABLE ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={reopenTrackingChoice}
+          className="mt-2 self-start py-1"
+        >
+          <Text className="text-sm text-foreground-muted underline">Privacy choices</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 };
