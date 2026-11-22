@@ -198,6 +198,9 @@ the page.
 - **Changing your mind:** "Cookie preferences" in the footer reopens it.
 - While the setting is on, Shopify's banner is hidden with CSS so no one sees
   two. Turn it off in Settings → Customer privacy as well.
+- **Lighthouse:** CI's runners are in the US, where the API says no banner is
+  needed. `scripts/lighthouse-login.cjs` sets the `dh-consent-preview` marker
+  so the audits measure the page with the banner, as a UK shopper gets it.
 
 ## Scope
 

@@ -14,6 +14,22 @@ import { Component } from "@theme/component";
  */
 export const DECIDED_KEY = "dh-consent-decided";
 
+/**
+ * Shows the banner whatever the API says, for Lighthouse: CI's runners are in
+ * the US, where Shopify's API says no banner is needed, but the store's
+ * shoppers are in the UK, where it is. scripts/lighthouse-login.cjs sets it,
+ * so CI measures the page a UK visitor gets. Only this browser is affected.
+ */
+export const PREVIEW_KEY = "dh-consent-preview";
+
+const previewing = () => {
+  try {
+    return localStorage.getItem(PREVIEW_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
 /** @param {boolean} decided */
 const remember = (decided) => {
   try {
@@ -77,6 +93,10 @@ class ConsentBanner extends Component {
       this.#privacy = privacy;
       // No API (the preview editor, a blocked script): leave it as painted.
       if (!privacy) return;
+      if (previewing()) {
+        this.hidden = false;
+        return;
+      }
       const needed = privacy.shouldShowBanner();
       remember(!needed);
       this.hidden = !needed;

@@ -35,7 +35,10 @@
 </consent-banner>
 <script>
   try {
-    if (localStorage.getItem('dh-consent-decided') === '1') {
+    if (
+      localStorage.getItem('dh-consent-decided') === '1' &&
+      localStorage.getItem('dh-consent-preview') !== '1'
+    ) {
       document.currentScript.previousElementSibling.hidden = true;
     }
   } catch (error) {}
