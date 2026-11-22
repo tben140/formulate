@@ -101,6 +101,20 @@
       <div class="cart-drawer__scroll">
       <ul class="cart-drawer__lines" role="list">
         {% for item in cart.items %}
+          {%- if item.parent_relationship -%}
+            {%- comment -%}
+              A free gift, under the product it came with (free-gift.ts). No
+              controls: Shopify removes it with its product, one per line.
+            {%- endcomment -%}
+            <li class="cart-line cart-line--gift">
+              <div class="cart-line__body">
+                <p class="cart-line__plan">{{ 'cart.free_gift' | t }}</p>
+                <p class="cart-line__title">{{ item.product.title }}</p>
+              </div>
+              <p class="cart-line__price">{{ item.final_line_price | money }}</p>
+            </li>
+            {%- continue -%}
+          {%- endif -%}
           <li class="cart-line">
             {% if item.image %}
               <img

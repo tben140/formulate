@@ -8,6 +8,7 @@ import {
   ONE_TIME,
   defaultSelectedOptions,
   deliveryQuote,
+  freeGiftFor,
   displayPrice as priceForSelection,
   effectivePlanId as resolvePlanId,
   findVariantByOptions,
@@ -82,6 +83,8 @@ export const usePurchase = (product: Product) => {
         )
       : null;
   const quote = quoteFor(effectivePlanId);
+  // This selection's free gift, in stock: added nested under it (free-gift.ts).
+  const gift = variant ? freeGiftFor(product, variant) : null;
   const displayPrice = quote?.price ?? priceForSelection(variant, allocations, planId);
   const choices = purchaseOptions(variant, allocations);
   const status = selectionStatus(variant);
@@ -103,6 +106,7 @@ export const usePurchase = (product: Product) => {
       {
         merchandiseId: variant.id,
         quantity: quote?.units ?? 1,
+        ...(gift ? { giftId: gift.id } : {}),
         ...(effectivePlanId ? { sellingPlanId: effectivePlanId } : {}),
       },
       {
@@ -140,6 +144,7 @@ export const usePurchase = (product: Product) => {
     displayPrice,
     quote,
     quoteFor,
+    gift,
     soldOut,
     disabled,
     choices,

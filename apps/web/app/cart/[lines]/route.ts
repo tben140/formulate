@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { freeGiftFor, VariantFreeGiftsQuery } from "@formulate/shopify";
+
 import { cartClient } from "@/lib/cart";
+import { storefront } from "@/lib/storefront";
 
 /**
  * Cart permalinks for the product page's Shop Pay button: `/cart/{variant
@@ -51,7 +54,30 @@ export const GET = async (
   const lines = parseLines((await params).lines);
   if (!lines) return NextResponse.redirect(new URL("/", request.url), 303);
 
-  const result = await cartClient.create({ lines });
+  // Each product's free gift, nested under it as the product page would add
+  // it (packages/shopify/src/free-gift.ts). If the lookup fails, the products
+  // still go to checkout, without gifts.
+  const gifts = await storefront.request(VariantFreeGiftsQuery, {
+    ids: lines.map((line) => line.merchandiseId),
+  });
+  const giftLines = gifts.ok
+    ? gifts.data.nodes.flatMap((node, index, nodes) => {
+        if (!node || !("id" in node)) return [];
+        // One gift per product, even if the link lists it twice.
+        if (
+          nodes.findIndex((other) => other && "id" in other && other.id === node.id) !==
+          index
+        ) {
+          return [];
+        }
+        const gift = freeGiftFor(node.product, node);
+        return gift
+          ? [{ merchandiseId: gift.id, quantity: 1, parent: { merchandiseId: node.id } }]
+          : [];
+      })
+    : [];
+
+  const result = await cartClient.create({ lines: [...lines, ...giftLines] });
   if (!result.ok || !result.data?.checkoutUrl) {
     // Back where they came from, where the normal add to cart still works.
     return NextResponse.redirect(

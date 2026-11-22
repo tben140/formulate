@@ -9,6 +9,8 @@ import {
   type CartChange,
   type CartLineInput,
   type StorefrontError,
+  giftLineToAdd,
+  isNestedLine,
 } from "@formulate/shopify";
 import {
   useMutation,
@@ -143,7 +145,13 @@ export const useAddToCart = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (line: CartLineInput): Promise<AddToCartResult> => {
+    mutationFn: async ({
+      giftId,
+      ...line
+    }: CartLineInput & {
+      /** The product's free gift, nested under its line (free-gift.ts). */
+      readonly giftId?: string;
+    }): Promise<AddToCartResult> => {
       /*
        * A cart created for a shopper we already know carries their email from
        * the start, which is what lets Shopify record an *attributable*
@@ -176,9 +184,31 @@ export const useAddToCart = () => {
       }
 
       await writeCartId(result.data.id);
+
+      // Its free gift, nested under the line just added, unless that line has
+      // it already (one per line). A gift that can't be added doesn't fail the
+      // add: the product is in the cart, which is what the shopper asked for.
+      let cart = result.data;
+      const addedLine = cart.lines.nodes.find(
+        (node) =>
+          !isNestedLine(node) &&
+          node.merchandise.id === line.merchandiseId &&
+          (node.sellingPlanAllocation?.sellingPlan.id ?? "") ===
+            (line.sellingPlanId ?? ""),
+      );
+      const giftLine = giftLineToAdd(
+        cart.lines.nodes,
+        addedLine?.id,
+        giftId ? { id: giftId } : null,
+      );
+      if (giftLine) {
+        const withGift = await cartClient.addLines(cart.id, [giftLine]);
+        if (withGift.ok && withGift.data) cart = withGift.data;
+      }
+
       const stale = attributesFailed || trackingConsent() !== choice;
       return {
-        cart: result.data,
+        cart,
         ...(notice ? { notice } : {}),
         ...(stale ? { stale: true as const } : {}),
       };
