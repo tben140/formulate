@@ -1,3 +1,4 @@
+import { CART_ATTRIBUTE_KEYS, cartAttributes } from "@formulate/analytics";
 import {
   createCartClient,
   describeError,
@@ -15,11 +16,13 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { clearCartId, readCartId, writeCartId } from "./cart-storage";
 import { readIdentifiedEmail } from "./klaviyo";
+import { analyticsDistinctId } from "./product-analytics";
 import { storefront } from "./storefront";
+import { subscribeToTrackingConsent, trackingConsent } from "./tracking-consent";
 
 /**
  * The cart, as TanStack Query state.
@@ -34,10 +37,21 @@ import { storefront } from "./storefront";
  * to invalidate. Same feature, genuinely different machinery.
  */
 
-// No tracking choice in the app yet, so every cart request states "refused"
-// and checkout gets no visitor ids. #107 adds the app's choice: pass it here
-// as `trackingChoice` when it merges.
-const cartClient = createCartClient(storefront);
+// Every cart request states the app's tracking choice (ADR 0008), so checkout
+// gets visitor ids, and the pixel can credit the order, only with consent.
+// Still loading counts as not answered, which Shopify is told is refused.
+const cartClient = createCartClient(storefront, {
+  trackingChoice: () => {
+    const choice = trackingConsent();
+    return choice === "loading" ? "unset" : choice;
+  },
+});
+
+/** The new cart's attributes for the custom pixel, with tracking consent only. */
+const newCartAttributes = () => {
+  const id = analyticsDistinctId();
+  return id ? cartAttributes(id, "app") : undefined;
+};
 
 const CART_KEY = ["cart"] as const;
 const LINE_KEY = ["cart", "line"] as const;
@@ -62,6 +76,11 @@ const shopperError = (error: StorefrontError): Error => {
 export interface AddToCartResult {
   readonly cart: Cart;
   readonly notice?: string;
+  /**
+   * The cart may not match the current consent choice: it changed during the
+   * add, or the attributes couldn't be updated. Refetch, which strips them.
+   */
+  readonly stale?: true;
 }
 
 /**
@@ -72,8 +91,18 @@ export interface AddToCartResult {
  * the stored id is cleared here rather than in a checkout callback the web app
  * never receives.
  */
-export const useCart = () =>
-  useQuery({
+export const useCart = () => {
+  const queryClient = useQueryClient();
+  // Shopify rebuilds `checkoutUrl` on every read with the consent stated, so a
+  // changed choice refetches the cart rather than checking out on the old one.
+  useEffect(
+    () =>
+      subscribeToTrackingConsent(
+        () => void queryClient.invalidateQueries({ queryKey: CART_KEY, exact: true }),
+      ),
+    [queryClient],
+  );
+  return useQuery({
     queryKey: CART_KEY,
     queryFn: async (): Promise<Cart | null> => {
       const id = await readCartId();
@@ -82,13 +111,33 @@ export const useCart = () =>
       const result = await cartClient.get(id);
       if (!result.ok) throw shopperError(result.error);
 
-      if (!result.data) await clearCartId();
+      if (!result.data) {
+        // Only if it's still the cart we asked about: an add may have made a
+        // new one while this ran, and that one must stay reachable.
+        if ((await readCartId()) === id) await clearCartId();
+        return null;
+      }
+      // Without consent the cart shouldn't carry the analytics id to the
+      // order. This query reruns on every consent change, so a refusal takes
+      // it off here. Housekeeping, not the consent control: the order webhook
+      // never reads the id (ADR 0012), and the pixel uses it only if the
+      // shopper allows analytics in checkout. So a failure here doesn't stop
+      // the cart showing; the next run tries again.
+      const choice = trackingConsent();
+      if (choice === "denied" || choice === "unset") {
+        const stripped = await cartClient.removeAttributes(
+          result.data,
+          CART_ATTRIBUTE_KEYS,
+        );
+        if (stripped.ok) return stripped.data;
+      }
       return result.data;
     },
     // The cart is the one thing a shopper expects to be exactly right, so it is
     // never served stale — unlike the product queries, which cache for a minute.
     staleTime: 0,
   });
+};
 
 export const useAddToCart = () => {
   const queryClient = useQueryClient();
@@ -109,11 +158,17 @@ export const useAddToCart = () => {
        * fine, and clearing it would silently lose everything in it. See
        * `addLinesOrCreate` in packages/shopify (SHO-122).
        */
-      const { result, storedCartGone, notice } = await cartClient.addLinesOrCreate({
-        cartId: await readCartId(),
-        lines: [line],
-        email: readIdentifiedEmail,
-      });
+      const choice = trackingConsent();
+      const attributes = newCartAttributes();
+      const { result, storedCartGone, notice, attributesFailed } =
+        await cartClient.addLinesOrCreate({
+          cartId: await readCartId(),
+          lines: [line],
+          email: readIdentifiedEmail,
+          // So checkout can credit the order to this shopper; consent only.
+          // Without it, an id added under earlier consent comes off.
+          ...(attributes ? { attributes } : { removeAttributes: CART_ATTRIBUTE_KEYS }),
+        });
 
       if (!result.ok) {
         if (storedCartGone) await clearCartId();
@@ -121,12 +176,21 @@ export const useAddToCart = () => {
       }
 
       await writeCartId(result.data.id);
-      return { cart: result.data, ...(notice ? { notice } : {}) };
+      const stale = attributesFailed || trackingConsent() !== choice;
+      return {
+        cart: result.data,
+        ...(notice ? { notice } : {}),
+        ...(stale ? { stale: true as const } : {}),
+      };
     },
     // Every mutation returns the complete cart, so the cache is seeded directly
     // rather than invalidated — no refetch, and no window where the badge and
-    // the sheet disagree.
-    onSuccess: ({ cart }) => queryClient.setQueryData(CART_KEY, cart),
+    // the sheet disagree. Except a stale one: the cart query refetches it and
+    // brings its attributes in line with the current choice.
+    onSuccess: ({ cart, stale }) =>
+      stale
+        ? queryClient.invalidateQueries({ queryKey: CART_KEY })
+        : queryClient.setQueryData(CART_KEY, cart),
   });
 };
 
