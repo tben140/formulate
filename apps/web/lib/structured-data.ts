@@ -132,6 +132,34 @@ export const plainText = (text: string): string =>
     .replace(/\s+/g, " ")
     .trim();
 
+const ENTITIES: Readonly<Record<string, string>> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+
+/**
+ * HTML's words only: tags become spaces, so words either side stay apart,
+ * and entities are decoded, so "&amp;" reads "&". For a description, not
+ * for markup: the result is text, not HTML.
+ */
+export const htmlText = (html: string): string =>
+  html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, name: string) => {
+      if (name.startsWith("#")) {
+        const code =
+          name[1] === "x" || name[1] === "X"
+            ? Number.parseInt(name.slice(2), 16)
+            : Number(name.slice(1));
+        return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+      }
+      return ENTITIES[name.toLowerCase()] ?? entity;
+    });
+
 /** Trims text to a meta-description length at a word boundary. */
 export const metaDescription = (text: string, max = 155): string => {
   const flat = plainText(text);

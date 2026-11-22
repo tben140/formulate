@@ -8,7 +8,7 @@ import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { baseOpenGraph } from "@/lib/site";
 import { storefront } from "@/lib/storefront";
-import { metaDescription } from "@/lib/structured-data";
+import { htmlText, metaDescription } from "@/lib/structured-data";
 
 interface PageProps {
   readonly params: Promise<{ handle: string }>;
@@ -53,8 +53,8 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   const policy = result.ok ? findPolicy(result.data.shop, handle) : undefined;
   if (!policy) return { title: "Policy" };
 
-  // The body is HTML; the description wants its words only.
-  const description = metaDescription(policy.body.replace(/<[^>]+>/g, " "));
+  // The body is HTML; the description wants its words only, decoded.
+  const description = metaDescription(htmlText(policy.body));
   return {
     title: policy.title,
     ...(description ? { description } : {}),
