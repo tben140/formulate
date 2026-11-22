@@ -1,6 +1,13 @@
 "use client";
 
-import { EVENTS, addedToCart } from "@formulate/analytics";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  addedToCart,
+  addedToCartProperties,
+  numericId,
+  productRef,
+} from "@formulate/analytics";
 import {
   ONE_TIME,
   defaultSelectedOptions,
@@ -27,7 +34,9 @@ import { useActionState, useEffect, useRef, useState, useSyncExternalStore } fro
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
+import { analytics } from "@/lib/product-analytics";
 
+import { AnalyticsIdField } from "./analytics-id-field";
 import { useCartUi } from "./cart-provider";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -46,7 +55,7 @@ const IDLE: CartActionState = { status: "idle" };
  * only the rendering is here. See docs/adr/0005-parity-means-design-not-data.md.
  */
 export const AddToCartForm = ({ product }: { product: Product }) => {
-  const { openCart, storeDomain } = useCartUi();
+  const { openCart, siteOrigin } = useCartUi();
   const [state, formAction, pending] = useActionState(addToCart, IDLE);
 
   const [selected, setSelected] = useState<readonly SelectedOption[]>(() =>
@@ -99,10 +108,21 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     openCart();
 
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
-    if (state.cart && line) {
-      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
+    const quantity = state.addedQuantity ?? 1;
+    if (state.cart && line && quantity > 0) {
+      track(EVENTS.addedToCart, addedToCart(state.cart, line, siteOrigin, quantity));
+      const added = addedToCartProperties(line, quantity);
+      if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
     }
-  }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
+  }, [
+    state.token,
+    state.status,
+    state.cart,
+    state.addedLineId,
+    state.addedQuantity,
+    openCart,
+    siteOrigin,
+  ]);
 
   // One delivery of an option: a 60- or 90-day plan ships two or three
   // 30-day supplies, so the shopper never runs out, and the plan sets the
@@ -151,6 +171,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       className="mt-6"
     >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
+      <AnalyticsIdField />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
       <input type="hidden" name="quantity" value={quote?.units ?? 1} />
 
@@ -193,7 +214,16 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       name={`option-${option.name}`}
                       value={value.name}
                       checked={checked}
-                      onChange={() => setSelected(candidate)}
+                      onChange={() => {
+                        setSelected(candidate);
+                        if (match) {
+                          analytics()?.capture(PRODUCT_EVENTS.variantSelected, {
+                            ...productRef(product),
+                            variant_id: numericId(match.id),
+                            variant_title: match.title,
+                          });
+                        }
+                      }}
                       className="sr-only"
                     />
                     {value.name}
@@ -233,7 +263,13 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                     name="purchase-option"
                     value={choice.id}
                     checked={effectivePlanId === choice.id}
-                    onChange={() => setPlanId(choice.id)}
+                    onChange={() => {
+                      setPlanId(choice.id);
+                      analytics()?.capture(PRODUCT_EVENTS.sellingPlanSelected, {
+                        ...productRef(product),
+                        selling_plan: choice.id === ONE_TIME ? null : choice.label,
+                      });
+                    }}
                     className="mt-1"
                   />
                   <span className="flex flex-col">

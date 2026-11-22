@@ -14,6 +14,8 @@
     "comment_form_title": "Add a comment"
   },
   "cart": {
+    "add_error": "Could not add this to your cart.",
+    "change_error": "Your cart couldn't be updated. Check your connection and try again.",
     "checkout": "Checkout",
     "title": "Cart",
     "update": "Update",
@@ -58,6 +60,18 @@
     "active_filters": "Active filters",
     "remove_filter": "remove filter",
     "no_matches": "No products match these filters.",
+    "filters": "Filters",
+    "close": "Close",
+    "selected": "selected",
+    "show": "Show",
+    "show_more": "Show {{ count }} more",
+    "show_fewer": "Show fewer",
+    "price_range": "Range {{ min }} – {{ max }}",
+    "sort": "Sort",
+    "sort_featured": "Featured",
+    "sort_price_ascending": "Price, low to high",
+    "sort_price_descending": "Price, high to low",
+    "sort_newest": "Newest",
     "product_count": {
       "one": "{{ count }} product",
       "other": "{{ count }} products"
@@ -101,6 +115,7 @@
     "sold_out": "Sold out",
     "unavailable": "Unavailable in this combination",
     "added": "Added to your cart.",
+    "cart_error": "Could not update your cart.",
     "purchase_options": "Purchase options",
     "one_time": "One-time purchase",
     "variant": "Variant",
@@ -112,7 +127,13 @@
     "delivery_promise": "Free UK delivery on subscriptions, and on orders over £40",
     "renewal_terms": "Subscriptions renew automatically: the subscription price shown is charged for each delivery, until you cancel. You can skip, pause or cancel any time from your account.",
     "renewal_terms_introductory": "Subscriptions renew automatically until you cancel. Some plans start at an introductory price and then change: checkout shows each price and when it applies. You can skip, pause or cancel any time from your account.",
-    "supply": "{{ days }}-day supply ({{ units }} × 30-day packs) every delivery"
+    "supply": "{{ days }}-day supply ({{ units }} × 30-day packs) every delivery",
+    "gallery_label": "{{ title }} images",
+    "gallery_position": "Image {{ index }} of {{ count }}",
+    "choose_image": "Choose an image",
+    "show_image": "Show image {{ index }} of {{ count }}",
+    "previous_image": "Previous image",
+    "next_image": "Next image"
   },
   "search": {
     "title": "Search",
@@ -122,13 +143,15 @@
     "results_for_html": "{{ count }} results found for {{ terms }}",
     "label": "Search products",
     "results": "Results",
-    "no_products": "No products match “{{ terms }}”. Try a different word, or browse the collections."
+    "no_products": "No products match “{{ terms }}”. Try a different word, or browse the collections.",
+    "show_products": "Show products matching “{{ terms }}”"
   },
   "general": {
     "breadcrumb": "Breadcrumb",
     "home": "Home",
     "shop_collection": "Shop {{ title }}",
     "search_link": "Search",
+    "shop": "Shop",
     "skip_to_content": "Skip to content"
   },
   "footer": {

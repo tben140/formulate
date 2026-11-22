@@ -42,6 +42,8 @@ export const SURFACE_ONLY_ROUTES = {
     // Not a page: the Cart tab opens the cart sheet (app/(tabs)/_layout.tsx).
     // Web's cart is a drawer with no route either.
     "/cart": "the Cart tab's placeholder; the tab opens a sheet",
+    // Web shows the same groups in the header's Shop dropdown, not a page.
+    "/shop": "the Shop menu screen; web's is the header dropdown",
   },
 } as const;
 

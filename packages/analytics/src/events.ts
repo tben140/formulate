@@ -50,37 +50,54 @@ export interface ViewedProductPayload {
   readonly CompareAtPrice: string;
 }
 
+/**
+ * One cart line, as Klaviyo's Shopify schema lists it under `Items` in both
+ * Added to Cart and Started Checkout.
+ *
+ * ⚠️ `ProductID` is the **product's** id, as in Viewed Product, so a flow can
+ * match a browse to a cart and a product block can look the item up. The
+ * variant is carried beside it. Until 2026-11-15 the headless surfaces sent
+ * the variant id here, which matched nothing (finding 5 of the batch review).
+ */
+export interface CartItemPayload {
+  readonly ProductName: string;
+  readonly ProductID: number;
+  readonly VariantID: number;
+  readonly Quantity: number;
+  readonly ItemPrice: string;
+  readonly RowTotal: string;
+  readonly ProductURL: string;
+  readonly ImageURL: string;
+  readonly ProductCategories: readonly string[];
+  /**
+   * Not part of Klaviyo's Shopify schema — added here because it is the only
+   * way a flow can distinguish a subscription line from a one-off, and the
+   * whole Recharge story depends on that distinction.
+   */
+  readonly SellingPlanName: string | null;
+}
+
 export interface AddedToCartPayload {
   readonly $value: number;
   readonly AddedItemProductName: string;
+  /** The product's id, as Viewed Product sends it. */
   readonly AddedItemProductID: number;
+  readonly AddedItemVariantID: number;
+  readonly AddedItemCategories: readonly string[];
   readonly AddedItemPrice: string;
   readonly AddedItemQuantity: number;
   readonly AddedItemURL: string;
   readonly AddedItemImageURL: string;
   readonly ItemNames: readonly string[];
   readonly CheckoutURL: string;
+  readonly Items: readonly CartItemPayload[];
 }
 
 export interface StartedCheckoutPayload {
   readonly $value: number;
   readonly ItemNames: readonly string[];
   readonly CheckoutURL: string;
-  readonly Items: readonly {
-    readonly ProductName: string;
-    readonly ProductID: number;
-    readonly Quantity: number;
-    readonly ItemPrice: string;
-    readonly RowTotal: string;
-    readonly ProductURL: string;
-    readonly ImageURL: string;
-    /**
-     * Not part of Klaviyo's Shopify schema — added here because it is the only
-     * way a flow can distinguish a subscription line from a one-off, and the
-     * whole Recharge story depends on that distinction.
-     */
-    readonly SellingPlanName: string | null;
-  }[];
+  readonly Items: readonly CartItemPayload[];
 }
 
 /**
@@ -104,16 +121,22 @@ export const legacyIdFromGid = (gid: string): number => {
 };
 
 /**
- * The canonical product URL for a handle.
+ * The product URL a Klaviyo email links to, on the public site.
  *
- * Deliberately the **Online Store** URL rather than the surface the event came
- * from. Klaviyo email templates link to whatever is in `URL`, and a
- * browse-abandonment email triggered by the mobile app has nowhere sensible to
- * point otherwise. One destination for all three surfaces beats three, and it
- * matches what the theme already sends.
+ * `siteOrigin` is the headless site's origin (`https://www.…`), the one place
+ * every product page lives, not the `*.myshopify.com` host the Storefront
+ * client talks to: that host is the Online Store, which is password-protected
+ * on a development store and is not where shoppers are sent. Web passes
+ * `siteUrl.origin` (lib/site.ts); the app passes the same origin, where #254's
+ * app links open the product in the app on a phone that has it. The theme's
+ * events come from Klaviyo's app embed and link to the Online Store's own
+ * host, which is right for a theme shopper.
+ *
+ * Until 2026-11-15 this built `https://<store domain>/products/…`, so every
+ * flow email would have pointed at the password page (batch review, finding 5).
  */
-export const productUrl = (storeDomain: string, handle: string): string =>
-  `https://${storeDomain}/products/${handle}`;
+export const productUrl = (siteOrigin: string, handle: string): string =>
+  `${siteOrigin.replace(/\/+$/, "")}/products/${handle}`;
 
 interface MoneyLike {
   readonly amount: string;
@@ -138,7 +161,12 @@ export const formatEventPrice = (money: MoneyLike | null | undefined): string =>
   }).format(amount);
 };
 
-interface ProductLike {
+interface InCollections {
+  /** Optional so a caller without collections still compiles; it then sends []. */
+  readonly collections?: { readonly nodes: readonly { readonly title: string }[] } | null;
+}
+
+interface ProductLike extends InCollections {
   readonly id: string;
   readonly handle: string;
   readonly title: string;
@@ -146,8 +174,6 @@ interface ProductLike {
   readonly featuredImage?: { readonly url: string } | null;
   readonly priceRange: { readonly minVariantPrice: MoneyLike };
   readonly compareAtPriceRange?: { readonly minVariantPrice: MoneyLike } | null;
-  /** Optional so a caller without collections still compiles; it then sends []. */
-  readonly collections?: { readonly nodes: readonly { readonly title: string }[] } | null;
 }
 
 /**
@@ -167,7 +193,7 @@ interface ProductLike {
  * Store for the theme, Headless for web), so the two lists match only while
  * both channels carry the same collections.
  */
-const categories = (product: ProductLike): readonly string[] =>
+export const collectionTitles = (product: InCollections): readonly string[] =>
   (product.collections?.nodes ?? []).map((collection) => collection.title).sort();
 
 /**
@@ -179,13 +205,13 @@ const categories = (product: ProductLike): readonly string[] =>
  */
 export const viewedProduct = (
   product: ProductLike,
-  storeDomain: string,
+  siteOrigin: string,
 ): ViewedProductPayload => ({
   Name: product.title,
   ProductID: legacyIdFromGid(product.id),
-  Categories: categories(product),
+  Categories: collectionTitles(product),
   ImageURL: product.featuredImage?.url ?? "",
-  URL: productUrl(storeDomain, product.handle),
+  URL: productUrl(siteOrigin, product.handle),
   Brand: product.vendor ?? "",
   Price: formatEventPrice(product.priceRange.minVariantPrice),
   Value: product.priceRange.minVariantPrice.amount,
@@ -194,11 +220,18 @@ export const viewedProduct = (
 
 interface CartLineLike {
   readonly quantity: number;
+  /** What the line actually costs: a subscription line is below list price. */
+  readonly cost: { readonly totalAmount: MoneyLike };
   readonly merchandise: {
+    /** The variant's gid. */
     readonly id: string;
     readonly image?: { readonly url: string } | null;
     readonly price: MoneyLike;
-    readonly product: { readonly handle: string; readonly title: string };
+    readonly product: InCollections & {
+      readonly id: string;
+      readonly handle: string;
+      readonly title: string;
+    };
   };
   readonly sellingPlanAllocation?: {
     readonly sellingPlan: { readonly name: string };
@@ -211,20 +244,52 @@ interface CartLike {
   readonly lines: { readonly nodes: readonly CartLineLike[] };
 }
 
+/**
+ * The price one unit of the line is charged at: the line's cost divided by its
+ * quantity, not `merchandise.price`, which is the variant's list price and
+ * overstates a subscription line (£24.95 listed, £19.95 on the plan).
+ * `product-analytics.ts` reads the same source for PostHog.
+ */
+const chargedUnitPrice = (line: CartLineLike): MoneyLike => ({
+  amount: String(Number(line.cost.totalAmount.amount) / Math.max(line.quantity, 1)),
+  currencyCode: line.cost.totalAmount.currencyCode,
+});
+
+const cartItem = (line: CartLineLike, siteOrigin: string): CartItemPayload => ({
+  ProductName: line.merchandise.product.title,
+  ProductID: legacyIdFromGid(line.merchandise.product.id),
+  VariantID: legacyIdFromGid(line.merchandise.id),
+  Quantity: line.quantity,
+  ItemPrice: formatEventPrice(chargedUnitPrice(line)),
+  RowTotal: formatEventPrice(line.cost.totalAmount),
+  ProductURL: productUrl(siteOrigin, line.merchandise.product.handle),
+  ImageURL: line.merchandise.image?.url ?? "",
+  ProductCategories: collectionTitles(line.merchandise.product),
+  SellingPlanName: line.sellingPlanAllocation?.sellingPlan.name ?? null,
+});
+
+/**
+ * `quantity` is how many this add put in, not the line's new total: adding a
+ * second unit to a line of one reports 1, not 2.
+ */
 export const addedToCart = (
   cart: CartLike,
   addedLine: CartLineLike,
-  storeDomain: string,
+  siteOrigin: string,
+  quantity: number,
 ): AddedToCartPayload => ({
   $value: Number(cart.cost.subtotalAmount.amount),
   AddedItemProductName: addedLine.merchandise.product.title,
-  AddedItemProductID: legacyIdFromGid(addedLine.merchandise.id),
-  AddedItemPrice: formatEventPrice(addedLine.merchandise.price),
-  AddedItemQuantity: addedLine.quantity,
-  AddedItemURL: productUrl(storeDomain, addedLine.merchandise.product.handle),
+  AddedItemProductID: legacyIdFromGid(addedLine.merchandise.product.id),
+  AddedItemVariantID: legacyIdFromGid(addedLine.merchandise.id),
+  AddedItemCategories: collectionTitles(addedLine.merchandise.product),
+  AddedItemPrice: formatEventPrice(chargedUnitPrice(addedLine)),
+  AddedItemQuantity: quantity,
+  AddedItemURL: productUrl(siteOrigin, addedLine.merchandise.product.handle),
   AddedItemImageURL: addedLine.merchandise.image?.url ?? "",
   ItemNames: cart.lines.nodes.map((line) => line.merchandise.product.title),
   CheckoutURL: cart.checkoutUrl,
+  Items: cart.lines.nodes.map((line) => cartItem(line, siteOrigin)),
 });
 
 /**
@@ -248,22 +313,10 @@ export const addedToCart = (
  */
 export const startedCheckout = (
   cart: CartLike,
-  storeDomain: string,
+  siteOrigin: string,
 ): StartedCheckoutPayload => ({
   $value: Number(cart.cost.subtotalAmount.amount),
   ItemNames: cart.lines.nodes.map((line) => line.merchandise.product.title),
   CheckoutURL: cart.checkoutUrl,
-  Items: cart.lines.nodes.map((line) => ({
-    ProductName: line.merchandise.product.title,
-    ProductID: legacyIdFromGid(line.merchandise.id),
-    Quantity: line.quantity,
-    ItemPrice: formatEventPrice(line.merchandise.price),
-    RowTotal: formatEventPrice({
-      amount: String(Number(line.merchandise.price.amount) * line.quantity),
-      currencyCode: line.merchandise.price.currencyCode,
-    }),
-    ProductURL: productUrl(storeDomain, line.merchandise.product.handle),
-    ImageURL: line.merchandise.image?.url ?? "",
-    SellingPlanName: line.sellingPlanAllocation?.sellingPlan.name ?? null,
-  })),
+  Items: cart.lines.nodes.map((line) => cartItem(line, siteOrigin)),
 });
