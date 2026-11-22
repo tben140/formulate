@@ -2,7 +2,14 @@ import { formatMoney } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 import { CollectionFilters } from "../components/collection-filters";
 import { SiteFooter } from "../components/site-footer";
@@ -37,6 +44,7 @@ const SearchScreen = () => {
     error,
     hasNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
     fetchNextPage,
   } = useSearch(term, filterQuery);
   // Every loaded page's products; the first page carries the filters and count.
@@ -62,6 +70,23 @@ const SearchScreen = () => {
               className="py-4"
               accessibilityLabel="Loading more results"
             />
+          ) : isFetchNextPageError ? (
+            // Here, not only in the header: by the end of the list the
+            // header's error is off-screen.
+            <View className="items-center py-4">
+              <Text className="text-sm text-foreground-muted">
+                {"Couldn't load more results."}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isFetching }}
+                disabled={isFetching}
+                onPress={() => void fetchNextPage()}
+                className="mt-2 rounded-md border border-border px-4 py-2"
+              >
+                <Text className="text-sm font-medium text-foreground">Try again</Text>
+              </Pressable>
+            </View>
           ) : null}
           <SiteFooter />
         </>
