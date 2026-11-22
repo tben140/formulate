@@ -64,11 +64,32 @@ const vercelPreviewToolbar: Record<string, readonly string[]> = {
   "frame-src": ["https://vercel.live"],
 };
 
-/** The policy for this build: `VERCEL_ENV` is "preview" on preview builds. */
-export const buildPolicy = (preview: boolean): string =>
+/**
+ * Where browser errors go (lib/sentry-client.ts): the ingest host in the DSN,
+ * exactly, rather than every Sentry host. Undefined when Sentry is off, or the
+ * DSN doesn't parse.
+ */
+export const sentryOrigin = (dsn: string | undefined): string | undefined => {
+  if (!dsn) return undefined;
+  try {
+    return new URL(dsn).origin;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * The policy for this build: `VERCEL_ENV` is "preview" on preview builds, and
+ * the Sentry DSN, when set, adds its ingest host to connect-src.
+ */
+export const buildPolicy = (preview: boolean, sentryDsn?: string): string =>
   Object.entries(policy)
     .map(([directive, sources]) => {
-      const extra = preview ? (vercelPreviewToolbar[directive] ?? []) : [];
+      const sentry = directive === "connect-src" ? sentryOrigin(sentryDsn) : undefined;
+      const extra = [
+        ...(preview ? (vercelPreviewToolbar[directive] ?? []) : []),
+        ...(sentry ? [sentry] : []),
+      ];
       // A source list with 'none' can't take anything else.
       const all =
         extra.length > 0 ? [...sources.filter((s) => s !== "'none'"), ...extra] : sources;
@@ -76,7 +97,10 @@ export const buildPolicy = (preview: boolean): string =>
     })
     .join("; ");
 
-export const contentSecurityPolicy = buildPolicy(process.env.VERCEL_ENV === "preview");
+export const contentSecurityPolicy = buildPolicy(
+  process.env.VERCEL_ENV === "preview",
+  process.env.NEXT_PUBLIC_SENTRY_DSN,
+);
 
 export const securityHeaders: readonly { key: string; value: string }[] = [
   { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicy },
