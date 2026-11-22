@@ -5,5 +5,5 @@ export {
   checkSupport,
   GMAIL_CLIP_BYTES,
   HANDLED,
-} from "./check";
-export type { CheckResult } from "./check";
+} from "./check.ts";
+export type { CheckResult } from "./check.ts";

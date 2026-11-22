@@ -60,6 +60,13 @@ describe("checkStructure", () => {
     expect(errorsFor(starter)).not.toMatch("manage_preferences_link");
   });
 
+  it("still wants text on a link whose target is a template tag", () => {
+    const html = starter.replace(/>\s*Email preferences\s*</, "><");
+    expect(errorsFor(html)).toMatch(
+      "The link to {% manage_preferences_link %} has no text",
+    );
+  });
+
   it("refuses scripts and forms, and anything Gmail would clip", () => {
     const html = starter.replace(
       "</body>",

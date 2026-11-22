@@ -31,7 +31,8 @@ const withoutStyles = (html: string) => html.replace(/<style[\s\S]*?<\/style>/g,
 const undeclared = (html: string) =>
   html
     .replace(/<meta name="(supported-)?color-scheme"[^>]*>/g, "")
-    .replace(/color-scheme:[^;]*;|supported-color-schemes:[^;]*;/g, "")
+    // Whole declarations only: `prefers-color-scheme:` also ends in `color-scheme:`.
+    .replace(/(?<![\w-])(supported-color-schemes|color-scheme)\s*:[^;}]*;?/g, "")
     .replace(/prefers-color-scheme:\s*dark/g, "prefers-color-scheme: never");
 
 /** A phone, and a desktop client's reading pane. */

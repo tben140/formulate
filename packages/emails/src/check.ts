@@ -158,11 +158,13 @@ export const checkStructure = (html: string): CheckResult => {
     if (/unsubscribe/.test(href)) unsubscribe = true;
     if (!href || href === "#")
       errors.push(`A link ("${text(link).trim()}") goes nowhere.`);
-    else if (isTemplateTag(href)) continue;
-    else if (/^(https:|mailto:|tel:)/.test(href)) {
-      if (/localhost|127\.0\.0\.1|\.vercel\.app|myshopify\.com/.test(href))
+    // Klaviyo fills in a template tag's target; its text is still checked below.
+    else if (!isTemplateTag(href)) {
+      if (!/^(https:|mailto:|tel:)/.test(href))
+        errors.push(`${href} must be https:, mailto: or tel:.`);
+      else if (/localhost|127\.0\.0\.1|\.vercel\.app|myshopify\.com/.test(href))
         errors.push(`${href} isn't the public site.`);
-    } else errors.push(`${href} must be https:, mailto: or tel:.`);
+    }
     if (
       !text(link).trim() &&
       !elements(link.children).some((e) => e.name === "img" && e.attribs.alt)

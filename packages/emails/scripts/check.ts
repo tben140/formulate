@@ -5,10 +5,11 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { checkEmail } from "../src/check.ts";
 
-const templates = new URL("../templates/", import.meta.url).pathname;
+const templates = fileURLToPath(new URL("../templates/", import.meta.url));
 const files =
   process.argv.length > 2
     ? process.argv.slice(2)

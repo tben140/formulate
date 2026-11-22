@@ -73,8 +73,12 @@ In each, check that:
   background;
 - the preview line in the inbox is the one written for it;
 - every link opens the right page on www.doublehelixsupplements.co.uk;
-- the unsubscribe and preferences links work;
 - with images turned off, the email still makes sense.
+
+Test sends fill the unsubscribe and preferences links with placeholders, so
+they can't show those links work. Check them once per template with a live
+send to a list holding only a test profile of Ben's: that's a real send, so
+it needs Ben's yes like any other.
 
 ## 3. Spam and sign-in
 

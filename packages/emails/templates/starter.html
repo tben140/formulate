@@ -229,14 +229,18 @@
                   on a phone.
                 </p>
 
-                <!-- A bulletproof button: a padded link in a table cell, so it stays a button in Outlook for Windows, with images off, and in dark mode. -->
+                <!-- A bulletproof button: a padded link in a table cell, so it stays a button in Outlook for Windows, with images off, and in dark mode. Outlook for Windows ignores padding on links, so mso-padding-alt gives the cell the same padding there only. -->
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                   <tr>
                     <td
                       class="button-bg"
                       align="center"
                       bgcolor="#1d49d8"
-                      style="border-radius: 8px; background-color: #1d49d8"
+                      style="
+                        border-radius: 8px;
+                        background-color: #1d49d8;
+                        mso-padding-alt: 14px 24px;
+                      "
                     >
                       <a
                         href="https://www.doublehelixsupplements.co.uk/collections/best-sellers"
