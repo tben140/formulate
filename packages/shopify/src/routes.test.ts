@@ -3,7 +3,7 @@ import { join, relative, sep } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { APP_IDENTIFIERS, SHARED_ROUTES, SURFACE_ONLY_ROUTES, paths } from "./routes";
+import { SHARED_ROUTES, SURFACE_ONLY_ROUTES, paths } from "./routes";
 
 /**
  * The parity test (SHO-63): both apps' route files, compared with the
@@ -58,11 +58,13 @@ describe("route parity", () => {
     expect([...new Set(mobileRoutes())].sort()).toEqual(expected("mobile"));
   });
 
-  it("matches the identifiers in app.config.ts", async () => {
+  it("app.config.ts takes its identifiers and link paths from here", async () => {
     const { readFileSync } = await import("node:fs");
     const config = readFileSync(join(repo, "apps/mobile/app.config.ts"), "utf8");
-    expect(config).toContain(`bundleIdentifier: "${APP_IDENTIFIERS.ios}"`);
-    expect(config).toContain(`package: "${APP_IDENTIFIERS.android}"`);
+    expect(config).toContain('from "@formulate/shopify/routes"');
+    expect(config).toContain("bundleIdentifier: APP_IDENTIFIERS.ios");
+    expect(config).toContain("package: APP_IDENTIFIERS.android");
+    expect(config).toContain("APP_LINK_PATHS.map(");
   });
 });
 
