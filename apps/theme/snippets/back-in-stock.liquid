@@ -1,4 +1,4 @@
-{% comment %}
+{% doc %}
   "Email me when it's back", below the product form (SHO-118), the counterpart
   of apps/web's <BackInStockForm />. Klaviyo's live "Back in stock" flow sends
   the email when Shopify restocks the variant.
@@ -15,10 +15,9 @@
   ⚠️ A one-off alert, not a marketing subscription: no list and no consent,
   and the hint says so.
 
-  Accepts:
-  - product: the product
-  - variant: the variant selected on load
-{% endcomment %}
+  @param {product} product - The product.
+  @param {variant} variant - The variant selected on load.
+{% enddoc %}
 {%- liquid
   assign any_sold_out = false
   for v in product.variants

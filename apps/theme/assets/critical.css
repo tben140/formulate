@@ -1426,7 +1426,8 @@ back-in-stock:not(:defined) {
 }
 
 .back-in-stock__message {
-  min-height: 1.25rem;
+  /* One line of small text, held so the form doesn't move when it appears. */
+  min-height: var(--spacing-5);
   margin-block-start: var(--spacing-2);
   font-size: var(--text-sm);
   color: var(--color-success);
