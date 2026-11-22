@@ -51,8 +51,11 @@ test("a collection, and its filter sheet", async ({ page }) => {
   await settle(page);
   expect(await scan(page)).toEqual([]);
 
-  await page.getByRole("button", { name: "Filter" }).click();
-  await expect(page.getByRole("button", { name: "Show results" })).toBeVisible();
+  // On a collection the sheet sorts too, and applies with "Show N products".
+  await page.getByRole("button", { name: "Filter & sort" }).click();
+  await expect(
+    page.getByRole("button", { name: /^Show (results|\d+\+? products?)$/ }),
+  ).toBeVisible();
   expect(await scan(page)).toEqual([]);
 });
 
