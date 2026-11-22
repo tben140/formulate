@@ -9,7 +9,7 @@ import {
 } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 /**
  * The search box, with product suggestions as you type (SHO-103), matching the
@@ -40,6 +40,7 @@ export const PredictiveSearch = ({
     readonly products: readonly ProductSuggestion[];
   } | null>(null);
   const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [active, setActive] = useState(-1);
   const [status, setStatus] = useState("");
 
@@ -61,7 +62,9 @@ export const PredictiveSearch = ({
         const products = body.products ?? [];
         setResult({ term: wanted, products });
         setActive(-1);
-        setOpen(true);
+        // Focus may have moved on (to the Search button, say) while this
+        // was loading. Keep the results for onFocus, but don't reopen.
+        setOpen(document.activeElement === inputRef.current);
         setStatus(suggestionsStatus(products.length));
       } catch (error) {
         // Aborted by the next keystroke, or offline: Enter still searches.
@@ -131,6 +134,7 @@ export const PredictiveSearch = ({
     // included), so a product name has room at phone width.
     <div className="min-w-0 flex-1">
       <input
+        ref={inputRef}
         id={id}
         type="search"
         name="q"

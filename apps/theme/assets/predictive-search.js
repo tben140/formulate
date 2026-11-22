@@ -139,7 +139,9 @@ export class PredictiveSearch extends Component {
               "[count]",
               String(count),
             ) ?? "");
-      if (count > 0) this.#open();
+      // Focus may have moved on (to the Search button, say) while this was
+      // loading. The focus listener reopens the kept results later.
+      if (count > 0 && document.activeElement === this.refs.input) this.#open();
     } catch {
       // Aborted by the next keystroke, or offline: Enter still searches.
     }
