@@ -58,13 +58,13 @@ export type ReviewsResult =
       readonly status: number;
       readonly body: {
         readonly ok: false;
-        readonly reason: "rejected" | "not-configured" | "unavailable";
+        readonly reason: "rejected" | "not-configured" | "unavailable" | "rate-limited";
       };
     };
 
 const fail = (
   status: number,
-  reason: "rejected" | "not-configured" | "unavailable",
+  reason: "rejected" | "not-configured" | "unavailable" | "rate-limited",
 ): ReviewsResult => ({ status, body: { ok: false, reason } });
 
 /** "Sam Taylor" → "Sam T.", as reviewerDisplayName in packages/shopify. */
@@ -130,6 +130,9 @@ export const toPublicReview = (review: Record<string, unknown>): PublicReview | 
   };
 };
 
+/** How long one Judge.me call may take before the Worker gives up. */
+const JUDGEME_TIMEOUT_MS = 5000;
+
 const judgeme = async (env: ReviewsEnv, path: string, params: Record<string, string>) => {
   const url = new URL(`${env.JUDGEME_API_URL ?? JUDGEME_API}${path}`);
   url.search = new URLSearchParams({
@@ -137,11 +140,22 @@ const judgeme = async (env: ReviewsEnv, path: string, params: Record<string, str
     api_token: env.JUDGEME_PRIVATE_TOKEN ?? "",
     ...params,
   }).toString();
-  const response = await fetch(url, { headers: { accept: "application/json" } });
-  return {
-    status: response.status,
-    body: (await response.json().catch(() => null)) as Record<string, unknown> | null,
-  };
+  // A network failure or a slow Judge.me becomes a status the callers already
+  // map to a generic 502, never an exception (an unstructured 500) or a
+  // request held open. 504 is never a real Judge.me status they act on.
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(JUDGEME_TIMEOUT_MS),
+    });
+    return {
+      status: response.status,
+      body: (await response.json().catch(() => null)) as Record<string, unknown> | null,
+    };
+  } catch (error) {
+    console.error("reviews: Judge.me request failed", (error as Error).name);
+    return { status: 504, body: null };
+  }
 };
 
 export const listReviews = async (
@@ -211,9 +225,14 @@ export const listReviews = async (
  * popular product page doesn't call Judge.me on every view. Errors aren't
  * cached. `caches` doesn't exist outside Workers (tests), so it's optional.
  */
+/**
+ * `allowUpstream` is asked only on a cache miss, just before Judge.me would be
+ * called: a cached answer costs nothing, so it isn't rate limited.
+ */
 export const cachedReviews = async (
   env: ReviewsEnv,
   raw: string,
+  allowUpstream: () => Promise<boolean> = () => Promise.resolve(true),
 ): Promise<ReviewsResult> => {
   const store = (globalThis as { caches?: { default?: Cache } }).caches?.default;
   let key: Request | null = null;
@@ -234,6 +253,7 @@ export const cachedReviews = async (
         body: (await hit.json()) as ReviewsResult["body"],
       } as ReviewsResult;
   }
+  if (!(await allowUpstream())) return fail(429, "rate-limited");
   const result = await listReviews(env, raw);
   if (store && key && result.body.ok) {
     await store.put(

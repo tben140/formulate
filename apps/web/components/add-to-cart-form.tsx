@@ -1,6 +1,13 @@
 "use client";
 
-import { EVENTS, addedToCart } from "@formulate/analytics";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  addedToCart,
+  addedToCartProperties,
+  numericId,
+  productRef,
+} from "@formulate/analytics";
 import {
   ONE_TIME,
   defaultSelectedOptions,
@@ -31,12 +38,14 @@ import {
   type SelectedOption,
 } from "@formulate/shopify";
 import { ShopPayButton } from "@shopify/hydrogen/react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
+import { analytics } from "@/lib/product-analytics";
 
+import { AnalyticsIdField } from "./analytics-id-field";
 import { useCartUi } from "./cart-provider";
 
 type Product = NonNullable<ProductByHandleResult["product"]>;
@@ -55,7 +64,7 @@ const IDLE: CartActionState = { status: "idle" };
  * only the rendering is here. See docs/adr/0005-parity-means-design-not-data.md.
  */
 export const AddToCartForm = ({ product }: { product: Product }) => {
-  const { openCart, storeDomain } = useCartUi();
+  const { openCart, siteOrigin } = useCartUi();
   const [state, formAction, pending] = useActionState(addToCart, IDLE);
 
   const [selected, setSelected] = useState<readonly SelectedOption[]>(() =>
@@ -113,10 +122,21 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     openCart();
 
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
-    if (state.cart && line) {
-      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
+    const quantity = state.addedQuantity ?? 1;
+    if (state.cart && line && quantity > 0) {
+      track(EVENTS.addedToCart, addedToCart(state.cart, line, siteOrigin, quantity));
+      const added = addedToCartProperties(line, quantity);
+      if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
     }
-  }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
+  }, [
+    state.token,
+    state.status,
+    state.cart,
+    state.addedLineId,
+    state.addedQuantity,
+    openCart,
+    siteOrigin,
+  ]);
 
   // Each option as a card, plans first and one-time last (purchase-cards.ts).
   // A plan ships whole packs, and sets the quantity: three 30-day packs every
@@ -161,6 +181,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
       className="mt-6"
     >
       <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
+      <AnalyticsIdField />
       <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
       <input type="hidden" name="quantity" value={quote?.units ?? 1} />
       <input type="hidden" name="giftId" value={gift?.id ?? ""} />
@@ -222,7 +243,16 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       name={`option-${option.name}`}
                       value={value.name}
                       checked={checked}
-                      onChange={() => setSelected(candidate)}
+                      onChange={() => {
+                        setSelected(candidate);
+                        if (match) {
+                          analytics()?.capture(PRODUCT_EVENTS.variantSelected, {
+                            ...productRef(product),
+                            variant_id: numericId(match.id),
+                            variant_title: match.title,
+                          });
+                        }
+                      }}
                       className="sr-only"
                     />
                     {swatches ? (
@@ -284,7 +314,17 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                         name="purchase-option"
                         value={card.id}
                         checked={chosen}
-                        onChange={() => setPlanId(card.id)}
+                        onChange={() => {
+                          setPlanId(card.id);
+                          analytics()?.capture(PRODUCT_EVENTS.sellingPlanSelected, {
+                            ...productRef(product),
+                            // The plan's own name, as the batch records it, not the card's title.
+                            selling_plan: plan
+                              ? (allocations.find((a) => a.sellingPlan.id === card.id)
+                                  ?.sellingPlan.name ?? card.title)
+                              : null,
+                          });
+                        }}
                         className="h-4 w-4 accent-brand-600"
                       />
                       <span className="text-base font-semibold">{card.title}</span>

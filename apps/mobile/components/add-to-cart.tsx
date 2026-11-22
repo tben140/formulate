@@ -1,3 +1,4 @@
+import { PRODUCT_EVENTS, numericId, productRef } from "@formulate/analytics";
 import {
   deliveryPromise,
   expressCheckoutOnProduct,
@@ -19,6 +20,7 @@ import {
 import { Pressable, View, type LayoutChangeEvent } from "react-native";
 
 import { ExpressCheckout } from "../lib/checkout";
+import { analytics } from "../lib/product-analytics";
 import type { Product, Purchase } from "../lib/use-purchase";
 import { ShopImage } from "./shop-image";
 import { Text } from "./text";
@@ -96,7 +98,16 @@ export const AddToCart = ({
                 return (
                   <Pressable
                     key={value.name}
-                    onPress={() => setSelected(candidate)}
+                    onPress={() => {
+                      setSelected(candidate);
+                      if (match) {
+                        analytics()?.capture(PRODUCT_EVENTS.variantSelected, {
+                          ...productRef(product),
+                          variant_id: numericId(match.id),
+                          variant_title: match.title,
+                        });
+                      }
+                    }}
                     accessibilityRole="radio"
                     // aria-checked, not accessibilityState.selected: a radio
                     // is checked, and react-native-web only writes
@@ -176,7 +187,17 @@ export const AddToCart = ({
               return (
                 <Pressable
                   key={card.id || "one-time"}
-                  onPress={() => setPlanId(card.id)}
+                  onPress={() => {
+                    setPlanId(card.id);
+                    analytics()?.capture(PRODUCT_EVENTS.sellingPlanSelected, {
+                      ...productRef(product),
+                      // The plan's own name, as the batch records it, not the card's title.
+                      selling_plan: plan
+                        ? (allocations.find((a) => a.sellingPlan.id === card.id)
+                            ?.sellingPlan.name ?? card.title)
+                        : null,
+                    });
+                  }}
                   accessibilityRole="radio"
                   aria-checked={chosen}
                   accessibilityLabel={[

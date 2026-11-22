@@ -1,11 +1,18 @@
 "use client";
 
-import { EVENTS, addedToCart } from "@formulate/analytics";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  addedToCart,
+  addedToCartProperties,
+} from "@formulate/analytics";
 import { useActionState, useEffect } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
+import { analytics } from "@/lib/product-analytics";
 
+import { AnalyticsIdField } from "./analytics-id-field";
 import { useCartUi } from "./cart-provider";
 
 const IDLE: CartActionState = { status: "idle" };
@@ -22,17 +29,30 @@ export const QuickAdd = ({
   readonly variantId: string;
   readonly productTitle: string;
 }) => {
-  const { openCart, storeDomain } = useCartUi();
+  const { openCart, siteOrigin } = useCartUi();
   const [state, formAction, pending] = useActionState(addToCart, IDLE);
 
   // On the token, so a second add reopens a drawer closed in between.
   useEffect(() => {
     if (state.status !== "success") return;
     openCart();
+    // Klaviyo and PostHog, as the product page's form records an add.
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
-    if (state.cart && line)
-      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
-  }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
+    const quantity = state.addedQuantity ?? 1;
+    if (state.cart && line && quantity > 0) {
+      track(EVENTS.addedToCart, addedToCart(state.cart, line, siteOrigin, quantity));
+      const added = addedToCartProperties(line, quantity);
+      if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
+    }
+  }, [
+    state.token,
+    state.status,
+    state.cart,
+    state.addedLineId,
+    state.addedQuantity,
+    openCart,
+    siteOrigin,
+  ]);
 
   return (
     <form
@@ -45,6 +65,8 @@ export const QuickAdd = ({
     >
       <input type="hidden" name="merchandiseId" value={variantId} />
       <input type="hidden" name="quantity" value="1" />
+      {/* As every add form does: without it, an add takes the analytics id off the cart. */}
+      <AnalyticsIdField />
       {/* aria-disabled, not disabled: focus stays on the button (SHO-134). */}
       <button
         type="submit"

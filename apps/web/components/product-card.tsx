@@ -7,7 +7,7 @@ import {
   reviewSummary,
 } from "@formulate/shopify";
 import { Image } from "@shopify/hydrogen-react";
-import Link from "next/link";
+import Link from "@/components/link";
 
 import { QuickAdd } from "./quick-add";
 import { Stars } from "./stars";

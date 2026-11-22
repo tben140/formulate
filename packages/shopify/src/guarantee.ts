@@ -10,7 +10,7 @@ export const GUARANTEE_DAYS = 30;
 
 export const GUARANTEE_TITLE = `${GUARANTEE_DAYS}-day money-back guarantee`;
 
-export const GUARANTEE_DETAIL = `Not right for you? Tell us within ${GUARANTEE_DAYS} days of delivery and we'll refund you in full.`;
+export const GUARANTEE_DETAIL = `Not right for you? Tell us within ${GUARANTEE_DAYS} days of delivery and we'll refund you in full, even if it's opened. Covers your first order of each product.`;
 
 /** Shopify's refund policy page, the same path on web and the theme. */
 export const REFUND_POLICY_PATH = "/policies/refund-policy";
