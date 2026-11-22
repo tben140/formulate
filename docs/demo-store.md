@@ -65,7 +65,7 @@ simulated.
 | ---------------------------------------------------------------------------------- | --------- | --------------------------------------------------------------- |
 | Everything not listed below                                                        | 250       | Behaves like a stocked shop; survives many test orders          |
 | Whey Protein — Strawberry / Unsweetened; Electrolyte Powder — Citrus / Unsweetened | 3         | Exercises short adds: asking for 5 adds 3 and says so (SHO-131) |
-| Magnesium Glycinate — 200 mg                                                       | 0         | A sold-out **variant** on an in-stock product                   |
+| Magnesium Glycinate — 200 mg / 30 days                                             | 0         | A sold-out **variant** on an in-stock product                   |
 | Lion's Mane Mushroom (whole product)                                               | 0         | A sold-out **product**; also what back-in-stock needs (SHO-118) |
 
 Test orders use stock up, and the low-stock variants go to zero after a few. See

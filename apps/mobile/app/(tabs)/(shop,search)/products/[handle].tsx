@@ -1,28 +1,37 @@
-import { Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Keyboard,
-  ScrollView,
-  useWindowDimensions,
-  View,
-} from "react-native";
+  EVENTS,
+  PRODUCT_EVENTS,
+  productViewedProperties,
+  viewedProduct,
+} from "@formulate/analytics";
+import { EXPERIMENTS } from "@formulate/experiments";
+import { galleryImages, ratingLabel, reviewSummary } from "@formulate/shopify";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Keyboard, ScrollView, View } from "react-native";
 
 import { AddToCart } from "../../../../components/add-to-cart";
 import { useCartUi } from "../../../../components/cart-provider";
 import { PairsWellWith } from "../../../../components/pairs-well-with";
-import { ProductDescription } from "../../../../components/product-description";
+import { ProductGallery } from "../../../../components/product-gallery";
+import { ProductReviews } from "../../../../components/product-reviews";
+import { RichText } from "../../../../components/rich-text";
 import { ShareButton } from "../../../../components/share-button";
+import { Stars } from "../../../../components/stars";
 import { SiteFooter } from "../../../../components/site-footer";
 import {
   STICKY_BAR_HEIGHT,
   StickyAddToCart,
 } from "../../../../components/sticky-add-to-cart";
+import { useExperiment } from "../../../../lib/experiments";
+import { trackEvent } from "../../../../lib/klaviyo";
+import { analytics } from "../../../../lib/product-analytics";
 import { useProduct } from "../../../../lib/queries";
+import { SITE_ORIGIN } from "../../../../lib/site";
+import { useTrackingConsent } from "../../../../lib/tracking-consent";
 import { usePurchase, type Product } from "../../../../lib/use-purchase";
 import { productWebUrl } from "../../../../lib/web-links";
 import { Text } from "../../../../components/text";
-import { ShopImage } from "../../../../components/shop-image";
 
 /** Whether the software keyboard is showing. The "did" events fire on both platforms. */
 const useKeyboardOpen = () => {
@@ -84,7 +93,41 @@ const ProductScreen = () => {
  * returns above.
  */
 const ProductBody = ({ product }: { product: Product }) => {
+  const summary = reviewSummary(product);
   const { openCart } = useCartUi();
+
+  /*
+   * PostHog's product_viewed (SHO-87) and Klaviyo's Viewed Product (SHO-109),
+   * once per product shown. Also re-run when the tracking choice changes, so
+   * the product open while the shopper accepts is counted, and the one shown
+   * while the stored choice was still loading isn't lost.
+   *
+   * Only while this screen is in front: earlier product screens stay mounted
+   * under the stack, and an Accept mustn't count those. Each screen counts its
+   * product once, so coming back to it isn't a second view.
+   */
+  const consent = useTrackingConsent();
+  const counted = useRef<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (consent !== "granted" || counted.current === product.id) return;
+      counted.current = product.id;
+      analytics()?.capture(
+        PRODUCT_EVENTS.productViewed,
+        productViewedProperties(product),
+      );
+      trackEvent(EVENTS.viewedProduct, viewedProduct(product, SITE_ORIGIN));
+    }, [product, consent]),
+  );
+  /*
+   * The A/A test (ADR 0013): both arms render this same screen, so nothing
+   * below depends on the variant; the hook only records the exposure. A route
+   * parameter forces a variant for review, as `?product-page-aa=` does on web.
+   */
+  const aa = EXPERIMENTS.productPageAa;
+  const params = useLocalSearchParams<Record<string, string | string[]>>();
+  useExperiment(aa, params[aa.key]);
+
   const purchase = usePurchase(product);
 
   /*
@@ -113,7 +156,6 @@ const ProductBody = ({ product }: { product: Product }) => {
   const showBar = button !== null && view.height > 0 && !buttonOnScreen && !keyboardOpen;
 
   // The image's drawn size: the screen width less the 16 pt padding each side.
-  const imageSize = useWindowDimensions().width - 32;
 
   return (
     <View className="flex-1">
@@ -168,22 +210,30 @@ const ProductBody = ({ product }: { product: Product }) => {
           }}
         />
 
-        {/* Full width inside the screen's 16 pt padding, and square. */}
-        <ShopImage
-          url={product.featuredImage?.url}
-          // Content here, not decoration: the merchant's alt text, or the
-          // product's name when there's none.
-          alt={product.featuredImage?.altText || product.title}
-          width={imageSize}
-          height={imageSize}
-          style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}
-        />
+        <ProductGallery images={galleryImages(product)} title={product.title} />
 
         <View>
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
+          {product.subtitle?.value ? (
+            <Text className="mt-1 text-lg text-foreground-muted">
+              {product.subtitle.value}
+            </Text>
+          ) : null}
+          {summary ? (
+            <View className="mt-1 flex-row items-center gap-2">
+              <Stars value={summary.average} label={ratingLabel(summary)} />
+              <Text
+                importantForAccessibility="no-hide-descendants"
+                accessibilityElementsHidden
+                className="text-sm text-foreground-muted"
+              >
+                {summary.count} {summary.count === 1 ? "review" : "reviews"}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
-        <ProductDescription html={product.descriptionHtml} />
+        {product.descriptionHtml ? <RichText html={product.descriptionHtml} /> : null}
 
         {/*
           The price lives inside AddToCart, because it changes with the selection
@@ -208,6 +258,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         </View>
 
         <PairsWellWith productId={product.id} />
+
+        <ProductReviews handle={product.handle} summary={summary} />
 
         <SiteFooter />
       </ScrollView>

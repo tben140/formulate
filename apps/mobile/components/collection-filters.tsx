@@ -1,9 +1,16 @@
 import {
   activeFilterCount,
+  collectionSort,
+  filterGroups,
+  FILTER_VALUES_SHOWN,
   isSelected,
+  priceRangeLabel,
+  SORT_OPTIONS,
   withoutFilters,
   withPriceRange,
+  withSort,
   withValueToggled,
+  type FilterGroup,
   type FilterLike,
 } from "@formulate/shopify";
 import { useState } from "react";
@@ -12,22 +19,32 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "./text";
 import { fontFor } from "../lib/fonts";
 
+import { COLLECTION_PAGE_SIZE, useCollection } from "../lib/queries";
+
 /**
- * Search & Discovery filters for a collection (SHO-153), matching the web and
- * theme panels: a Filter button with the active count, removable chips, and a
- * sheet of options.
+ * Search & Discovery filters and the sort for a collection (SHO-153),
+ * matching the web and theme panels: a "Filter & sort" button with the active
+ * count, removable chips, and a sheet of options.
  *
  * Filter state is the same Liquid-style query string web and the theme put in
- * the URL (`filter.v.option.flavour=Vanilla`), held by the screen. The sheet
- * edits a draft and applies it with "Show results", so ticking several options
- * doesn't refetch on each tap.
+ * the URL (`filter.v.option.flavour=Vanilla&sort_by=price-ascending`), held by
+ * the screen. The sheet edits a draft and applies it with "Show N products",
+ * so ticking several options doesn't reload the list on each tap; the count
+ * and the options' own counts follow the draft as you go.
+ *
+ * As on web (filterGroups): values that would change nothing are left out,
+ * the first few groups start open, and long ones show five values and "Show
+ * more".
  */
 export const CollectionFilters = ({
+  handle,
   filters,
   query,
   onChange,
   productCount,
 }: {
+  /** A collection's handle: it adds the sort and the sheet's live count. */
+  readonly handle?: string;
   readonly filters: readonly FilterLike[];
   readonly query: string;
   readonly onChange: (query: string) => void;
@@ -39,6 +56,8 @@ export const CollectionFilters = ({
 
   const params = new URLSearchParams(query);
   const active = activeFilterCount(params);
+  const sort = collectionSort(params);
+  const title = handle === undefined ? "Filter" : "Filter & sort";
 
   const chips = filters.flatMap((filter) =>
     filter.type === "PRICE_RANGE"
@@ -63,10 +82,10 @@ export const CollectionFilters = ({
         <Pressable
           onPress={openSheet}
           accessibilityRole="button"
-          accessibilityLabel={active > 0 ? `Filter, ${active} active` : "Filter"}
+          accessibilityLabel={`${title}${active > 0 ? `, ${active} active` : ""}`}
           className="flex-row items-center gap-2 rounded-md border border-border px-4 py-2"
         >
-          <Text className="text-sm font-medium text-foreground">Filter</Text>
+          <Text className="text-sm font-medium text-foreground">{title}</Text>
           {active > 0 ? (
             <View className="rounded-full bg-brand-600 px-2">
               <Text className="text-xs text-surface">{active}</Text>
@@ -75,6 +94,7 @@ export const CollectionFilters = ({
         </Pressable>
         <Text className="text-sm text-foreground-muted">
           {productCount} {productCount === 1 ? "product" : "products"}
+          {handle !== undefined && sort.value ? ` · ${sort.label}` : ""}
         </Text>
       </View>
 
@@ -105,6 +125,7 @@ export const CollectionFilters = ({
       ) : null}
 
       <FilterSheet
+        handle={handle}
         visible={open}
         filters={filters}
         draft={draft}
@@ -120,6 +141,7 @@ export const CollectionFilters = ({
 };
 
 const FilterSheet = ({
+  handle,
   visible,
   filters,
   draft,
@@ -127,6 +149,7 @@ const FilterSheet = ({
   onClose,
   onApply,
 }: {
+  readonly handle: string | undefined;
   readonly visible: boolean;
   readonly filters: readonly FilterLike[];
   readonly draft: string;
@@ -136,6 +159,26 @@ const FilterSheet = ({
 }) => {
   const { bottom } = useSafeAreaInsets();
   const params = new URLSearchParams(draft);
+  // The price fields are uncontrolled, so "Clear all" remounts them (a new key)
+  // to empty what they show along with the draft.
+  const [clears, setClears] = useState(0);
+  // Groups the shopper opened or closed, over where filterGroups starts them.
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
+
+  // The draft's own results: its count, and options counted against it. The
+  // applied query is already cached, so opening the sheet costs nothing.
+  const preview = useCollection(handle ?? "", {
+    filterQuery: draft,
+    enabled: visible && handle !== undefined,
+  });
+  const products = preview.data?.collection?.products;
+  const count = products?.nodes.length;
+  const groups = filterGroups(
+    products?.filters ?? filters,
+    params,
+    count !== undefined && count < COLLECTION_PAGE_SIZE ? count : null,
+  );
+  const sort = collectionSort(params);
 
   return (
     <Modal
@@ -150,7 +193,7 @@ const FilterSheet = ({
             accessibilityRole="header"
             className="text-lg font-semibold text-foreground"
           >
-            Filter
+            {handle === undefined ? "Filter" : "Filter & sort"}
           </Text>
           <Pressable
             onPress={onClose}
@@ -162,69 +205,56 @@ const FilterSheet = ({
         </View>
 
         <ScrollView
-          contentContainerClassName="gap-6 p-4"
+          contentContainerClassName="px-4 pb-4"
           keyboardShouldPersistTaps="handled"
         >
-          {filters.map((filter) =>
-            filter.type === "PRICE_RANGE" ? (
-              <PriceGroup
-                key={filter.id}
-                filter={filter}
-                params={params}
-                setDraft={setDraft}
-              />
-            ) : (
-              <View key={filter.id} className="gap-1">
-                <Text
-                  accessibilityRole="header"
-                  className="mb-1 text-sm font-semibold text-foreground"
-                >
-                  {filter.label}
-                </Text>
-                {filter.values.map((value) => {
-                  const checked = isSelected(params, filter, value);
-                  const empty = value.count === 0 && !checked;
-                  return (
-                    <Pressable
-                      key={value.id}
-                      disabled={empty}
-                      onPress={() =>
-                        setDraft(withValueToggled(params, filter, value).toString())
-                      }
-                      accessibilityRole="checkbox"
-                      // aria- props: react-native-web drops a false
-                      // accessibilityState.checked, so unticked boxes had no
-                      // state at all on web. The same on native.
-                      aria-checked={checked}
-                      aria-disabled={empty}
-                      accessibilityLabel={`${value.label}, ${value.count} ${value.count === 1 ? "product" : "products"}`}
-                      className="flex-row items-center gap-3 py-2"
+          {handle !== undefined ? (
+            <View className="gap-1 border-b border-border py-4">
+              <Text
+                accessibilityRole="header"
+                className="mb-1 text-sm font-semibold text-foreground"
+              >
+                Sort by
+              </Text>
+              {SORT_OPTIONS.map((option) => {
+                const selected = option.value === sort.value;
+                return (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => setDraft(withSort(params, option.value).toString())}
+                    accessibilityRole="radio"
+                    aria-checked={selected}
+                    className="flex-row items-center gap-3 py-2"
+                  >
+                    <View
+                      className={`h-5 w-5 items-center justify-center rounded-full border ${
+                        selected ? "border-brand-600" : "border-ink-500"
+                      }`}
                     >
-                      {/* ink-500, not the hairline border colour: a checkbox's
-                          outline needs 3:1 against white (WCAG 1.4.11). */}
-                      <View
-                        className={`h-5 w-5 items-center justify-center rounded border ${
-                          checked ? "border-brand-600 bg-brand-600" : "border-ink-500"
-                        }`}
-                      >
-                        {checked ? (
-                          <Text className="text-xs font-bold text-surface">✓</Text>
-                        ) : null}
-                      </View>
-                      <Text
-                        className={`text-base ${empty ? "text-foreground-muted" : "text-foreground"}`}
-                      >
-                        {value.label}
-                      </Text>
-                      <Text className="text-base text-foreground-muted">
-                        ({value.count})
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ),
-          )}
+                      {selected ? (
+                        <View className="h-2.5 w-2.5 rounded-full bg-brand-600" />
+                      ) : null}
+                    </View>
+                    <Text className="text-base text-foreground">{option.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+
+          {groups.map((group) => (
+            <GroupView
+              key={group.filter.id}
+              group={group}
+              open={toggled[group.filter.id] ?? group.open}
+              onToggle={(open) =>
+                setToggled((was) => ({ ...was, [group.filter.id]: open }))
+              }
+              params={params}
+              setDraft={setDraft}
+              clears={clears}
+            />
+          ))}
         </ScrollView>
 
         <View
@@ -232,7 +262,10 @@ const FilterSheet = ({
           style={{ paddingBottom: Math.max(bottom, 12) }}
         >
           <Pressable
-            onPress={() => setDraft(withoutFilters(params).toString())}
+            onPress={() => {
+              setDraft(withoutFilters(params).toString());
+              setClears((was) => was + 1);
+            }}
             accessibilityRole="button"
             className="py-3"
           >
@@ -243,11 +276,116 @@ const FilterSheet = ({
             accessibilityRole="button"
             className="flex-1 items-center rounded-md bg-brand-600 py-3"
           >
-            <Text className="text-base font-semibold text-surface">Show results</Text>
+            <Text className="text-base font-semibold text-surface">
+              {count === undefined
+                ? "Show results"
+                : `Show ${count}${count === COLLECTION_PAGE_SIZE ? "+" : ""} ${count === 1 ? "product" : "products"}`}
+            </Text>
           </Pressable>
         </View>
       </View>
     </Modal>
+  );
+};
+
+const GroupView = ({
+  group,
+  open,
+  onToggle,
+  params,
+  setDraft,
+  clears,
+}: {
+  readonly group: FilterGroup;
+  readonly open: boolean;
+  readonly onToggle: (open: boolean) => void;
+  readonly params: URLSearchParams;
+  readonly setDraft: (query: string) => void;
+  readonly clears: number;
+}) => {
+  const { filter, values } = group;
+  const [showAll, setShowAll] = useState(group.moreOpen);
+  const shown = showAll ? values : values.slice(0, FILTER_VALUES_SHOWN);
+  const hidden = values.length - FILTER_VALUES_SHOWN;
+
+  return (
+    <View className="border-b border-border py-2">
+      <Pressable
+        onPress={() => onToggle(!open)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={
+          group.selected > 0
+            ? `${filter.label}, ${group.selected} selected`
+            : filter.label
+        }
+        className="flex-row items-center justify-between py-2"
+      >
+        <View className="flex-row items-center gap-2">
+          <Text className="text-sm font-semibold text-foreground">{filter.label}</Text>
+          {group.selected > 0 ? (
+            <View className="rounded-full bg-brand-600 px-1.5">
+              <Text className="text-xs text-surface">{group.selected}</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text aria-hidden className="text-sm text-foreground-muted">
+          {open ? "▴" : "▾"}
+        </Text>
+      </Pressable>
+
+      {open && filter.type === "PRICE_RANGE" ? (
+        <PriceGroup key={clears} filter={filter} params={params} setDraft={setDraft} />
+      ) : null}
+
+      {open && filter.type !== "PRICE_RANGE" ? (
+        <View className="pb-2">
+          {shown.map((value) => {
+            const checked = isSelected(params, filter, value);
+            return (
+              <Pressable
+                key={value.id}
+                onPress={() =>
+                  setDraft(withValueToggled(params, filter, value).toString())
+                }
+                accessibilityRole="checkbox"
+                // aria-checked, not accessibilityState: react-native-web drops a
+                // false accessibilityState.checked, so an unticked box had no
+                // state on web (SHO-92). It maps the same on native.
+                aria-checked={checked}
+                accessibilityLabel={`${value.label}, ${value.count} ${value.count === 1 ? "product" : "products"}`}
+                className="flex-row items-center gap-3 py-2"
+              >
+                {/* ink-500, not the hairline border colour: a checkbox's
+                    outline needs 3:1 against white (WCAG 1.4.11). */}
+                <View
+                  className={`h-5 w-5 items-center justify-center rounded border ${
+                    checked ? "border-brand-600 bg-brand-600" : "border-ink-500"
+                  }`}
+                >
+                  {checked ? (
+                    <Text className="text-xs font-bold text-surface">✓</Text>
+                  ) : null}
+                </View>
+                <Text className="text-base text-foreground">{value.label}</Text>
+                <Text className="text-base text-foreground-muted">({value.count})</Text>
+              </Pressable>
+            );
+          })}
+          {hidden > 0 ? (
+            <Pressable
+              onPress={() => setShowAll(!showAll)}
+              accessibilityRole="button"
+              className="py-2"
+            >
+              <Text className="text-sm text-brand-600 underline">
+                {showAll ? "Show fewer" : `Show ${hidden} more`}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
   );
 };
 
@@ -268,6 +406,7 @@ const PriceGroup = ({
 }) => {
   const min = params.get(`${filter.id}.gte`);
   const max = params.get(`${filter.id}.lte`);
+  const range = priceRangeLabel(filter);
   const set = (nextMin: string | null, nextMax: string | null) =>
     setDraft(
       withPriceRange(
@@ -279,10 +418,11 @@ const PriceGroup = ({
     );
 
   return (
-    <View className="gap-2">
-      <Text accessibilityRole="header" className="text-sm font-semibold text-foreground">
-        {filter.label}
-      </Text>
+    <View className="gap-2 pb-3">
+      {/* The range as a hint, not a placeholder that looks like an entry. */}
+      {range ? (
+        <Text className="text-xs text-foreground-muted">Range {range}</Text>
+      ) : null}
       <View className="flex-row gap-4">
         {(
           [
@@ -296,10 +436,13 @@ const PriceGroup = ({
               // TextInput doesn't inherit a font either (SHO-144).
               style={{ fontFamily: fontFor() }}
               defaultValue={value ?? ""}
-              onEndEditing={(event) => onChangeText(event.nativeEvent.text)}
+              // Into the draft on every keystroke, not on blur: "Show results"
+              // sits outside the scroll view and doesn't blur the field, and
+              // iOS's decimal pad has no return key, so a price typed and then
+              // applied would be lost. Uncontrolled, so "12." isn't rewritten.
+              onChangeText={onChangeText}
               keyboardType="decimal-pad"
               accessibilityLabel={`${filter.label} ${label.toLowerCase()}, pounds`}
-              placeholder="£"
               className="rounded-md border border-border px-3 py-2 text-base text-foreground"
             />
           </View>
