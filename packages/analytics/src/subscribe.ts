@@ -105,7 +105,8 @@ export const isPlausibleEmail = (value: string): boolean =>
  * across three runtimes" is the claim this project makes, and this is the
  * field that lets someone check it in a UI we do not control.
  */
-export type SubscriptionSource = "Double Helix web" | "Double Helix theme" | "Double Helix mobile";
+export type SubscriptionSource =
+  "Double Helix web" | "Double Helix theme" | "Double Helix mobile";
 
 interface SubscriptionInput {
   readonly email: string;
@@ -352,7 +353,11 @@ export const SERVER_SUBSCRIBE_URL =
  * "Bulk" with a single profile is not a misuse — it is the only server-side
  * subscribe endpoint Klaviyo offers.
  */
-export const serverSubscriptionPayload = ({ email, listId, source }: SubscriptionInput) => ({
+export const serverSubscriptionPayload = ({
+  email,
+  listId,
+  source,
+}: SubscriptionInput) => ({
   data: {
     type: "profile-subscription-bulk-create-job",
     attributes: {

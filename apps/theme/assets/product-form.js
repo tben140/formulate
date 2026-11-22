@@ -178,7 +178,13 @@ class ProductForm extends Component {
 
     const resize = new ResizeObserver(pad);
     resize.observe(stickyBar);
-    small.addEventListener("change", pad, { signal: this.signal });
+    // From 48rem up CSS hides the bar, which drops focus to <body> if its
+    // button had it. Hand focus to the main button, scrolling to it.
+    const breakpoint = () => {
+      if (!small.matches && stickyBar.contains(document.activeElement)) submit.focus();
+      pad();
+    };
+    small.addEventListener("change", breakpoint, { signal: this.signal });
 
     this.signal.addEventListener("abort", () => {
       observer.disconnect();
@@ -508,7 +514,9 @@ class ProductForm extends Component {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
       const message =
-        error instanceof Error ? error.message : "Could not update your cart.";
+        (error instanceof Error && error.message) ||
+        status?.dataset.errorLabel ||
+        "Could not update your cart.";
       if (status) status.textContent = message;
       // The status line sits by the main button, off screen whenever the bar
       // is up, so the bar shows the message too. Not a live region: the

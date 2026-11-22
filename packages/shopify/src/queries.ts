@@ -10,7 +10,13 @@ import { graphql } from "./generated";
  */
 
 export const CollectionProductsQuery = graphql(`
-  query CollectionProducts($handle: String!, $first: Int!, $filters: [ProductFilter!]) {
+  query CollectionProducts(
+    $handle: String!
+    $first: Int!
+    $filters: [ProductFilter!]
+    $sortKey: ProductCollectionSortKeys = COLLECTION_DEFAULT
+    $reverse: Boolean = false
+  ) {
     collection(handle: $handle) {
       id
       title
@@ -19,11 +25,11 @@ export const CollectionProductsQuery = graphql(`
         title
         description
       }
-      # COLLECTION_DEFAULT is the merchant's configured sort for this
-      # collection, the same order Liquid's collection.products uses, so the
-      # three surfaces agree. It is also the API default: stated here so it is a
-      # decision rather than an inheritance (SHO-111).
-      products(first: $first, sortKey: COLLECTION_DEFAULT, filters: $filters) {
+      # COLLECTION_DEFAULT (the variable's default) is the merchant's configured
+      # sort for this collection, the same order Liquid's collection.products
+      # uses, so the three surfaces agree (SHO-111). A shopper's choice of sort
+      # replaces it: see collectionSort in src/listing.ts.
+      products(first: $first, sortKey: $sortKey, reverse: $reverse, filters: $filters) {
         # The filters Search & Discovery offers for this collection, with counts
         # for the current selection. See src/filters.ts.
         filters {
@@ -74,10 +80,14 @@ export const ProductByHandleQuery = graphql(`
       id
       handle
       title
+      # A one-line summary shown under the title on every product page: the
+      # standard "Product subtitle" metafield, set per product in the admin.
+      subtitle: metafield(namespace: "descriptors", key: "subtitle") {
+        value
+      }
       description
-      # Rendered through descriptionBlocks (src/description.ts): the plain
-      # description above runs headings into paragraphs, and stays for the
-      # meta description.
+      # The formatted description, for the product page. The plain one above
+      # is for search engines and the Klaviyo payload.
       descriptionHtml
       # The merchant's search-engine overrides from the admin. Either can be
       # null, in which case apps/web falls back to the title and description.
@@ -115,7 +125,8 @@ export const ProductByHandleQuery = graphql(`
         width
         height
       }
-      images(first: 6) {
+      # GALLERY_LIMIT in gallery.ts: the product page shows up to ten.
+      images(first: 10) {
         nodes {
           url
           altText
@@ -342,6 +353,8 @@ export const ComplementaryProductsQuery = graphql(`
 export const NavMenuQuery = graphql(`
   query NavMenu($handle: String!) {
     menu(handle: $handle) {
+      # Names a group in the header's Shop menu ("Shop by goal").
+      title
       items {
         id
         title
@@ -455,6 +468,13 @@ export const CartFields = graphql(`
     id
     checkoutUrl
     totalQuantity
+    # The analytics attributes (_posthog_id, _surface): an add to an existing
+    # cart checks them, so consent given after the cart was made still reaches
+    # the order. See addLinesOrCreate.
+    attributes {
+      key
+      value
+    }
     buyerIdentity {
       countryCode
     }
@@ -516,6 +536,14 @@ export const CartFields = graphql(`
               id
               handle
               title
+              # Klaviyo's Added to Cart carries the product's collection
+              # titles, as Viewed Product does (packages/analytics); the same
+              # limit as the product fragment, so the two lists agree.
+              collections(first: 50) {
+                nodes {
+                  title
+                }
+              }
             }
           }
         }
@@ -587,6 +615,29 @@ export const CartCreateMutation = graphql(`
         code
         message
         target
+      }
+    }
+  }
+`);
+
+/**
+ * Replaces the cart's attributes. Used when an add finds the analytics
+ * attributes missing or stale on a cart made before consent (SHO-88).
+ */
+export const CartAttributesUpdateMutation = graphql(`
+  mutation CartAttributesUpdate(
+    $cartId: ID!
+    $attributes: [AttributeInput!]!
+    $visitorConsent: VisitorConsent!
+  ) @inContext(visitorConsent: $visitorConsent) {
+    cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+      cart {
+        ...CartFields
+      }
+      userErrors {
+        field
+        message
+        code
       }
     }
   }

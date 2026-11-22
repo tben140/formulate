@@ -22,6 +22,7 @@
   checkout, then never charge or ship again.
 
   @param {product} product - The product whose variants and selling plans the form offers.
+  @param {boolean} [show_express] - Shows the express checkout buttons (one-time purchases only). Defaults to true; the product section's "Show express checkout buttons" setting passes it.
 {% enddoc %}
 
 {% assign current_variant = product.selected_or_first_available_variant %}
@@ -344,6 +345,7 @@
       role="status"
       aria-live="polite"
       data-added-label="{{ 'product.added' | t }}"
+      data-error-label="{{ 'product.cart_error' | t }}"
     ></p>
 
     {% comment %}
