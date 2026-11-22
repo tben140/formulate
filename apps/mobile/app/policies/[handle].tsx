@@ -1,7 +1,7 @@
-import { policyBlocks } from "@formulate/shopify";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
+import { RichText } from "../../components/rich-text";
 import { usePolicy } from "../../lib/queries";
 
 /**
@@ -10,9 +10,8 @@ import { usePolicy } from "../../lib/queries";
  * same `/policies/<handle>` path as web and the theme, so a shared link works
  * on all three.
  *
- * The body is HTML and the app has no HTML renderer, so it's shown as plain
- * headings, paragraphs and list items (policyBlocks). Links in a policy keep
- * their text but aren't tappable.
+ * The body is HTML, shown as native text by RichText, where a bold line is a
+ * heading as in Shopify's templates.
  */
 const PolicyScreen = () => {
   const { handle } = useLocalSearchParams<{ handle: string }>();
@@ -53,24 +52,7 @@ const PolicyScreen = () => {
       <Text accessibilityRole="header" className="text-3xl font-semibold text-foreground">
         {policy.title}
       </Text>
-      {policyBlocks(policy.body).map((block, index) =>
-        block.kind === "heading" ? (
-          <Text
-            // The blocks never reorder, so their position is a stable key.
-            key={index}
-            accessibilityRole="header"
-            className="mt-6 text-lg font-semibold text-foreground"
-          >
-            {block.text}
-          </Text>
-        ) : (
-          <Text key={index} className="mt-3 text-base leading-6 text-foreground-muted">
-            {block.kind === "item"
-              ? `${block.number === undefined ? "•" : `${block.number}.`}  ${block.text}`
-              : block.text}
-          </Text>
-        ),
-      )}
+      <RichText html={policy.body} boldLineHeadings className="mt-3" />
     </ScrollView>
   );
 };

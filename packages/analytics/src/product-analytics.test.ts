@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  CART_ATTRIBUTES,
   POSTHOG_HOST,
   addedToCartProperties,
+  cartAttributes,
   cartViewedProperties,
   checkoutStartedProperties,
   productViewedProperties,
@@ -149,6 +151,34 @@ describe("ids", () => {
     );
     expect(early < late).toBe(true);
   });
+
+  it("falls back to getRandomValues, and never to Math.random", () => {
+    const v4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    const random = vi.spyOn(Math, "random");
+    vi.stubGlobal("crypto", {
+      getRandomValues: (array: Uint8Array) => array.fill(0xff),
+    });
+    try {
+      expect(anonymousId()).toBe("ffffffff-ffff-4fff-bfff-ffffffffffff");
+      expect(anonymousId()).toMatch(v4);
+      vi.stubGlobal("crypto", undefined);
+      expect(() => anonymousId()).toThrow(/secure random/);
+      expect(random).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+      random.mockRestore();
+    }
+  });
+
+  it("takes a session id's random bits from the uuid it's given", () => {
+    expect(
+      sessionUuid(Date.UTC(2026, 9, 9, 10), "00000000-0000-4000-8000-0123456789ab"),
+    ).toBe("01a1201a-f500-7400-8000-0123456789ab");
+  });
+
+  it("refuses a session id from something that isn't a uuid", () => {
+    expect(() => sessionUuid(Date.UTC(2026, 9, 9, 10), "abc")).toThrow(/needs a UUID/);
+  });
 });
 
 describe("payload builders", () => {
@@ -192,6 +222,11 @@ describe("payload builders", () => {
     expect(addedToCartProperties(withoutCost, 1)?.price).toBe(17.95);
   });
 
+  it("reports what this add added, not the line's running total", () => {
+    // The line holds 2 after a second add of 1: the event must say 1.
+    expect(addedToCartProperties(line, 1)).toMatchObject({ quantity: 1, price: 15.26 });
+  });
+
   it("totals the cart, and marks a checkout with any subscription line", () => {
     expect(cartViewedProperties(cart)).toEqual({
       item_count: 3,
@@ -214,5 +249,26 @@ describe("payload builders", () => {
         priceRange: { minVariantPrice: { amount: "17.95", currencyCode: "GBP" } },
       }),
     ).toMatchObject({ product_id: "10940384149816", price: 17.95, currency: "GBP" });
+  });
+
+  it("names a viewed product's collections, sorted like Klaviyo's Categories", () => {
+    expect(
+      productViewedProperties({
+        ...line.merchandise.product,
+        priceRange: { minVariantPrice: { amount: "17.95", currencyCode: "GBP" } },
+        collections: {
+          nodes: [{ title: "Daily Essentials" }, { title: "Best Sellers" }],
+        },
+      }).collections,
+    ).toEqual(["Best Sellers", "Daily Essentials"]);
+  });
+});
+
+describe("cartAttributes", () => {
+  it("hands checkout the visitor's id and surface under the pixel's keys", () => {
+    expect(cartAttributes("0f9b-id", "web")).toEqual([
+      { key: CART_ATTRIBUTES.distinctId, value: "0f9b-id" },
+      { key: CART_ATTRIBUTES.surface, value: "web" },
+    ]);
   });
 });

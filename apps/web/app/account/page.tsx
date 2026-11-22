@@ -8,7 +8,7 @@ import {
   type CustomerOrdersResult,
 } from "@formulate/shopify";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/link";
 import { redirect } from "next/navigation";
 
 import {

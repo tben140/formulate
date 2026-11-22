@@ -20,6 +20,8 @@
  * which isn't ours to design. This one is.
  */
 
+import { collectionTitles } from "./events";
+
 /** EU Cloud: the project lives in the EU (2026-10-09). */
 export const POSTHOG_HOST = "https://eu.i.posthog.com";
 
@@ -34,11 +36,52 @@ export const PRODUCT_EVENTS = {
   addedToCart: "product_added_to_cart",
   cartViewed: "cart_viewed",
   checkoutStarted: "checkout_started",
+  /** A visitor saw an experiment's variant (ADR 0013, packages/experiments). */
+  experimentViewed: "experiment_viewed",
+  /**
+   * Sent only by the Shopify custom pixel (pixel/posthog.js), because only
+   * Shopify's checkout knows an order was placed. Every surface's orders go
+   * through it, so this is the one event all three share by construction.
+   */
+  orderCompleted: "order_completed",
 } as const;
 
 export type ProductEventName = (typeof PRODUCT_EVENTS)[keyof typeof PRODUCT_EVENTS];
 
-export type Surface = "web" | "app";
+/**
+ * `theme` events come from the Shopify custom pixel, which runs on the Liquid
+ * theme's pages and on every checkout.
+ */
+export type Surface = "web" | "app" | "theme";
+
+/**
+ * Cart attributes that hand checkout what the pixel needs to credit an order:
+ * whose visit it was, and from which surface. Set by web and the app when they
+ * create a cart, with tracking consent only. Checkout has no other way to
+ * know: it runs on Shopify's domain, where neither app's storage reaches.
+ *
+ * Underscored, which by Shopify convention marks them as private to the store.
+ * They still land on the order, as note attributes, in the admin.
+ */
+export const CART_ATTRIBUTES = {
+  distinctId: "_posthog_id",
+  surface: "_surface",
+} as const;
+
+/**
+ * Every analytics attribute key. A cart made under consent keeps them until
+ * they're removed, so a refusal removes them (the order webhook sends an order
+ * whenever its cart has `_posthog_id`).
+ */
+export const CART_ATTRIBUTE_KEYS: readonly string[] = Object.values(CART_ATTRIBUTES);
+
+export const cartAttributes = (
+  distinctId: string,
+  surface: Exclude<Surface, "theme">,
+): readonly { readonly key: string; readonly value: string }[] => [
+  { key: CART_ATTRIBUTES.distinctId, value: distinctId },
+  { key: CART_ATTRIBUTES.surface, value: surface },
+];
 
 /** The product a product-level event is about. */
 export interface ProductRef {
@@ -52,6 +95,11 @@ export interface ProductEventProperties {
   readonly product_viewed: ProductRef & {
     readonly price: number;
     readonly currency: string;
+    /**
+     * The product's collection titles, sorted: the same list as Klaviyo's
+     * `Categories`. Absent on the theme, whose pixel events don't carry them.
+     */
+    readonly collections?: readonly string[];
   };
   readonly variant_selected: ProductRef & {
     readonly variant_id: string;
@@ -80,33 +128,71 @@ export interface ProductEventProperties {
     /** Whether any line is a subscription: the Recharge half of the funnel. */
     readonly has_subscription: boolean;
   };
+  readonly experiment_viewed: {
+    /** GrowthBook's experiment tracking key, which the warehouse joins on. */
+    readonly experiment_key: string;
+    /** The variation's key in GrowthBook: "0" is the control. */
+    readonly variation_id: string;
+  };
+  readonly order_completed: {
+    /** Numeric Shopify order id. */
+    readonly order_id: string;
+    readonly item_count: number;
+    /** What the shopper paid, including tax and shipping. */
+    readonly order_value: number;
+    readonly currency: string;
+    readonly has_subscription: boolean;
+  };
 }
 
 /** "gid://shopify/Product/123" → "123"; anything else unchanged. */
 export const numericId = (gid: string): string => gid.split("/").pop() ?? gid;
 
-/** A random v4 UUID for an anonymous visitor. Not security: just unique enough. */
+/**
+ * A random v4 UUID for an anonymous visitor, from the platform's secure
+ * random source: `crypto.randomUUID`, or `crypto.getRandomValues` where that
+ * is missing (a page served over plain http). No Math.random fallback. React
+ * Native has neither, so the app passes Expo's native `uuid.v4` instead
+ * (apps/mobile/lib/product-analytics.ts).
+ */
 export const anonymousId = (): string => {
   // Typed here, not from lib.dom: this package also compiles under the
   // Worker's and React Native's type sets, which describe crypto differently.
-  const cryptoApi = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  const cryptoApi = (
+    globalThis as {
+      crypto?: {
+        randomUUID?: () => string;
+        getRandomValues?: (array: Uint8Array) => Uint8Array;
+      };
+    }
+  ).crypto;
   if (typeof cryptoApi?.randomUUID === "function") return cryptoApi.randomUUID();
-  // Hermes may lack crypto; an analytics id doesn't need it.
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
+  if (typeof cryptoApi?.getRandomValues !== "function")
+    throw new Error("No secure random source for an analytics id.");
+  const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80; // RFC 4122 variant
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 };
 
 /**
  * A v7 UUID (time-ordered), the format PostHog's own SDKs use for
  * `$session_id`; Web Analytics derives sessions and their start times from it.
+ * Its random bits come from `random`, a v4 UUID (by default `anonymousId()`).
  */
-export const sessionUuid = (now: number = Date.now()): string => {
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const sessionUuid = (
+  now: number = Date.now(),
+  random: string = anonymousId(),
+): string => {
+  if (!UUID_SHAPE.test(random))
+    throw new Error("sessionUuid needs a UUID for its random bits.");
   const hex = now.toString(16).padStart(12, "0");
-  const random = anonymousId().replace(/-/g, "").slice(12);
-  const variant = ((parseInt(random.slice(4, 5), 16) & 0x3) | 0x8).toString(16);
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-7${random.slice(0, 3)}-${variant}${random.slice(5, 8)}-${random.slice(8, 20)}`;
+  const bits = random.replace(/-/g, "").slice(12);
+  const variant = ((parseInt(bits.slice(4, 5), 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-7${bits.slice(0, 3)}-${variant}${bits.slice(5, 8)}-${bits.slice(8, 20)}`;
 };
 
 /** A session ends after 30 minutes without an event, as in PostHog's SDKs. */
@@ -284,17 +370,25 @@ export const productRef = (product: ProductLike): ProductRef => ({
 });
 
 export const productViewedProperties = (
-  product: ProductLike & { readonly priceRange: { readonly minVariantPrice: MoneyLike } },
+  product: ProductLike & {
+    readonly priceRange: { readonly minVariantPrice: MoneyLike };
+    readonly collections?: {
+      readonly nodes: readonly { readonly title: string }[];
+    } | null;
+  },
 ): ProductEventProperties["product_viewed"] => ({
   ...productRef(product),
   price: Number(product.priceRange.minVariantPrice.amount),
   currency: product.priceRange.minVariantPrice.currencyCode,
+  collections: collectionTitles(product),
 });
 
-/** Null when the line isn't a product variant (nothing to attribute it to). */
 /**
- * `quantity` is how many this add put in, not the line's new total: adding one
- * to a line of two reports 1.
+ * Null when the line isn't a product variant (nothing to attribute it to).
+ *
+ * ⚠️ `quantity` is what this add added, not the line's total. Adding a product
+ * already in the cart grows its line in place, so the line's quantity counts
+ * every earlier add too. Required, so no caller can forget it.
  */
 export const addedToCartProperties = (
   line: CartLineLike,

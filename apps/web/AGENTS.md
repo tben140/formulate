@@ -136,8 +136,17 @@ See [`docs/integration-klaviyo.md`](../../docs/integration-klaviyo.md).
 
 ## Vercel
 
+- Links use `Link` from `@/components/link`, never `next/link` directly (lint
+  enforces it). It prefetches on mouse hover or keyboard focus (never on touch) instead of whenever a
+  link scrolls into view: viewport prefetching was about half of every page
+  view's CDN requests, measured locally on 27 October 2026 (36–43 requests per
+  page down to 17–19).
+
 - The Vercel project's root directory is `apps/web`.
-- `vercel.json` sets security headers; keep them.
+- Security headers, including the Content Security Policy, are in
+  `lib/security-headers.ts`, sent by `next.config.ts` (so `next start` and the
+  e2e tests get them too). A new third-party script or endpoint adds its host
+  there, or `e2e/security-headers.spec.ts` fails.
 - `<Analytics />` and `<SpeedInsights />` are mounted last in `app/layout.tsx`,
   after the footer, so they never sit between semantic landmarks. Both render
   `null` outside Vercel.
