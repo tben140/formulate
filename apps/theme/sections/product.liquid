@@ -86,7 +86,7 @@
       theme editor (Product page → Add block → Judge.me Reviews), whose
       element id is judgeme_product_reviews.
     {% endcomment %}
-    {%- if product.metafields.reviews.rating_count.value > 0 -%}
+    {%- if product.metafields.reviews.rating.value != blank and product.metafields.reviews.rating_count.value > 0 -%}
       <a class="product__rating" href="#judgeme_product_reviews">
         {%- render 'stars', product: product, show_count: true -%}
       </a>

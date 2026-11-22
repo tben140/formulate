@@ -51,6 +51,13 @@ export const CollectionProductsQuery = graphql(`
               currencyCode
             }
           }
+          # As in ProductCardFields, so collection cards show stars too.
+          rating: metafield(namespace: "reviews", key: "rating") {
+            value
+          }
+          ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+            value
+          }
         }
       }
     }

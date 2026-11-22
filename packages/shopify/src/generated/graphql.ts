@@ -1517,7 +1517,7 @@ export type CollectionProductsQueryVariables = Exact<{
 }>;
 
 
-export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } } | null };
+export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null }> } } | null };
 
 export type ProductByHandleQueryVariables = Exact<{
   handle: string;
@@ -1855,6 +1855,12 @@ export const CollectionProductsDocument = new TypedDocumentString(`
             amount
             currencyCode
           }
+        }
+        rating: metafield(namespace: "reviews", key: "rating") {
+          value
+        }
+        ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+          value
         }
       }
     }
