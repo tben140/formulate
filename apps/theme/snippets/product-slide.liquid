@@ -1,0 +1,42 @@
+{% comment %}
+  One image in the product gallery's track (sections/product.liquid).
+  Only the first loads eagerly: it's the page's Largest Contentful Paint.
+
+  @param {image} image
+  @param {number} index - 1-based position
+  @param {number} count
+  @param {string} title - the product title, for alt text when none is set
+{% endcomment %}
+{%- liquid
+  if image.alt != blank
+    assign slide_alt = image.alt
+  elsif count > 1
+    assign slide_position = 'product.gallery_position' | t: index: index, count: count | downcase
+    assign slide_alt = title | append: ', ' | append: slide_position
+  else
+    assign slide_alt = title
+  endif
+-%}
+<div
+  class="product__slide"
+  {% if count > 1 %}
+    role="group"
+    aria-roledescription="slide"
+    aria-label="{{ 'product.gallery_position' | t: index: index, count: count }}"
+  {% endif %}
+>
+  <img
+    class="product__image"
+    src="{{ image | image_url: width: 1200 }}"
+    srcset="{{ image | image_url: width: 600 }} 600w, {{ image | image_url: width: 900 }} 900w, {{ image | image_url: width: 1200 }} 1200w"
+    sizes="(min-width: 48rem) 45vw, 90vw"
+    alt="{{ slide_alt | escape }}"
+    width="{{ image.width }}"
+    height="{{ image.height }}"
+    {% if index == 1 %}
+      loading="eager" fetchpriority="high"
+    {% else %}
+      loading="lazy"
+    {% endif %}
+  >
+</div>

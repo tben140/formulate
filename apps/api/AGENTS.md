@@ -52,13 +52,33 @@ and it looks identical in code.
 ### Other invariants
 
 - **No CORS headers.** A native caller needs none, and their absence prevents
-  cross-origin browser use. Do not add them to "fix" anything.
+  cross-origin browser use. Do not add them to "fix" anything. One exception:
+  `POST /orders/counted` (SHO-88) answers with `access-control-allow-origin: *`,
+  for the checkout pixel in Shopify's sandbox. Why it's safe:
+  [ADR 0012](../../docs/adr/0012-the-order-backup-is-anonymous.md). Nothing
+  else gets one.
 - **No dependencies.** The runtime provides `fetch`, `Request`, `Response`. Keep
   it that way; it is the strongest supply-chain control available.
 - **No email addresses in logs.** Personal data. Status codes and Klaviyo's own
   message are enough to diagnose with.
 - Rate limiting keys on `CF-Connecting-IP`, which the edge sets. Never
   `X-Forwarded-For`, which the caller controls.
+
+## Layout
+
+| File                  | Holds                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| `src/index.ts`        | The entry point: the Durable Object classes, `Env`, and the route table. It knows no route's details    |
+| `src/routes/*.ts`     | One module per route: its handler, and a `…Env` interface naming only the bindings and secrets it reads |
+| `src/http.ts`         | The responses every route shares (`json`, `Outcome`): the generic bodies, and no CORS                   |
+| `src/body.ts`         | `readBounded`: a request body read up to a limit and cut off past it                                    |
+| `src/rate-limiter.ts` | The per-IP Durable Object                                                                               |
+
+A new route is a new file under `routes/` and one line in `index.ts`'s table,
+at a path nothing posts to today: the app's sign-up posts to `/` and every
+unclaimed path still reaches it, so a build already on a phone keeps working.
+`Env` is the intersection of the routes' interfaces, so a route cannot read a
+secret it did not declare.
 
 ## The runtime is not Node
 
