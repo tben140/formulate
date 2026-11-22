@@ -8,16 +8,21 @@ import { openApp, productLinks } from "./helpers";
  * Whey and Plant Protein. Check those numbers first if the catalogue changed.
  */
 
-/** Ticks a value, opening its group first if the sheet shows it collapsed. */
+/**
+ * Ticks a value. Its group may start collapsed, and a long group shows five
+ * values before a "Show N more" button. Tapping the header toggles it, so it's
+ * tapped only while nothing of the group shows: a tap while the sheet is still
+ * sliding in can be lost.
+ */
 const tick = async (page: Page, group: string, value: RegExp) => {
   const header = page.getByRole("button", { name: new RegExp(`^${group}`) });
   const box = page.getByRole("checkbox", { name: value });
-  // A collapsed group doesn't render its values. A tap while the sheet is
-  // still sliding in can be lost, so tap again until the value appears.
+  const more = page.getByRole("button", { name: /^Show \d+ more$/ });
   await expect(async () => {
-    if ((await box.count()) === 0) await header.click();
-    await expect(box).toBeVisible({ timeout: 2_000 });
+    if ((await box.count()) === 0 && (await more.count()) === 0) await header.click();
+    await expect(box.or(more).first()).toBeVisible({ timeout: 2_000 });
   }).toPass({ timeout: 30_000 });
+  if ((await box.count()) === 0) await more.first().click();
   await box.click();
 };
 
