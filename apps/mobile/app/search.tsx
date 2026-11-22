@@ -6,6 +6,7 @@ import { ActivityIndicator, FlatList, Text, TextInput, View } from "react-native
 
 import { CollectionFilters } from "../components/collection-filters";
 import { RoutinePrompt } from "../components/routine-prompt";
+import { SiteFooter } from "../components/site-footer";
 import { useSearch } from "../lib/queries";
 
 /** How long typing must pause before a search runs. */
@@ -43,6 +44,9 @@ const SearchScreen = () => {
       contentContainerClassName="p-4 gap-3"
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
+      // The footer's email field is last; see collection-view.tsx.
+      automaticallyAdjustKeyboardInsets
+      ListFooterComponent={<SiteFooter />}
       ListHeaderComponent={
         <View className="mb-2 gap-4">
           <View className="flex-row items-center gap-2">

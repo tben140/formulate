@@ -26,6 +26,5 @@ in Chromium). Keyboard specs run on desktop only.
   Playwright reports it as _unexpectedly passing_: delete the `test.fail` line
   then.
 - **Stock-dependent tests say so.** Each one states the stock it needs in its
-  own comment; the one today needs **Magnesium Glycinate 200 mg at 0
-  available**. Check the store before the code if one fails after a stock
-  reset. The full stock plan is `docs/demo-store.md` (added with #26).
+  own comment; the one today needs **Magnesium Glycinate 200 mg / 30 days at 0
+  available**, and is skipped, saying so, while that variant is in stock. The full stock plan is `docs/demo-store.md` (added with #26).

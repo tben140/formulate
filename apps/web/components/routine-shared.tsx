@@ -4,7 +4,7 @@ import {
   type Routine,
   type RoutineGoal,
 } from "@formulate/shopify";
-import Link from "next/link";
+import Link from "@/components/link";
 
 import { forgetRoutine, saveRoutine } from "@/app/actions/routine";
 import { CONTACT_EMAIL } from "@/lib/routine";

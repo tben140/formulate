@@ -5,7 +5,9 @@ import { cookies } from "next/headers";
 import Link from "@/components/link";
 import type { ReactNode } from "react";
 
+import { AnalyticsPageviews } from "@/components/analytics-pageviews";
 import { CartButton } from "@/components/cart-button";
+import { AgentTools } from "@/components/agent-tools";
 import { CartDrawer } from "@/components/cart-drawer";
 import { CartProvider } from "@/components/cart-provider";
 import { DemoNotice } from "@/components/demo-notice";
@@ -18,7 +20,7 @@ import {
   TrackingConsentProvider,
 } from "@/components/tracking-consent";
 import { getCart } from "@/lib/cart";
-import { getLegalLinks, getNavLinks } from "@/lib/nav";
+import { getLegalLinks, getNavLinks, getShopGroups } from "@/lib/nav";
 import { getRoutineGoals } from "@/lib/routine";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 import { baseOpenGraph, isIndexable, SITE_NAME, siteUrl } from "@/lib/site";
@@ -36,7 +38,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: siteUrl,
   title: { default: SITE_NAME, template: `%s — ${SITE_NAME}` },
-  description: "Supplements built around a 30-day rhythm, from Double Helix.",
+  description: `Supplements built around a 30-day rhythm, from ${SITE_NAME}.`,
   applicationName: SITE_NAME,
   openGraph: baseOpenGraph,
   twitter: { card: "summary_large_image" },
@@ -58,15 +60,18 @@ export const metadata: Metadata = {
  */
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   // In parallel: neither depends on the other, and both are on every page.
-  const [cart, navLinks, legalLinks, routineGoals] = await Promise.all([
+  const [cart, navLinks, shopGroups, legalLinks, routineGoals] = await Promise.all([
     getCart(),
     getNavLinks(),
+    getShopGroups(),
     getLegalLinks(),
     getRoutineGoals(),
   ]);
   // Needs the cart's lines, so it can't run alongside getCart. Empty carts make
-  // no request at all.
-  const suggestions = await getCartSuggestions(cart);
+  // no request at all. Passed unawaited: the page renders now and the drawer's
+  // suggestions follow when they arrive (CartDrawer), so an optional extra
+  // never holds every page.
+  const suggestions = getCartSuggestions(cart);
 
   // Read on the server so the first render is already right: no banner flash
   // for someone who has decided, and no script tag for someone who declined.
@@ -96,9 +101,10 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           Shopify's consent API; here it is ours. See ADR 0008.
         */}
         <TrackingConsentProvider initialConsent={consent}>
-          <CartProvider storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}>
+          <CartProvider siteOrigin={siteUrl.origin}>
             <DemoNotice />
-            <header className="border-b border-border">
+            {/* relative: the Shop dropdown's panel hangs from the header's full width. */}
+            <header className="relative z-30 border-b border-border">
               {/*
                 One row from md up: wordmark, collections, cart. Below that the
                 collections drop to their own scrolling row, via `order`, so the
@@ -112,9 +118,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                   href="/"
                   className="order-1 text-lg font-semibold tracking-tight text-foreground"
                 >
-                  Double Helix
+                  {SITE_NAME}
                 </Link>
-                <SiteNav links={navLinks} />
+                <SiteNav links={navLinks} shopGroups={shopGroups} />
                 <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
                   {/* The routine quiz (SHO-161), once its goals exist. Desktop
                       only: a phone header has room for Search and Cart, and the
@@ -177,7 +183,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                 */}
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-foreground-muted">
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                    <p>&copy; {new Date().getFullYear()} Double Helix</p>
+                    <p>
+                      &copy; {new Date().getFullYear()} {SITE_NAME}
+                    </p>
                     {legalLinks.length > 0 ? (
                       <nav aria-label="Legal">
                         <ul className="flex flex-wrap gap-x-4 gap-y-1">
@@ -201,6 +209,8 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             </footer>
 
             <CartDrawer cart={cart} suggestions={suggestions} />
+            {/* WebMCP tools for AI agents in the shopper's browser. */}
+            <AgentTools />
           </CartProvider>
         </TrackingConsentProvider>
 
@@ -214,6 +224,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           — they output no visible markup, but keeping them last leaves the
           document outline clean.
         */}
+        <AnalyticsPageviews />
         <Analytics />
         <SpeedInsights />
       </body>
