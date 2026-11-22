@@ -14,7 +14,7 @@ them; nothing here sends anything.
 | 1. Automated checks   | Client support, structure, accessibility, contrast and screenshots in CI | Free | Every change              |
 | 2. Real devices       | Klaviyo test sends to real inboxes, checked against the matrix below     | Free | Before an email goes live |
 | 3. Spam and sign-in   | mail-tester.com score; SPF, DKIM and DMARC on the domain                 | Free | Once, then per campaign   |
-| 4. Screenshot service | Email on Acid or Litmus: about 90 real clients                           | Paid | Not agreed yet            |
+| 4. Screenshot service | Email on Acid or Litmus: about 90 real clients                           | Paid | Not used (decided 22 Nov) |
 
 ## 1. Automated checks
 
@@ -56,16 +56,16 @@ Make the email a Klaviyo **draft** (never scheduled or live without Ben's
 yes), then use **Preview and test → Send test email** to these inboxes.
 Check each in light and dark mode.
 
-| Client              | Device              | Light | Dark | Notes                                  |
-| ------------------- | ------------------- | :---: | :--: | -------------------------------------- |
-| Apple Mail          | iPhone              |   ☐   |  ☐   | Uses the email's dark styles           |
-| Gmail app           | iPhone              |   ☐   |  ☐   | Inverts colours itself                 |
-| Gmail app           | Android, if to hand |   ☐   |  ☐   | Inverts colours itself                 |
-| Gmail               | Web, desktop        |   ☐   |  —   | No dark mode for email content         |
-| Outlook.com         | Web, desktop        |   ☐   |  ☐   | Uses `[data-ogsc]` styles              |
-| Outlook app         | iPhone              |   ☐   |  ☐   |                                        |
-| Outlook for Mac     | Mac, if installed   |   ☐   |  ☐   | Uses the email's dark styles           |
-| Outlook for Windows | Windows PC          |   ☐   |  ☐   | Only with a PC or a screenshot service |
+| Client              | Device              | Light | Dark | Notes                          |
+| ------------------- | ------------------- | :---: | :--: | ------------------------------ |
+| Apple Mail          | iPhone              |   ☐   |  ☐   | Uses the email's dark styles   |
+| Gmail app           | iPhone              |   ☐   |  ☐   | Inverts colours itself         |
+| Gmail app           | Android, if to hand |   ☐   |  ☐   | Inverts colours itself         |
+| Gmail               | Web, desktop        |   ☐   |  —   | No dark mode for email content |
+| Outlook.com         | Web, desktop        |   ☐   |  ☐   | Uses `[data-ogsc]` styles      |
+| Outlook app         | iPhone              |   ☐   |  ☐   |                                |
+| Outlook for Mac     | Mac, if installed   |   ☐   |  ☐   | Uses the email's dark styles   |
+| Outlook for Windows | Windows PC          |   ☐   |  ☐   | Only if a PC is to hand        |
 
 In each, check that:
 
@@ -85,12 +85,16 @@ In each, check that:
   [mail-tester.com](https://www.mail-tester.com) gives you, and aim for 9/10
   or better. It flags spammy wording, broken sign-in and blocklisted links.
 
-## 4. Screenshot service (not agreed)
+## 4. Screenshot service (not used)
 
 Email on Acid and Litmus render an email in about 90 real clients and
 devices, including Outlook for Windows, in light and dark. They're the
-agency standard. Neither has a free plan; Email on Acid starts at about $74
-a month. A month or two around launch would cover it. Ben decides.
+agency standard, but neither has a free plan (Email on Acid starts at about
+$74 a month), so Ben decided on 22 November 2026 to stay with the free
+stages. The gap that leaves is Outlook for Windows: with no PC to hand, the
+MSO-only parts of a template (the ghost table, the button's `bgcolor`) go
+untested, so keep them to the patterns in the starter, which are the
+standard ones.
 
 ## Building an email
 
