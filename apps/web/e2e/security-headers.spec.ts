@@ -52,17 +52,24 @@ test("the main pages break no part of the Content Security Policy", async ({ pag
   expect(violations).toEqual([]);
 });
 
-test("nor do they once tracking is accepted and Klaviyo loads", async ({ page }) => {
+/**
+ * The first request a tracker makes once consent is given: Klaviyo's onsite
+ * script, or PostHog's pageview. Either is enough to know tracking started;
+ * a deployment may have one key without the other.
+ */
+const isTrackerRequest = (url: string) =>
+  url.startsWith("https://static.klaviyo.com/onsite/js/") ||
+  url.startsWith("https://eu.i.posthog.com/");
+
+test("nor do they once tracking is accepted", async ({ page }) => {
   const violations = await recordViolations(page);
   await page.goto("/", { waitUntil: "networkidle" });
   const accept = page.getByRole("button", { name: "Accept", exact: true });
-  // Without a Klaviyo key there's no consent banner and nothing to load.
-  test.skip((await accept.count()) === 0, "Klaviyo isn't configured on this deployment");
-  const klaviyo = page.waitForResponse((response) =>
-    response.url().startsWith("https://static.klaviyo.com/onsite/js/"),
-  );
+  // Without a Klaviyo or PostHog key there's no consent banner, and nothing to load.
+  test.skip((await accept.count()) === 0, "No tracking is configured on this deployment");
+  const tracking = page.waitForRequest((request) => isTrackerRequest(request.url()));
   await accept.click();
-  await klaviyo;
+  await tracking;
   await visitMainPages(page);
   expect(violations).toEqual([]);
 });
