@@ -8,7 +8,12 @@ import { campaignOf } from "./campaign-node";
 import { checkCampaign } from "./check";
 import { plannedEmails, plannedPushes } from "./emails";
 import { perkKey, planPerks } from "./perks";
-import { activeSubscriptions, addPerk, perkOnetimes } from "./recharge";
+import {
+  activeSubscriptions,
+  addPerk,
+  currentChargeDate,
+  perkOnetimes,
+} from "./recharge";
 import { createDraft, createPushDraft, getEmails, getPushNames } from "./klaviyo";
 import { campaignReport, reportMarkdown } from "./report";
 import {
@@ -260,6 +265,15 @@ Next:
         const line = `  subscription ${item.subscriptionId}: address ${item.addressId}, charge ${item.date}`;
         if (!apply) {
           console.log(`${line} (would add)`);
+          continue;
+        }
+        // A date moved since the plan was read would put the perk on a charge
+        // of its own. Leave it for a later run, which plans the new date.
+        const now = await currentChargeDate(token, item.subscriptionId);
+        if (now !== item.date) {
+          console.log(
+            `${line}: skipped, the next charge is now ${now ?? "not scheduled"}; run again to add it`,
+          );
           continue;
         }
         const id = await addPerk(token, {
