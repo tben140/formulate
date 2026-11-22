@@ -36,7 +36,9 @@ export const CollectionView = ({
     hasNextPage,
     isFetching,
     isFetchingNextPage,
+    isFetchNextPageError,
     fetchNextPage,
+    refetch,
   } = useCollectionPages(handle, { filterQuery });
   const list = useRef<FlatList>(null);
 
@@ -129,9 +131,9 @@ export const CollectionView = ({
       }
       // Infinite scroll (SHO-45): the next page loads as the end of the list
       // comes within half a screen. The guard stops a fast fling from asking
-      // for the same page twice.
+      // for the same page twice, and a page load from cutting across a
+      // background refresh of the pages already shown.
       onEndReached={() => {
-        // Not during any fetch: see app/search.tsx.
         if (hasNextPage && !isFetching) void fetchNextPage();
       }}
       onEndReachedThreshold={0.5}
@@ -149,7 +151,11 @@ export const CollectionView = ({
               </Text>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => void fetchNextPage()}
+                accessibilityState={{ disabled: isFetching }}
+                disabled={isFetching}
+                // A failed refresh of the shown pages is retried as a
+                // refresh: on the last page, fetchNextPage would do nothing.
+                onPress={() => void (isFetchNextPageError ? fetchNextPage() : refetch())}
                 className="mt-2 rounded-md border border-border px-4 py-2"
               >
                 <Text className="text-sm font-medium text-foreground">Try again</Text>
