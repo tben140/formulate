@@ -178,9 +178,9 @@ without blocking anything. The batch still has PRs that add third parties
 (PostHog, Sentry, ad tags); each adds its hosts to the policy, and the e2e test
 says when one is missing. Once those have merged and the test has stayed
 clean, switch the header to `Content-Security-Policy`. The tracking-accepted
-test skips itself when the deployment has no consent banner, and it waits for
-Klaviyo's script, so only a run against a deployment with Klaviyo configured
-counts towards that switch. `script-src` allows
+test skips itself when the deployment has no consent banner, and only checks
+the trackers whose keys are set, so only a run with both Klaviyo and PostHog
+configured counts towards that switch. `script-src` allows
 `'unsafe-inline'` because Next's App Router inlines its hydration data;
 per-request nonces would make every page dynamic and undo the cached
 catalogue. So the policy limits where scripts come from, not inline
