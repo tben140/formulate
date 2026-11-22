@@ -44,6 +44,10 @@ declare global {
   interface CustomerPrivacy {
     /** True when the visitor's region needs a choice and none is recorded. */
     shouldShowBanner: () => boolean;
+    /** ISO 3166-2 region, such as "GBENG"; empty when unknown. */
+    getRegion?: () => string;
+    /** "yes", "no" or "" for each purpose. */
+    currentVisitorConsent?: () => Record<string, string>;
     setTrackingConsent: (
       consent: {
         analytics: boolean;
