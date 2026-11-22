@@ -84,7 +84,17 @@ export class MediaGallery extends Component {
     }
     this.addEventListener("keydown", this.#handleKeydown, { signal: this.signal });
 
-    this.#mark(0);
+    // From where the track is, not slide one: without JavaScript the track
+    // already swipes, so the shopper may be on a later image by now.
+    this.#mark(this.#scrolledIndex());
+  }
+
+  /** The slide the track is scrolled to, clamped to the slides there are. */
+  #scrolledIndex() {
+    const { track } = this.refs;
+    if (!track || track.clientWidth === 0) return 0;
+    const index = Math.round(track.scrollLeft / track.clientWidth);
+    return Math.min(Math.max(index, 0), this.#slides.length - 1);
   }
 
   /** @returns {HTMLElement[]} */
@@ -101,10 +111,8 @@ export class MediaGallery extends Component {
 
   /** Which image is in view, from the scroll position: swipes, trackpads and buttons alike. */
   #handleScroll = () => {
-    const { track } = this.refs;
-    if (!track) return;
-    const index = Math.round(track.scrollLeft / track.clientWidth);
-    const clamped = Math.min(Math.max(index, 0), this.#slides.length - 1);
+    if (!this.refs.track) return;
+    const clamped = this.#scrolledIndex();
     if (this.#pending !== null) {
       if (clamped !== this.#pending) return;
       this.#pending = null;

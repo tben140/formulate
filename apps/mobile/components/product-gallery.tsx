@@ -12,6 +12,16 @@ import {
   type NativeSyntheticEvent,
 } from "react-native";
 
+/** A Shopify CDN image at this width, for a thumbnail: not the original. */
+const sized = (url: string, width: number): string => {
+  const parsed = new URL(url);
+  parsed.searchParams.set("width", String(width));
+  return parsed.toString();
+};
+
+/** Slides this far either side of the one shown load their full image. */
+const NEARBY = 1;
+
 /**
  * The product screen's images, matching apps/web's
  * components/product-gallery.tsx and the theme's <media-gallery>: one image
@@ -21,6 +31,9 @@ import {
  * For screen readers the pager is one "adjustable" element: VoiceOver and
  * TalkBack users swipe up or down to change image, the platform convention
  * for a carousel, and hear "Image 2 of 5".
+ *
+ * The frame takes the first image's shape, as on web and the theme, and later
+ * images of another shape fit inside it.
  */
 export const ProductGallery = ({
   images,
@@ -33,8 +46,22 @@ export const ProductGallery = ({
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState(0);
   const count = images.length;
+  const first = images[0];
+  const ratio = first?.width && first.height ? first.width / first.height : 1;
+  const shown = images[Math.min(active, count - 1)];
 
-  const onLayout = (event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width);
+  // A new width (rotation, a split screen) moves every page's offset, so put
+  // the shown image back in view once the list has re-laid out. Only here:
+  // following `active` as well would fight the shopper's swipe.
+  const onLayout = (event: LayoutChangeEvent) => {
+    const next = event.nativeEvent.layout.width;
+    if (next === width) return;
+    setWidth(next);
+    if (active > 0)
+      requestAnimationFrame(() =>
+        list.current?.scrollToIndex({ index: active, animated: false }),
+      );
+  };
 
   const show = useCallback(
     (index: number) => {
@@ -70,7 +97,13 @@ export const ProductGallery = ({
         className="overflow-hidden rounded-xl bg-surface-muted"
         accessible={count > 1}
         accessibilityRole={count > 1 ? "adjustable" : undefined}
-        accessibilityLabel={count > 1 ? `${title} images` : undefined}
+        // The shown image's description too: VoiceOver doesn't reach the
+        // images inside an adjustable element.
+        accessibilityLabel={
+          count > 1 && shown
+            ? `${title} images. ${galleryAlt(shown, title, active, count)}`
+            : undefined
+        }
         // Numbers as well as words: web's slider role requires them, and they
         // let a screen reader say how far through the images you are. The
         // aria- props, not accessibilityValue: React Native maps these on both
@@ -100,6 +133,10 @@ export const ProductGallery = ({
             // focusable inside can't be scrolled without a mouse.
             focusable={count > 1}
             onMomentumScrollEnd={onScrollEnd}
+            // One page at first, then its neighbours: not all ten at once.
+            initialNumToRender={1}
+            maxToRenderPerBatch={1}
+            windowSize={3}
             getItemLayout={(_, index) => ({
               length: width,
               offset: width * index,
@@ -107,13 +144,17 @@ export const ProductGallery = ({
             })}
             renderItem={({ item, index }) => (
               <Image
-                source={item.url}
-                contentFit="cover"
+                // Pages further away keep their space but load nothing yet.
+                source={Math.abs(index - active) <= NEARBY ? item.url : undefined}
+                contentFit="contain"
                 transition={150}
                 // The first image is what the screen opens on; the rest load
                 // when they're swiped towards.
                 priority={index === 0 ? "high" : "normal"}
-                style={{ width, aspectRatio: 1 }}
+                style={{ width, aspectRatio: ratio }}
+                // With one image there's no adjustable wrapper, so the image
+                // itself is what VoiceOver focuses.
+                accessible={count === 1}
                 // Both, as in the stack's ShopImage (SHO-92): expo-image's web
                 // renderer reads `alt` only for the placeholder and labels the
                 // loaded image from accessibilityLabel.
@@ -124,8 +165,8 @@ export const ProductGallery = ({
             )}
           />
         ) : (
-          // Holds the square's space until the width is known.
-          <View style={{ aspectRatio: 1 }} />
+          // Holds the frame's space until the width is known.
+          <View style={{ aspectRatio: ratio }} />
         )}
 
         {count > 1 ? (
@@ -162,7 +203,8 @@ export const ProductGallery = ({
               }`}
             >
               <Image
-                source={image.url}
+                // Three times its 56pt, for the sharpest screens.
+                source={sized(image.url, 168)}
                 contentFit="cover"
                 style={{ width: 56, height: 56 }}
                 // Decorative: the button around it carries the label, so

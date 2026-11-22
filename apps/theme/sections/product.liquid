@@ -45,7 +45,8 @@
     first image loads eagerly: it's the page's Largest Contentful Paint.
   {% endcomment %}
   {%- liquid
-    assign gallery_count = product.images.size
+    # Up to ten, as galleryImages does on web and in the app (GALLERY_LIMIT).
+    assign gallery_count = product.images.size | at_most: 10
     if gallery_count == 0 and product.featured_image
       assign gallery_count = 1
     endif
@@ -88,6 +89,7 @@
           {%- assign slide_index = 1 -%}
           {%- for image in product.images -%}
             {%- if image.id == product.featured_image.id -%}{%- continue -%}{%- endif -%}
+            {%- if slide_index >= gallery_count -%}{%- break -%}{%- endif -%}
             {%- assign slide_index = slide_index | plus: 1 -%}
             {%- render 'product-slide', image: image, index: slide_index, count: gallery_count, title: product.title -%}
           {%- endfor -%}
@@ -116,6 +118,7 @@
         {%- assign thumb_index = 1 -%}
         {%- for image in product.images -%}
           {%- if image.id == product.featured_image.id -%}{%- continue -%}{%- endif -%}
+          {%- if thumb_index >= gallery_count -%}{%- break -%}{%- endif -%}
           {%- assign thumb_index = thumb_index | plus: 1 -%}
           {%- render 'product-thumbnail', image: image, index: thumb_index, count: gallery_count -%}
         {%- endfor -%}
