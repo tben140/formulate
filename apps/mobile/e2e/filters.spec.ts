@@ -11,10 +11,13 @@ import { openApp, productLinks } from "./helpers";
 /** Ticks a value, opening its group first if the sheet shows it collapsed. */
 const tick = async (page: Page, group: string, value: RegExp) => {
   const header = page.getByRole("button", { name: new RegExp(`^${group}`) });
-  await header.waitFor();
-  // A collapsed group doesn't render its values at all.
   const box = page.getByRole("checkbox", { name: value });
-  if ((await box.count()) === 0) await header.click();
+  // A collapsed group doesn't render its values. A tap while the sheet is
+  // still sliding in can be lost, so tap again until the value appears.
+  await expect(async () => {
+    if ((await box.count()) === 0) await header.click();
+    await expect(box).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   await box.click();
 };
 
