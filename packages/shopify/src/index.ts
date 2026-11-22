@@ -123,7 +123,11 @@ export {
   FORMATS,
   MAX_GOALS,
   MAX_PRODUCTS,
+  ROUTINE_ATTRIBUTES,
+  groupByRoutine,
+  newRoutineId,
   parseAnswers,
+  routineCartLines,
   scoreRoutine,
   serializeAnswers,
 } from "./routine-quiz";
@@ -131,10 +135,12 @@ export type {
   Budget,
   Diet,
   FormatPreference,
+  PropertiedSubscription,
   QuizAnswers,
   Routine,
   RoutineGoal,
   RoutineItem,
+  RoutinePick,
   RoutineProduct,
 } from "./routine-quiz";
 export { toRoutineGoals } from "./routine-quiz-data";
