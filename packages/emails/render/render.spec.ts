@@ -1,4 +1,5 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { inflateSync } from "node:zlib";
 
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
@@ -35,6 +36,22 @@ const undeclared = (html: string) =>
     .replace(/(?<![\w-])(supported-color-schemes|color-scheme)\s*:[^;}]*;?/g, "")
     .replace(/prefers-color-scheme:\s*dark/g, "prefers-color-scheme: never");
 
+/**
+ * The colour of a 1×1 PNG screenshot. The first pixel of a PNG row reads the
+ * same under every filter type, so it's the raw bytes after the filter byte.
+ */
+const pixel = (png: Buffer): [number, number, number] => {
+  const data: Buffer[] = [];
+  for (let at = 8; at < png.length;) {
+    const length = png.readUInt32BE(at);
+    if (png.toString("ascii", at + 4, at + 8) === "IDAT")
+      data.push(png.subarray(at + 8, at + 8 + length));
+    at += 12 + length;
+  }
+  const raw = inflateSync(Buffer.concat(data));
+  return [raw[1]!, raw[2]!, raw[3]!];
+};
+
 /** A phone, and a desktop client's reading pane. */
 const WIDTHS = [375, 800] as const;
 
@@ -59,6 +76,16 @@ for (const name of names) {
             document.documentElement.scrollWidth - document.documentElement.clientWidth,
         );
         expect(overflow, `horizontal scroll${suffix}`).toBeLessThanOrEqual(0);
+
+        // The browser really did repaint it. Chromium's headless shell ignores
+        // the WebContentsForceDark feature flag, and this mode silently matched
+        // light until it was checked.
+        if (info.project.name === "forced-dark") {
+          const corner = pixel(
+            await page.screenshot({ clip: { x: 2, y: 2, width: 1, height: 1 } }),
+          );
+          expect(Math.max(...corner), "forced dark left the page light").toBeLessThan(96);
+        }
 
         mkdirSync(new URL(`${base}/`, out), { recursive: true });
         await page.screenshot({

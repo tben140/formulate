@@ -21,7 +21,9 @@ export default defineConfig({
       use: {
         colorScheme: "dark",
         launchOptions: {
-          args: ["--enable-features=WebContentsForceDark:inversion_method/cielab_based"],
+          // Blink's own switch: the headless shell ignores the
+          // WebContentsForceDark feature flag that full Chrome uses.
+          args: ["--blink-settings=forceDarkModeEnabled=true"],
         },
       },
     },
