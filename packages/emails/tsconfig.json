@@ -1,0 +1,10 @@
+{
+  "extends": "@formulate/typescript-config/base.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    // DOM for the page.evaluate callbacks in render/, which run in the browser.
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "render/**/*.ts", "*.config.ts"]
+}

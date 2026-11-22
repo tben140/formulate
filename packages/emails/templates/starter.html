@@ -1,0 +1,336 @@
+<!doctype html>
+<html
+  lang="en"
+  xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <!-- Both schemes are designed for: clients that support it use the dark styles below rather than inverting the colours themselves. -->
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <title>Double Helix</title>
+    <!--[if mso]>
+      <noscript
+        ><xml
+          ><o:OfficeDocumentSettings
+            ><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings
+          ></xml
+        ></noscript
+      >
+    <![endif]-->
+    <style>
+      /*
+    The starting layout for every Double Helix email (docs/email-testing.md).
+    Colours are @formulate/tokens' ink and brand scales, written out because
+    email has no custom properties. Light is the default; the dark block
+    below repaints it for clients that honour prefers-color-scheme (Apple
+    Mail, iOS Mail, Outlook for Mac). Outlook.com and the Outlook apps use
+    the [data-ogsc]/[data-ogsb] blocks. Gmail's apps invert colours
+    themselves and ignore both, so every colour pair here also has to read
+    when inverted: no text in images, no dark-on-dark logos.
+  */
+      :root {
+        color-scheme: light dark;
+        supported-color-schemes: light dark;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      img {
+        border: 0;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+      }
+      a {
+        color: #1d49d8;
+      }
+      .preheader {
+        display: none !important;
+      }
+
+      @media (max-width: 620px) {
+        .container {
+          width: 100% !important;
+        }
+        .px {
+          padding-left: 20px !important;
+          padding-right: 20px !important;
+        }
+        .h1 {
+          font-size: 26px !important;
+          line-height: 32px !important;
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .bg-page {
+          background-color: #0f172a !important;
+        }
+        .bg-card {
+          background-color: #1e293b !important;
+        }
+        .text {
+          color: #f1f5f9 !important;
+        }
+        .text-muted {
+          color: #94a3b8 !important;
+        }
+        .link {
+          color: #93bcfd !important;
+        }
+        .button-bg {
+          background-color: #609afa !important;
+          border-color: #609afa !important;
+        }
+        .button-text {
+          color: #0f172a !important;
+        }
+        .rule {
+          border-color: #334155 !important;
+        }
+      }
+      [data-ogsc] .text {
+        color: #f1f5f9 !important;
+      }
+      [data-ogsc] .text-muted {
+        color: #94a3b8 !important;
+      }
+      [data-ogsc] .link {
+        color: #93bcfd !important;
+      }
+      [data-ogsc] .button-text {
+        color: #0f172a !important;
+      }
+      [data-ogsb] .bg-page {
+        background-color: #0f172a !important;
+      }
+      [data-ogsb] .bg-card {
+        background-color: #1e293b !important;
+      }
+      [data-ogsb] .button-bg {
+        background-color: #609afa !important;
+      }
+    </style>
+  </head>
+  <body class="bg-page" style="margin: 0; padding: 0; background-color: #f1f5f9">
+    <!-- The inbox preview line. Klaviyo's "Preview text" field fills the same spot; set both to the same words. -->
+    <div
+      class="preheader"
+      style="
+        display: none;
+        visibility: hidden;
+        opacity: 0;
+        color: transparent;
+        height: 0;
+        width: 0;
+        max-height: 0;
+        max-width: 0;
+        overflow: hidden;
+        mso-hide: all;
+      "
+    >
+      Your daily supplements, made simple.
+    </div>
+
+    <table
+      role="presentation"
+      class="bg-page"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      style="background-color: #f1f5f9"
+    >
+      <tr>
+        <td align="center" style="padding: 24px 12px">
+          <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+          <!-- Fluid up to 600px, so it fits a phone even where <style> is stripped; Outlook for Windows gets the fixed 600px table above. -->
+          <table
+            role="presentation"
+            class="container"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="width: 100%; max-width: 600px"
+          >
+            <tr>
+              <td
+                class="px"
+                style="
+                  padding: 8px 32px 20px;
+                  font-family: &quot;DM Sans&quot;, Arial, Helvetica, sans-serif;
+                "
+              >
+                <!-- The wordmark is live text, not an image: it can't vanish in dark mode or with images off. -->
+                <a
+                  href="https://www.doublehelixsupplements.co.uk/"
+                  class="text"
+                  style="
+                    font-size: 20px;
+                    line-height: 24px;
+                    font-weight: 700;
+                    color: #0f172a;
+                    text-decoration: none;
+                    letter-spacing: -0.01em;
+                  "
+                  >Double Helix</a
+                >
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                class="bg-card px"
+                style="
+                  background-color: #ffffff;
+                  border-radius: 12px;
+                  padding: 40px 32px;
+                  font-family: &quot;DM Sans&quot;, Arial, Helvetica, sans-serif;
+                "
+              >
+                <h1
+                  class="text h1"
+                  style="
+                    margin: 0 0 16px;
+                    font-size: 30px;
+                    line-height: 36px;
+                    font-weight: 700;
+                    color: #0f172a;
+                  "
+                >
+                  Your routine, restocked
+                </h1>
+                <p
+                  class="text"
+                  style="
+                    margin: 0 0 24px;
+                    font-size: 16px;
+                    line-height: 24px;
+                    color: #0f172a;
+                  "
+                >
+                  This is the starting layout for Double Helix emails. Replace this
+                  paragraph with the message. Keep sentences short: most people read email
+                  on a phone.
+                </p>
+
+                <!-- A bulletproof button: a padded link in a table cell, so it stays a button in Outlook for Windows, with images off, and in dark mode. -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td
+                      class="button-bg"
+                      align="center"
+                      bgcolor="#1d49d8"
+                      style="border-radius: 8px; background-color: #1d49d8"
+                    >
+                      <a
+                        href="https://www.doublehelixsupplements.co.uk/collections/best-sellers"
+                        class="button-text"
+                        style="
+                          display: inline-block;
+                          padding: 14px 24px;
+                          font-family: &quot;DM Sans&quot;, Arial, Helvetica, sans-serif;
+                          font-size: 16px;
+                          line-height: 20px;
+                          font-weight: 700;
+                          color: #ffffff;
+                          text-decoration: none;
+                          border-radius: 8px;
+                        "
+                        >Shop best sellers</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+
+                <p
+                  class="text-muted"
+                  style="
+                    margin: 24px 0 0;
+                    font-size: 14px;
+                    line-height: 20px;
+                    color: #64748b;
+                  "
+                >
+                  Questions? Reply to this email, or write to
+                  <a
+                    href="mailto:hello@doublehelixsupplements.co.uk"
+                    class="link"
+                    style="color: #1d49d8"
+                    >hello@doublehelixsupplements.co.uk</a
+                  >.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <!-- ink-600, not ink-500: the footer sits on the page colour, where ink-500 is under 4.5:1. -->
+              <td
+                class="px"
+                style="
+                  padding: 24px 32px;
+                  font-family: &quot;DM Sans&quot;, Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  class="text-muted"
+                  style="
+                    margin: 0 0 8px;
+                    font-size: 12px;
+                    line-height: 18px;
+                    color: #475569;
+                  "
+                >
+                  Double Helix is a demonstration store for a portfolio project. Nothing
+                  is charged or shipped.
+                </p>
+                <p
+                  class="text-muted"
+                  style="
+                    margin: 0 0 8px;
+                    font-size: 12px;
+                    line-height: 18px;
+                    color: #475569;
+                  "
+                >
+                  {{ organization.name }}, {{ organization.full_address }}
+                </p>
+                <p
+                  class="text-muted"
+                  style="margin: 0; font-size: 12px; line-height: 18px; color: #475569"
+                >
+                  <a href="{% unsubscribe_link %}" class="link" style="color: #1d49d8"
+                    >Unsubscribe</a
+                  >
+                  ·
+                  <a
+                    href="{% manage_preferences_link %}"
+                    class="link"
+                    style="color: #1d49d8"
+                    >Email preferences</a
+                  >
+                </p>
+              </td>
+            </tr>
+          </table>
+          <!--[if mso]></td></tr></table><![endif]-->
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
