@@ -1,17 +1,28 @@
-import { Image } from "expo-image";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  productViewedProperties,
+  viewedProduct,
+} from "@formulate/analytics";
+import { EXPERIMENTS } from "@formulate/experiments";
+import { galleryImages } from "@formulate/shopify";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Keyboard, ScrollView, View } from "react-native";
 
 import { AddToCart } from "../../../../components/add-to-cart";
 import { useCartUi } from "../../../../components/cart-provider";
 import { PairsWellWith } from "../../../../components/pairs-well-with";
+import { ProductGallery } from "../../../../components/product-gallery";
+import { RichText } from "../../../../components/rich-text";
 import { SiteFooter } from "../../../../components/site-footer";
-import {
-  STICKY_BAR_HEIGHT,
-  StickyAddToCart,
-} from "../../../../components/sticky-add-to-cart";
+import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../../../components/sticky-add-to-cart";
+import { useExperiment } from "../../../../lib/experiments";
+import { trackEvent } from "../../../../lib/klaviyo";
+import { analytics } from "../../../../lib/product-analytics";
 import { useProduct } from "../../../../lib/queries";
+import { SITE_ORIGIN } from "../../../../lib/site";
+import { useTrackingConsent } from "../../../../lib/tracking-consent";
 import { usePurchase, type Product } from "../../../../lib/use-purchase";
 import { Text } from "../../../../components/text";
 
@@ -76,6 +87,39 @@ const ProductScreen = () => {
  */
 const ProductBody = ({ product }: { product: Product }) => {
   const { openCart } = useCartUi();
+
+  /*
+   * PostHog's product_viewed (SHO-87) and Klaviyo's Viewed Product (SHO-109),
+   * once per product shown. Also re-run when the tracking choice changes, so
+   * the product open while the shopper accepts is counted, and the one shown
+   * while the stored choice was still loading isn't lost.
+   *
+   * Only while this screen is in front: earlier product screens stay mounted
+   * under the stack, and an Accept mustn't count those. Each screen counts its
+   * product once, so coming back to it isn't a second view.
+   */
+  const consent = useTrackingConsent();
+  const counted = useRef<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (consent !== "granted" || counted.current === product.id) return;
+      counted.current = product.id;
+      analytics()?.capture(
+        PRODUCT_EVENTS.productViewed,
+        productViewedProperties(product),
+      );
+      trackEvent(EVENTS.viewedProduct, viewedProduct(product, SITE_ORIGIN));
+    }, [product, consent]),
+  );
+  /*
+   * The A/A test (ADR 0013): both arms render this same screen, so nothing
+   * below depends on the variant; the hook only records the exposure. A route
+   * parameter forces a variant for review, as `?product-page-aa=` does on web.
+   */
+  const aa = EXPERIMENTS.productPageAa;
+  const params = useLocalSearchParams<Record<string, string | string[]>>();
+  useExperiment(aa, params[aa.key]);
+
   const purchase = usePurchase(product);
 
   /*
@@ -149,21 +193,18 @@ const ProductBody = ({ product }: { product: Product }) => {
       >
         <Stack.Screen options={{ title: product.title }} />
 
-        <Image
-          source={product.featuredImage?.url}
-          contentFit="cover"
-          transition={150}
-          style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }}
-          accessibilityIgnoresInvertColors
-        />
+        <ProductGallery images={galleryImages(product)} title={product.title} />
 
         <View>
           <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
+          {product.subtitle?.value ? (
+            <Text className="mt-1 text-lg text-foreground-muted">
+              {product.subtitle.value}
+            </Text>
+          ) : null}
         </View>
 
-        {product.description ? (
-          <Text className="text-base text-foreground-muted">{product.description}</Text>
-        ) : null}
+        {product.descriptionHtml ? <RichText html={product.descriptionHtml} /> : null}
 
         {/*
           The price lives inside AddToCart, because it changes with the selection

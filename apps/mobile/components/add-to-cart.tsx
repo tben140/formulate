@@ -1,6 +1,8 @@
+import { PRODUCT_EVENTS, numericId, productRef } from "@formulate/analytics";
 import { findVariantByOptions, formatMoney, withOption } from "@formulate/shopify";
 import { Pressable, View, type LayoutChangeEvent } from "react-native";
 
+import { analytics } from "../lib/product-analytics";
 import type { Product, Purchase } from "../lib/use-purchase";
 import { Text } from "./text";
 
@@ -60,7 +62,16 @@ export const AddToCart = ({
                 return (
                   <Pressable
                     key={value.name}
-                    onPress={() => setSelected(candidate)}
+                    onPress={() => {
+                      setSelected(candidate);
+                      if (match) {
+                        analytics()?.capture(PRODUCT_EVENTS.variantSelected, {
+                          ...productRef(product),
+                          variant_id: numericId(match.id),
+                          variant_title: match.title,
+                        });
+                      }
+                    }}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: checked }}
                     // Sold-out combinations stay selectable — a shopper who
@@ -102,7 +113,13 @@ export const AddToCart = ({
             {choices.map((choice) => (
               <Pressable
                 key={choice.id || "one-time"}
-                onPress={() => setPlanId(choice.id)}
+                onPress={() => {
+                  setPlanId(choice.id);
+                  analytics()?.capture(PRODUCT_EVENTS.sellingPlanSelected, {
+                    ...productRef(product),
+                    selling_plan: choice.id ? choice.label : null,
+                  });
+                }}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: effectivePlanId === choice.id }}
                 accessibilityLabel={
