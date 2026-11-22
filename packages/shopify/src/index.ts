@@ -18,6 +18,9 @@ export type {
   UserErrorShape,
 } from "./errors";
 
+export { GALLERY_LIMIT, galleryAlt, galleryImages, galleryPosition } from "./gallery";
+export type { GalleryImage } from "./gallery";
+
 export { formatMoney } from "./format-money";
 
 export {
@@ -76,11 +79,13 @@ export {
   LEGAL_MENU_HANDLE,
   NAV_MENU_HANDLE,
   POLICY_HANDLES,
+  SHOP_MENU_HANDLES,
   breadcrumbCollection,
   isPolicyHandle,
+  toNavGroup,
   toNavLinks,
 } from "./nav";
-export type { NavLink, PolicyHandle } from "./nav";
+export type { NavGroup, NavLink, PolicyHandle } from "./nav";
 
 export {
   DEFAULT_API_VERSION,
@@ -117,6 +122,18 @@ export {
   SURFACE_ONLY_ROUTES,
   paths,
 } from "./routes";
+export {
+  FILTER_GROUPS_OPEN,
+  FILTER_VALUES_SHOWN,
+  SORT_OPTIONS,
+  SORT_PARAM,
+  collectionSort,
+  filterGroups,
+  priceBounds,
+  priceRangeLabel,
+  withSort,
+} from "./listing";
+export type { FilterGroup, SortOption } from "./listing";
 export type { ProductFilter } from "./generated/graphql";
 export { descriptionBlocks } from "./description";
 export type { DescriptionBlock } from "./description";
@@ -143,8 +160,8 @@ export type {
 export { cartRenewalTerms, expressCheckoutOnProduct } from "./express-checkout";
 export type { RenewalLine } from "./express-checkout";
 
-export { policyBlocks } from "./policy-text";
-export type { PolicyBlock } from "./policy-text";
+export { policyBlocks, richTextBlocks } from "./rich-text";
+export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";
 export { PLANNED_PAYMENT_ICON_IDS, payLaterIds, paymentIconIds } from "./payment-icons";
 export type { PayLaterId, PaymentIconId } from "./payment-icons";
 export {

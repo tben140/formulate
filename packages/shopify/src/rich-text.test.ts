@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { policyBlocks } from "./policy-text";
+import { policyBlocks, richTextBlocks } from "./rich-text";
 
 describe("policyBlocks", () => {
   it("treats a bold line as a heading, as Shopify's templates write them", () => {
@@ -37,7 +37,11 @@ describe("policyBlocks", () => {
 
   it("doesn't make a heading of a paragraph that only starts in bold", () => {
     expect(policyBlocks("<p><strong>Note:</strong> refunds take 5 days.</p>")).toEqual([
-      { kind: "paragraph", text: "Note: refunds take 5 days." },
+      {
+        kind: "paragraph",
+        text: "Note: refunds take 5 days.",
+        runs: [{ text: "Note:", bold: true }, { text: " refunds take 5 days." }],
+      },
     ]);
   });
 
@@ -81,5 +85,88 @@ describe("policyBlocks", () => {
 
   it("returns nothing for an empty body", () => {
     expect(policyBlocks("  <p> </p> ")).toEqual([]);
+  });
+});
+
+describe("richTextBlocks", () => {
+  it("keeps bold and italic runs inside a paragraph", () => {
+    expect(
+      richTextBlocks(
+        "<p><strong>Ingredients:</strong> citicoline, <em>rice</em> flour</p>",
+      ),
+    ).toEqual([
+      {
+        kind: "paragraph",
+        text: "Ingredients: citicoline, rice flour",
+        runs: [
+          { text: "Ingredients:", bold: true },
+          { text: " citicoline, " },
+          { text: "rice", italic: true },
+          { text: " flour" },
+        ],
+      },
+    ]);
+  });
+
+  it("keeps a bold paragraph a paragraph, unlike a policy", () => {
+    const html = "<p><strong>Demo store: illustrative data.</strong></p><p>Plain.</p>";
+    expect(richTextBlocks(html)).toEqual([
+      {
+        kind: "paragraph",
+        text: "Demo store: illustrative data.",
+        runs: [{ text: "Demo store: illustrative data.", bold: true }],
+      },
+      { kind: "paragraph", text: "Plain." },
+    ]);
+    expect(policyBlocks(html)[0]).toEqual({
+      kind: "heading",
+      text: "Demo store: illustrative data.",
+    });
+  });
+
+  it("reads <b> and <i> as bold and italic, and both together", () => {
+    expect(richTextBlocks("<p><b>a <i>b</i></b> c</p>")[0]?.runs).toEqual([
+      { text: "a ", bold: true },
+      { text: "b", bold: true, italic: true },
+      { text: " c" },
+    ]);
+  });
+
+  it("carries bold across a line break", () => {
+    expect(richTextBlocks("<p><strong>one<br>two</strong> three</p>")).toEqual([
+      { kind: "paragraph", text: "one", runs: [{ text: "one", bold: true }] },
+      {
+        kind: "paragraph",
+        text: "two three",
+        runs: [{ text: "two", bold: true }, { text: " three" }],
+      },
+    ]);
+  });
+
+  it("keeps bold runs in list items, and leaves headings plain", () => {
+    expect(
+      richTextBlocks("<h3>Spec</h3><ul><li><strong>250 mg</strong> citicoline</li></ul>"),
+    ).toEqual([
+      { kind: "heading", text: "Spec" },
+      {
+        kind: "item",
+        text: "250 mg citicoline",
+        runs: [{ text: "250 mg", bold: true }, { text: " citicoline" }],
+      },
+    ]);
+  });
+
+  it("collapses whitespace across a style change, as a browser does", () => {
+    expect(richTextBlocks("<p>a <strong> b </strong> c</p>")[0]?.runs).toEqual([
+      { text: "a " },
+      { text: "b ", bold: true },
+      { text: "c" },
+    ]);
+  });
+
+  it("doesn't read <br>, <img> or <body> as bold or italic", () => {
+    expect(richTextBlocks('<p>a<img src="x.png">b</p>')).toEqual([
+      { kind: "paragraph", text: "ab" },
+    ]);
   });
 });
