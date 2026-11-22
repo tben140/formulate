@@ -52,6 +52,10 @@
 
     {% sections 'footer-group' %}
 
+    {% if settings.consent_banner %}
+      {% render 'consent-banner' %}
+    {% endif %}
+
     {% comment %}
       The cart drawer lives in the layout so it is present on every page — a
       shopper can add from a product page and see the drawer without a

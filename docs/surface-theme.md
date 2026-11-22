@@ -177,6 +177,28 @@ passwords are Shopify's sanctioned route for CI theme pushes, and because the
 workflow names the pages to audit, nothing needs the Admin API, which a Theme
 Access password can't reach.
 
+## Cookie banner
+
+The theme draws its own cookie banner (`snippets/consent-banner.liquid`,
+`assets/consent-banner.js`), behind the theme setting **Cookie banner**. The
+choice still goes through Shopify's Customer Privacy API, which Klaviyo's app
+embed and Shopify's pixels read, so nothing downstream changes.
+
+Shopify's own banner is injected by script about 4 s into the load. On a phone
+collection page, with two products per row, its text block is larger than any
+product photo, so it became the page's Largest Contentful Paint and failed the
+4 s Lighthouse budget (#148). The theme's banner is in the HTML and paints with
+the page.
+
+- **First visit:** shown at first paint, then hidden if the API says the
+  visitor's region doesn't need a choice.
+- **Returning visitor:** an inline script hides it before paint, from a
+  `localStorage` marker set when they chose. The API still decides: if the
+  recorded choice has gone, the banner comes back.
+- **Changing your mind:** "Cookie preferences" in the footer reopens it.
+- While the setting is on, Shopify's banner is hidden with CSS so no one sees
+  two. Turn it off in Settings → Customer privacy as well.
+
 ## Scope
 
 Read-only browse, matching the other two surfaces. No add-to-cart yet — cart

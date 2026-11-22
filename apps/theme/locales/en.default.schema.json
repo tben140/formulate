@@ -32,7 +32,8 @@
     "text": "Text",
     "theme": "Theme",
     "typography": "Typography",
-    "cart_suggestions": "Cart suggestions"
+    "cart_suggestions": "Cart suggestions",
+    "cookie_banner": "Cookie banner"
   },
   "labels": {
     "alignment": "Alignment",
@@ -51,7 +52,8 @@
     "page_width": "Page width",
     "show_payment_icons": "Show payment icons",
     "text": "Text",
-    "text_style": "Text style"
+    "text_style": "Text style",
+    "consent_banner": "Use the theme's cookie banner"
   },
   "options": {
     "alignment": {
@@ -79,7 +81,8 @@
   },
   "info": {
     "klaviyo_public_key": "Klaviyo → Settings → API keys → Public API key.",
-    "klaviyo_list_id": "Klaviyo → Lists & Segments → open the list → the ID in the browser URL."
+    "klaviyo_list_id": "Klaviyo → Lists & Segments → open the list → the ID in the browser URL.",
+    "consent_banner": "Painted with the page, where Shopify's arrives seconds later and slows the page's measured load. Choices go to Shopify's Customer Privacy API as before. Turn Shopify's banner off in Settings → Customer privacy while this is on."
   },
   "sections": {
     "product": {

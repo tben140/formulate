@@ -113,6 +113,13 @@
         &copy; {{ 'now' | date: '%Y' }} {{ settings.wordmark | default: shop.name }}
       </p>
 
+      {% comment %} Changing your mind is as easy as choosing: snippets/consent-banner.liquid. {% endcomment %}
+      {% if settings.consent_banner %}
+        <button type="button" class="site-footer__consent" data-consent-reopen>
+          {{- 'cookie_banner.preferences' | t -}}
+        </button>
+      {% endif %}
+
       {% if section.settings.menu != blank %}
         <ul class="site-footer__links" role="list">
           {% for link in section.settings.menu.links %}
@@ -155,6 +162,21 @@
 
   .site-footer__links a:hover {
     color: var(--color-foreground);
+  }
+
+  .site-footer__consent {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--color-foreground-muted);
+    cursor: pointer;
+  }
+
+  .site-footer__consent:hover {
+    color: var(--color-foreground);
+    text-decoration: underline;
+    text-underline-offset: 4px;
   }
 
   /* Matched against apps/web's <SocialLinks />: gap-2, size-11 targets, size-5

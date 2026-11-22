@@ -149,5 +149,12 @@
   "footer": {
     "social": "Social media",
     "payment_methods": "Payment methods"
+  },
+  "cookie_banner": {
+    "title": "Cookies",
+    "body": "With your permission, we and Klaviyo remember what you browse and add to your basket, so we can improve the shop and email you reminders. Nothing is tracked unless you accept. You can change your mind from the footer at any time.",
+    "decline": "Decline",
+    "accept": "Accept",
+    "preferences": "Cookie preferences"
   }
 }
