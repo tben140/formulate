@@ -191,6 +191,12 @@ export const ProductByHandleQuery = graphql(`
               sellingPlan {
                 id
                 name
+                # Recharge's "Order Frequency and Unit" ("60-day"): how much
+                # each delivery holds (deliveryQuote in subscribe-and-save.ts).
+                options {
+                  name
+                  value
+                }
               }
               priceAdjustments {
                 price {
@@ -504,6 +510,12 @@ export const CartFields = graphql(`
           sellingPlan {
             id
             name
+            # For the supply a line holds (deliveryQuote): a 90-day plan's
+            # quantity is set by the plan, not the shopper.
+            options {
+              name
+              value
+            }
           }
         }
       }
