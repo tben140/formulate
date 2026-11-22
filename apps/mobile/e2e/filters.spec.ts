@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { openApp, productLinks } from "./helpers";
 
@@ -8,16 +8,41 @@ import { openApp, productLinks } from "./helpers";
  * Whey and Plant Protein. Check those numbers first if the catalogue changed.
  */
 
+/**
+ * Ticks a value. Its group may start collapsed, and a long group shows five
+ * values before a "Show N more" button. Tapping the header toggles it, so it's
+ * tapped only while nothing of the group shows: a tap while the sheet is still
+ * sliding in can be lost.
+ */
+const tick = async (page: Page, group: string, value: RegExp) => {
+  const header = page.getByRole("button", { name: new RegExp(`^${group}`) });
+  const box = page.getByRole("checkbox", { name: value });
+  const more = page.getByRole("button", { name: /^Show \d+ more$/ });
+  await expect(async () => {
+    if ((await box.count()) === 0 && (await more.count()) === 0) await header.click();
+    await expect(box.or(more).first()).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+  if ((await box.count()) === 0) await more.first().click();
+  await box.click();
+};
+
+/** The sheet's apply button: "Show 2 products", or "Show results" in search. */
+const showResults = (page: Page) =>
+  page.getByRole("button", { name: /^Show (results|\d+\+? products?)$/ }).click();
+
 test("filtering a collection narrows it, and the chip clears it", async ({ page }) => {
   await openApp(page, "/collections/performance");
   await expect(productLinks(page)).toHaveCount(6);
 
-  await page.getByRole("button", { name: "Filter" }).click();
-  await page.getByRole("checkbox", { name: /^Vanilla/ }).click();
-  await page.getByRole("button", { name: "Show results" }).click();
+  // A collection sorts as well as filters, so its button says both.
+  await page.getByRole("button", { name: "Filter & sort" }).click();
+  await tick(page, "Flavour", /^Vanilla/);
+  await showResults(page);
 
   await expect(productLinks(page)).toHaveCount(2);
-  await expect(page.getByRole("button", { name: "Filter, 1 active" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Filter & sort, 1 active" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Flavour: Vanilla, remove filter" }).click();
   await expect(productLinks(page)).toHaveCount(6);
@@ -33,8 +58,8 @@ test("search results can be filtered too", async ({ page }) => {
   await expect(productLinks(page).filter({ hasText: "Whey Protein" })).toBeVisible();
 
   await page.getByRole("button", { name: "Filter" }).click();
-  await page.getByRole("checkbox", { name: /^Chocolate/ }).click();
-  await page.getByRole("button", { name: "Show results" }).click();
+  await tick(page, "Flavour", /^Chocolate/);
+  await showResults(page);
 
   await expect(productLinks(page).filter({ hasText: "Whey Protein" })).toBeVisible();
   await expect(productLinks(page).filter({ hasText: "Plant Protein" })).toBeVisible();
