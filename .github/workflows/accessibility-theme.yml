@@ -99,8 +99,9 @@ jobs:
       # push can create the theme and then fail before printing its id. Only
       # an exact name match that isn't live is deleted. CLI 5 wraps the list
       # in an object where 4 printed a bare array, so jq looks at every level.
+      # A run cancelled mid-push can also leave the theme behind.
       - name: Delete the temporary theme
-        if: always() && (steps.push.outcome == 'success' || steps.push.outcome == 'failure')
+        if: always() && contains(fromJSON('["success", "failure", "cancelled"]'), steps.push.outcome)
         working-directory: apps/theme
         env:
           SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOP_THEME_ACCESS_PASSWORD }}
