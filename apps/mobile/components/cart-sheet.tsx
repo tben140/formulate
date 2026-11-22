@@ -1,8 +1,18 @@
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  cartViewedProperties,
+  checkoutStartedProperties,
+  startedCheckout,
+} from "@formulate/analytics";
 import { formatMoney } from "@formulate/shopify";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
 import { useCheckout } from "../lib/checkout";
+import { trackEvent } from "../lib/klaviyo";
+import { analytics } from "../lib/product-analytics";
+import { SITE_ORIGIN } from "../lib/site";
 import { useClearCart, useOptimisticCart, useUpdateCartLine } from "../lib/use-cart";
 
 import { FreeShippingBar } from "./free-shipping-bar";
@@ -46,6 +56,18 @@ export const CartSheet = ({
    * that must not re-subscribe, and nothing renders from it.
    */
   const purchased = useRef(false);
+
+  // PostHog's cart_viewed (SHO-87), once per opening.
+  const counted = useRef(false);
+  useEffect(() => {
+    if (!visible) {
+      counted.current = false;
+      return;
+    }
+    if (counted.current || !cart) return;
+    counted.current = true;
+    analytics()?.capture(PRODUCT_EVENTS.cartViewed, cartViewedProperties(cart));
+  }, [visible, cart]);
 
   useEffect(() => {
     /*
@@ -263,7 +285,15 @@ export const CartSheet = ({
 
             {/* Held while a line change is in flight, as on web. */}
             <Pressable
-              onPress={() => checkout.present(cart.checkoutUrl)}
+              onPress={() => {
+                analytics()?.capture(
+                  PRODUCT_EVENTS.checkoutStarted,
+                  checkoutStartedProperties(cart),
+                );
+                // Klaviyo's Started Checkout (SHO-109), as web sends it.
+                trackEvent(EVENTS.startedCheckout, startedCheckout(cart, SITE_ORIGIN));
+                checkout.present(cart.checkoutUrl);
+              }}
               disabled={busy.size > 0}
               accessibilityRole="button"
               accessibilityState={{ disabled: busy.size > 0, busy: busy.size > 0 }}
