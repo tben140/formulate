@@ -140,7 +140,8 @@
     "choose_image": "Choose an image",
     "show_image": "Show image {{ index }} of {{ count }}",
     "previous_image": "Previous image",
-    "next_image": "Next image"
+    "next_image": "Next image",
+    "rating_label": "{{ average }} out of 5 stars from {{ count }} reviews"
   },
   "search": {
     "title": "Search",

@@ -53,6 +53,12 @@
    */
   "vars": {
     "KLAVIYO_LIST_ID": "XPJ8ic",
+    /*
+     * The store's domain names it to Judge.me (reviews); it grants nothing.
+     * JUDGEME_PRIVATE_TOKEN is a secret: Cloudflare dashboard, type Secret,
+     * never here.
+     */
+    "SHOPIFY_STORE_DOMAIN": "tben140plus-xcorpito.myshopify.com"
   },
 
   /*
