@@ -36,8 +36,13 @@ test("keyboard-only: collection to cart, with focus moved into the drawer", asyn
   page,
 }) => {
   await page.goto("/collections/best-sellers", { waitUntil: "networkidle" });
-  const card = page.locator('main a[href="/products/whey-protein"]');
-  await tabTo(page, card);
+  const card = page
+    .getByRole("main")
+    .getByRole("link", { name: /Whey Protein/ })
+    .first();
+  // The filter sidebar comes first on desktop, so the products are a long
+  // way down the tab order.
+  await tabTo(page, card, 120);
   await page.keyboard.press("Enter");
   await page.waitForURL(/\/products\/whey-protein/);
   await page.waitForLoadState("networkidle");

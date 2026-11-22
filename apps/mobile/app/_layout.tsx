@@ -1,24 +1,39 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { SplashScreen, Stack } from "expo-router";
+import { SplashScreen, Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 
+import { AnalyticsConsent } from "../components/analytics-consent";
 import { CartProvider } from "../components/cart-provider";
 import { CheckoutProvider } from "../lib/checkout";
 import { FONT_FILES } from "../lib/fonts";
 import { initKlaviyo } from "../lib/klaviyo";
+import { analytics, loadAnalyticsIdentity } from "../lib/product-analytics";
+import { loadTrackingConsent, useTrackingConsent } from "../lib/tracking-consent";
 
 import "../global.css";
 
 /*
- * Started once, at module scope rather than in an effect.
+ * Set up once, at module scope rather than in an effect, so nothing renders
+ * before the vendors are listening for the tracking choice.
  *
- * Every other `Klaviyo.*` call is a no-op until this has run, and it fails
- * quietly rather than throwing — so initialising inside an effect would leave a
- * window where early calls vanish, which is exactly the silent-failure shape
- * this integration keeps producing. Module scope runs before any render.
+ * Klaviyo only starts when the choice says yes (lib/klaviyo.ts). PostHog's
+ * stored id is read before the choice, so no event can mint a new id over a
+ * returning shopper's (lib/product-analytics.ts). Nothing is sent by either
+ * until the choice, loaded last, says yes.
  */
 initKlaviyo();
+void loadAnalyticsIdentity().then(loadTrackingConsent);
+
+/** A PostHog screen view per route (SHO-87); nothing without consent. */
+const AnalyticsScreens = () => {
+  const pathname = usePathname();
+  const consent = useTrackingConsent();
+  useEffect(() => {
+    analytics()?.screen(pathname);
+  }, [pathname, consent]);
+  return null;
+};
 
 // Hold the splash screen until the fonts are in (below), so text never draws
 // in the system font and then jumps to DM Sans.
@@ -69,6 +84,8 @@ const RootLayout = () => {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
           </Stack>
+          <AnalyticsScreens />
+          <AnalyticsConsent />
         </CartProvider>
       </CheckoutProvider>
     </QueryClientProvider>
