@@ -86,5 +86,15 @@
     "klaviyo_public_key": "Klaviyo → Settings → API keys → Public API key.",
     "klaviyo_list_id": "Klaviyo → Lists & Segments → open the list → the ID in the browser URL.",
     "wordmark": "The brand name in the header and the footer's copyright line. Leave blank to use the store name. Set in config/settings_data.json in the repository: a theme push replaces a change made here."
+  },
+  "sections": {
+    "product": {
+      "settings": {
+        "show_express_checkout": {
+          "label": "Show express checkout buttons",
+          "info": "Shop Pay, Apple Pay and the store's other wallets, for one-time purchases. Hidden while a subscription is selected."
+        }
+      }
+    }
   }
 }

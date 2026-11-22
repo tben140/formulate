@@ -157,6 +157,8 @@ export type {
   PlanOptionLike,
   SubscriptionSaving,
 } from "./subscribe-and-save";
+export { cartRenewalTerms, expressCheckoutOnProduct } from "./express-checkout";
+export type { RenewalLine } from "./express-checkout";
 
 export { policyBlocks, richTextBlocks } from "./rich-text";
 export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";

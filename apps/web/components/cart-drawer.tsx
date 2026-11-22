@@ -7,7 +7,9 @@ import {
   checkoutStartedProperties,
   startedCheckout,
 } from "@formulate/analytics";
+import { ShopPayButton } from "@shopify/hydrogen/react";
 import {
+  cartRenewalTerms,
   formatMoney,
   initialOptimisticCart,
   optimisticCart,
@@ -151,6 +153,29 @@ export const CartDrawer = ({
       setError("Your cart couldn't be updated. Check your connection and try again.");
     }
   };
+
+  /*
+   * Shop Pay checkouts are recorded the same way as Checkout. The button takes
+   * no handlers of its own; a click (or Enter, which clicks a link) reaches its
+   * wrapper from the shadow root, so the listener sits there.
+   */
+  const shopPay = useRef<HTMLDivElement>(null);
+  const holding = busy.size > 0;
+  useEffect(() => {
+    const element = shopPay.current;
+    if (!element || !cart) return;
+    const record = () => {
+      track(EVENTS.startedCheckout, startedCheckout(cart, siteOrigin));
+      analytics()?.capture(
+        PRODUCT_EVENTS.checkoutStarted,
+        checkoutStartedProperties(cart),
+      );
+    };
+    element.addEventListener("click", record);
+    return () => element.removeEventListener("click", record);
+    // `holding`: the button is unmounted while the cart updates, so the
+    // listener is attached again when it comes back.
+  }, [cart, siteOrigin, holding]);
 
   return (
     /*
@@ -341,6 +366,14 @@ export const CartDrawer = ({
               Taxes and shipping calculated at checkout.
             </p>
 
+            {cartRenewalTerms(lines) ? (
+              // Above every way to pay: Shop Pay below can skip Shopify's
+              // checkout page, where the terms would otherwise be shown.
+              <p className="mb-3 text-xs text-foreground-muted">
+                {cartRenewalTerms(lines)}
+              </p>
+            ) : null}
+
             {/*
               A link, not a button with an onClick. Checkout is a cross-origin
               navigation to Shopify — there is nothing to intercept, and a real
@@ -350,7 +383,8 @@ export const CartDrawer = ({
             {/*
               Held while a line change is in flight: Shopify's checkout would
               open on the cart before the change, and a failure couldn't be
-              shown once the shopper had left.
+              shown once the shopper had left. Express checkout waits too: it
+              opens the same cart.
             */}
             {busy.size > 0 ? (
               <p
@@ -360,23 +394,35 @@ export const CartDrawer = ({
                 Updating your cart…
               </p>
             ) : (
-              <a
-                href={cart.checkoutUrl}
-                // Fires before navigation rather than after. Checkout is
-                // cross-origin, so there is no "after" — the page is gone.
-                // Klaviyo's onsite script queues and flushes, which is what makes
-                // a beacon unnecessary here.
-                onClick={() => {
-                  track(EVENTS.startedCheckout, startedCheckout(cart, siteOrigin));
-                  analytics()?.capture(
-                    PRODUCT_EVENTS.checkoutStarted,
-                    checkoutStartedProperties(cart),
-                  );
-                }}
-                className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface hover:bg-brand-700"
-              >
-                Checkout
-              </a>
+              <>
+                <a
+                  href={cart.checkoutUrl}
+                  // Fires before navigation rather than after. Checkout is
+                  // cross-origin, so there is no "after" — the page is gone.
+                  // Klaviyo's onsite script queues and flushes, which is what makes
+                  // a beacon unnecessary here.
+                  onClick={() => {
+                    track(EVENTS.startedCheckout, startedCheckout(cart, siteOrigin));
+                    analytics()?.capture(
+                      PRODUCT_EVENTS.checkoutStarted,
+                      checkoutStartedProperties(cart),
+                    );
+                  }}
+                  className="block rounded-md bg-brand-600 px-4 py-3 text-center text-sm font-semibold text-surface hover:bg-brand-700"
+                >
+                  Checkout
+                </a>
+
+                {/* Express checkout for the whole cart, subscriptions included:
+                    the cart's own checkout link, opened in Shop Pay. */}
+                <div ref={shopPay} className="mt-2">
+                  <ShopPayButton
+                    checkoutUrl={cart.checkoutUrl}
+                    width="100%"
+                    borderRadius="8px"
+                  />
+                </div>
+              </>
             )}
           </footer>
         ) : null}

@@ -1,6 +1,7 @@
 import { PRODUCT_EVENTS, numericId, productRef } from "@formulate/analytics";
 import {
   deliveryPromise,
+  expressCheckoutOnProduct,
   findVariantByOptions,
   formatMoney,
   pricePerDay,
@@ -12,6 +13,7 @@ import {
 } from "@formulate/shopify";
 import { Pressable, View, type LayoutChangeEvent } from "react-native";
 
+import { ExpressCheckout } from "../lib/checkout";
 import { analytics } from "../lib/product-analytics";
 import type { Product, Purchase } from "../lib/use-purchase";
 import { Text } from "./text";
@@ -40,6 +42,7 @@ export const AddToCart = ({
     selected,
     setSelected,
     setPlanId,
+    variant,
     allocations,
     effectivePlanId,
     displayPrice,
@@ -233,6 +236,12 @@ export const AddToCart = ({
       >
         <Text className="text-center text-sm font-semibold text-surface">{label}</Text>
       </Pressable>
+
+      {variant?.availableForSale && expressCheckoutOnProduct(effectivePlanId) ? (
+        // One-time purchases only: a wallet can skip checkout, where the
+        // subscription terms are shown (packages/shopify/src/express-checkout.ts).
+        <ExpressCheckout variantId={variant.id} quantity={quote?.units ?? 1} />
+      ) : null}
 
       {effectivePlanId && displayPrice && planName ? (
         // The renewal terms, before purchase and next to the button
