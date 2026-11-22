@@ -78,40 +78,9 @@ class ConsentBanner extends Component {
       // No API (the preview editor, a blocked script): leave it as painted.
       if (!privacy) return;
       const needed = privacy.shouldShowBanner();
-      // TEMPORARY DIAGNOSTIC (#279): Lighthouse lists console errors.
-      console.error(
-        "consent-banner-debug " +
-          JSON.stringify({
-            needed,
-            region: privacy.getRegion?.(),
-            consent: privacy.currentVisitorConsent?.(),
-            stored: (() => {
-              try {
-                return localStorage.getItem(DECIDED_KEY);
-              } catch {
-                return "blocked";
-              }
-            })(),
-            hiddenBefore: this.hidden,
-          }),
-      );
       remember(!needed);
       this.hidden = !needed;
     });
-    setTimeout(() => {
-      const box = this.getBoundingClientRect();
-      console.error(
-        "consent-banner-debug-later " +
-          JSON.stringify({
-            hidden: this.hidden,
-            privacy: Boolean(this.#privacy),
-            top: Math.round(box.top),
-            height: Math.round(box.height),
-            viewport: window.innerHeight,
-            shopifyBanner: Boolean(document.getElementById("shopify-pc__banner")),
-          }),
-      );
-    }, 4000);
   }
 
   #show() {
