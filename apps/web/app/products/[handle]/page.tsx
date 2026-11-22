@@ -1,14 +1,21 @@
-import { viewedProduct } from "@formulate/analytics";
-import { breadcrumbCollection, ratingLabel, reviewSummary } from "@formulate/shopify";
-import { Image } from "@shopify/hydrogen-react";
+import { productViewedProperties, viewedProduct } from "@formulate/analytics";
+import { EXPERIMENTS } from "@formulate/experiments";
+import {
+  breadcrumbCollection,
+  galleryImages,
+  ratingLabel,
+  reviewSummary,
+} from "@formulate/shopify";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { ExperimentExposure } from "@/components/experiment-exposure";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
+import { ProductGallery } from "@/components/product-gallery";
 import { ProductReviews } from "@/components/product-reviews";
 import { WriteReview } from "@/components/write-review";
 import { Stars } from "@/components/stars";
@@ -16,12 +23,18 @@ import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { ProductDetails, ProductSummary } from "@/components/product-description";
 import { getProduct } from "@/lib/catalogue";
-import { getNavLinks } from "@/lib/nav";
-import { baseOpenGraph } from "@/lib/site";
+import { assignExperiment } from "@/lib/experiments";
+import { getNavLinks, getShopGroups } from "@/lib/nav";
+import { baseOpenGraph, siteUrl } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "@/lib/structured-data";
 
 interface PageProps {
   readonly params: Promise<{ handle: string }>;
+}
+
+interface ProductPageProps extends PageProps {
+  /** Only read to force an experiment's variant for review (lib/experiments.ts). */
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 /**
@@ -65,12 +78,20 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   };
 };
 
-const ProductPage = async ({ params }: PageProps) => {
+const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
   const { handle } = await params;
+  const aa = EXPERIMENTS.productPageAa;
 
   // Both cached per render: generateMetadata already fetched the product, and
   // the header the menu.
-  const [result, navLinks] = await Promise.all([getProduct(handle), getNavLinks()]);
+  const [result, navLinks, shopGroups, aaAssignment] = await Promise.all([
+    getProduct(handle),
+    getNavLinks(),
+    getShopGroups(),
+    // The A/A test (ADR 0013): both arms render this same page, so only the
+    // exposure below depends on it.
+    searchParams.then((query) => assignExperiment(aa, query[aa.key])),
+  ]);
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
@@ -81,7 +102,12 @@ const ProductPage = async ({ params }: PageProps) => {
   const summary = reviewSummary(product);
 
   // The same trail for people and for search engines.
-  const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, navLinks);
+  // The Shop dropdown's groups first (a goal says more than "Best Sellers"),
+  // then the bar's links, so a product in neither still gets one if it can.
+  const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, [
+    ...shopGroups.flatMap((group) => group.links),
+    ...navLinks,
+  ]);
 
   return (
     <>
@@ -106,8 +132,16 @@ const ProductPage = async ({ params }: PageProps) => {
         Built here, on the server, so the store domain never reaches the client
         bundle — only the emitting needs a browser.
       */}
+        {aaAssignment.exposure && aaAssignment.visitorId ? (
+          <ExperimentExposure
+            exposure={aaAssignment.exposure}
+            visitorId={aaAssignment.visitorId}
+          />
+        ) : null}
+
         <TrackViewedProduct
-          payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
+          payload={viewedProduct(product, siteUrl.origin)}
+          productViewed={productViewedProperties(product)}
         />
 
         {/*
@@ -117,30 +151,15 @@ const ProductPage = async ({ params }: PageProps) => {
           own shape, and on two columns it stays in view while the details
           scroll past.
         */}
-        <div className="self-start overflow-hidden rounded-lg border border-border bg-surface-muted md:sticky md:top-6">
-          {product.featuredImage ? (
-            <Image
-              data={product.featuredImage}
-              sizes="(min-width: 768px) 45vw, 90vw"
-              className="h-auto w-full"
-              // The page's Largest Contentful Paint. Hydrogen's Image defaults
-              // to lazy, which made the browser wait for layout before even
-              // requesting it (SHO-143).
-              loading="eager"
-              fetchPriority="high"
-            />
-          ) : (
-            <div
-              className="flex aspect-square items-center justify-center text-sm text-foreground-muted"
-              aria-hidden="true"
-            >
-              No image
-            </div>
-          )}
+        <div className="self-start md:sticky md:top-6">
+          <ProductGallery images={galleryImages(product)} title={product.title} />
         </div>
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+          {product.subtitle?.value ? (
+            <p className="mt-2 text-lg text-foreground-muted">{product.subtitle.value}</p>
+          ) : null}
           {summary ? (
             <a
               href="#reviews"

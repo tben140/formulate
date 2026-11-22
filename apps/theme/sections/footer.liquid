@@ -110,7 +110,7 @@
 
     <div class="site-footer__inner">
       <p class="site-footer__copyright">
-        &copy; {{ 'now' | date: '%Y' }} {{ settings.wordmark | default: shop.name }}
+        &copy; {{ 'now' | date: '%Y' }} {{ settings.wordmark | default: shop.name | escape }}
       </p>
 
       {% comment %} Changing your mind is as easy as choosing: snippets/consent-banner.liquid. {% endcomment %}
