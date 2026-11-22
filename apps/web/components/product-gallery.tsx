@@ -95,7 +95,8 @@ export const ProductGallery = ({
   }
 
   // The frame takes the first image's shape, which is the page's main photo,
-  // so it's never cropped. Later images of another shape fit inside it.
+  // so it's never cropped. Later images of another shape are centre-cropped to
+  // it, so swiping never changes the gallery's height.
   const [first] = images;
   const ratio =
     first?.width && first.height ? `${first.width} / ${first.height}` : "1 / 1";
@@ -127,7 +128,7 @@ export const ProductGallery = ({
               <Image
                 data={{ ...image, altText: galleryAlt(image, title, index, count) }}
                 sizes="(min-width: 768px) 45vw, 90vw"
-                className="h-full w-full object-contain"
+                className="h-full w-full object-cover"
                 loading={index === 0 ? "eager" : "lazy"}
                 fetchPriority={index === 0 ? "high" : undefined}
               />

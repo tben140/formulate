@@ -1,6 +1,6 @@
 import { galleryAlt, galleryPosition, type GalleryImage } from "@formulate/shopify";
 import { Image } from "expo-image";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -33,7 +33,7 @@ const NEARBY = 1;
  * for a carousel, and hear "Image 2 of 5".
  *
  * The frame takes the first image's shape, as on web and the theme, and later
- * images of another shape fit inside it.
+ * images of another shape are centre-cropped to it.
  */
 export const ProductGallery = ({
   images,
@@ -48,7 +48,10 @@ export const ProductGallery = ({
   const count = images.length;
   const first = images[0];
   const ratio = first?.width && first.height ? first.width / first.height : 1;
-  const shown = images[Math.min(active, count - 1)];
+  // A product refresh can leave fewer images than the shopper had swiped
+  // through, so everything below reads this clamped index, not `active`.
+  const current = Math.min(active, Math.max(count - 1, 0));
+  const shown = images[current];
 
   // A new width (rotation, a split screen) moves every page's offset, so put
   // the shown image back in view once the list has re-laid out. Only here:
@@ -57,11 +60,18 @@ export const ProductGallery = ({
     const next = event.nativeEvent.layout.width;
     if (next === width) return;
     setWidth(next);
-    if (active > 0)
+    if (current > 0)
       requestAnimationFrame(() =>
-        list.current?.scrollToIndex({ index: active, animated: false }),
+        list.current?.scrollToIndex({ index: current, animated: false }),
       );
   };
+
+  // Fewer images than before: bring the list's offset back to the last one,
+  // which `current` already shows.
+  useEffect(() => {
+    if (count > 0 && active > count - 1)
+      list.current?.scrollToIndex({ index: count - 1, animated: false });
+  }, [active, count]);
 
   const show = useCallback(
     (index: number) => {
@@ -101,7 +111,7 @@ export const ProductGallery = ({
         // images inside an adjustable element.
         accessibilityLabel={
           count > 1 && shown
-            ? `${title} images. ${galleryAlt(shown, title, active, count)}`
+            ? `${title} images. ${galleryAlt(shown, title, current, count)}`
             : undefined
         }
         // Numbers as well as words: web's slider role requires them, and they
@@ -111,13 +121,13 @@ export const ProductGallery = ({
         // same lesson as aria-checked in add-to-cart.tsx, SHO-92).
         aria-valuemin={count > 1 ? 1 : undefined}
         aria-valuemax={count > 1 ? count : undefined}
-        aria-valuenow={count > 1 ? active + 1 : undefined}
-        aria-valuetext={count > 1 ? galleryPosition(active, count) : undefined}
+        aria-valuenow={count > 1 ? current + 1 : undefined}
+        aria-valuetext={count > 1 ? galleryPosition(current, count) : undefined}
         accessibilityActions={
           count > 1 ? [{ name: "increment" }, { name: "decrement" }] : undefined
         }
         onAccessibilityAction={(event) =>
-          show(active + (event.nativeEvent.actionName === "increment" ? 1 : -1))
+          show(current + (event.nativeEvent.actionName === "increment" ? 1 : -1))
         }
       >
         {width > 0 ? (
@@ -145,8 +155,9 @@ export const ProductGallery = ({
             renderItem={({ item, index }) => (
               <Image
                 // Pages further away keep their space but load nothing yet.
-                source={Math.abs(index - active) <= NEARBY ? item.url : undefined}
-                contentFit="contain"
+                source={Math.abs(index - current) <= NEARBY ? item.url : undefined}
+                contentFit="cover"
+                contentPosition="center"
                 transition={150}
                 // The first image is what the screen opens on; the rest load
                 // when they're swiped towards.
@@ -176,7 +187,7 @@ export const ProductGallery = ({
             className="absolute right-2 bottom-2 rounded-full bg-surface/90 px-2 py-0.5"
           >
             <Text className="font-mono text-xs text-foreground">
-              {active + 1} / {count}
+              {current + 1} / {count}
             </Text>
           </View>
         ) : null}
@@ -196,10 +207,10 @@ export const ProductGallery = ({
               onPress={() => show(index)}
               accessibilityRole="button"
               accessibilityLabel={`Show ${galleryPosition(index, count).toLowerCase()}`}
-              accessibilityState={{ selected: index === active }}
+              accessibilityState={{ selected: index === current }}
               hitSlop={4}
               className={`overflow-hidden rounded-md border-2 ${
-                index === active ? "border-brand-600" : "border-border"
+                index === current ? "border-brand-600" : "border-border"
               }`}
             >
               <Image

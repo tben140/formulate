@@ -62,7 +62,7 @@
   >
     {%- comment -%}
       The frame takes the first image's shape (the page's main photo), so it's
-      never cropped; later images of another shape fit inside it.
+      never cropped; later images of another shape are centre-cropped to it.
     {%- endcomment -%}
     <div
       class="product__media"
@@ -202,7 +202,7 @@
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
   }
 
   .product__placeholder {

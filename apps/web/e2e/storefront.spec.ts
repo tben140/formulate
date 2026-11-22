@@ -155,10 +155,9 @@ test("a one-image product shows a plain photo, not a carousel", async ({ page })
   // store has such a product, this pins the single-image case: no arrows,
   // thumbnails or count, and the photo is still the eager LCP image.
   await page.goto("/products/magnesium-glycinate");
-  const photo = page
-    .getByRole("main")
-    .getByRole("img", { name: /Magnesium Glycinate/ })
-    .first();
+  // Found by what the gallery sets, not its description: the merchant can
+  // change an image's alt text.
+  const photo = page.getByRole("main").locator('img[fetchpriority="high"]').first();
   await expect(photo).toBeVisible();
   await expect(photo).toHaveAttribute("loading", "eager");
   // A carousel is a region named "<title> images".
