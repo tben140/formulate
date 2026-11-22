@@ -26,6 +26,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   colours,
+  fallbackFaces,
   fontFaces,
   fontFamily,
   fontSize,
@@ -91,6 +92,30 @@ const fontFaceRules = fontFaces
   )
   .join("\n\n");
 
+const percent = (value: number): string => `${(value * 100).toFixed(2)}%`;
+
+/**
+ * The fallbacks in `fallbackFaces`, scaled the way `next/font` does it:
+ * `size-adjust` matches the average character width, then the vertical
+ * metrics are divided by it so the line box keeps the web font's height.
+ */
+const fallbackFaceRules = fallbackFaces
+  .map(({ family, local, font, fallback }) => {
+    const scale =
+      font.xWidthAvg / font.unitsPerEm / (fallback.xWidthAvg / fallback.unitsPerEm);
+    const vertical = (value: number) =>
+      percent(Math.abs(value) / font.unitsPerEm / scale);
+    return `@font-face {
+  font-family: "${family}";
+  src: ${local.map((name) => `local("${name}")`).join(", ")};
+  size-adjust: ${percent(scale)};
+  ascent-override: ${vertical(font.ascent)};
+  descent-override: ${vertical(font.descent)};
+  line-gap-override: ${vertical(font.lineGap)};
+}`;
+  })
+  .join("\n\n");
+
 const banner = (consumer: string) => `/*
  * GENERATED FILE — DO NOT EDIT.
  * Source: packages/tokens/src/tokens.ts
@@ -115,6 +140,8 @@ ${declarations.join("\n")}
     contents: `${banner("apps/web (bundled by Next) and apps/theme (as assets/fonts.css)")}
 
 ${fontFaceRules}
+
+${fallbackFaceRules}
 `,
   },
   {
