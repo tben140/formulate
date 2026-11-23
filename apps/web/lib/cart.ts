@@ -2,6 +2,7 @@ import { createCartClient, isCartId, type Cart } from "@formulate/shopify";
 import { cookies } from "next/headers";
 
 import { CONSENT_COOKIE, parseConsent } from "./consent";
+import { readCustomerTokens } from "./customer-account";
 
 import { storefront } from "./storefront";
 
@@ -84,7 +85,30 @@ export const getCart = async (): Promise<Cart | null> => {
   if (!id) return null;
 
   const result = await cartClient.get(id);
-  return result.ok ? result.data : null;
+  if (!result.ok || !result.data) return null;
+  return (await isAnotherBuyersCart(result.data)) ? null : result.data;
+};
+
+/**
+ * ⚠️ A cart attached to a customer, in a browser with no customer session, is
+ * someone else's: e.g. an add to cart that finished after its shopper signed
+ * out wrote the cart id back. Its checkout would open signed in as them, so
+ * it's shown as no cart, and the next add starts a fresh one (`cartIdForAdd`).
+ */
+const isAnotherBuyersCart = async (cart: Cart): Promise<boolean> =>
+  Boolean(cart.buyerIdentity.customer) && !(await readCustomerTokens());
+
+/**
+ * The stored cart id for an add to cart, or null to start a new cart when
+ * the stored one is another buyer's. Asks Shopify only when signed out with
+ * a cart; if that fails, the cart is kept (SHO-122: never lose a cart on a
+ * blip) and the add itself reports the problem.
+ */
+export const cartIdForAdd = async (): Promise<string | null> => {
+  const id = await readCartId();
+  if (!id || (await readCustomerTokens())) return id;
+  const result = await cartClient.get(id);
+  return result.ok && result.data && (await isAnotherBuyersCart(result.data)) ? null : id;
 };
 
 const BUYER_EMAIL_COOKIE = "formulate_buyer_email";

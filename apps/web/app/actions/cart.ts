@@ -13,6 +13,7 @@ import { cookies } from "next/headers";
 
 import {
   cartClient,
+  cartIdForAdd,
   clearCartId,
   readBuyerEmail,
   readCartId,
@@ -141,7 +142,7 @@ export const addToCart = async (
   const attributes = await newCartAttributes(formData);
   const { result, storedCartGone, notice, attributesFailed } =
     await cartClient.addLinesOrCreate({
-      cartId: await readCartId(),
+      cartId: await cartIdForAdd(),
       lines: [line],
       email: readBuyerEmail,
       // Signed in: the new cart is theirs, as sign-in makes an existing one

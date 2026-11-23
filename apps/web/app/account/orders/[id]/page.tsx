@@ -118,6 +118,12 @@ const OrderPage = async ({ params }: PageProps) => {
           </li>
         ))}
       </ul>
+      {order.lineItems.pageInfo.hasNextPage ? (
+        <p className="mt-3 text-sm text-foreground-muted">
+          Showing the first {order.lineItems.nodes.length} items. The totals are for the
+          whole order.
+        </p>
+      ) : null}
 
       <h2 className="sr-only">Totals</h2>
       <dl className="mt-4 ml-auto max-w-xs text-sm">
