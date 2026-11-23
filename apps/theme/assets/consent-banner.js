@@ -66,17 +66,20 @@ const loadCustomerPrivacy = () =>
  * @extends {Component<ConsentBannerRefs>}
  */
 class ConsentBanner extends Component {
-  /** @type {CustomerPrivacy | undefined} */
-  #privacy;
+  /** @type {Promise<CustomerPrivacy | undefined> | undefined} */
+  #loading;
+
+  /** The shopper opened it from the footer, so the API mustn't close it. */
+  #reopened = false;
 
   /** @override */
   connectedCallback() {
     super.connectedCallback();
 
-    this.refs.accept?.addEventListener("click", () => this.#choose(true), {
+    this.refs.accept?.addEventListener("click", () => void this.#choose(true), {
       signal: this.signal,
     });
-    this.refs.decline?.addEventListener("click", () => this.#choose(false), {
+    this.refs.decline?.addEventListener("click", () => void this.#choose(false), {
       signal: this.signal,
     });
     // The footer's "Cookie preferences", wherever it is on the page.
@@ -89,8 +92,7 @@ class ConsentBanner extends Component {
       { signal: this.signal },
     );
 
-    void loadCustomerPrivacy().then((privacy) => {
-      this.#privacy = privacy;
+    void this.#load().then((privacy) => {
       // No API (the preview editor, a blocked script): leave it as painted.
       if (!privacy) return;
       if (previewing()) {
@@ -99,21 +101,42 @@ class ConsentBanner extends Component {
       }
       const needed = privacy.shouldShowBanner();
       remember(!needed);
-      this.hidden = !needed;
+      if (!this.#reopened) this.hidden = !needed;
     });
   }
 
-  #show() {
-    this.hidden = false;
-    this.refs.accept?.focus();
+  /** The API, loaded once; if loading fails, the next reopen or choice tries again. */
+  #load() {
+    this.#loading ??= loadCustomerPrivacy().then((privacy) => {
+      if (!privacy) this.#loading = undefined;
+      return privacy;
+    });
+    return this.#loading;
   }
 
-  /** @param {boolean} granted */
-  #choose(granted) {
-    const privacy = this.#privacy;
-    if (!privacy) return;
-    for (const button of [this.refs.accept, this.refs.decline])
-      if (button) button.disabled = true;
+  #show() {
+    this.#reopened = true;
+    this.hidden = false;
+    this.refs.accept?.focus();
+    void this.#load();
+  }
+
+  /**
+   * A choice made while the API is still loading waits for it, with both
+   * buttons disabled, rather than being dropped. If it can't load, the
+   * buttons come back and the banner stays, so nothing looks saved.
+   * @param {boolean} granted
+   */
+  async #choose(granted) {
+    const buttons = [this.refs.accept, this.refs.decline];
+    /** @param {boolean} busy */
+    const busy = (busy) => {
+      for (const button of buttons) if (button) button.disabled = busy;
+      this.toggleAttribute("aria-busy", busy);
+    };
+    busy(true);
+    const privacy = await this.#load();
+    if (!privacy) return busy(false);
     privacy.setTrackingConsent(
       {
         analytics: granted,
@@ -122,8 +145,7 @@ class ConsentBanner extends Component {
         sale_of_data: granted,
       },
       (result) => {
-        for (const button of [this.refs.accept, this.refs.decline])
-          if (button) button.disabled = false;
+        busy(false);
         if (result?.error) return;
         remember(true);
         this.hidden = true;
