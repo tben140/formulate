@@ -62,6 +62,22 @@
         "label": "t:labels.wordmark",
         "info": "t:info.wordmark",
         "default": "Double Helix"
+      },
+      {
+        "type": "image_picker",
+        "id": "logo_image",
+        "label": "Logo image",
+        "info": "Optional custom logo. Leave blank to use the approved Double Helix wordmark."
+      },
+      {
+        "type": "range",
+        "id": "logo_width",
+        "min": 100,
+        "max": 300,
+        "step": 10,
+        "unit": "px",
+        "label": "Logo width",
+        "default": 180
       }
     ]
   },

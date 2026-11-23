@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import Link from "@/components/link";
+import Image from "next/image";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
@@ -24,6 +25,10 @@ export const metadata: Metadata = {
   openGraph: baseOpenGraph,
   twitter: { card: "summary_large_image" },
   robots: isIndexable ? { index: true, follow: true } : { index: false, follow: false },
+  icons: {
+    icon: "/brand/favicon.svg",
+    apple: "/brand/apple-touch-icon.png",
+  },
 };
 
 /**
@@ -53,11 +58,15 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           <DemoNotice />
           <header className="border-b border-border">
             <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-              <Link
-                href="/"
-                className="text-lg font-semibold tracking-tight text-foreground"
-              >
-                {SITE_NAME}
+              <Link href="/" aria-label={`${SITE_NAME} home`}>
+                <Image
+                  src="/brand/double-helix-wordmark-light.svg"
+                  alt={SITE_NAME}
+                  width={972}
+                  height={320}
+                  priority
+                  className="h-9 w-auto"
+                />
               </Link>
               <CartButton totalQuantity={cart?.totalQuantity ?? 0} />
             </nav>

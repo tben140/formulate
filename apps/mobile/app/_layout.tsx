@@ -1,8 +1,11 @@
 import { ShopifyCheckoutSheetProvider } from "@shopify/checkout-sheet-kit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Image } from "expo-image";
 import { Stack } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
+
+import { BRAND_NAME } from "@formulate/tokens";
 
 import { CartButton } from "../components/cart-button";
 import { CartProvider } from "../components/cart-provider";
@@ -66,7 +69,20 @@ const RootLayout = () => {
               headerRight: () => <CartButton />,
             }}
           >
-            <Stack.Screen name="index" options={{ title: "Formulate" }} />
+            <Stack.Screen
+              name="index"
+              options={{
+                title: BRAND_NAME,
+                headerTitle: () => (
+                  <Image
+                    source={require("../assets/brand/double-helix-wordmark-light.png")}
+                    contentFit="contain"
+                    accessibilityLabel={BRAND_NAME}
+                    style={{ width: 152, height: 50 }}
+                  />
+                ),
+              }}
+            />
             <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
           </Stack>
         </CartProvider>
