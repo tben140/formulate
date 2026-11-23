@@ -29,7 +29,8 @@ import { redirect } from "next/navigation";
 export const customerAccountConfig: CustomerAccountConfig = {
   shopId: process.env.SHOPIFY_SHOP_ID ?? "",
   clientId: process.env.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID ?? "",
-  apiVersion: process.env.SHOPIFY_CUSTOMER_ACCOUNT_API_VERSION ?? DEFAULT_API_VERSION,
+  // `||`, not `??`: the example file leaves it empty, which dotenv reads as "".
+  apiVersion: process.env.SHOPIFY_CUSTOMER_ACCOUNT_API_VERSION || DEFAULT_API_VERSION,
 };
 
 /** False on a deployment without the env vars: the account link still works, and explains. */
@@ -188,7 +189,11 @@ export const safeReturnTo = (value: string | null | undefined): string => {
   } catch {
     return "/account";
   }
-  return url.origin === base ? `${url.pathname}${url.search}${url.hash}` : "/account";
+  // "/a/..//evil.example" resolves to the path "//evil.example": same origin
+  // here, but a protocol-relative URL once it's a Location header.
+  return url.origin === base && !url.pathname.startsWith("//")
+    ? `${url.pathname}${url.search}${url.hash}`
+    : "/account";
 };
 
 /** Where Shopify sends the buyer back to. Must be registered on the client, exactly. */

@@ -39,7 +39,7 @@ vault to browse it as a graph; it is plain markdown either way.
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | [Recharge](integration-recharge.md)                   | Installed; subscription flows live in Klaviyo. Read-only portal in review (#80)           |
 | [Klaviyo](integration-klaviyo.md)                     | Live on web and the theme: email capture, events, flows. App events in review (#107)      |
-| [Customer accounts](integration-customer-accounts.md) | Web and app sign-in with order history (SHO-70)                                           |
+| [Customer accounts](integration-customer-accounts.md) | Sign-in with order history on web (SHO-70); the app follows in its own change             |
 | [PostHog](integration-posthog.md)                     | Web, app and theme, with orders from a Shopify custom pixel                               |
 | [Pay later](integration-pay-later.md)                 | Klarna and Clearpay: storefront side ready; providers not set up yet                      |
 | [GrowthBook](integration-growthbook.md)               | A/B tests, analysed in Databricks. Web code in review (#265)                              |

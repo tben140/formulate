@@ -243,14 +243,22 @@ const tokenRequest = async (
     return { ok: false, error: { kind: "http", status: response.status, message: text } };
   }
 
+  let body: unknown;
   try {
-    return { ok: true, data: (await response.json()) as TokenResponseBody };
+    body = await response.json();
   } catch {
-    return {
-      ok: false,
-      error: { kind: "invalid-response", message: "Token endpoint did not return JSON." },
-    };
+    body = undefined;
   }
+  // JSON `null` or a bare value parses, but has no fields to read.
+  return body !== null && typeof body === "object" && !Array.isArray(body)
+    ? { ok: true, data: body as TokenResponseBody }
+    : {
+        ok: false,
+        error: {
+          kind: "invalid-response",
+          message: "Token endpoint did not return a JSON object.",
+        },
+      };
 };
 
 const toTokens = (

@@ -275,6 +275,17 @@ describe("refreshTokens", () => {
     const result = await refreshTokens(CONFIG, current, { now: NOW });
     expect(result.ok && result.data.refreshToken).toBe("new-refresh");
   });
+  it.each([
+    ["an HTML page", "<html>Bad gateway</html>"],
+    ["JSON null", "null"],
+    ["a JSON array", "[]"],
+  ])("returns invalid-response, not a throw, for a 2xx body that's %s", async (_, body) => {
+    vi.stubGlobal("fetch", async () => new Response(body, { status: 200 }));
+    expect(await refreshTokens(CONFIG, current, { now: NOW })).toMatchObject({
+      ok: false,
+      error: { kind: "invalid-response" },
+    });
+  });
 });
 
 describe("isTokenExpiring", () => {
