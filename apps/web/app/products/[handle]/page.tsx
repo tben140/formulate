@@ -17,11 +17,13 @@ import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductReviews } from "@/components/product-reviews";
+import { WriteReview } from "@/components/write-review";
 import { Stars } from "@/components/stars";
 import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
+import { isCustomerAccountConfigured } from "@/lib/customer-account";
 import { assignExperiment } from "@/lib/experiments";
 import { getNavLinks, getShopGroups } from "@/lib/nav";
 import { baseOpenGraph, siteUrl } from "@/lib/site";
@@ -195,6 +197,16 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
       <Suspense fallback={null}>
         <ProductReviews handle={product.handle} summary={summary} />
       </Suspense>
+
+      {/* Outside the reviews' Suspense: a product with no reviews yet still
+          needs a way to get its first. Only when the Worker is configured. */}
+      {process.env.FORMULATE_API_URL && isCustomerAccountConfigured ? (
+        <WriteReview
+          productId={product.id}
+          productTitle={product.title}
+          path={`/products/${product.handle}`}
+        />
+      ) : null}
     </>
   );
 };

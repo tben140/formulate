@@ -1,5 +1,6 @@
 import { handleOrderCounted, type OrderCountedEnv } from "./order-backup";
 import { handleOrderWebhook, type OrderWebhookEnv } from "./order-webhook";
+import { handleReviewNew, type ReviewNewEnv } from "./routes/review-new";
 import { handleReviews, type ReviewsRouteEnv } from "./routes/reviews";
 import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 
@@ -17,7 +18,11 @@ import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 export { OrderBackup } from "./order-backup";
 export { RateLimiter } from "./rate-limiter";
 
-export type Env = SubscribeEnv & ReviewsRouteEnv & OrderWebhookEnv & OrderCountedEnv;
+export type Env = SubscribeEnv &
+  ReviewsRouteEnv &
+  ReviewNewEnv &
+  OrderWebhookEnv &
+  OrderCountedEnv;
 
 type Route = (request: Request, env: Env) => Promise<Response>;
 
@@ -38,6 +43,8 @@ const routes: ReadonlyMap<string, Route> = new Map<string, Route>([
   ["/orders/counted", handleOrderCounted],
   // Product reviews (Judge.me): public, read-only. See src/reviews.ts.
   ["/reviews", handleReviews],
+  // Writing a review (web's form), sent on to Judge.me. See src/review-submit.ts.
+  ["/reviews/new", handleReviewNew],
 ]);
 
 export default {

@@ -4,6 +4,7 @@ import { CART_ATTRIBUTE_KEYS, cartAttributes } from "@formulate/analytics";
 import {
   describeError,
   describeForShopper,
+  isTokenExpiring,
   type Cart,
   type CartLineInput,
 } from "@formulate/shopify";
@@ -12,6 +13,7 @@ import { cookies } from "next/headers";
 
 import {
   cartClient,
+  cartIdForAdd,
   clearCartId,
   readBuyerEmail,
   readCartId,
@@ -19,6 +21,7 @@ import {
   writeCartId,
 } from "@/lib/cart";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
+import { readCustomerTokens } from "@/lib/customer-account";
 
 /**
  * Cart mutations, as Server Actions.
@@ -139,9 +142,16 @@ export const addToCart = async (
   const attributes = await newCartAttributes(formData);
   const { result, storedCartGone, notice, attributesFailed } =
     await cartClient.addLinesOrCreate({
-      cartId: await readCartId(),
+      cartId: await cartIdForAdd(),
       lines: [line],
       email: readBuyerEmail,
+      // Signed in: the new cart is theirs, as sign-in makes an existing one
+      // (app/account/authorize). An expiring token is left out rather than
+      // attaching one Shopify is about to refuse.
+      customerAccessToken: async () => {
+        const tokens = await readCustomerTokens();
+        return tokens && !isTokenExpiring(tokens) ? tokens.accessToken : null;
+      },
       ...(attributes
         ? { attributes }
         : // No consent now: an id added under earlier consent comes off.

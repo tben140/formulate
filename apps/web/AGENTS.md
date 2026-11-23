@@ -22,7 +22,14 @@ incidental — it is why the Storefront token never reaches the browser.
 SHOPIFY_STORE_DOMAIN
 SHOPIFY_STOREFRONT_TOKEN
 SHOPIFY_API_VERSION
+SHOPIFY_SHOP_ID
+SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID
 ```
+
+The last two are for customer sign-in (SHO-70) and aren't secret, but they stay
+server-side like the rest: every Customer Account API call happens on the
+server, and the buyer's tokens live in an httpOnly cookie. See
+[`docs/integration-customer-accounts.md`](../../docs/integration-customer-accounts.md).
 
 ⚠️ **Never add a `NEXT_PUBLIC_` prefix to any of these.** The prefix inlines the
 value into the client bundle. Nothing in this app needs the token client-side,

@@ -255,3 +255,77 @@ describe("⚠️ CORS", () => {
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 });
+
+describe("⚠️ writing a review: the reviewer is Shopify's answer, never the request", () => {
+  const reviewEnv = (names: string[] = []) => ({
+    ...testEnv(),
+    SHOPIFY_STORE_DOMAIN: "shop.example",
+    JUDGEME_PRIVATE_TOKEN: "jm_private_not_real",
+    SHOPIFY_SHOP_ID: "100581966136",
+    SHOPIFY_API_VERSION: "2026-04",
+    RATE_LIMITER: {
+      idFromName: (name: string) => name,
+      get: (name: string) => ({
+        limit: () => {
+          names.push(name);
+          return Promise.resolve({ success: true });
+        },
+      }),
+    },
+  });
+  const write = (headers: Record<string, string> = {}) =>
+    new Request("https://api.example/reviews/new", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify({
+        productId: "gid://shopify/Product/7",
+        rating: 5,
+        name: "Sam Taylor",
+        email: "someone-else@example.com",
+        body: "Good.",
+      }),
+    });
+
+  it("refuses without a sign-in, before asking anyone", async () => {
+    const upstream = vi.fn();
+    vi.stubGlobal("fetch", upstream);
+    const res = await run(write(), reviewEnv());
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ ok: false, reason: "signed-out" });
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  it("sends Shopify's email, and limits per customer", async () => {
+    const names: string[] = [];
+    const upstream = vi.fn(async (url: string | URL) =>
+      String(url).startsWith("https://shopify.com/")
+        ? new Response(
+            JSON.stringify({
+              data: {
+                customer: {
+                  id: "gid://shopify/Customer/42",
+                  emailAddress: { emailAddress: "sam@example.com" },
+                  orders: {
+                    nodes: [
+                      {
+                        lineItems: { nodes: [{ productId: "gid://shopify/Product/7" }] },
+                      },
+                    ],
+                  },
+                },
+              },
+            }),
+          )
+        : new Response("{}"),
+    );
+    vi.stubGlobal("fetch", upstream);
+    const res = await run(
+      write({ Authorization: "shcat_token", "CF-Connecting-IP": "203.0.113.7" }),
+      reviewEnv(names),
+    );
+    expect(res.status).toBe(202);
+    const [, init] = upstream.mock.calls[1] as unknown as [URL, RequestInit];
+    expect(JSON.parse(String(init.body)).email).toBe("sam@example.com");
+    expect(names).toEqual(["review-writer:42"]);
+  });
+});

@@ -163,6 +163,12 @@ export interface CartClient {
      */
     readonly email?: string;
     /**
+     * A signed-in buyer's Customer Account access token, so the new cart is
+     * theirs from the start, as signing in does for an existing one. Checkout
+     * then opens signed in, with their saved addresses.
+     */
+    readonly customerAccessToken?: string;
+    /**
      * Cart attributes, carried through to checkout and onto the order. Used to
      * hand checkout the shopper's analytics id and surface, which is how a
      * purchase is credited to the visit that led to it (packages/analytics,
@@ -200,6 +206,8 @@ export interface CartClient {
      * it goes through the Klaviyo SDK. See `create` for why it matters.
      */
     readonly email?: () => Promise<string | null | undefined>;
+    /** Resolves a signed-in buyer's access token for a new cart; see `create`. */
+    readonly customerAccessToken?: () => Promise<string | null | undefined>;
     /**
      * Attributes the cart should carry; see `create`. A new cart gets them at
      * creation; an existing one is updated only when one is missing or
@@ -395,6 +403,9 @@ export const createCartClient = (
           countryCode: options?.countryCode ?? (DEFAULT_COUNTRY_CODE as CountryCode),
           // Omitted rather than sent empty — Shopify rejects "" as an address.
           ...(options?.email ? { email: options.email } : {}),
+          ...(options?.customerAccessToken
+            ? { customerAccessToken: options.customerAccessToken }
+            : {}),
         },
         ...(options?.attributes?.length ? { attributes: [...options.attributes] } : {}),
       },
@@ -499,7 +510,14 @@ export const createCartClient = (
   return {
     ...client,
 
-    addLinesOrCreate: async ({ cartId, lines, email, attributes, removeAttributes }) => {
+    addLinesOrCreate: async ({
+      cartId,
+      lines,
+      email,
+      customerAccessToken,
+      attributes,
+      removeAttributes,
+    }) => {
       if (cartId) {
         const added = await requestAdd(cartId, lines);
         const result = added.ok ? fromPayload(added.data.cartLinesAdd) : added;
@@ -520,6 +538,7 @@ export const createCartClient = (
       const created = await requestCreate({
         lines,
         email: (await email?.()) ?? undefined,
+        customerAccessToken: (await customerAccessToken?.()) ?? undefined,
         attributes,
       });
       const result = created.ok ? fromPayload(created.data.cartCreate) : created;
