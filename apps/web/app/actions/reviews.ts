@@ -60,6 +60,12 @@ export const submitReview = async (
         body: values.body,
       }),
     });
+    // The Worker caps the body in bytes, so a review within the form's
+    // character limits can still be too big (CJK text is 3 bytes a character).
+    // Sending it again won't help; shortening it will.
+    if (response.status === 413) {
+      return error("Your review is too long to send. Shorten it and try again.");
+    }
     const result = (await response.json()) as
       { ok: true } | { ok: false; reason: string; field?: string };
     if (result.ok) return { status: "sent" };
