@@ -152,24 +152,33 @@ export {
 } from "./description";
 export type { DescriptionBlock, DescriptionSection } from "./description";
 export {
+  DEFAULT_PACK,
+  MAX_SUPPLY_UNITS,
   RENEWAL_SHORT,
   SUBSCRIPTION_BENEFITS,
+  SUBSCRIPTION_PERKS,
   SUPPLY_DAYS,
   deliveryPromise,
   deliveryQuote,
   isIntroductoryPlan,
-  planDisplayName,
+  packSize,
   planIntervalDays,
+  plansForPack,
+  planDisplayName,
   savingBadge,
   supplyLabel,
+  supplyTitle,
   supplyUnits,
   pricePerDay,
   renewalTerms,
   savingMessage,
   subscriptionSaving,
 } from "./subscribe-and-save";
+export { addButtonLabel, bestValueIndex, purchaseCards } from "./purchase-cards";
+export type { PurchaseCard } from "./purchase-cards";
 export type {
   DeliveryQuote,
+  PackSize,
   PlanOptionLike,
   SubscriptionSaving,
 } from "./subscribe-and-save";
@@ -203,6 +212,8 @@ export { HOME_HEADLINE, QUIZ_PROMPT, homeBenefits, homeSubheading } from "./home
 
 export { policyBlocks, richTextBlocks } from "./rich-text";
 export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";
+export { optionColour, optionColours, withOptionColours } from "./option-colours";
+export type { OptionColours } from "./option-colours";
 export { PLANNED_PAYMENT_ICON_IDS, payLaterIds, paymentIconIds } from "./payment-icons";
 export type { PayLaterId, PaymentIconId } from "./payment-icons";
 export {

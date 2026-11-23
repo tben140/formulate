@@ -1,0 +1,28 @@
+{%- comment -%}
+  Days between deliveries of a selling plan, from Recharge's "Order Frequency
+  and Unit" option ("60-day"; "60 days" and "2 weeks" read the same), or 0
+  when the plan doesn't say. The Liquid twin of planIntervalDays in
+  packages/shopify/src/subscribe-and-save.ts.
+
+  Outputs a number; capture it, then `| plus: 0`.
+
+  Accepts:
+  - selling_plan: {Object} the plan (allocation.selling_plan)
+{%- endcomment -%}
+{%- liquid
+  assign days = 0
+  for option in selling_plan.options
+    if option.name contains 'requency'
+      assign parts = option.value | downcase | replace: '-', ' ' | split: ' '
+      assign count = parts.first | plus: 0
+      assign unit = parts.last
+      assign days = count
+      if unit contains 'week'
+        assign days = count | times: 7
+      elsif unit contains 'month'
+        assign days = count | times: 30
+      endif
+    endif
+  endfor
+  echo days
+-%}
