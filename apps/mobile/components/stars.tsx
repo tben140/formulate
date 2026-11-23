@@ -24,6 +24,8 @@ export const Stars = ({
   readonly label: string;
   readonly size?: number;
 }) => {
+  // Fixed size, not scaled with the text setting: the boxes and the clip
+  // width below are in the same unscaled units. The label carries the rating.
   const glyph = {
     width: size,
     minWidth: size,
@@ -48,12 +50,16 @@ export const Stars = ({
           accessibilityElementsHidden
           style={{ width: size, height: size * 1.2 }}
         >
-          <Text style={glyph}>☆</Text>
+          <Text style={glyph} allowFontScaling={false}>
+            ☆
+          </Text>
           <View
             className="absolute top-0 left-0 overflow-hidden"
             style={{ width: size * fill, height: size * 1.2 }}
           >
-            <Text style={glyph}>★</Text>
+            <Text style={glyph} allowFontScaling={false}>
+              ★
+            </Text>
           </View>
         </View>
       ))}

@@ -18,6 +18,8 @@ export type {
   UserErrorShape,
 } from "./errors";
 
+export { GALLERY_LIMIT, galleryAlt, galleryImages, galleryPosition } from "./gallery";
+export type { GalleryImage } from "./gallery";
 export {
   formatReviewDate,
   ratingLabel,

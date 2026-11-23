@@ -51,6 +51,13 @@ export const CollectionProductsQuery = graphql(`
               currencyCode
             }
           }
+          # As in ProductCardFields, so collection cards show stars too.
+          rating: metafield(namespace: "reviews", key: "rating") {
+            value
+          }
+          ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+            value
+          }
         }
       }
     }
@@ -115,7 +122,8 @@ export const ProductByHandleQuery = graphql(`
         width
         height
       }
-      images(first: 6) {
+      # GALLERY_LIMIT in gallery.ts: the product page shows up to ten.
+      images(first: 10) {
         nodes {
           url
           altText

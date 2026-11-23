@@ -27,7 +27,9 @@ export const ProductReviews = async ({
   readonly summary: ReviewSummary | null;
 }) => {
   const first = await fetchReviews(handle);
-  if (!first) return null;
+  // Without the list (no API, or it failed), the section still stands while
+  // there's a summary: the stars under the title link here.
+  if (!first && !summary) return null;
 
   /*
    * Google shows stars in search results from AggregateRating, and requires
@@ -35,7 +37,9 @@ export const ProductReviews = async ({
    * reviews shown are samples: invented reviews must never reach search.
    */
   const genuine =
-    first.reviews.length > 0 && first.reviews.every((review) => !review.sample);
+    !!first &&
+    first.reviews.length > 0 &&
+    first.reviews.every((review) => !review.sample);
 
   return (
     <section
@@ -72,19 +76,19 @@ export const ProductReviews = async ({
         </p>
       ) : null}
 
-      {first.reviews.length > 0 ? (
+      {first && first.reviews.length > 0 ? (
         <ul className="mt-4 divide-y divide-border border-y border-border">
           {first.reviews.map((review) => (
             <ReviewItem key={review.id} review={review} />
           ))}
         </ul>
       ) : null}
-      {first.reviews.length === 0 && !first.hasMore ? (
+      {first && first.reviews.length === 0 && !first.hasMore ? (
         <p className="mt-3 text-foreground-muted">No reviews yet.</p>
       ) : null}
       {/* Even when page 1 showed nothing (the Worker can filter a whole page
           out), a next page may still have reviews. */}
-      {first.hasMore ? <MoreReviews handle={handle} /> : null}
+      {first?.hasMore ? <MoreReviews handle={handle} /> : null}
     </section>
   );
 };

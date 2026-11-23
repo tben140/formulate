@@ -1,7 +1,11 @@
 import { productViewedProperties, viewedProduct } from "@formulate/analytics";
 import { EXPERIMENTS } from "@formulate/experiments";
-import { breadcrumbCollection, ratingLabel, reviewSummary } from "@formulate/shopify";
-import { Image } from "@shopify/hydrogen-react";
+import {
+  breadcrumbCollection,
+  galleryImages,
+  ratingLabel,
+  reviewSummary,
+} from "@formulate/shopify";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -11,6 +15,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ExperimentExposure } from "@/components/experiment-exposure";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
+import { ProductGallery } from "@/components/product-gallery";
 import { ProductReviews } from "@/components/product-reviews";
 import { WriteReview } from "@/components/write-review";
 import { Stars } from "@/components/stars";
@@ -146,26 +151,8 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
           own shape, and on two columns it stays in view while the details
           scroll past.
         */}
-        <div className="self-start overflow-hidden rounded-lg border border-border bg-surface-muted md:sticky md:top-6">
-          {product.featuredImage ? (
-            <Image
-              data={product.featuredImage}
-              sizes="(min-width: 768px) 45vw, 90vw"
-              className="h-auto w-full"
-              // The page's Largest Contentful Paint. Hydrogen's Image defaults
-              // to lazy, which made the browser wait for layout before even
-              // requesting it (SHO-143).
-              loading="eager"
-              fetchPriority="high"
-            />
-          ) : (
-            <div
-              className="flex aspect-square items-center justify-center text-sm text-foreground-muted"
-              aria-hidden="true"
-            >
-              No image
-            </div>
-          )}
+        <div className="self-start md:sticky md:top-6">
+          <ProductGallery images={galleryImages(product)} title={product.title} />
         </div>
 
         <div>

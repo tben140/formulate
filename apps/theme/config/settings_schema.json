@@ -112,5 +112,50 @@
         "default": 4
       }
     ]
+  },
+  {
+    "name": "t:general.social_media",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "t:info.social_media"
+      },
+      {
+        "type": "text",
+        "id": "social_instagram_link",
+        "label": "t:labels.social_instagram",
+        "default": "https://www.instagram.com/"
+      },
+      {
+        "type": "text",
+        "id": "social_tiktok_link",
+        "label": "t:labels.social_tiktok",
+        "default": "https://www.tiktok.com/"
+      },
+      {
+        "type": "text",
+        "id": "social_youtube_link",
+        "label": "t:labels.social_youtube",
+        "default": "https://www.youtube.com/"
+      },
+      {
+        "type": "text",
+        "id": "social_facebook_link",
+        "label": "t:labels.social_facebook",
+        "default": "https://www.facebook.com/"
+      },
+      {
+        "type": "text",
+        "id": "social_pinterest_link",
+        "label": "t:labels.social_pinterest",
+        "default": "https://www.pinterest.com/"
+      },
+      {
+        "type": "text",
+        "id": "social_x_link",
+        "label": "t:labels.social_x",
+        "default": "https://x.com/"
+      }
+    ]
   }
 ]
