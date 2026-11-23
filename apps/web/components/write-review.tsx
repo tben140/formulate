@@ -77,8 +77,11 @@ export const WriteReview = ({
   const [draft, setDraft] = useState<ReviewValues>();
   useEffect(() => {
     // After mount, as session storage isn't there to render on the server.
+    // Only a draft found is set: taking it empties storage, so a second run
+    // (Strict Mode, in development) mustn't overwrite it with nothing.
+    const found = takeDraft(productId);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDraft(takeDraft(productId));
+    if (found) setDraft(found);
   }, [productId]);
   // After a failed send, what was typed comes back (React resets the form).
   const values = state.status === "error" ? state.values : draft;

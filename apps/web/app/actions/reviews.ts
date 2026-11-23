@@ -2,12 +2,14 @@
 
 import {
   describeCustomerAccountError,
+  describeError,
   isTokenExpiring,
   refreshTokens,
   type CustomerTokens,
 } from "@formulate/shopify";
 import { headers } from "next/headers";
 
+import { cartClient, readCartId } from "@/lib/cart";
 import {
   clearCustomerTokens,
   customerAccountConfig,
@@ -65,6 +67,15 @@ const sessionTokens = async (): Promise<
   });
   if (result.ok) {
     await writeCustomerTokens(result.data);
+    // Keep the cart's identity on a token that still works, as
+    // app/account/refresh does. A failure is logged; the renewal stands.
+    const cartId = await readCartId();
+    if (cartId) {
+      const attached = await cartClient.setBuyerIdentity(cartId, {
+        customerAccessToken: result.data.accessToken,
+      });
+      if (!attached.ok) console.error(describeError(attached.error));
+    }
     return result.data;
   }
   console.error(describeCustomerAccountError(result.error));
