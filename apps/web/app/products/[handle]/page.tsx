@@ -1,22 +1,39 @@
-import { viewedProduct } from "@formulate/analytics";
-import { DEFAULT_COLLECTION_HANDLE } from "@formulate/shopify";
-import { Image } from "@shopify/hydrogen-react";
+import { productViewedProperties, viewedProduct } from "@formulate/analytics";
+import { EXPERIMENTS } from "@formulate/experiments";
+import { breadcrumbCollection, galleryImages } from "@formulate/shopify";
 import type { Metadata } from "next";
-import Link from "@/components/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { ExperimentExposure } from "@/components/experiment-exposure";
 import { JsonLd } from "@/components/json-ld";
+import { PairsWellWith } from "@/components/pairs-well-with";
+import { ProductGallery } from "@/components/product-gallery";
+import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
-import { baseOpenGraph } from "@/lib/site";
+import { assignExperiment } from "@/lib/experiments";
+import { getNavLinks, getShopGroups } from "@/lib/nav";
+import { baseOpenGraph, siteUrl } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "@/lib/structured-data";
 
 interface PageProps {
   readonly params: Promise<{ handle: string }>;
 }
 
+interface ProductPageProps extends PageProps {
+  /** Only read to force an experiment's variant for review (lib/experiments.ts). */
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/**
+ * The merchant's SEO overrides win; the product's own title and description
+ * are the fallback. A failed query or missing product returns nothing here and
+ * lets the page render its error or 404, which carry their own titles.
+ */
 export const generateMetadata = async ({ params }: PageProps): Promise<Metadata> => {
   const { handle } = await params;
   const result = await getProduct(handle);
@@ -53,80 +70,106 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
   };
 };
 
-const ProductPage = async ({ params }: PageProps) => {
+const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
   const { handle } = await params;
+  const aa = EXPERIMENTS.productPageAa;
 
-  // Cached per request: generateMetadata already fetched it.
-  const result = await getProduct(handle);
+  // Both cached per render: generateMetadata already fetched the product, and
+  // the header the menu.
+  const [result, navLinks, shopGroups, aaAssignment] = await Promise.all([
+    getProduct(handle),
+    getNavLinks(),
+    getShopGroups(),
+    // The A/A test (ADR 0013): both arms render this same page, so only the
+    // exposure below depends on it.
+    searchParams.then((query) => assignExperiment(aa, query[aa.key])),
+  ]);
 
   if (!result.ok) return <StorefrontErrorState error={result.error} />;
 
   const product = result.data.product;
   if (!product) notFound();
 
-  return (
-    <article className="grid gap-8 md:grid-cols-2">
-      <JsonLd data={productJsonLd(product)} />
-      <JsonLd
-        data={breadcrumbJsonLd([
-          { name: "Home", path: "/" },
-          { name: product.title, path: `/products/${product.handle}` },
-        ])}
-      />
+  // The same trail for people and for search engines.
+  // The Shop dropdown's groups first (a goal says more than "Best Sellers"),
+  // then the bar's links, so a product in neither still gets one if it can.
+  const collection = breadcrumbCollection(product.breadcrumbCollections.nodes, [
+    ...shopGroups.flatMap((group) => group.links),
+    ...navLinks,
+  ]);
 
-      {/*
+  return (
+    <>
+      <Breadcrumbs
+        items={[
+          { label: "Home", href: "/" },
+          ...(collection ? [{ label: collection.title, href: collection.path }] : []),
+          { label: product.title },
+        ]}
+      />
+      <article className="grid gap-8 md:grid-cols-2">
+        <JsonLd data={productJsonLd(product)} />
+        <JsonLd
+          data={breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            ...(collection ? [{ name: collection.title, path: collection.path }] : []),
+            { name: product.title, path: `/products/${product.handle}` },
+          ])}
+        />
+
+        {/*
         Built here, on the server, so the store domain never reaches the client
         bundle — only the emitting needs a browser.
       */}
-      <TrackViewedProduct
-        payload={viewedProduct(product, process.env.SHOPIFY_STORE_DOMAIN ?? "")}
-      />
-
-      <div className="overflow-hidden rounded-lg border border-border bg-surface-muted">
-        {product.featuredImage ? (
-          <Image
-            data={product.featuredImage}
-            sizes="(min-width: 768px) 45vw, 90vw"
-            className="h-full w-full object-cover"
-            // The page's Largest Contentful Paint. Hydrogen's Image defaults
-            // to lazy, which made the browser wait for layout before even
-            // requesting it (SHO-143).
-            loading="eager"
-            fetchPriority="high"
+        {aaAssignment.exposure && aaAssignment.visitorId ? (
+          <ExperimentExposure
+            exposure={aaAssignment.exposure}
+            visitorId={aaAssignment.visitorId}
           />
-        ) : (
-          <div
-            className="flex aspect-square items-center justify-center text-sm text-foreground-muted"
-            aria-hidden="true"
-          >
-            No image
-          </div>
-        )}
-      </div>
-
-      <div>
-        <Link
-          href={`/collections/${DEFAULT_COLLECTION_HANDLE}`}
-          className="text-sm text-brand-600 underline underline-offset-4"
-        >
-          &larr; Back to collection
-        </Link>
-
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight">{product.title}</h1>
-
-        {product.description ? (
-          <p className="mt-4 text-foreground-muted">{product.description}</p>
         ) : null}
 
+        <TrackViewedProduct
+          payload={viewedProduct(product, siteUrl.origin)}
+          productViewed={productViewedProperties(product)}
+        />
+
         {/*
+          `self-start`: a grid cell stretches to the row's height, and the
+          details column is far taller than the photo, so the image grew to
+          350 × 961 at 768 px and was cropped to fit. Now it keeps the photo's
+          own shape, and on two columns it stays in view while the details
+          scroll past.
+        */}
+        <div className="self-start md:sticky md:top-6">
+          <ProductGallery images={galleryImages(product)} title={product.title} />
+        </div>
+
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+          {product.subtitle?.value ? (
+            <p className="mt-2 text-lg text-foreground-muted">{product.subtitle.value}</p>
+          ) : null}
+
+          {product.descriptionHtml ? (
+            // Its first paragraph's own top margin spaces it from the title.
+            <StoreHtml html={product.descriptionHtml} />
+          ) : null}
+
+          {/*
           The price now lives inside the form, because it changes with the
           selection — a subscription plan carries its own adjusted price, and
           showing the product's `minVariantPrice` alongside it would contradict
           whatever the shopper had chosen.
         */}
-        <AddToCartForm product={product} />
-      </div>
-    </article>
+          <AddToCartForm product={product} />
+
+          {/* No fallback: nothing at all is better than a loading box here. */}
+          <Suspense fallback={null}>
+            <PairsWellWith productId={product.id} />
+          </Suspense>
+        </div>
+      </article>
+    </>
   );
 };
 

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // `next typegen` and `next build` both write .next, and tsc reads
+    // .next/types, so the web typecheck waits for the web build rather than
+    // racing it in CI.
+    "typecheck": {
+      "dependsOn": ["^build", "build"]
+    }
+  }
+}

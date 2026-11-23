@@ -24,7 +24,15 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { colours, fontSize, radius, spacing } from "../src/tokens.ts";
+import {
+  colours,
+  fallbackFaces,
+  fontFaces,
+  fontFamily,
+  fontSize,
+  radius,
+  spacing,
+} from "../src/tokens.ts";
 
 const isColourScale = (value: unknown): value is Record<string, string> =>
   typeof value === "object" && value !== null;
@@ -55,7 +63,58 @@ const declarations: string[] = [
   "",
   "  /* Type scale */",
   ...namespaceLines("text", fontSize),
+  "",
+  // `--font-*` is Tailwind's font-family namespace, so these become the
+  // `font-sans` and `font-mono` utilities, and `--font-sans` is also the page
+  // default through Tailwind's preflight.
+  "  /* Typefaces */",
+  ...Object.entries(fontFamily).map(([key, { stack }]) => `  --font-${key}: ${stack};`),
 ];
+
+/**
+ * `@font-face` for every file in `fontFaces`. The URLs are relative to this
+ * package, and each consumer resolves them its own way: Next's CSS pipeline
+ * bundles them, and the theme's sync script copies the files flat into
+ * `assets/` and drops the `fonts/` prefix.
+ *
+ * `font-display: swap` shows text in the fallback immediately rather than
+ * hiding it while the font loads.
+ */
+const fontFaceRules = fontFaces
+  .map(
+    ({ family, weight, style, file }) => `@font-face {
+  font-family: "${family}";
+  font-style: ${style};
+  font-weight: ${weight};
+  font-display: swap;
+  src: url("./fonts/${file}") format("woff2");
+}`,
+  )
+  .join("\n\n");
+
+const percent = (value: number): string => `${(value * 100).toFixed(2)}%`;
+
+/**
+ * The fallbacks in `fallbackFaces`, scaled the way `next/font` does it:
+ * `size-adjust` matches the average character width, then the vertical
+ * metrics are divided by it so the line box keeps the web font's height.
+ */
+const fallbackFaceRules = fallbackFaces
+  .map(({ family, local, font, fallback }) => {
+    const scale =
+      font.xWidthAvg / font.unitsPerEm / (fallback.xWidthAvg / fallback.unitsPerEm);
+    const vertical = (value: number) =>
+      percent(Math.abs(value) / font.unitsPerEm / scale);
+    return `@font-face {
+  font-family: "${family}";
+  src: ${local.map((name) => `local("${name}")`).join(", ")};
+  size-adjust: ${percent(scale)};
+  ascent-override: ${vertical(font.ascent)};
+  descent-override: ${vertical(font.descent)};
+  line-gap-override: ${vertical(font.lineGap)};
+}`;
+  })
+  .join("\n\n");
 
 const banner = (consumer: string) => `/*
  * GENERATED FILE — DO NOT EDIT.
@@ -74,6 +133,15 @@ const outputs: { file: string; contents: string }[] = [
 @theme {
 ${declarations.join("\n")}
 }
+`,
+  },
+  {
+    file: "fonts.css",
+    contents: `${banner("apps/web (bundled by Next) and apps/theme (as assets/fonts.css)")}
+
+${fontFaceRules}
+
+${fallbackFaceRules}
 `,
   },
   {

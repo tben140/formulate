@@ -14,7 +14,6 @@
     "column": "Column",
     "content": "Content",
     "custom_section": "Custom section",
-    "fonts": "Fonts",
     "footer": "Footer",
     "group": "Group",
     "header": "Header",
@@ -24,7 +23,6 @@
     "main": "Main",
     "page": "Page",
     "password": "Password",
-    "primary": "Primary",
     "product": "Product",
     "row": "Row",
     "search": "Search",
@@ -34,7 +32,9 @@
     "sidebar": "Sidebar",
     "text": "Text",
     "theme": "Theme",
-    "typography": "Typography"
+    "typography": "Typography",
+    "cart_suggestions": "Cart suggestions",
+    "social_media": "Social media"
   },
   "labels": {
     "alignment": "Alignment",
@@ -48,13 +48,22 @@
     "klaviyo_public_key": "Public API key (site ID)",
     "layout_direction": "Layout direction",
     "menu": "Menu",
+    "shop_menu_1": "Shop dropdown: first group",
+    "shop_menu_2": "Shop dropdown: second group",
+    "shop_menu_3": "Shop dropdown: third group",
     "padding": "Padding",
     "page_margin": "Page margin",
     "page_width": "Page width",
     "show_payment_icons": "Show payment icons",
     "text": "Text",
     "text_style": "Text style",
-    "wordmark": "Wordmark"
+    "wordmark": "Wordmark",
+    "social_instagram": "Instagram",
+    "social_tiktok": "TikTok",
+    "social_youtube": "YouTube",
+    "social_facebook": "Facebook",
+    "social_pinterest": "Pinterest",
+    "social_x": "X"
   },
   "options": {
     "alignment": {
@@ -83,6 +92,7 @@
   "info": {
     "klaviyo_public_key": "Klaviyo → Settings → API keys → Public API key.",
     "klaviyo_list_id": "Klaviyo → Lists & Segments → open the list → the ID in the browser URL.",
-    "wordmark": "The brand name in the header and the footer's copyright line. Leave blank to use the store name. Set in config/settings_data.json in the repository: a theme push replaces a change made here."
+    "wordmark": "The brand name in the header and the footer's copyright line. Leave blank to use the store name. Set in config/settings_data.json in the repository: a theme push replaces a change made here.",
+    "social_media": "Placeholders: each link is the platform's home page until the account exists. Use the full address, starting https://. Clear a link to hide its icon. Set in config/settings_data.json in the repository: a theme push replaces a change made here. Web and the app read packages/tokens/src/social.ts; keep them the same."
   }
 }

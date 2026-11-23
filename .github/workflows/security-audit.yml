@@ -1,0 +1,86 @@
+name: Security audit
+
+# CI only audits when something is pushed, so a new advisory against a
+# dependency that nobody is changing goes unseen: the Next.js flaw in
+# October 2026 sat unnoticed for eleven days. This runs the same audit every
+# morning on main and, when it finds something, opens an issue assigned to
+# the repository owner (or comments on the open one, mentioning them), so
+# GitHub notifies them either way. If the audit itself can't run (a registry
+# error), the run fails without an issue; GitHub emails a failed scheduled
+# run to whoever last changed the schedule. See docs/security.md.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+
+      # The same two checks as CI. pnpm audit reads only the lockfile, so
+      # nothing is installed.
+      - name: Audit, and report findings as an issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          report="$RUNNER_TEMP/audit.md"
+          set +e
+          pnpm audit --audit-level high > "$RUNNER_TEMP/all.txt" 2>&1
+          all=$?
+          pnpm audit --prod --audit-level moderate > "$RUNNER_TEMP/prod.txt" 2>&1
+          prod=$?
+          set -e
+          if [ "$all" -eq 0 ] && [ "$prod" -eq 0 ]; then
+            echo "No findings beyond the accepted list."
+            exit 0
+          fi
+          # A non-zero exit is either findings ("N vulnerabilities found") or
+          # an audit that didn't run. Each failed audit must show a count, so
+          # a registry error is never reported as a finding.
+          for name in all prod; do
+            [ "$name" = all ] && code=$all || code=$prod
+            [ "$code" -eq 0 ] && continue
+            if ! grep -Eq "^[0-9]+ vulnerabilit(y|ies) found" "$RUNNER_TEMP/$name.txt"; then
+              cat "$RUNNER_TEMP/$name.txt"
+              echo "::error::pnpm audit ($name) couldn't run (see the log above); no findings reported."
+              exit 1
+            fi
+          done
+          {
+            echo "@$GITHUB_REPOSITORY_OWNER the daily audit found a vulnerable dependency on \`main\`."
+            echo "Fix it with an upgrade or a pnpm override, or accept it in"
+            echo "\`pnpm-workspace.yaml\` (see docs/security.md)."
+            echo
+            echo "<details><summary>pnpm audit (high and critical, whole tree)</summary>"
+            echo; echo '```'; tail -n 200 "$RUNNER_TEMP/all.txt"; echo '```'; echo; echo "</details>"
+            echo
+            echo "<details><summary>pnpm audit --prod (moderate and above)</summary>"
+            echo; echo '```'; tail -n 200 "$RUNNER_TEMP/prod.txt"; echo '```'; echo; echo "</details>"
+          } > "$report"
+          gh label create security-audit --color B60205 \
+            --description "Opened by the daily dependency audit" 2>/dev/null || true
+          open=$(gh issue list --label security-audit --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body-file "$report"
+          else
+            gh issue create --title "Security audit: a dependency has a known vulnerability" \
+              --label security-audit --assignee "$GITHUB_REPOSITORY_OWNER" --body-file "$report"
+          fi
+          exit 1

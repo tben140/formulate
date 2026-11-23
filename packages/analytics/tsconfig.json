@@ -1,4 +1,13 @@
 {
   "extends": "@formulate/typescript-config/base.json",
+  /*
+   * The tests run in Node, and subscribe.ts uses `fetch`. Vitest 3 brought
+   * Node's types in with it and supplied these implicitly; Vitest 4 doesn't,
+   * so they're declared here. This only affects this package's own
+   * typecheck: each app compiles the package with its own runtime's types.
+   */
+  "compilerOptions": {
+    "types": ["node"]
+  },
   "include": ["src/**/*.ts"]
 }

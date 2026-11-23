@@ -1,7 +1,14 @@
 "use server";
 
-import { describeError, type Cart, type CartLineInput } from "@formulate/shopify";
+import { CART_ATTRIBUTE_KEYS, cartAttributes } from "@formulate/analytics";
+import {
+  describeError,
+  describeForShopper,
+  type Cart,
+  type CartLineInput,
+} from "@formulate/shopify";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import {
   cartClient,
@@ -11,6 +18,7 @@ import {
   writeBuyerEmail,
   writeCartId,
 } from "@/lib/cart";
+import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 
 /**
  * Cart mutations, as Server Actions.
@@ -39,6 +47,11 @@ import {
  */
 export interface CartActionState {
   readonly status: "idle" | "success" | "error";
+  /**
+   * Shown to the shopper: an error on failure, or on success a note that fewer
+   * were added than asked for (see `notice` in packages/shopify). Always
+   * shopper-facing text — never `describeError`, which is for logs.
+   */
   readonly message?: string;
   /**
    * Bumped on every successful add.
@@ -60,7 +73,29 @@ export interface CartActionState {
   readonly cart?: Cart;
   /** Line key of the item just added, so the event can name it. */
   readonly addedLineId?: string;
+  /**
+   * How many this add put in, for analytics (not the line's new total). 0 when
+   * stock cut the add short: Shopify doesn't say how many went in, possibly
+   * none, so the add isn't reported rather than over-counted.
+   */
+  readonly addedQuantity?: number;
 }
+
+/** PostHog's anonymous ids are v4 UUIDs; anything else is ignored. */
+const ANALYTICS_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Attributes for a new cart: the visitor's PostHog id and "web", so the
+ * custom pixel can credit the order (packages/analytics, `cartAttributes`).
+ * Only with tracking consent, checked here on the cookie rather than trusted
+ * from the form, and only for an id that looks like one of ours.
+ */
+const newCartAttributes = async (formData: FormData) => {
+  const id = String(formData.get("analyticsId") ?? "");
+  if (!ANALYTICS_ID.test(id)) return undefined;
+  const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
+  return consent === "granted" ? cartAttributes(id, "web") : undefined;
+};
 
 const revalidate = () => revalidatePath("/", "layout");
 
@@ -101,18 +136,36 @@ export const addToCart = async (
    * cart is still fine, and clearing it would silently lose everything in it.
    * See `addLinesOrCreate` and `isCartGone` in packages/shopify (SHO-122).
    */
-  const { result, storedCartGone } = await cartClient.addLinesOrCreate({
-    cartId: await readCartId(),
-    lines: [line],
-    email: readBuyerEmail,
-  });
+  const attributes = await newCartAttributes(formData);
+  const { result, storedCartGone, notice, attributesFailed } =
+    await cartClient.addLinesOrCreate({
+      cartId: await readCartId(),
+      lines: [line],
+      email: readBuyerEmail,
+      ...(attributes
+        ? { attributes }
+        : // No consent now: an id added under earlier consent comes off.
+          { removeAttributes: CART_ATTRIBUTE_KEYS }),
+    });
 
   if (!result.ok) {
     if (storedCartGone) await clearCartId();
-    return { status: "error", message: describeError(result.error) };
+    // The detail for whoever reads the logs; the shopper gets something
+    // they can act on, not "Storefront rejected the operation: …gid://…".
+    console.error(`[cart] add failed: ${describeError(result.error)}`);
+    return { status: "error", message: describeForShopper(result.error) };
   }
 
   await writeCartId(result.data.id);
+  // The add stood but the analytics id didn't come off: one more try before
+  // the shopper can reach checkout from this cart. Logged if that fails too.
+  if (attributesFailed && !attributes) {
+    const retried = await cartClient.removeAttributes(result.data, CART_ATTRIBUTE_KEYS);
+    if (!retried.ok)
+      console.error(
+        `[cart] analytics attributes not removed: ${describeError(retried.error)}`,
+      );
+  }
   revalidate();
 
   // The line Shopify actually created for this merchandise + selling plan
@@ -126,31 +179,74 @@ export const addToCart = async (
 
   return {
     status: "success",
+    ...(notice ? { message: notice } : {}),
     token: Date.now(),
     cart: result.data,
     addedLineId: addedLine?.id,
+    addedQuantity: notice ? 0 : (line.quantity ?? 1),
   };
 };
 
-export const updateCartLine = async (formData: FormData): Promise<void> => {
+/** What a line update or removal reports back: nothing, or why it failed. */
+export interface CartLineResult {
+  readonly message?: string;
+}
+
+export const updateCartLine = async (formData: FormData): Promise<CartLineResult> => {
   const id = String(formData.get("lineId") ?? "");
   const quantity = Number(formData.get("quantity") ?? 0);
   const cartId = await readCartId();
-  if (!cartId || !id) return;
+  if (!cartId || !id) return { message: "Your cart couldn't be found. Please refresh." };
 
   // Quantity zero is how Shopify expresses removal on an update, so there is no
   // need for the caller to decide which mutation to use.
-  await cartClient.updateLines(cartId, [{ id, quantity }]);
+  const result = await cartClient.updateLines(cartId, [{ id, quantity }]);
   revalidate();
+  if (result.ok) return {};
+  // The drawer has already shown the change (SHO-52); this tells it to undo.
+  console.error(`[cart] update failed: ${describeError(result.error)}`);
+  return { message: describeForShopper(result.error) };
 };
 
-export const removeCartLine = async (formData: FormData): Promise<void> => {
+export const removeCartLine = async (formData: FormData): Promise<CartLineResult> => {
   const lineId = String(formData.get("lineId") ?? "");
   const cartId = await readCartId();
-  if (!cartId || !lineId) return;
+  if (!cartId || !lineId)
+    return { message: "Your cart couldn't be found. Please refresh." };
 
-  await cartClient.removeLines(cartId, [lineId]);
+  const result = await cartClient.removeLines(cartId, [lineId]);
   revalidate();
+  if (result.ok) return {};
+  console.error(`[cart] remove failed: ${describeError(result.error)}`);
+  return { message: describeForShopper(result.error) };
+};
+
+/**
+ * Takes the analytics attributes off the shopper's cart, on a tracking refusal
+ * (components/tracking-consent.tsx), so a cart made under earlier consent
+ * doesn't carry `_posthog_id` to the order.
+ *
+ * Housekeeping, not the consent control: the order webhook never reads the id
+ * (ADR 0012), and the checkout pixel uses it only if the shopper allows
+ * analytics in checkout. So it's quiet on failure, like `identifyBuyer`: the
+ * refusal is already recorded in the cookie, and the next add tries again.
+ *
+ * Resolves `false` when it couldn't finish, so a caller can try again later.
+ * Does nothing once the shopper has accepted again: the id on the cart is then
+ * the one they agreed to.
+ */
+export const forgetCartAnalytics = async (): Promise<boolean> => {
+  const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
+  if (consent === "granted") return true;
+  const cartId = await readCartId();
+  if (!cartId) return true;
+  const cart = await cartClient.get(cartId);
+  if (!cart.ok) return false;
+  if (!cart.data) return true;
+  const result = await cartClient.removeAttributes(cart.data, CART_ATTRIBUTE_KEYS);
+  if (!result.ok)
+    console.error(`[cart] forget analytics failed: ${describeError(result.error)}`);
+  return result.ok;
 };
 
 /**

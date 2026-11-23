@@ -1,0 +1,23 @@
+# apps/api: copy to apps/api/.dev.vars for `pnpm --filter @formulate/api dev`.
+# .dev.vars is gitignored. It holds a PRIVATE key, and this repository is public.
+#
+# Deployed workers never read this file. Set the secret there with
+#   pnpm --filter @formulate/api exec wrangler secret put KLAVIYO_PRIVATE_KEY
+# which encrypts it and never writes it to disk. Never put it in wrangler.jsonc
+# `vars`; see apps/api/AGENTS.md.
+#
+# KLAVIYO_LIST_ID is not here: it is not secret, and lives in wrangler.jsonc.
+
+# A Klaviyo private API key, scoped to what the worker needs (profiles and
+# subscriptions, write).
+KLAVIYO_PRIVATE_KEY=
+
+# The order webhook (POST /webhooks/orders-create). Without either, it answers
+# 503 and Shopify retries. Set both in production with `wrangler secret put`.
+#
+# SECRET. The client secret of the app that subscribes to the orders/create
+# webhook; Shopify signs each webhook with it.
+SHOPIFY_WEBHOOK_SECRET=
+# Not secret (PostHog's public project key, phc_…), but kept beside the
+# webhook secret so the route is configured in one place.
+POSTHOG_KEY=

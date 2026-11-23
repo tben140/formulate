@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.17.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "scripts": {
     "build": "turbo run build",
@@ -15,7 +15,8 @@
     "codegen": "turbo run codegen",
     "web": "turbo run dev --filter=@formulate/web",
     "mobile": "turbo run dev --filter=@formulate/mobile",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\""
   },
   "devDependencies": {
     "prettier": "^3.6.2",
