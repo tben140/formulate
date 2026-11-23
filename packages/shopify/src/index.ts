@@ -57,6 +57,9 @@ export type {
   CustomerOrdersResult,
 } from "./customer-orders";
 
+export { GALLERY_LIMIT, galleryAlt, galleryImages, galleryPosition } from "./gallery";
+export type { GalleryImage } from "./gallery";
+
 export { formatMoney } from "./format-money";
 
 export {
