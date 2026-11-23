@@ -108,6 +108,38 @@ describe("create — buyerIdentity.email", () => {
     ];
     expect(vars.input.buyerIdentity.countryCode).toBe("GB");
   });
+
+  it("attaches a signed-in buyer's access token, and omits it otherwise", async () => {
+    // addLinesOrCreate reads the new cart's lines back.
+    const payload = {
+      cartCreate: {
+        cart: { id: "gid://shopify/Cart/x?key=y", lines: { nodes: [] } },
+        userErrors: [],
+      },
+    };
+    const signedIn = request(payload);
+    await createCartClient({ request: signedIn } as never).addLinesOrCreate({
+      cartId: null,
+      lines: [],
+      customerAccessToken: () => Promise.resolve("shcat_test"),
+    });
+    const anonymous = request(payload);
+    await createCartClient({ request: anonymous } as never).addLinesOrCreate({
+      cartId: null,
+      lines: [],
+      customerAccessToken: () => Promise.resolve(null),
+    });
+
+    const identity = (req: ReturnType<typeof request>) =>
+      (
+        req.mock.calls[0] as unknown as [
+          unknown,
+          { input: { buyerIdentity: Record<string, unknown> } },
+        ]
+      )[1].input.buyerIdentity;
+    expect(identity(signedIn).customerAccessToken).toBe("shcat_test");
+    expect(identity(anonymous)).not.toHaveProperty("customerAccessToken");
+  });
 });
 
 /**

@@ -148,11 +148,14 @@ export const writePendingSignIn = async (pending: PendingSignIn): Promise<void> 
   );
 };
 
-/** Reads and deletes in one go: each sign-in attempt can be completed once. */
-export const takePendingSignIn = async (): Promise<PendingSignIn | null> => {
+/**
+ * The sign-in in progress. Not deleted here: the callback deletes it with
+ * `clearPendingSignIn` once `state` matches, so a stray or stale callback
+ * can't cancel a newer attempt, and each attempt still completes once.
+ */
+export const readPendingSignIn = async (): Promise<PendingSignIn | null> => {
   const jar = await cookies();
   const value = parseJson(jar.get(PENDING_COOKIE)?.value);
-  jar.delete(PENDING_COOKIE);
 
   if (!value || typeof value !== "object") return null;
   const pending = value as Record<string, unknown>;
@@ -167,6 +170,10 @@ export const takePendingSignIn = async (): Promise<PendingSignIn | null> => {
         returnTo: pending.returnTo,
       }
     : null;
+};
+
+export const clearPendingSignIn = async (): Promise<void> => {
+  (await cookies()).delete(PENDING_COOKIE);
 };
 
 /**

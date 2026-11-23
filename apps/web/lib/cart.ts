@@ -105,6 +105,11 @@ const BUYER_EMAIL_COOKIE = "formulate_buyer_email";
 export const readBuyerEmail = async (): Promise<string | null> =>
   (await cookies()).get(BUYER_EMAIL_COOKIE)?.value ?? null;
 
+/** On sign-out, so the next shopper's cart isn't created with this email. */
+export const clearBuyerEmail = async (): Promise<void> => {
+  (await cookies()).delete(BUYER_EMAIL_COOKIE);
+};
+
 /** Only callable from a Server Action or Route Handler. */
 export const writeBuyerEmail = async (email: string): Promise<void> => {
   (await cookies()).set(BUYER_EMAIL_COOKIE, email, {
