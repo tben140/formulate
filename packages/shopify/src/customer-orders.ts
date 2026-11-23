@@ -82,6 +82,8 @@ export interface CustomerOrderDetail {
   readonly totalTax: MoneyLike | null;
   readonly totalPrice: MoneyLike;
   readonly lineItems: {
+    /** More than one page of lines: the page says it shows the first 50. */
+    readonly pageInfo: { readonly hasNextPage: boolean };
     readonly nodes: readonly (CustomerOrderLine & {
       readonly totalPrice: MoneyLike | null;
     })[];
@@ -118,6 +120,9 @@ export const CUSTOMER_ORDER_QUERY = /* GraphQL */ `
         currencyCode
       }
       lineItems(first: 50) {
+        pageInfo {
+          hasNextPage
+        }
         nodes {
           id
           # name is the product's name; title is only set for custom lines.
