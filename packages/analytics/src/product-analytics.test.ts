@@ -120,6 +120,15 @@ describe("createProductAnalytics", () => {
     });
   });
 
+  it.each([
+    ["accepted", () => Promise.resolve(new Response("{}")), true],
+    ["refused", () => Promise.resolve(new Response("", { status: 503 })), false],
+    ["unreachable", () => Promise.reject(new TypeError("offline")), false],
+  ])("resolves whether PostHog %s the identify", async (_, send, delivered) => {
+    const analytics = createProductAnalytics(config(vi.fn(send) as unknown as FetchLike));
+    await expect(analytics.identify("8812345678")).resolves.toBe(delivered);
+  });
+
   it("sends app screen views as $screen", () => {
     const fetchMock = vi.fn(() => Promise.resolve(new Response("{}")));
     createProductAnalytics({

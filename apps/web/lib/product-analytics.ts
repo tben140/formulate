@@ -170,9 +170,16 @@ export const identifyCustomer = (customerId: string): void => {
   const link = `${distinctId}:${id}`;
   try {
     if (window.localStorage.getItem(IDENTIFIED_KEY) === link) return;
-    window.localStorage.setItem(IDENTIFIED_KEY, link);
   } catch {
     // Storage blocked: identify anyway; PostHog ignores a repeat.
   }
-  client.identify(id);
+  // Kept only once PostHog has it, so a failed send is tried again next visit.
+  void client.identify(id).then((delivered) => {
+    if (!delivered) return;
+    try {
+      window.localStorage.setItem(IDENTIFIED_KEY, link);
+    } catch {
+      // Storage blocked: nothing kept, and the next visit identifies again.
+    }
+  });
 };

@@ -273,9 +273,11 @@ export interface ProductAnalytics {
   readonly screen: (name: string) => void;
   /**
    * Links the anonymous visitor to a signed-in customer (the Shopify customer
-   * id), so the funnel before sign-in joins what happens after.
+   * id), so the funnel before sign-in joins what happens after. Resolves
+   * true once PostHog has accepted it, so a caller can keep a failed link
+   * retryable; never rejects.
    */
-  readonly identify: (customerId: string) => void;
+  readonly identify: (customerId: string) => Promise<boolean>;
 }
 
 /**
@@ -290,38 +292,46 @@ export const createProductAnalytics = (
   /**
    * One request, every failure swallowed: the promise's, and a synchronous
    * throw from `identity`, `context` or a missing `fetch`, since these run in
-   * effects and event handlers.
+   * effects and event handlers. Resolves whether PostHog accepted it.
    */
-  const deliver = (event: string, properties: object, distinctId?: string) => {
+  const deliver = (
+    event: string,
+    properties: object,
+    distinctId?: string,
+  ): Promise<boolean> => {
     try {
       const body = captureBody(config, event, properties);
       const post = config.fetch ?? (globalThis.fetch as unknown as FetchLike);
-      void post(`${config.host ?? POSTHOG_HOST}/i/v0/e/`, {
+      return post(`${config.host ?? POSTHOG_HOST}/i/v0/e/`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(distinctId ? { ...body, distinct_id: distinctId } : body),
         keepalive: true,
-      }).catch(() => undefined);
+      }).then(
+        (response) => (response as { ok?: unknown } | null)?.ok === true,
+        () => false,
+      );
     } catch {
       // Analytics must never break a page or a purchase.
+      return Promise.resolve(false);
     }
   };
 
   return {
-    capture: (event, properties) => deliver(event, properties),
-    pageview: () => deliver(PAGEVIEW, {}),
-    screen: (name) => deliver(SCREEN, { $screen_name: name }),
+    capture: (event, properties) => void deliver(event, properties),
+    pageview: () => void deliver(PAGEVIEW, {}),
+    screen: (name) => void deliver(SCREEN, { $screen_name: name }),
     identify: (customerId) => {
       let anonymousId: string;
       try {
         anonymousId = config.identity().distinctId;
       } catch {
-        return;
+        return Promise.resolve(false);
       }
-      if (!customerId || customerId === anonymousId) return;
+      if (!customerId || customerId === anonymousId) return Promise.resolve(false);
       // PostHog's capture-API identify: the event comes from the known id and
       // names the anonymous one, which merges the two into one person.
-      deliver("$identify", { $anon_distinct_id: anonymousId }, customerId);
+      return deliver("$identify", { $anon_distinct_id: anonymousId }, customerId);
     },
   };
 };
