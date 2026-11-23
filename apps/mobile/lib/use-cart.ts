@@ -139,6 +139,11 @@ export const useCart = () => {
   });
 };
 
+// `Array.isArray` doesn't narrow a readonly array out of a union.
+const isLineList = (
+  line: CartLineInput | readonly CartLineInput[],
+): line is readonly CartLineInput[] => Array.isArray(line);
+
 export const useAddToCart = () => {
   const queryClient = useQueryClient();
 
@@ -166,7 +171,7 @@ export const useAddToCart = () => {
       const { result, storedCartGone, notice, attributesFailed } =
         await cartClient.addLinesOrCreate({
           cartId: await readCartId(),
-          lines: Array.isArray(line) ? line : [line],
+          lines: isLineList(line) ? line : [line],
           email: readIdentifiedEmail,
           // So checkout can credit the order to this shopper; consent only.
           // Without it, an id added under earlier consent comes off.

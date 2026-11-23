@@ -1,5 +1,6 @@
 import {
   BUDGETS,
+  deliveryEvery,
   formatMoney,
   MAX_GOALS,
   scoreRoutine,
@@ -15,8 +16,10 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -24,6 +27,7 @@ import {
 } from "react-native";
 
 import { useCartUi } from "../components/cart-provider";
+import { SiteFooter } from "../components/site-footer";
 import { useRoutineGoals } from "../lib/queries";
 import {
   clearSavedAnswers,
@@ -198,10 +202,38 @@ const QuizForm = ({
   );
 };
 
+/** "a month", or the plan's real rhythm when it isn't monthly. */
+const perMonth = (deliveryDays: number | null) =>
+  deliveryDays === null || deliveryDays === 30
+    ? "a month"
+    : `a month, delivered ${deliveryEvery(deliveryDays)}`;
+
+/**
+ * Says a message to VoiceOver when it changes. `accessibilityLiveRegion` is
+ * Android only, so both are wired up (see components/email-capture.tsx).
+ */
+const useAnnounce = (message: string) => {
+  useEffect(() => {
+    if (Platform.OS === "ios" && message) {
+      AccessibilityInfo.announceForAccessibility(message);
+    }
+  }, [message]);
+};
+
+const StorageFeedback = ({ message }: { readonly message: string | null }) => {
+  useAnnounce(message ?? "");
+  return message ? (
+    <Text accessibilityLiveRegion="polite" className="text-sm text-foreground">
+      {message}
+    </Text>
+  ) : null;
+};
+
 const Results = ({
   goals,
   answers,
   saved,
+  storing,
   onEdit,
   onSave,
   onForget,
@@ -210,6 +242,8 @@ const Results = ({
   readonly goals: readonly RoutineGoal[];
   readonly answers: QuizAnswers;
   readonly saved: boolean;
+  /** A save or forget is being written: the answers mustn't change under it. */
+  readonly storing: boolean;
   readonly onEdit: () => void;
   readonly onSave: () => void;
   readonly onForget: () => void;
@@ -229,6 +263,13 @@ const Results = ({
     100;
   const currencyCode = routine.items[0]?.product.currencyCode ?? "GBP";
   const allSubscriptions = chosen.every((item) => item.product.sellingPlanId);
+  // The routine's one rhythm when every plan shares it, else null.
+  const rhythms = new Set(chosen.map((item) => item.product.deliveryDays));
+  const rhythm = rhythms.size === 1 ? [...rhythms][0]! : null;
+  const cartMessage = addToCart.isError
+    ? addToCart.error.message
+    : (addToCart.data?.notice ?? "");
+  useAnnounce(cartMessage);
 
   const goalLabel = (key: string) =>
     goals.find((goal) => goal.key === key)?.label.toLowerCase() ?? key;
@@ -253,16 +294,27 @@ const Results = ({
           {routine.leftOutForBudget > 0 ? " within that budget" : ""}. Try a different
           budget or dietary preference.
         </Text>
-        <Pressable accessibilityRole="button" onPress={onEdit}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={storing}
+          accessibilityState={{ disabled: storing }}
+          onPress={onEdit}
+        >
           <Text className={link}>Change my answers</Text>
         </Pressable>
         {/* A saved routine can stop matching (products sold out, prices up),
             and it must still be possible to forget it. */}
         {saved ? (
-          <Pressable accessibilityRole="button" onPress={onForget}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={storing}
+            accessibilityState={{ disabled: storing, busy: storing }}
+            onPress={onForget}
+          >
             <Text className={link}>Forget my routine</Text>
           </Pressable>
         ) : null}
+        <StorageFeedback message={storageError} />
         <TalkToUs />
       </View>
     );
@@ -290,7 +342,7 @@ const Results = ({
             accessibilityLabel={`${product.title}. ${forGoals(item)}. ${formatMoney({
               amount: String(product.monthlyPrice),
               currencyCode,
-            })} ${product.sellingPlanId ? "a month" : "one-off"}.`}
+            })} ${product.sellingPlanId ? perMonth(product.deliveryDays) : "one-off"}.`}
             className={`flex-row items-center gap-3 rounded-md border p-3 ${on ? "border-foreground" : "border-border opacity-60"}`}
           >
             <View
@@ -314,7 +366,7 @@ const Results = ({
                 {formatMoney({ amount: String(product.monthlyPrice), currencyCode })}
               </Text>
               <Text className="text-xs text-foreground-muted">
-                {product.sellingPlanId ? "a month" : "one-off"}
+                {product.sellingPlanId ? perMonth(product.deliveryDays) : "one-off"}
               </Text>
             </View>
           </Pressable>
@@ -327,7 +379,13 @@ const Results = ({
             {formatMoney({ amount: String(total), currencyCode })}
           </Text>{" "}
           <Text className="text-foreground-muted">
-            {allSubscriptions ? "a month, delivered every month" : "in total"}
+            {!allSubscriptions
+              ? "in total"
+              : rhythm === 30
+                ? "a month, delivered every month"
+                : rhythm !== null
+                  ? perMonth(rhythm)
+                  : "a month, on each product's delivery rhythm"}
           </Text>
         </Text>
         <Pressable
@@ -360,7 +418,7 @@ const Results = ({
           </Text>
         </Pressable>
         <Text accessibilityLiveRegion="polite" className="text-sm text-foreground-muted">
-          {addToCart.isError ? addToCart.error.message : (addToCart.data?.notice ?? "")}
+          {cartMessage}
         </Text>
       </View>
 
@@ -369,18 +427,24 @@ const Results = ({
       </Text>
 
       <View className="flex-row flex-wrap gap-x-6 gap-y-2">
-        <Pressable accessibilityRole="button" onPress={onEdit}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={storing}
+          accessibilityState={{ disabled: storing }}
+          onPress={onEdit}
+        >
           <Text className={link}>Change my answers</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={saved ? onForget : onSave}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={storing}
+          accessibilityState={{ disabled: storing, busy: storing }}
+          onPress={saved ? onForget : onSave}
+        >
           <Text className={link}>{saved ? "Forget my routine" : "Save my routine"}</Text>
         </Pressable>
       </View>
-      {storageError ? (
-        <Text accessibilityLiveRegion="polite" className="text-sm text-foreground">
-          {storageError}
-        </Text>
-      ) : null}
+      <StorageFeedback message={storageError} />
 
       <TalkToUs />
     </View>
@@ -394,6 +458,7 @@ const RoutineScreen = () => {
   const [editing, setEditing] = useState(false);
   const [loadedSaved, setLoadedSaved] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [storing, setStoring] = useState(false);
 
   // A saved routine opens straight to its results.
   useEffect(() => {
@@ -481,16 +546,23 @@ const RoutineScreen = () => {
           goals={goals}
           answers={answers}
           saved={saved}
+          storing={storing}
           onEdit={() => setEditing(true)}
           storageError={storageError}
-          onSave={() =>
+          // Editing is off while a write is pending, so the result always
+          // belongs to the answers on screen.
+          onSave={() => {
+            setStoring(true);
             void writeSavedAnswers(answers).then((ok) => {
+              setStoring(false);
               setSaved(ok);
               setStorageError(ok ? null : "Saving isn't available here.");
-            })
-          }
-          onForget={() =>
+            });
+          }}
+          onForget={() => {
+            setStoring(true);
             void clearSavedAnswers().then((ok) => {
+              setStoring(false);
               if (!ok) {
                 setStorageError("Your routine couldn't be removed. Please try again.");
                 return;
@@ -498,10 +570,11 @@ const RoutineScreen = () => {
               setStorageError(null);
               setSaved(false);
               setAnswers(null);
-            })
-          }
+            });
+          }}
         />
       )}
+      <SiteFooter />
     </ScrollView>
   );
 };
