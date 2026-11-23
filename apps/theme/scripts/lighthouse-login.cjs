@@ -72,6 +72,14 @@ module.exports = async (browser) => {
         `lighthouse-login: the store shows theme ${shown}, not ${THEME_ID}: the preview cookie didn't take`,
       );
     }
+    // The theme's cookie banner as a UK shopper sees it. The runners are in
+    // the US, where Shopify's privacy API says no banner is needed, so without
+    // this the audits would measure a page with no banner (#279). See
+    // PREVIEW_KEY in assets/consent-banner.js.
+    await page.evaluate(() => {
+      localStorage.setItem("dh-consent-preview", "1");
+      localStorage.removeItem("dh-consent-decided");
+    });
   } finally {
     await page.close();
   }

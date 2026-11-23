@@ -112,5 +112,17 @@
         "default": 4
       }
     ]
+  },
+  {
+    "name": "t:general.cookie_banner",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "consent_banner",
+        "label": "t:labels.consent_banner",
+        "info": "t:info.consent_banner",
+        "default": true
+      }
+    ]
   }
 ]
