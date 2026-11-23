@@ -1,5 +1,6 @@
 "use client";
 
+import { Link } from "@/components/link";
 import { useActionState } from "react";
 
 import { submitReview, type ReviewFormState } from "@/app/actions/reviews";
@@ -8,16 +9,20 @@ const IDLE: ReviewFormState = { status: "idle" };
 
 /**
  * A plain "Write a review" form for Judge.me (via the Worker): rating, name,
- * email, title and review. Native controls and a real form, so it works
+ * title and review. Only signed-in customers who bought the product can send
+ * one (app/actions/reviews.ts); the form says so up front. Native controls and a real form, so it works
  * before JavaScript and with any assistive technology. Collapsed until asked
  * for, so it doesn't push the reviews down.
  */
 export const WriteReview = ({
   productId,
   productTitle,
+  path,
 }: {
   readonly productId: string;
   readonly productTitle: string;
+  /** This page, to come back to after signing in. */
+  readonly path: string;
 }) => {
   const [state, action, pending] = useActionState(submitReview, IDLE);
   // After a failed send, what was typed comes back (React resets the form).
@@ -47,6 +52,11 @@ export const WriteReview = ({
         className="mt-4 space-y-4 text-sm"
       >
         <input type="hidden" name="productId" value={productId} />
+        <input type="hidden" name="returnTo" value={path} />
+
+        <p className="text-foreground-muted">
+          Reviews are from verified buyers: sign in with the account you ordered with.
+        </p>
 
         <fieldset>
           <legend className="mb-2 font-medium">Your rating of {productTitle}</legend>
@@ -86,26 +96,6 @@ export const WriteReview = ({
         </div>
 
         <div>
-          <label htmlFor="review-email" className="mb-1 block font-medium">
-            Email
-          </label>
-          <input
-            id="review-email"
-            defaultValue={values?.email}
-            name="email"
-            type="email"
-            required
-            maxLength={254}
-            autoComplete="email"
-            aria-describedby="review-email-hint"
-            className="w-full rounded-md border border-border px-3 py-2"
-          />
-          <p id="review-email-hint" className="mt-1 text-xs text-foreground-muted">
-            Never shown. Judge.me, our reviews provider, uses it to confirm the review.
-          </p>
-        </div>
-
-        <div>
           <label htmlFor="review-title" className="mb-1 block font-medium">
             Title (optional)
           </label>
@@ -135,6 +125,14 @@ export const WriteReview = ({
 
         <p role="status" aria-live="polite" className="text-danger">
           {state.status === "error" ? state.message : ""}
+          {state.status === "error" && state.signIn ? (
+            <>
+              {" "}
+              <Link href={state.signIn} className="underline underline-offset-4">
+                Sign in
+              </Link>
+            </>
+          ) : null}
         </p>
 
         <button

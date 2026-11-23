@@ -58,7 +58,14 @@
      * JUDGEME_PRIVATE_TOKEN is a secret: Cloudflare dashboard, type Secret,
      * never here.
      */
-    "SHOPIFY_STORE_DOMAIN": "tben140plus-xcorpito.myshopify.com"
+    "SHOPIFY_STORE_DOMAIN": "tben140plus-xcorpito.myshopify.com",
+    /*
+     * Where the Customer Account API lives, for "who is writing this review"
+     * (src/review-customer.ts). The shop's id and an API version: they name
+     * an endpoint, they grant nothing. The caller's token is the credential.
+     */
+    "SHOPIFY_SHOP_ID": "100581966136",
+    "SHOPIFY_API_VERSION": "2026-04"
   },
 
   /*

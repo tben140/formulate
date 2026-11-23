@@ -1,15 +1,26 @@
 "use server";
 
+import {
+  isCustomerAccountConfigured,
+  readCustomerTokens,
+  safeReturnTo,
+} from "@/lib/customer-account";
+import { isTokenExpiring } from "@formulate/shopify";
+
 /**
  * "Write a review": sent through the Worker (apps/api, POST /reviews/new),
  * which holds Judge.me's private token and checks every field again.
+ *
+ * Only from a signed-in customer who bought the product: the shopper's
+ * Customer Account token goes to the Worker, which asks Shopify who they are
+ * and what they've ordered. So no email is asked for here; the review goes to
+ * Judge.me under the account's, and shows as from a verified buyer.
  */
 
 /** What was typed, so a failed send doesn't lose it (React resets the form). */
 export interface ReviewValues {
   readonly rating: string;
   readonly name: string;
-  readonly email: string;
   readonly title: string;
   readonly body: string;
 }
@@ -17,12 +28,17 @@ export interface ReviewValues {
 export type ReviewFormState =
   | { readonly status: "idle" }
   | { readonly status: "sent" }
-  | { readonly status: "error"; readonly message: string; readonly values: ReviewValues };
+  | {
+      readonly status: "error";
+      readonly message: string;
+      readonly values: ReviewValues;
+      /** Where to sign in, when that's what's needed. */
+      readonly signIn?: string;
+    };
 
 const FIELD_MESSAGES: Record<string, string> = {
   rating: "Choose a rating from 1 to 5 stars.",
   name: "Add your name (up to 80 characters).",
-  email: "Check your email address.",
   title: "Keep the title to 120 characters.",
   body: "Write your review (up to 2,000 characters).",
 };
@@ -34,28 +50,44 @@ export const submitReview = async (
   const values: ReviewValues = {
     rating: String(formData.get("rating") ?? ""),
     name: String(formData.get("name") ?? ""),
-    email: String(formData.get("email") ?? ""),
     title: String(formData.get("title") ?? ""),
     body: String(formData.get("body") ?? ""),
   };
-  const error = (message: string): ReviewFormState => ({
+  const error = (message: string, signIn?: string): ReviewFormState => ({
     status: "error",
     message,
     values,
+    ...(signIn ? { signIn } : {}),
   });
+  // Back to this product after signing in.
+  const signIn = `/account/login?return_to=${encodeURIComponent(
+    safeReturnTo(String(formData.get("returnTo") ?? "")),
+  )}`;
 
   const api = process.env.FORMULATE_API_URL ?? "";
-  if (!api) return error("Reviews can't be sent right now.");
+  if (!api || !isCustomerAccountConfigured) {
+    return error("Reviews can't be sent right now.");
+  }
+  const tokens = await readCustomerTokens();
+  if (!tokens || isTokenExpiring(tokens)) {
+    return error(
+      "Sign in to send your review. What you've written is kept here.",
+      signIn,
+    );
+  }
 
   try {
     const response = await fetch(`${api}/reviews/new`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        // The Customer Account API takes the bare token.
+        Authorization: tokens.accessToken,
+      },
       body: JSON.stringify({
         productId: String(formData.get("productId") ?? ""),
         rating: Number(values.rating || 0),
         name: values.name,
-        email: values.email,
         title: values.title,
         body: values.body,
       }),
@@ -71,6 +103,19 @@ export const submitReview = async (
     if (result.ok) return { status: "sent" };
     if (result.reason === "invalid" && result.field && FIELD_MESSAGES[result.field]) {
       return error(FIELD_MESSAGES[result.field]!);
+    }
+    if (result.reason === "signed-out") {
+      return error("Sign in again to send your review.", signIn);
+    }
+    if (result.reason === "not-purchased") {
+      return error(
+        "Reviews here are from verified buyers, and this product isn't in your orders.",
+      );
+    }
+    if (result.reason === "no-email") {
+      return error(
+        "Your account has no email address, which our reviews provider needs to confirm a review.",
+      );
     }
     if (result.reason === "rate-limited") {
       return error("Too many tries. Wait a minute and send it again.");

@@ -23,6 +23,7 @@ import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
+import { isCustomerAccountConfigured } from "@/lib/customer-account";
 import { assignExperiment } from "@/lib/experiments";
 import { getNavLinks, getShopGroups } from "@/lib/nav";
 import { baseOpenGraph, siteUrl } from "@/lib/site";
@@ -199,8 +200,12 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
 
       {/* Outside the reviews' Suspense: a product with no reviews yet still
           needs a way to get its first. Only when the Worker is configured. */}
-      {process.env.FORMULATE_API_URL ? (
-        <WriteReview productId={product.id} productTitle={product.title} />
+      {process.env.FORMULATE_API_URL && isCustomerAccountConfigured ? (
+        <WriteReview
+          productId={product.id}
+          productTitle={product.title}
+          path={`/products/${product.handle}`}
+        />
       ) : null}
     </>
   );

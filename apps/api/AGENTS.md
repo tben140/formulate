@@ -62,17 +62,21 @@ and it looks identical in code.
 - **No email addresses in logs.** Personal data. Status codes and Klaviyo's own
   message are enough to diagnose with.
 - Rate limiting keys on `CF-Connecting-IP`, which the edge sets. Never
-  `X-Forwarded-For`, which the caller controls.
+  `X-Forwarded-For`, which the caller controls. The one exception is writing a
+  review (`POST /reviews/new`), which keys on the customer id Shopify returns
+  for the caller's token: it comes from web's server, so every shopper shares
+  that server's address.
 
 ## Layout
 
-| File                  | Holds                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------- |
-| `src/index.ts`        | The entry point: the Durable Object classes, `Env`, and the route table. It knows no route's details    |
-| `src/routes/*.ts`     | One module per route: its handler, and a `…Env` interface naming only the bindings and secrets it reads |
-| `src/http.ts`         | The responses every route shares (`json`, `Outcome`): the generic bodies, and no CORS                   |
-| `src/body.ts`         | `readBounded`: a request body read up to a limit and cut off past it                                    |
-| `src/rate-limiter.ts` | The per-IP Durable Object                                                                               |
+| File                     | Holds                                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `src/index.ts`           | The entry point: the Durable Object classes, `Env`, and the route table. It knows no route's details       |
+| `src/routes/*.ts`        | One module per route: its handler, and a `…Env` interface naming only the bindings and secrets it reads    |
+| `src/http.ts`            | The responses every route shares (`json`, `Outcome`): the generic bodies, and no CORS                      |
+| `src/body.ts`            | `readBounded`: a request body read up to a limit and cut off past it                                       |
+| `src/rate-limiter.ts`    | The per-IP Durable Object                                                                                  |
+| `src/review-customer.ts` | Who is writing a review, from Shopify's answer to their Customer Account token, and whether they bought it |
 
 A new route is a new file under `routes/` and one line in `index.ts`'s table,
 at a path nothing posts to today: the app's sign-up posts to `/` and every
