@@ -1,11 +1,23 @@
 "use server";
 
 import {
+  describeCustomerAccountError,
+  isTokenExpiring,
+  refreshTokens,
+  type CustomerTokens,
+} from "@formulate/shopify";
+import { headers } from "next/headers";
+
+import {
+  clearCustomerTokens,
+  customerAccountConfig,
   isCustomerAccountConfigured,
   readCustomerTokens,
+  requestOrigin,
   safeReturnTo,
+  writeCustomerTokens,
 } from "@/lib/customer-account";
-import { isTokenExpiring } from "@formulate/shopify";
+import { siteUrl } from "@/lib/site";
 
 /**
  * "Write a review": sent through the Worker (apps/api, POST /reviews/new),
@@ -35,6 +47,34 @@ export type ReviewFormState =
       /** Where to sign in, when that's what's needed. */
       readonly signIn?: string;
     };
+
+/**
+ * The shopper's tokens, renewed first if the access token is expiring, as
+ * app/account/refresh does: a Server Action can set cookies, so no redirect.
+ * "signed-out" only when there's no session or Shopify refuses the renewal.
+ */
+const sessionTokens = async (): Promise<
+  CustomerTokens | "signed-out" | "unavailable"
+> => {
+  const tokens = await readCustomerTokens();
+  if (!tokens) return "signed-out";
+  if (!isTokenExpiring(tokens)) return tokens;
+
+  const result = await refreshTokens(customerAccountConfig, tokens, {
+    origin: requestOrigin(await headers(), siteUrl.origin),
+  });
+  if (result.ok) {
+    await writeCustomerTokens(result.data);
+    return result.data;
+  }
+  console.error(describeCustomerAccountError(result.error));
+  // A 4xx: the refresh token expired or was revoked, so the session is over.
+  if (result.error.kind === "http" && result.error.status < 500) {
+    await clearCustomerTokens();
+    return "signed-out";
+  }
+  return "unavailable";
+};
 
 const FIELD_MESSAGES: Record<string, string> = {
   rating: "Choose a rating from 1 to 5 stars.",
@@ -68,12 +108,15 @@ export const submitReview = async (
   if (!api || !isCustomerAccountConfigured) {
     return error("Reviews can't be sent right now.");
   }
-  const tokens = await readCustomerTokens();
-  if (!tokens || isTokenExpiring(tokens)) {
+  const tokens = await sessionTokens();
+  if (tokens === "signed-out") {
     return error(
       "Sign in to send your review. What you've written is kept here.",
       signIn,
     );
+  }
+  if (tokens === "unavailable") {
+    return error("Your review couldn't be sent. Try again later.");
   }
 
   try {

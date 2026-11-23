@@ -1,11 +1,58 @@
 "use client";
 
 import { Link } from "@/components/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
-import { submitReview, type ReviewFormState } from "@/app/actions/reviews";
+import {
+  submitReview,
+  type ReviewFormState,
+  type ReviewValues,
+} from "@/app/actions/reviews";
 
 const IDLE: ReviewFormState = { status: "idle" };
+
+/**
+ * What was typed, kept across the round trip to Shopify's sign-in page, which
+ * reloads this page. Session storage: this tab only, gone when it closes.
+ */
+const draftKey = (productId: string) => `dh-review-draft:${productId}`;
+
+const saveDraft = (productId: string, form: HTMLFormElement | null) => {
+  if (!form) return;
+  const data = new FormData(form);
+  const draft: ReviewValues = {
+    rating: String(data.get("rating") ?? ""),
+    name: String(data.get("name") ?? ""),
+    title: String(data.get("title") ?? ""),
+    body: String(data.get("body") ?? ""),
+  };
+  try {
+    sessionStorage.setItem(draftKey(productId), JSON.stringify(draft));
+  } catch {
+    // Storage blocked: the draft is lost, as it would be without this.
+  }
+};
+
+const takeDraft = (productId: string): ReviewValues | undefined => {
+  try {
+    const stored = sessionStorage.getItem(draftKey(productId));
+    sessionStorage.removeItem(draftKey(productId));
+    const draft: unknown = stored ? JSON.parse(stored) : undefined;
+    if (!draft || typeof draft !== "object") return undefined;
+    const field = (name: string) => {
+      const value = (draft as Record<string, unknown>)[name];
+      return typeof value === "string" ? value : "";
+    };
+    return {
+      rating: field("rating"),
+      name: field("name"),
+      title: field("title"),
+      body: field("body"),
+    };
+  } catch {
+    return undefined;
+  }
+};
 
 /**
  * A plain "Write a review" form for Judge.me (via the Worker): rating, name,
@@ -25,8 +72,16 @@ export const WriteReview = ({
   readonly path: string;
 }) => {
   const [state, action, pending] = useActionState(submitReview, IDLE);
+  const form = useRef<HTMLFormElement>(null);
+  // Back from signing in: what was typed before.
+  const [draft, setDraft] = useState<ReviewValues>();
+  useEffect(() => {
+    // After mount, as session storage isn't there to render on the server.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDraft(takeDraft(productId));
+  }, [productId]);
   // After a failed send, what was typed comes back (React resets the form).
-  const values = state.status === "error" ? state.values : undefined;
+  const values = state.status === "error" ? state.values : draft;
 
   if (state.status === "sent") {
     return (
@@ -40,10 +95,13 @@ export const WriteReview = ({
     <details
       className="mt-6 rounded-md border border-border px-4 py-3"
       // Open again after a failed send, showing the error.
-      open={state.status === "error" || undefined}
+      open={state.status === "error" || draft !== undefined || undefined}
     >
       <summary className="cursor-pointer text-sm font-semibold">Write a review</summary>
       <form
+        ref={form}
+        // Remounted when a draft arrives, so the fields take its values.
+        key={draft ? "draft" : "blank"}
         action={action}
         // Not natively disabled, so focus isn't dropped; refused here instead.
         onSubmit={(event) => {
@@ -128,7 +186,11 @@ export const WriteReview = ({
           {state.status === "error" && state.signIn ? (
             <>
               {" "}
-              <Link href={state.signIn} className="underline underline-offset-4">
+              <Link
+                href={state.signIn}
+                onClick={() => saveDraft(productId, form.current)}
+                className="underline underline-offset-4"
+              >
                 Sign in
               </Link>
             </>

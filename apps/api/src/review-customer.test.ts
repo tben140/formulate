@@ -76,6 +76,103 @@ describe("checkReviewer", () => {
       kind: "signed-out",
     });
   });
+
+  it("treats a throttled or failing Shopify (200 with errors) as unavailable", async () => {
+    shopify({ data: null, errors: [{ extensions: { code: "THROTTLED" } }] });
+    expect(await checkReviewer(env, "shcat_token", PRODUCT)).toEqual({
+      kind: "unavailable",
+    });
+  });
+
+  /** Answers each call in turn, recording what was asked. */
+  const pages = (...bodies: unknown[]) => {
+    const mock = vi.fn(async () => new Response(JSON.stringify(bodies.shift())));
+    vi.stubGlobal("fetch", mock);
+    return mock;
+  };
+  const variables = (mock: ReturnType<typeof pages>, call: number) =>
+    JSON.parse(
+      String((mock.mock.calls[call] as unknown as [string, RequestInit])[1].body),
+    ).variables as Record<string, unknown>;
+
+  it("follows the order pages to find an older purchase", async () => {
+    const first = customer(["gid://shopify/Product/1"]);
+    const mock = pages(
+      {
+        data: {
+          customer: {
+            ...first.data.customer,
+            orders: {
+              ...first.data.customer.orders,
+              pageInfo: { hasNextPage: true, endCursor: "page-2" },
+            },
+          },
+        },
+      },
+      customer([`gid://shopify/Product/${PRODUCT}`]),
+    );
+    expect(await checkReviewer(env, "shcat_token", PRODUCT)).toMatchObject({
+      kind: "ok",
+    });
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(variables(mock, 1)).toEqual({ after: "page-2" });
+  });
+
+  it("follows an order's line pages to find the product further down", async () => {
+    const mock = pages(
+      {
+        data: {
+          customer: {
+            id: "gid://shopify/Customer/42",
+            emailAddress: { emailAddress: "sam@example.com" },
+            orders: {
+              nodes: [
+                {
+                  id: "gid://shopify/Order/7",
+                  lineItems: {
+                    pageInfo: { hasNextPage: true, endCursor: "lines-2" },
+                    nodes: [{ productId: "gid://shopify/Product/1" }],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+      {
+        data: {
+          order: {
+            lineItems: { nodes: [{ productId: `gid://shopify/Product/${PRODUCT}` }] },
+          },
+        },
+      },
+    );
+    expect(await checkReviewer(env, "shcat_token", PRODUCT)).toMatchObject({
+      kind: "ok",
+    });
+    expect(variables(mock, 1)).toEqual({ id: "gid://shopify/Order/7", after: "lines-2" });
+  });
+
+  it("stops at the request cap rather than crawling for ever", async () => {
+    const endless = customer(["gid://shopify/Product/1"]);
+    const page = {
+      data: {
+        customer: {
+          ...endless.data.customer,
+          orders: {
+            ...endless.data.customer.orders,
+            pageInfo: { hasNextPage: true, endCursor: "next" },
+          },
+        },
+      },
+    };
+    const mock = vi.fn(async () => new Response(JSON.stringify(page)));
+    vi.stubGlobal("fetch", mock);
+    expect(await checkReviewer(env, "shcat_token", PRODUCT)).toEqual({
+      kind: "not-purchased",
+    });
+    expect(mock).toHaveBeenCalledTimes(20);
+  });
 });
 
 describe("customerToken", () => {
