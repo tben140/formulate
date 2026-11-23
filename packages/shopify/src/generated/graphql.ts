@@ -2858,7 +2858,7 @@ export const ProductRecommendationsDocument = new TypedDocumentString(`
     `) as unknown as TypedDocumentString<ProductRecommendationsQuery, ProductRecommendationsQueryVariables>;
 export const RoutineGoalsDocument = new TypedDocumentString(`
     query RoutineGoals {
-  metaobjects(type: "routine_goal", first: 20, sortKey: "display_name") {
+  metaobjects(type: "routine_goal", first: 20) {
     nodes {
       handle
       key: field(key: "key") {

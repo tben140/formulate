@@ -62,6 +62,7 @@ export const toRoutineProduct = (node: ProductNode): RoutineProduct | null => {
     format: formatKind(node.tags),
     variantId: variant.id,
     sellingPlanId: plan?.id ?? null,
+    deliveryDays: plan?.deliveryDays ?? null,
     monthlyPrice: plan?.monthlyPrice ?? Number(variant.price.amount),
     currencyCode: variant.price.currencyCode,
     image: node.featuredImage
@@ -71,16 +72,19 @@ export const toRoutineProduct = (node: ProductNode): RoutineProduct | null => {
 };
 
 /**
- * The quiz's goals from Shopify's response. A goal without a key, a label or
- * any offerable product is left out, so a half-filled metaobject in the admin
- * doesn't show an empty choice.
+ * The quiz's goals from Shopify's response, by label. A goal without a key, a
+ * label or any offerable product is left out, so a half-filled metaobject in
+ * the admin doesn't show an empty choice. Sorted here because the Storefront
+ * API only sorts metaobjects by id or update time.
  */
 export const toRoutineGoals = (data: RoutineGoalsQuery): RoutineGoal[] =>
-  data.metaobjects.nodes.flatMap((node) => {
-    const key = node.key?.value?.trim();
-    const label = node.label?.value?.trim();
-    const products = (node.products?.references?.nodes ?? [])
-      .map(toRoutineProduct)
-      .filter((product): product is RoutineProduct => product !== null);
-    return key && label && products.length > 0 ? [{ key, label, products }] : [];
-  });
+  data.metaobjects.nodes
+    .flatMap((node) => {
+      const key = node.key?.value?.trim();
+      const label = node.label?.value?.trim();
+      const products = (node.products?.references?.nodes ?? [])
+        .map(toRoutineProduct)
+        .filter((product): product is RoutineProduct => product !== null);
+      return key && label && products.length > 0 ? [{ key, label, products }] : [];
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, "en-GB"));

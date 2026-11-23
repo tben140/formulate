@@ -37,6 +37,14 @@ export const RoutineUnavailable = () => (
   </div>
 );
 
+const ForgetRoutine = ({ className }: { readonly className: string }) => (
+  <form action={forgetRoutine}>
+    <button type="submit" className={className}>
+      Forget my routine
+    </button>
+  </form>
+);
+
 /** A routine, with its actions: edit answers, save or forget, add to cart. */
 export const RoutineView = ({
   routine,
@@ -64,6 +72,7 @@ export const RoutineView = ({
         <Link href={`/routine?${query}&edit=1`} className={link}>
           Change my answers
         </Link>
+        {saved ? <ForgetRoutine className={link} /> : null}
         <TalkToUs />
       </div>
     );
@@ -86,11 +95,7 @@ export const RoutineView = ({
           Change my answers
         </Link>
         {saved ? (
-          <form action={forgetRoutine}>
-            <button type="submit" className={link}>
-              Forget my routine
-            </button>
-          </form>
+          <ForgetRoutine className={link} />
         ) : (
           <form action={saveRoutine}>
             <input type="hidden" name="answers" value={query} />

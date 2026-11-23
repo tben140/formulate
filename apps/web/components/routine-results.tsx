@@ -1,13 +1,14 @@
 "use client";
 
 import {
+  deliveryEvery,
   formatMoney,
   type Routine,
   type RoutineGoal,
   type RoutineItem,
 } from "@formulate/shopify";
 import Link from "@/components/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useSyncExternalStore } from "react";
 
 import { addRoutineToCart } from "@/app/actions/routine";
 import type { CartActionState } from "@/app/actions/cart";
@@ -15,6 +16,22 @@ import type { CartActionState } from "@/app/actions/cart";
 import { useCartUi } from "./cart-provider";
 
 const IDLE: CartActionState = { status: "idle" };
+
+const noop = () => () => {};
+
+/** False in the server render, so also for a shopper without JavaScript. */
+const useHydrated = () =>
+  useSyncExternalStore(
+    noop,
+    () => true,
+    () => false,
+  );
+
+/** "a month", or the plan's real rhythm when it isn't monthly. */
+const perMonth = (deliveryDays: number | null) =>
+  deliveryDays === null || deliveryDays === 30
+    ? "a month"
+    : `a month, delivered ${deliveryEvery(deliveryDays)}`;
 
 /**
  * A suggested routine the shopper can edit before adding: every product is
@@ -31,6 +48,7 @@ export const RoutineResults = ({
   readonly goals: readonly RoutineGoal[];
 }) => {
   const { openCart } = useCartUi();
+  const hydrated = useHydrated();
   const [state, formAction, pending] = useActionState(addRoutineToCart, IDLE);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(
     () => new Set(routine.items.map((item) => item.product.id)),
@@ -44,6 +62,9 @@ export const RoutineResults = ({
   const total = chosen.reduce((sum, item) => sum + item.product.monthlyPrice, 0);
   const currencyCode = routine.items[0]?.product.currencyCode ?? "GBP";
   const allSubscriptions = chosen.every((item) => item.product.sellingPlanId);
+  // The routine's one rhythm when every plan shares it, else null.
+  const rhythms = new Set(chosen.map((item) => item.product.deliveryDays));
+  const rhythm = rhythms.size === 1 ? [...rhythms][0]! : null;
 
   const goalLabel = (key: string) =>
     goals.find((goal) => goal.key === key)?.label.toLowerCase() ?? key;
@@ -92,7 +113,7 @@ export const RoutineResults = ({
                     {formatMoney({ amount: String(product.monthlyPrice), currencyCode })}
                   </span>
                   <span className="block text-foreground-muted">
-                    {product.sellingPlanId ? "a month" : "one-off"}
+                    {product.sellingPlanId ? perMonth(product.deliveryDays) : "one-off"}
                   </span>
                 </span>
               </label>
@@ -107,7 +128,15 @@ export const RoutineResults = ({
             {formatMoney({ amount: String(Math.round(total * 100) / 100), currencyCode })}
           </span>{" "}
           <span className="text-foreground-muted">
-            {allSubscriptions ? "a month, delivered every month" : "in total"}
+            {!allSubscriptions
+              ? "in total"
+              : rhythm === 30
+                ? "a month, delivered every month"
+                : rhythm !== null
+                  ? perMonth(rhythm)
+                  : "a month, on each product's delivery rhythm"}
+            {/* Without JavaScript the total can't follow the ticks. */}
+            {hydrated ? null : " for the routine as suggested"}
           </span>
         </p>
         <button

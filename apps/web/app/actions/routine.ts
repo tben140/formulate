@@ -66,7 +66,9 @@ export const addRoutineToCart = async (
 
   return {
     status: "success",
-    ...(notice ? { message: notice } : {}),
+    // Said here too, not only by the cart drawer: without JavaScript the
+    // drawer doesn't open, and this is the shopper's only confirmation.
+    message: notice ?? "Added to your cart.",
     token: Date.now(),
     cart: result.data,
   };
