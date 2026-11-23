@@ -13,6 +13,10 @@
       "type": "home-intro",
       "settings": {}
     },
+    "routine": {
+      "type": "routine-cta",
+      "settings": {}
+    },
     "categories": {
       "type": "collection-list",
       "settings": {}
@@ -24,6 +28,7 @@
   },
   "order": [
     "intro",
+    "routine",
     "categories",
     "main"
   ]

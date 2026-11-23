@@ -16,6 +16,7 @@ import {
   useCollectionCards,
   useNavLinks,
   useShopGroups,
+  useRoutineGoals,
 } from "../lib/queries";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
@@ -37,6 +38,8 @@ const LOAD_ERROR = "Could not load from Shopify";
 export const HomeView = () => {
   const nav = useNavLinks();
   const shopGroups = useShopGroups();
+  // The routine quiz (SHO-161), once its goals exist in Shopify.
+  const { data: routineGoals } = useRoutineGoals();
   const cardsQuery = useCollectionCards();
   const navLinks = nav.data;
   const cards = cardsQuery.data;
@@ -101,6 +104,16 @@ export const HomeView = () => {
               <Text className="font-semibold text-surface">
                 Shop {featuredLink.title}
               </Text>
+            </Pressable>
+          </Link>
+        ) : null}
+        {routineGoals && routineGoals.length > 0 ? (
+          <Link href="/routine" asChild>
+            <Pressable
+              accessibilityRole="link"
+              className="mt-3 self-start rounded-md border border-foreground px-5 py-3"
+            >
+              <Text className="font-semibold text-foreground">Find your routine</Text>
             </Pressable>
           </Link>
         ) : null}

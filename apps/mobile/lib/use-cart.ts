@@ -139,11 +139,19 @@ export const useCart = () => {
   });
 };
 
+// `Array.isArray` doesn't narrow a readonly array out of a union.
+const isLineList = (
+  line: CartLineInput | readonly CartLineInput[],
+): line is readonly CartLineInput[] => Array.isArray(line);
+
 export const useAddToCart = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (line: CartLineInput): Promise<AddToCartResult> => {
+    // One line from a product screen, or several at once from the routine quiz.
+    mutationFn: async (
+      line: CartLineInput | readonly CartLineInput[],
+    ): Promise<AddToCartResult> => {
       /*
        * A cart created for a shopper we already know carries their email from
        * the start, which is what lets Shopify record an *attributable*
@@ -163,7 +171,7 @@ export const useAddToCart = () => {
       const { result, storedCartGone, notice, attributesFailed } =
         await cartClient.addLinesOrCreate({
           cartId: await readCartId(),
-          lines: [line],
+          lines: isLineList(line) ? line : [line],
           email: readIdentifiedEmail,
           // So checkout can credit the order to this shopper; consent only.
           // Without it, an id added under earlier consent comes off.
