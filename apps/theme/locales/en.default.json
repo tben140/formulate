@@ -119,7 +119,13 @@
     "one_time": "One-time purchase",
     "variant": "Variant",
     "pairs_well_with": "Pairs well with",
-    "rating_label": "{{ average }} out of 5 stars from {{ count }} reviews"
+    "rating_label": "{{ average }} out of 5 stars from {{ count }} reviews",
+    "gallery_label": "{{ title }} images",
+    "gallery_position": "Image {{ index }} of {{ count }}",
+    "choose_image": "Choose an image",
+    "show_image": "Show image {{ index }} of {{ count }}",
+    "previous_image": "Previous image",
+    "next_image": "Next image"
   },
   "search": {
     "title": "Search",
