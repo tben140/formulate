@@ -1,7 +1,7 @@
 import { logoutUrl } from "@formulate/shopify";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { clearCartId } from "@/lib/cart";
+import { clearBuyerEmail, clearCartId } from "@/lib/cart";
 import {
   clearCustomerTokens,
   customerAccountConfig,
@@ -30,9 +30,11 @@ const signOut = async (request: NextRequest) => {
    * ⚠️ The cart goes too. It was attached to this buyer at sign-in, so on a
    * shared computer the next person's checkout would open signed in as them,
    * with their saved addresses. Starting a fresh cart is the only way to be
-   * sure it doesn't.
+   * sure it doesn't. The email newsletter sign-up remembered goes for the
+   * same reason: the next shopper's new cart would be created with it.
    */
   await clearCartId();
+  await clearBuyerEmail();
 
   // 303, so the browser follows with a GET rather than re-posting to Shopify.
   const destination = tokens

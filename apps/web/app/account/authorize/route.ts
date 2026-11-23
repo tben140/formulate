@@ -11,7 +11,8 @@ import {
   callbackPath,
   customerAccountConfig,
   requestOrigin,
-  takePendingSignIn,
+  clearPendingSignIn,
+  readPendingSignIn,
   writeCustomerTokens,
 } from "@/lib/customer-account";
 
@@ -26,9 +27,7 @@ import {
 const completeSignIn = async (request: NextRequest) => {
   const params = request.nextUrl.searchParams;
 
-  // Read (and delete) before anything else, so a failed attempt can't be
-  // retried with the same values.
-  const pending = await takePendingSignIn();
+  const pending = await readPendingSignIn();
 
   // Covers the buyer cancelling at Shopify (`error=access_denied`), a stale or
   // missing pending cookie, and a forged callback whose `state` isn't ours:
@@ -37,6 +36,9 @@ const completeSignIn = async (request: NextRequest) => {
   if (params.get("error") || !pending || !code || params.get("state") !== pending.state) {
     redirect("/account?error=sign-in");
   }
+  // Only now, so a mismatched callback leaves a newer attempt's cookie alone;
+  // and before the exchange, so this attempt can't be completed twice.
+  await clearPendingSignIn();
 
   const origin = requestOrigin(request.headers, request.nextUrl.origin);
   const result = await exchangeCode(customerAccountConfig, {

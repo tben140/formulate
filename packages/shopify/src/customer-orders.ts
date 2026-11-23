@@ -59,7 +59,8 @@ export const CUSTOMER_ORDERS_QUERY = /* GraphQL */ `
           lineItems(first: 10) {
             nodes {
               id
-              title
+              # name is the product's name; title is only set for custom lines.
+              title: name
               quantity
               variantTitle
             }
@@ -119,7 +120,8 @@ export const CUSTOMER_ORDER_QUERY = /* GraphQL */ `
       lineItems(first: 50) {
         nodes {
           id
-          title
+          # name is the product's name; title is only set for custom lines.
+          title: name
           quantity
           variantTitle
           totalPrice {
