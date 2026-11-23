@@ -20,7 +20,8 @@ import {
   purchaseOptions,
   RENEWAL_SHORT,
   renewalTerms,
-  savingMessage,
+  planDisplayName,
+  savingBadge,
   SUBSCRIPTION_BENEFITS,
   deliveryPromise,
   deliveryQuote,
@@ -29,6 +30,8 @@ import {
   FREE_GIFT_LABEL,
   FREE_GIFT_PRICE,
   freeGiftFor,
+  GUARANTEE_TITLE,
+  REFUND_POLICY_PATH,
   supplyLabel,
   selectionStatus,
   withOption,
@@ -36,6 +39,7 @@ import {
   type SelectedOption,
 } from "@formulate/shopify";
 import { ShopPayButton } from "@shopify/hydrogen/react";
+import Link from "@/components/link";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
@@ -146,9 +150,8 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
   // The selection rules are shared with the app (packages/shopify,
   // SHO-127); only the words and the rendering are this surface's.
   const displayPrice = quote?.price ?? priceForSelection(variant, allocations, planId);
-  const planName =
-    allocations.find((a) => a.sellingPlan.id === effectivePlanId)?.sellingPlan.name ??
-    null;
+  const chosenPlan = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
+  const planName = chosenPlan ? planDisplayName(chosenPlan.sellingPlan) : null;
   const status = selectionStatus(variant);
   const soldOut = status === "soldOut";
 
@@ -282,17 +285,19 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                     className="mt-1"
                   />
                   <span className="flex flex-col">
-                    {choice.label}
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      {choice.label}
+                      {quoteFor(choice.id)?.saving ? (
+                        // The saving, as a badge: the struck-through price
+                        // beside it gives the amount.
+                        <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-surface">
+                          {savingBadge(quoteFor(choice.id)!.saving!)}
+                        </span>
+                      ) : null}
+                    </span>
                     {supplyLabel(quoteFor(choice.id)?.units ?? 1) ? (
                       <span className="text-xs text-foreground">
                         {supplyLabel(quoteFor(choice.id)!.units)} every delivery
-                      </span>
-                    ) : null}
-                    {quoteFor(choice.id)?.saving ? (
-                      // What subscribing gives, read with the option's name.
-                      <span className="text-xs text-foreground">
-                        {savingMessage(quoteFor(choice.id)!.saving!)} ·{" "}
-                        {SUBSCRIPTION_BENEFITS}
                       </span>
                     ) : null}
                   </span>
@@ -334,6 +339,10 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
               </label>
             ))}
           </div>
+          {/* What every subscription gives, said once rather than on each option. */}
+          <p className="mt-2 text-xs text-foreground-muted">
+            Subscriptions: {SUBSCRIPTION_BENEFITS}
+          </p>
         </fieldset>
       ) : null}
 
@@ -422,6 +431,27 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
           {renewalTerms(displayPrice, planName, quote?.later, quote?.units)}
         </p>
       ) : null}
+
+      {/*
+        The guarantee, where the decision is made. Links to the refund policy,
+        which is what it promises (packages/shopify/src/guarantee.ts).
+      */}
+      <p className="mt-3 flex items-center justify-center gap-2 text-sm text-foreground">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 20 20"
+          className="h-4 w-4 shrink-0 fill-none stroke-current stroke-2 text-brand-600"
+        >
+          <path d="M10 2 3.5 4.5v5c0 4 2.8 7 6.5 8.5 3.7-1.5 6.5-4.5 6.5-8.5v-5L10 2Z" />
+          <path d="m7 10 2 2 4-4" />
+        </svg>
+        <Link
+          href={REFUND_POLICY_PATH}
+          className="underline underline-offset-2 hover:no-underline"
+        >
+          {GUARANTEE_TITLE}
+        </Link>
+      </p>
 
       {/*
         The drawer opening is a visual event a screen reader does not narrate,

@@ -46,3 +46,10 @@ test("home introduces the shop, lists the menu's categories and features its fir
   // The featured products are the links in the section's list.
   await expect(featured.getByRole("list").getByRole("link").first()).toBeVisible();
 });
+
+test("home states the offer", async ({ page }) => {
+  await page.goto("/");
+  const benefits = page.getByRole("list", { name: "Why Double Helix" });
+  await expect(benefits.getByRole("listitem")).toHaveCount(4);
+  await expect(benefits).toContainText("30-day money-back guarantee");
+});

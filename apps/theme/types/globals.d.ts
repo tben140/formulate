@@ -25,6 +25,34 @@ declare global {
      * See docs/integration-klaviyo.md.
      */
     _learnq?: { push: (args: unknown[]) => void } | unknown[];
+
+    /**
+     * Shopify's storefront object, from `content_for_header`. Only the parts
+     * the cookie banner uses: `loadFeatures` fetches the Customer Privacy API
+     * and installs it as `customerPrivacy`.
+     */
+    Shopify?: {
+      loadFeatures?: (
+        features: { name: string; version: string }[],
+        callback: (error?: unknown) => void,
+      ) => void;
+      customerPrivacy?: CustomerPrivacy;
+    };
+  }
+
+  /** Shopify's Customer Privacy API (`consent-tracking-api` 0.1). */
+  interface CustomerPrivacy {
+    /** True when the visitor's region needs a choice and none is recorded. */
+    shouldShowBanner: () => boolean;
+    setTrackingConsent: (
+      consent: {
+        analytics: boolean;
+        marketing: boolean;
+        preferences: boolean;
+        sale_of_data: boolean;
+      },
+      callback: (result?: { error?: string }) => void,
+    ) => void;
   }
 }
 

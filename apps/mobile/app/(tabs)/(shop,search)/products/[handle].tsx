@@ -13,9 +13,12 @@ import { ActivityIndicator, Keyboard, ScrollView, View } from "react-native";
 import { AddToCart } from "../../../../components/add-to-cart";
 import { useCartUi } from "../../../../components/cart-provider";
 import { PairsWellWith } from "../../../../components/pairs-well-with";
+import {
+  ProductDetails,
+  ProductSummary,
+} from "../../../../components/product-description";
 import { ProductGallery } from "../../../../components/product-gallery";
 import { ProductReviews } from "../../../../components/product-reviews";
-import { RichText } from "../../../../components/rich-text";
 import { ShareButton } from "../../../../components/share-button";
 import { Stars } from "../../../../components/stars";
 import { SiteFooter } from "../../../../components/site-footer";
@@ -233,7 +236,11 @@ const ProductBody = ({ product }: { product: Product }) => {
           ) : null}
         </View>
 
-        {product.descriptionHtml ? <RichText html={product.descriptionHtml} /> : null}
+        {/*
+          Only the opening paragraph before the buy box; the rest after it, in
+          closed sections (descriptionSections), as on web and the theme.
+        */}
+        <ProductSummary html={product.descriptionHtml} />
 
         {/*
           The price lives inside AddToCart, because it changes with the selection
@@ -256,6 +263,8 @@ const ProductBody = ({ product }: { product: Product }) => {
             }}
           />
         </View>
+
+        <ProductDetails html={product.descriptionHtml} />
 
         <PairsWellWith productId={product.id} />
 

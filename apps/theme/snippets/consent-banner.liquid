@@ -1,0 +1,45 @@
+{% doc %}
+  The theme's own cookie banner (theme setting "Cookie banner"), in place of
+  Shopify's. See assets/consent-banner.js for why.
+
+  It's in the HTML, visible, so it paints with the page instead of arriving
+  ~4 s later. The inline script straight after it hides it before first paint
+  for a visitor who has already chosen; the component then asks Shopify's
+  Customer Privacy API, which decides.
+
+  While it's on, Shopify's own banner is hidden here as well, so a visitor
+  never sees two. Turn Shopify's off in Settings → Customer privacy too.
+{% enddoc %}
+<style>
+  #shopify-pc__banner {
+    display: none !important;
+  }
+</style>
+<consent-banner class="consent-banner" role="region" aria-labelledby="ConsentBannerTitle">
+  <div class="consent-banner__inner">
+    <div class="consent-banner__text">
+      <h2 id="ConsentBannerTitle" class="consent-banner__title">
+        {{- 'cookie_banner.title' | t -}}
+      </h2>
+      <p class="consent-banner__body">{{ 'cookie_banner.body' | t }}</p>
+    </div>
+    <div class="consent-banner__actions">
+      <button type="button" class="consent-banner__button" ref="decline">
+        {{- 'cookie_banner.decline' | t -}}
+      </button>
+      <button type="button" class="consent-banner__button" ref="accept">
+        {{- 'cookie_banner.accept' | t -}}
+      </button>
+    </div>
+  </div>
+</consent-banner>
+<script>
+  try {
+    if (
+      localStorage.getItem('dh-consent-decided') === '1' &&
+      localStorage.getItem('dh-consent-preview') !== '1'
+    ) {
+      document.currentScript.previousElementSibling.hidden = true;
+    }
+  } catch (error) {}
+</script>

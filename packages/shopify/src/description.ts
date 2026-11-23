@@ -142,3 +142,47 @@ export const descriptionBlocks = (
   endList();
   return blocks;
 };
+
+export type DescriptionSection = {
+  readonly title: string;
+  readonly blocks: readonly DescriptionBlock[];
+};
+
+/** The title for description text that has no heading of its own. */
+export const DESCRIPTION_DETAILS_TITLE = "Details";
+
+/**
+ * A description split for the product page: one opening paragraph to show
+ * beside the buy box, and the rest as titled sections that start closed.
+ *
+ * On a phone the buy box used to sit below the whole description (about
+ * 1,700px down on Whey Protein). The summary keeps the product's one-line
+ * pitch above it; everything else moves below, a heading per section. Text
+ * before the first heading, after the summary, goes in a "Details" section.
+ */
+export const descriptionSections = (
+  blocks: readonly DescriptionBlock[],
+): {
+  readonly summary: string | null;
+  readonly sections: readonly DescriptionSection[];
+} => {
+  const [first, ...rest] = blocks;
+  const summary = first?.kind === "paragraph" ? first.text : null;
+  const remaining = summary === null ? blocks : rest;
+
+  const sections: { title: string; blocks: DescriptionBlock[] }[] = [];
+  for (const block of remaining) {
+    if (block.kind === "heading") {
+      sections.push({ title: block.text, blocks: [] });
+      continue;
+    }
+    let current = sections.at(-1);
+    if (!current) {
+      current = { title: DESCRIPTION_DETAILS_TITLE, blocks: [] };
+      sections.push(current);
+    }
+    current.blocks.push(block);
+  }
+  // A heading with nothing under it says nothing when opened.
+  return { summary, sections: sections.filter((section) => section.blocks.length > 0) };
+};

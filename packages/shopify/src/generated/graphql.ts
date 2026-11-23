@@ -1517,7 +1517,7 @@ export type CollectionProductsQueryVariables = Exact<{
 }>;
 
 
-export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } } | null };
+export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null, sellingPlanGroups: { nodes: Array<{ appName: string | null, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, availableForSale: boolean, price: { amount: string, currencyCode: CurrencyCode }, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } }> } } | null };
 
 export type ProductByHandleQueryVariables = Exact<{
   handle: string;
@@ -1534,7 +1534,7 @@ export type ProductByHandleQuery = { product: { id: string, handle: string, titl
 
 export type FilterFieldsFragment = { id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> };
 
-export type ProductCardFieldsFragment = { id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null };
+export type ProductCardFieldsFragment = { id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null, sellingPlanGroups: { nodes: Array<{ appName: string | null, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, availableForSale: boolean, price: { amount: string, currencyCode: CurrencyCode }, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } };
 
 export type SearchProductsQueryVariables = Exact<{
   query: string;
@@ -1546,7 +1546,7 @@ export type SearchProductsQueryVariables = Exact<{
 export type SearchProductsQuery = { search: { totalCount: number, productFilters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<
       | { __typename: 'Article' }
       | { __typename: 'Page' }
-      | { __typename: 'Product', id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null }
+      | { __typename: 'Product', id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null, sellingPlanGroups: { nodes: Array<{ appName: string | null, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, availableForSale: boolean, price: { amount: string, currencyCode: CurrencyCode }, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } }
     > } };
 
 export type PredictiveSearchQueryVariables = Exact<{
@@ -1555,14 +1555,14 @@ export type PredictiveSearchQueryVariables = Exact<{
 }>;
 
 
-export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text: string, styledText: string }>, products: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null }>, collections: Array<{ id: string, handle: string, title: string }> } | null };
+export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text: string, styledText: string }>, products: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null, sellingPlanGroups: { nodes: Array<{ appName: string | null, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, availableForSale: boolean, price: { amount: string, currencyCode: CurrencyCode }, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } }>, collections: Array<{ id: string, handle: string, title: string }> } | null };
 
 export type ComplementaryProductsQueryVariables = Exact<{
   productId: string | number;
 }>;
 
 
-export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null }> | null };
+export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null, sellingPlanGroups: { nodes: Array<{ appName: string | null, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, availableForSale: boolean, price: { amount: string, currencyCode: CurrencyCode }, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } }> | null };
 
 export type NavMenuQueryVariables = Exact<{
   handle: string;
@@ -1769,6 +1769,39 @@ export const ProductCardFieldsFragmentDoc = new TypedDocumentString(`
   ratingCount: metafield(namespace: "reviews", key: "rating_count") {
     value
   }
+  sellingPlanGroups(first: 5) {
+    nodes {
+      appName
+      sellingPlans(first: 10) {
+        nodes {
+          id
+        }
+      }
+    }
+  }
+  variants(first: 2) {
+    nodes {
+      id
+      availableForSale
+      price {
+        amount
+        currencyCode
+      }
+      sellingPlanAllocations(first: 5) {
+        nodes {
+          sellingPlan {
+            id
+          }
+          priceAdjustments {
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
+  }
 }
     `, {"fragmentName":"ProductCardFields"}) as unknown as TypedDocumentString<ProductCardFieldsFragment, unknown>;
 export const CartFieldsFragmentDoc = new TypedDocumentString(`
@@ -1880,21 +1913,7 @@ export const CollectionProductsDocument = new TypedDocumentString(`
         ...FilterFields
       }
       nodes {
-        id
-        handle
-        title
-        featuredImage {
-          url
-          altText
-          width
-          height
-        }
-        priceRange {
-          minVariantPrice {
-            amount
-            currencyCode
-          }
-        }
+        ...ProductCardFields
       }
     }
   }
@@ -1908,6 +1927,62 @@ export const CollectionProductsDocument = new TypedDocumentString(`
     label
     count
     input
+  }
+}
+fragment ProductCardFields on Product {
+  id
+  handle
+  title
+  featuredImage {
+    url
+    altText
+    width
+    height
+  }
+  priceRange {
+    minVariantPrice {
+      amount
+      currencyCode
+    }
+  }
+  rating: metafield(namespace: "reviews", key: "rating") {
+    value
+  }
+  ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+    value
+  }
+  sellingPlanGroups(first: 5) {
+    nodes {
+      appName
+      sellingPlans(first: 10) {
+        nodes {
+          id
+        }
+      }
+    }
+  }
+  variants(first: 2) {
+    nodes {
+      id
+      availableForSale
+      price {
+        amount
+        currencyCode
+      }
+      sellingPlanAllocations(first: 5) {
+        nodes {
+          sellingPlan {
+            id
+          }
+          priceAdjustments {
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
   }
 }`) as unknown as TypedDocumentString<CollectionProductsQuery, CollectionProductsQueryVariables>;
 export const ProductByHandleDocument = new TypedDocumentString(`
@@ -2115,6 +2190,39 @@ fragment ProductCardFields on Product {
   ratingCount: metafield(namespace: "reviews", key: "rating_count") {
     value
   }
+  sellingPlanGroups(first: 5) {
+    nodes {
+      appName
+      sellingPlans(first: 10) {
+        nodes {
+          id
+        }
+      }
+    }
+  }
+  variants(first: 2) {
+    nodes {
+      id
+      availableForSale
+      price {
+        amount
+        currencyCode
+      }
+      sellingPlanAllocations(first: 5) {
+        nodes {
+          sellingPlan {
+            id
+          }
+          priceAdjustments {
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
+  }
 }`) as unknown as TypedDocumentString<SearchProductsQuery, SearchProductsQueryVariables>;
 export const PredictiveSearchDocument = new TypedDocumentString(`
     query PredictiveSearch($query: String!, $limit: Int!) {
@@ -2159,6 +2267,39 @@ export const PredictiveSearchDocument = new TypedDocumentString(`
   ratingCount: metafield(namespace: "reviews", key: "rating_count") {
     value
   }
+  sellingPlanGroups(first: 5) {
+    nodes {
+      appName
+      sellingPlans(first: 10) {
+        nodes {
+          id
+        }
+      }
+    }
+  }
+  variants(first: 2) {
+    nodes {
+      id
+      availableForSale
+      price {
+        amount
+        currencyCode
+      }
+      sellingPlanAllocations(first: 5) {
+        nodes {
+          sellingPlan {
+            id
+          }
+          priceAdjustments {
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
+  }
 }`) as unknown as TypedDocumentString<PredictiveSearchQuery, PredictiveSearchQueryVariables>;
 export const ComplementaryProductsDocument = new TypedDocumentString(`
     query ComplementaryProducts($productId: ID!) {
@@ -2187,6 +2328,39 @@ export const ComplementaryProductsDocument = new TypedDocumentString(`
   }
   ratingCount: metafield(namespace: "reviews", key: "rating_count") {
     value
+  }
+  sellingPlanGroups(first: 5) {
+    nodes {
+      appName
+      sellingPlans(first: 10) {
+        nodes {
+          id
+        }
+      }
+    }
+  }
+  variants(first: 2) {
+    nodes {
+      id
+      availableForSale
+      price {
+        amount
+        currencyCode
+      }
+      sellingPlanAllocations(first: 5) {
+        nodes {
+          sellingPlan {
+            id
+          }
+          priceAdjustments {
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
   }
 }`) as unknown as TypedDocumentString<ComplementaryProductsQuery, ComplementaryProductsQueryVariables>;
 export const NavMenuDocument = new TypedDocumentString(`

@@ -8,10 +8,9 @@ test("a collection renders its products", async ({ page }) => {
   // The page's heading is the collection's title in Shopify, "Featured";
   // the menu links to it as "Best Sellers".
   await expect(page.getByRole("heading", { level: 1, name: "Featured" })).toBeVisible();
-  // Each product is a link to its page, with a price.
-  // A product card is a link in the page with a price in it, which keeps the
-  // breadcrumb's links out without leaning on markup.
-  const cards = page.getByRole("main").getByRole("link").filter({ hasText: "£" });
+  // Each product card links to its page and shows a price. The link is the
+  // title, stretched over the card, so the price is in the card, not the link.
+  const cards = page.locator('main li:has(a[href^="/products/"])');
   await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThan(0);
   await expect(cards.first()).toHaveAttribute("href", /^\/products\/[^/]+$/);

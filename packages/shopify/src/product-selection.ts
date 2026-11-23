@@ -9,6 +9,9 @@
  * See docs/adr/0005-parity-means-design-not-data.md.
  */
 
+import { planDisplayName } from "./subscribe-and-save";
+import type { PlanOptionLike } from "./subscribe-and-save";
+
 /** One axis of a variant's identity, e.g. `{ name: "Size", value: "M" }`. */
 export interface SelectedOption {
   readonly name: string;
@@ -182,7 +185,11 @@ export const ONE_TIME = "";
 
 /** An allocation with what the purchase-option list needs from it. */
 interface PricedAllocationLike<P> extends AllocationLike {
-  readonly sellingPlan: { readonly id: string; readonly name: string };
+  readonly sellingPlan: {
+    readonly id: string;
+    readonly name: string;
+    readonly options?: readonly PlanOptionLike[] | null;
+  };
   /**
    * Shopify's price adjustments, in order. The first is the price at
    * purchase; later ones apply after a number of orders (e.g. a cheaper
@@ -234,7 +241,7 @@ export const purchaseOptions = <P>(
   { id: ONE_TIME, label: "One-time purchase", price: variant?.price },
   ...allocations.map((allocation) => ({
     id: allocation.sellingPlan.id,
-    label: allocation.sellingPlan.name,
+    label: planDisplayName(allocation.sellingPlan),
     // A plan with no price adjustment costs the variant's price, as
     // displayPrice already assumes (#75 review).
     price: allocation.priceAdjustments[0]?.price ?? variant?.price,

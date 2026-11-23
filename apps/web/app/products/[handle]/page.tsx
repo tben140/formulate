@@ -19,9 +19,9 @@ import { ProductGallery } from "@/components/product-gallery";
 import { ProductReviews } from "@/components/product-reviews";
 import { WriteReview } from "@/components/write-review";
 import { Stars } from "@/components/stars";
-import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
+import { ProductDetails, ProductSummary } from "@/components/product-description";
 import { getProduct } from "@/lib/catalogue";
 import { assignExperiment } from "@/lib/experiments";
 import { getNavLinks, getShopGroups } from "@/lib/nav";
@@ -172,10 +172,12 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
             </a>
           ) : null}
 
-          {product.descriptionHtml ? (
-            // Its first paragraph's own top margin spaces it from the title.
-            <StoreHtml html={product.descriptionHtml} />
-          ) : null}
+          {/*
+          Only the opening paragraph comes before the buy box; the rest of the
+          description follows it, in closed sections. On a phone the button was
+          a long scroll down, below storage and allergen notes.
+        */}
+          <ProductSummary html={product.descriptionHtml} />
 
           {/*
           The price now lives inside the form, because it changes with the
@@ -184,6 +186,8 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
           whatever the shopper had chosen.
         */}
           <AddToCartForm product={product} />
+
+          <ProductDetails html={product.descriptionHtml} />
 
           {/* No fallback: nothing at all is better than a loading box here. */}
           <Suspense fallback={null}>
