@@ -766,7 +766,7 @@ export const ProductRecommendationsQuery = graphql(`
  */
 export const RoutineGoalsQuery = graphql(`
   query RoutineGoals {
-    metaobjects(type: "routine_goal", first: 20, sortKey: "display_name") {
+    metaobjects(type: "routine_goal", first: 20) {
       nodes {
         handle
         key: field(key: "key") {

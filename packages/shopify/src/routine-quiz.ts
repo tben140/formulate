@@ -55,6 +55,8 @@ export interface RoutineProduct {
   readonly variantId: string;
   /** The roughly-monthly subscription plan to offer, or null for one-off only. */
   readonly sellingPlanId: string | null;
+  /** How often that plan delivers, in days; null when there's no plan. */
+  readonly deliveryDays: number | null;
   /** Price per month on that plan (or one-off if there's no plan). */
   readonly monthlyPrice: number;
   readonly currencyCode: string;
@@ -193,21 +195,24 @@ export const scoreRoutine = (
       ]
     : candidates;
 
-  const max = BUDGETS[answers.budget].max;
+  // In pence, so a routine that totals exactly the budget isn't pushed over
+  // it by floating-point rounding (7.40 + 7.40 + 7.40 + 7.80).
+  const max = BUDGETS[answers.budget].max * 100;
   const items: RoutineItem[] = [];
-  let monthlyTotal = 0;
+  let totalPence = 0;
   let leftOutForBudget = 0;
   for (const candidate of preferred) {
     if (items.length === MAX_PRODUCTS) break;
-    if (monthlyTotal + candidate.product.monthlyPrice > max) {
+    const pence = Math.round(candidate.product.monthlyPrice * 100);
+    if (totalPence + pence > max) {
       leftOutForBudget += 1;
       continue;
     }
     items.push(candidate);
-    monthlyTotal += candidate.product.monthlyPrice;
+    totalPence += pence;
   }
 
-  return { items, monthlyTotal: Math.round(monthlyTotal * 100) / 100, leftOutForBudget };
+  return { items, monthlyTotal: totalPence / 100, leftOutForBudget };
 };
 
 /* -------------------------------------------------------------------------- */
@@ -254,6 +259,17 @@ export const dietsFrom = (tags: readonly string[]): ("vegan" | "vegetarian")[] =
   return (["vegan", "vegetarian"] as const).filter((diet) => lower.includes(diet));
 };
 
+/** A delivery rhythm in words: 30 → "every month", 14 → "every 2 weeks". */
+export const deliveryEvery = (days: number): string => {
+  const [count, unit] =
+    days % 30 === 0
+      ? [days / 30, "month"]
+      : days % 7 === 0
+        ? [days / 7, "week"]
+        : [days, "day"];
+  return count === 1 ? `every ${unit}` : `every ${count} ${unit}s`;
+};
+
 export interface PlanChoice {
   readonly id: string;
   readonly frequencyDays: number | null;
@@ -268,7 +284,11 @@ export interface PlanChoice {
  */
 export const monthlyPlan = (
   plans: readonly PlanChoice[],
-): { readonly id: string; readonly monthlyPrice: number } | null => {
+): {
+  readonly id: string;
+  readonly deliveryDays: number;
+  readonly monthlyPrice: number;
+} | null => {
   const readable = plans.filter((plan) => plan.frequencyDays !== null);
   if (readable.length === 0) return null;
   const best = readable.reduce((closest, plan) =>
@@ -278,6 +298,7 @@ export const monthlyPlan = (
   );
   return {
     id: best.id,
+    deliveryDays: best.frequencyDays!,
     monthlyPrice:
       Math.round(((best.perDeliveryPrice * 30) / best.frequencyDays!) * 100) / 100,
   };

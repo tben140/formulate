@@ -119,6 +119,7 @@ export type { ProductFilter } from "./generated/graphql";
 
 export {
   BUDGETS,
+  deliveryEvery,
   DIETS,
   FORMATS,
   MAX_GOALS,

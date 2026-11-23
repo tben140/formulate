@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  deliveryEvery,
   dietsFrom,
   formatKind,
   frequencyInDays,
@@ -26,6 +27,7 @@ const product = (
   format: "capsules",
   variantId: `${id}-v`,
   sellingPlanId: `${id}-plan`,
+  deliveryDays: 30,
   monthlyPrice: 10,
   currencyCode: "GBP",
   image: null,
@@ -142,6 +144,20 @@ describe("scoreRoutine", () => {
     expect(routine.leftOutForBudget).toBe(1);
   });
 
+  it("counts in pence, so a routine of exactly the budget fits", () => {
+    const goal: RoutineGoal = {
+      key: "focus",
+      label: "Focus",
+      products: [7.4, 7.4, 7.4, 7.8].map((monthlyPrice, index) =>
+        product(`p${index}`, { monthlyPrice }),
+      ),
+    };
+    const routine = scoreRoutine(answers({ budget: "30" }), [goal]);
+    expect(routine.items).toHaveLength(4);
+    expect(routine.monthlyTotal).toBe(30);
+    expect(routine.leftOutForBudget).toBe(0);
+  });
+
   it("returns an empty routine when nothing fits, rather than guessing", () => {
     const goal: RoutineGoal = {
       key: "focus",
@@ -217,15 +233,24 @@ describe("reading Shopify's data", () => {
     expect(dietsFrom(["keto", "bestseller"])).toEqual([]);
   });
 
+  it("says how often a plan delivers", () => {
+    expect(deliveryEvery(30)).toBe("every month");
+    expect(deliveryEvery(60)).toBe("every 2 months");
+    expect(deliveryEvery(14)).toBe("every 2 weeks");
+    expect(deliveryEvery(7)).toBe("every week");
+    expect(deliveryEvery(45)).toBe("every 45 days");
+  });
+
   it("offers the plan closest to monthly, priced per month", () => {
     expect(
       monthlyPlan([
         { id: "60", frequencyDays: 60, perDeliveryPrice: 15 },
         { id: "30", frequencyDays: 30, perDeliveryPrice: 15.26 },
       ]),
-    ).toEqual({ id: "30", monthlyPrice: 15.26 });
+    ).toEqual({ id: "30", deliveryDays: 30, monthlyPrice: 15.26 });
     expect(monthlyPlan([{ id: "60", frequencyDays: 60, perDeliveryPrice: 20 }])).toEqual({
       id: "60",
+      deliveryDays: 60,
       monthlyPrice: 10,
     });
     expect(monthlyPlan([])).toBeNull();
@@ -287,6 +312,7 @@ describe("reading Shopify's data", () => {
       suits: ["vegan"],
       format: "capsules",
       sellingPlanId: "gid://shopify/SellingPlan/30",
+      deliveryDays: 30,
       monthlyPrice: 15.26,
     });
   });
@@ -325,7 +351,11 @@ describe("reading Shopify's data", () => {
 
   it("never offers a plan no app owns: falls back to one-off at full price", () => {
     const [goal] = toRoutineGoals(response(null));
-    expect(goal?.products[0]).toMatchObject({ sellingPlanId: null, monthlyPrice: 17.95 });
+    expect(goal?.products[0]).toMatchObject({
+      sellingPlanId: null,
+      deliveryDays: null,
+      monthlyPrice: 17.95,
+    });
   });
 
   it("leaves out half-filled goals", () => {
@@ -342,5 +372,19 @@ describe("reading Shopify's data", () => {
       ]),
     );
     expect(goals.map((goal) => goal.key)).toEqual(["energy"]);
+  });
+
+  it("orders goals by label, as the Storefront API can't", () => {
+    const node = productNode("Recharge");
+    const goal = (key: string, label: string) => ({
+      handle: key,
+      key: { value: key },
+      label: { value: label },
+      products: { references: { nodes: [node] } },
+    });
+    const goals = toRoutineGoals(
+      response("Recharge", [goal("sleep", "Sleep"), goal("focus", "Focus")]),
+    );
+    expect(goals.map((goal) => goal.label)).toEqual(["Energy", "Focus", "Sleep"]);
   });
 });
