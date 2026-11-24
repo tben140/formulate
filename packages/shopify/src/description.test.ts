@@ -1,0 +1,108 @@
+import { describe, expect, it } from "vitest";
+
+import { descriptionBlocks } from "./description";
+
+describe("descriptionBlocks", () => {
+  it("keeps the structure Shopify's plain description loses", () => {
+    // From Whey Protein, 2026-10-04 (shortened).
+    const html =
+      "<p>One tub holds 30 servings.</p><h3>Choose your flavour</h3><p>Three flavours:</p><ul>\n<li>Vanilla</li>\n<li>Chocolate</li>\n</ul><h3>Storage</h3><p>Keep it dry.</p>";
+    expect(descriptionBlocks(html)).toEqual([
+      { kind: "paragraph", text: "One tub holds 30 servings." },
+      { kind: "heading", text: "Choose your flavour" },
+      { kind: "paragraph", text: "Three flavours:" },
+      { kind: "list", ordered: false, items: ["Vanilla", "Chocolate"] },
+      { kind: "heading", text: "Storage" },
+      { kind: "paragraph", text: "Keep it dry." },
+    ]);
+  });
+
+  it("turns a character code beyond Unicode into U+FFFD instead of throwing", () => {
+    expect(() => descriptionBlocks("<p>A &#x110000; B &#xD800;</p>")).not.toThrow();
+    expect(descriptionBlocks("<p>A &#x110000; B</p>")).toEqual([
+      { kind: "paragraph", text: "A \uFFFD B" },
+    ]);
+  });
+
+  it("drops inline tags but keeps their text, and turns <br> into a newline", () => {
+    expect(
+      descriptionBlocks(
+        '<p>Take <strong>one</strong> a <a href="/x">day</a>.<br>With food.</p>',
+      ),
+    ).toEqual([{ kind: "paragraph", text: "Take one a day.\nWith food." }]);
+  });
+
+  it("decodes entities, named and numeric", () => {
+    expect(
+      descriptionBlocks("<p>Fish &amp; algae &#8212; &pound;20&nbsp;off &#x2019;</p>"),
+    ).toEqual([{ kind: "paragraph", text: "Fish & algae — £20 off ’" }]);
+  });
+
+  it("numbers ordered lists and skips empty blocks", () => {
+    expect(
+      descriptionBlocks("<ol><li>Mix</li><li> </li><li>Drink</li></ol><p> </p>"),
+    ).toEqual([{ kind: "list", ordered: true, items: ["Mix", "Drink"] }]);
+  });
+
+  it("reads plain text and loose text between blocks as paragraphs", () => {
+    expect(descriptionBlocks("Just text")).toEqual([
+      { kind: "paragraph", text: "Just text" },
+    ]);
+    expect(descriptionBlocks("Intro<p>Body</p>Outro")).toEqual([
+      { kind: "paragraph", text: "Intro" },
+      { kind: "paragraph", text: "Body" },
+      { kind: "paragraph", text: "Outro" },
+    ]);
+  });
+
+  it("finds a list wrapped in a <div> (Shopify's editor does this)", () => {
+    expect(
+      descriptionBlocks("<div><p>Contains:</p><ul><li>Oats</li><li>Milk</li></ul></div>"),
+    ).toEqual([
+      { kind: "paragraph", text: "Contains:" },
+      { kind: "list", ordered: false, items: ["Oats", "Milk"] },
+    ]);
+  });
+
+  it("isn't fooled by > inside an attribute", () => {
+    expect(descriptionBlocks('<p><span title="a > b">Take daily</span></p>')).toEqual([
+      { kind: "paragraph", text: "Take daily" },
+    ]);
+  });
+
+  it("decodes every named character, not just a short list", () => {
+    expect(descriptionBlocks("<p>Caf&eacute; &copy; 10&micro;g &frac12;</p>")).toEqual([
+      { kind: "paragraph", text: "Café © 10µg ½" },
+    ]);
+  });
+
+  it("flattens a nested list into its outer list", () => {
+    expect(
+      descriptionBlocks("<ul><li>Morning<ul><li>with food</li></ul></li><li>Evening</li></ul>"),
+    ).toEqual([
+      { kind: "list", ordered: false, items: ["Morning", "with food", "Evening"] },
+    ]);
+  });
+
+  it("drops scripts and styles, and keeps headings with inline tags", () => {
+    expect(
+      descriptionBlocks(
+        "<style>p{}</style><h2>How to <em>use</em></h2><script>alert(1)</script><p>Daily.</p>",
+      ),
+    ).toEqual([
+      { kind: "heading", text: "How to use" },
+      { kind: "paragraph", text: "Daily." },
+    ]);
+  });
+
+  it("ends a list left open at the end", () => {
+    expect(descriptionBlocks("<ol><li>Mix<li>Drink")).toEqual([
+      { kind: "list", ordered: true, items: ["Mix", "Drink"] },
+    ]);
+  });
+
+  it("gives nothing for no description", () => {
+    expect(descriptionBlocks(null)).toEqual([]);
+    expect(descriptionBlocks("")).toEqual([]);
+  });
+});

@@ -133,6 +133,8 @@ export {
 } from "./listing";
 export type { FilterGroup, SortOption } from "./listing";
 export type { ProductFilter } from "./generated/graphql";
+export { descriptionBlocks } from "./description";
+export type { DescriptionBlock } from "./description";
 
 export { policyBlocks, richTextBlocks } from "./rich-text";
 export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";
