@@ -148,3 +148,22 @@ test("the product photo keeps its own shape beside a tall details column", async
     expect(Math.abs(shown - natural), `at ${width}px`).toBeLessThan(0.02);
   }
 });
+
+test("a one-image product shows a plain photo, not a carousel", async ({ page }) => {
+  // Every product in the store has one image today. With more, the gallery
+  // becomes a swipeable carousel (components/product-gallery.tsx); until the
+  // store has such a product, this pins the single-image case: no arrows,
+  // thumbnails or count, and the photo is still the eager LCP image.
+  await page.goto("/products/magnesium-glycinate");
+  // Found by what the gallery sets, not its description: the merchant can
+  // change an image's alt text.
+  const photo = page.getByRole("main").locator('img[fetchpriority="high"]').first();
+  await expect(photo).toBeVisible();
+  await expect(photo).toHaveAttribute("loading", "eager");
+  // A carousel is a region named "<title> images".
+  await expect(page.getByRole("region", { name: / images$/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^(Next|Previous) image$/ })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("button", { name: /^Show image/ })).toHaveCount(0);
+});
