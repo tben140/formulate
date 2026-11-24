@@ -51,7 +51,13 @@ export const SURFACE_ONLY_ROUTES = {
  * The paths an Android App Link (and later an iOS Universal Link) should open
  * in the app: the shared routes, as URL path patterns.
  */
-export const APP_LINK_PATHS = ["/", "/collections/*", "/products/*", "/search"] as const;
+export const APP_LINK_PATHS = [
+  "/",
+  "/collections/*",
+  "/products/*",
+  "/policies/*",
+  "/search",
+] as const;
 
 /** The app's identifiers, needed by the well-known files web serves. */
 export const APP_IDENTIFIERS = {
