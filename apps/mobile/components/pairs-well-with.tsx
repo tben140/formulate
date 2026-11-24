@@ -1,9 +1,10 @@
 import { formatMoney } from "@formulate/shopify";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { useComplementaryProducts } from "../lib/queries";
+import { Text } from "./text";
 
 /** How many pairings to show at most. Two are set per product today. */
 const LIMIT = 3;
@@ -47,7 +48,7 @@ export const PairsWellWith = ({ productId }: { readonly productId: string }) => 
               <Text numberOfLines={1} className="text-sm font-medium text-foreground">
                 {product.title}
               </Text>
-              <Text className="text-sm text-foreground-muted">
+              <Text className="text-sm text-foreground-muted font-mono">
                 {formatMoney(product.priceRange.minVariantPrice)}
               </Text>
             </View>

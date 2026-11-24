@@ -14,8 +14,10 @@ import {
   type FilterLike,
 } from "@formulate/shopify";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text } from "./text";
+import { fontFor } from "../lib/fonts";
 
 import { COLLECTION_PAGE_SIZE, useCollection } from "../lib/queries";
 
@@ -428,6 +430,8 @@ const PriceGroup = ({
           <View key={label} className="flex-1 gap-1">
             <Text className="text-sm text-foreground">{label}</Text>
             <TextInput
+              // TextInput doesn't inherit a font either (SHO-144).
+              style={{ fontFamily: fontFor() }}
               defaultValue={value ?? ""}
               // Into the draft on every keystroke, not on blur: "Show results"
               // sits outside the scroll view and doesn't blur the field, and

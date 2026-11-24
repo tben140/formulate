@@ -1,12 +1,13 @@
 import { Stack } from "expo-router";
 import { useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
 
 import { useCollectionPages } from "../lib/queries";
 import { CollectionFilters } from "./collection-filters";
 import { CollectionNav } from "./collection-nav";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
+import { Text } from "./text";
 
 /**
  * A collection's products, with the collection links from the Shopify menu

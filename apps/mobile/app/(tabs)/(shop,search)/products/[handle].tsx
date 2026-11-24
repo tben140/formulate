@@ -8,7 +8,7 @@ import { EXPERIMENTS } from "@formulate/experiments";
 import { galleryImages } from "@formulate/shopify";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Keyboard, ScrollView, View } from "react-native";
 
 import { AddToCart } from "../../../../components/add-to-cart";
 import { useCartUi } from "../../../../components/cart-provider";
@@ -24,6 +24,7 @@ import { useProduct } from "../../../../lib/queries";
 import { SITE_ORIGIN } from "../../../../lib/site";
 import { useTrackingConsent } from "../../../../lib/tracking-consent";
 import { usePurchase, type Product } from "../../../../lib/use-purchase";
+import { Text } from "../../../../components/text";
 
 /** Whether the software keyboard is showing. The "did" events fire on both platforms. */
 const useKeyboardOpen = () => {

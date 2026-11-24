@@ -5,12 +5,12 @@ import {
   FlatList,
   Pressable,
   ScrollView,
-  Text,
   View,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
+import { Text } from "./text";
 
 /** A Shopify CDN image at this width, for a thumbnail: not the original. */
 const sized = (url: string, width: number): string => {

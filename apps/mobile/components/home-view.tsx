@@ -7,10 +7,8 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Text,
   View,
 } from "react-native";
-
 import {
   useCollection,
   useCollectionCards,
@@ -19,6 +17,7 @@ import {
 } from "../lib/queries";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
+import { Text } from "./text";
 
 /** How many featured products the home screen lists before "View all". */
 const FEATURED_COUNT = 4;

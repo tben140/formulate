@@ -1,12 +1,13 @@
 import { BRAND_NAME } from "@formulate/tokens";
 import { Link } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { useLegalLinks } from "../lib/queries";
 import { reopenTrackingChoice, TRACKING_AVAILABLE } from "../lib/tracking-consent";
 import { EmailCapture } from "./email-capture";
 import { PaymentIcons } from "./payment-icons";
 import { SocialLinks } from "./social-links";
+import { Text } from "./text";
 
 /**
  * Site footer, mirroring apps/web's app/layout.tsx and apps/theme's

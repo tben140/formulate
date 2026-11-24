@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AccessibilityInfo, Platform, Pressable, Text, View } from "react-native";
+import { AccessibilityInfo, Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -10,6 +10,7 @@ import {
   useTrackingChoiceReopened,
   useTrackingConsent,
 } from "../lib/tracking-consent";
+import { Text } from "./text";
 
 const SAVE_FAILED = "Your choice couldn't be saved. Please try again.";
 
