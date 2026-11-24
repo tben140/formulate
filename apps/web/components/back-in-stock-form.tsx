@@ -1,7 +1,7 @@
 "use client";
 
 import type { SubscribeResult } from "@formulate/analytics";
-import { useId, useState, useTransition } from "react";
+import { useId, useState, useSyncExternalStore, useTransition } from "react";
 
 import { notifyWhenBackInStock } from "@/lib/klaviyo";
 
@@ -22,6 +22,17 @@ const errorMessage = (result: Extract<SubscribeResult, { ok: false }>): string =
       return "Something went wrong at our end. Please try again.";
   }
 };
+
+/**
+ * True once the page has hydrated. Until then the form has no submit
+ * handler, and a native submit would GET the email into the page's URL.
+ */
+const useHydrated = (): boolean =>
+  useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
 type Status =
   { readonly kind: "idle" } | { readonly kind: "done"; readonly message: string };
@@ -54,6 +65,7 @@ export const BackInStockForm = ({
   const inputId = useId();
   const hintId = useId();
   const messageId = useId();
+  const hydrated = useHydrated();
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -79,6 +91,7 @@ export const BackInStockForm = ({
     // noValidate: the messages below are ours, as in the newsletter form.
     <form
       onSubmit={onSubmit}
+      hidden={!hydrated}
       noValidate
       className="mt-4 rounded-md border border-border p-4"
     >

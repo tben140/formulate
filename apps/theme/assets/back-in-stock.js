@@ -35,32 +35,33 @@ class BackInStock extends Component {
   /** @override */
   connectedCallback() {
     super.connectedCallback();
-    // Hidden in the markup so it can't submit without this script (see
-    // back-in-stock.liquid); shown once the script owns submission.
-    const form = this.querySelector("form");
-    if (form) form.hidden = false;
     this.addEventListener("submit", this.#onSubmit, { signal: this.signal });
     this.addEventListener("input", this.#clear, { signal: this.signal });
     document.addEventListener("product-form:variant-change", this.#onVariantChange, {
       signal: this.signal,
     });
-    // The form may have announced its variant before this listener existed
-    // (custom elements upgrade in turn); start from what it last announced.
-    const productForm = /** @type {{ variantDetail?: unknown } | null} */ (
+
+    // The form may have synced before this connected, and its selection can
+    // differ from the one Liquid rendered (browsers restore fields on Back
+    // and reload), so catch up with what it last announced.
+    const form = /** @type {{ variantDetail?: unknown } | null} */ (
       document.querySelector("product-form")
     );
-    if (productForm && productForm.variantDetail !== undefined) {
-      this.#onVariantChange(
-        new CustomEvent("product-form:variant-change", {
-          detail: productForm.variantDetail,
-        }),
-      );
-    }
+    if (form && form.variantDetail !== undefined) this.#follow(form.variantDetail);
+
+    // Hidden in the markup so it can't submit without this script (see
+    // back-in-stock.liquid); shown once the script owns submission.
+    const alertForm = this.querySelector("form");
+    if (alertForm) alertForm.hidden = false;
   }
 
   /** @param {Event} event */
   #onVariantChange = (event) => {
-    const detail = /** @type {CustomEvent} */ (event).detail;
+    this.#follow(/** @type {CustomEvent} */ (event).detail);
+  };
+
+  /** @param {any} detail */
+  #follow(detail) {
     const soldOut = Boolean(detail && !detail.available);
     this.hidden = !soldOut;
     if (!soldOut) return;
@@ -76,7 +77,7 @@ class BackInStock extends Component {
       hint.textContent = (this.dataset.hintTemplate ?? "").replace("%ITEM%", item);
     if (input) input.value = "";
     this.#clear();
-  };
+  }
 
   #clear = () => {
     const { message, input } = this.refs;
@@ -102,6 +103,10 @@ class BackInStock extends Component {
     if (!publicKey || !/^\d+$/.test(variantId)) {
       return this.#report(this.dataset.errorUnavailable ?? "", true);
     }
+
+    // The variant this request is for. If the shopper moves to another while
+    // it's in flight, its answer no longer describes the form they see.
+    const isCurrent = () => this.dataset.variantId === variantId;
 
     const originalLabel = submit?.textContent ?? "";
     if (submit) {
@@ -139,25 +144,20 @@ class BackInStock extends Component {
         },
       );
 
-      // The shopper chose another variant while this was in flight: its
-      // result belongs to the old one, so don't report it against the new
-      // selection or clear what they've typed since.
-      if (this.dataset.variantId !== variantId) return;
-
       if (!response.ok) {
         const detail = await response.text().catch(() => "");
         console.error(`[klaviyo] back-in-stock rejected (${response.status}):`, detail);
-        this.#report(this.dataset.errorFailed ?? "", true);
+        if (isCurrent()) this.#report(this.dataset.errorFailed ?? "", true);
         return;
       }
 
       // Klaviyo can't say whether this address was already waiting, so the
       // message claims only what's true either way.
+      if (!isCurrent()) return;
       this.#report(this.dataset.labelSuccess ?? "", false);
       input.value = "";
     } catch {
-      if (this.dataset.variantId !== variantId) return;
-      this.#report(this.dataset.errorNetwork ?? "", true);
+      if (isCurrent()) this.#report(this.dataset.errorNetwork ?? "", true);
     } finally {
       if (submit) {
         submit.disabled = false;

@@ -14,12 +14,35 @@
 
     {% comment %}
       DM Sans and DM Mono (SHO-110): the same files apps/web serves, synced
-      from packages/tokens by `pnpm --filter @formulate/theme build`. The body
-      weight is preloaded because it paints most of the page; the other
-      weights load on demand through @font-face.
+      from packages/tokens by `pnpm --filter @formulate/theme build`. Every
+      weight loads on demand through @font-face, with font-display: swap.
+
+      The sans weights above the fold are preloaded, so they usually arrive
+      before the first paint and the page doesn't jump when they swap in: the
+      swap moved the collection page by a CLS of up to 0.08 (budget 0.05),
+      depending on how fast the font came. The fallback face's metric
+      overrides narrow the jump but can't stop a line rewrapping.
+
+      ⚠️ Preloaded without asset_url's ?v=... query: fonts.css, generated and
+      shared with apps/web, asks for each file by a relative URL without one,
+      and a preload whose URL doesn't match exactly downloads the font twice.
+      DM Mono (prices) isn't preloaded: it's small on the page and the
+      preloads already compete with the LCP image.
     {% endcomment %}
+    {% # theme-check-disable AssetPreload %}
+    {%- assign preloaded_weights = '400,500,600' | split: ',' -%}
+    {%- for weight in preloaded_weights -%}
+      {%- assign font_file = 'dm-sans-latin-' | append: weight | append: '-normal.woff2' -%}
+      <link
+        rel="preload"
+        href="{{ font_file | asset_url | split: '?' | first }}"
+        as="font"
+        type="font/woff2"
+        crossorigin
+      >
+    {%- endfor %}
+    {% # theme-check-enable AssetPreload %}
     {{ 'fonts.css' | asset_url | stylesheet_tag }}
-    {{ 'dm-sans-latin-400-normal.woff2' | asset_url | preload_tag: as: 'font', type: 'font/woff2', crossorigin: 'anonymous' }}
 
     {% # Load and preload the critical CSS %}
     {{ 'critical.css' | asset_url | stylesheet_tag: preload: true }}
@@ -63,7 +86,10 @@
       top layer, and any transition mid-flight. Re-rendering the dialog itself
       would close the drawer on every quantity change.
     {% endcomment %}
-    <cart-drawer>
+    <cart-drawer
+      data-add-error-label="{{ 'cart.add_error' | t }}"
+      data-change-error-label="{{ 'cart.change_error' | t }}"
+    >
       <dialog class="cart-drawer" aria-label="{{ 'cart.title' | t }}">
         {% section 'cart-drawer' %}
       </dialog>

@@ -42,6 +42,8 @@ export const SURFACE_ONLY_ROUTES = {
     // Not a page: the Cart tab opens the cart sheet (app/(tabs)/_layout.tsx).
     // Web's cart is a drawer with no route either.
     "/cart": "the Cart tab's placeholder; the tab opens a sheet",
+    // Web shows the same groups in the header's Shop dropdown, not a page.
+    "/shop": "the Shop menu screen; web's is the header dropdown",
   },
 } as const;
 
@@ -49,7 +51,13 @@ export const SURFACE_ONLY_ROUTES = {
  * The paths an Android App Link (and later an iOS Universal Link) should open
  * in the app: the shared routes, as URL path patterns.
  */
-export const APP_LINK_PATHS = ["/", "/collections/*", "/products/*", "/search"] as const;
+export const APP_LINK_PATHS = [
+  "/",
+  "/collections/*",
+  "/products/*",
+  "/policies/*",
+  "/search",
+] as const;
 
 /** The app's identifiers, needed by the well-known files web serves. */
 export const APP_IDENTIFIERS = {

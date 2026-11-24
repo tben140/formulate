@@ -63,6 +63,14 @@ class ProductForm extends Component {
   /** @type {number | null} */
   #plansBuiltFor = null;
 
+  /**
+   * The detail of the last `product-form:variant-change`, for a listener that
+   * connects after it fired (the restock alert's script can load after this
+   * one). undefined until the first sync.
+   * @type {{ id: number, title: string, available: boolean } | null | undefined}
+   */
+  variantDetail = undefined;
+
   /** An add is in flight. Guards against a double add now that the buttons
    * stay enabled while it runs (see #onSubmit). */
   #adding = false;
@@ -143,7 +151,13 @@ class ProductForm extends Component {
 
     const resize = new ResizeObserver(pad);
     resize.observe(stickyBar);
-    small.addEventListener("change", pad, { signal: this.signal });
+    // From 48rem up CSS hides the bar, which drops focus to <body> if its
+    // button had it. Hand focus to the main button, scrolling to it.
+    const breakpoint = () => {
+      if (!small.matches && stickyBar.contains(document.activeElement)) submit.focus();
+      pad();
+    };
+    small.addEventListener("change", breakpoint, { signal: this.signal });
 
     this.signal.addEventListener("abort", () => {
       observer.disconnect();
@@ -230,14 +244,14 @@ class ProductForm extends Component {
     // For the restock alert below the form (SHO-118), which follows whichever
     // variant is chosen. An event rather than a reference: the form doesn't
     // need to know the alert exists.
-    const detail = match
+    this.variantDetail = match
       ? { id: match.id, title: match.title, available: match.available }
       : null;
-    // Kept, so a listener that connects later (the alert, on first load, or a
-    // selection the browser restored) can start from the current variant.
-    this.variantDetail = detail;
     this.dispatchEvent(
-      new CustomEvent("product-form:variant-change", { bubbles: true, detail }),
+      new CustomEvent("product-form:variant-change", {
+        bubbles: true,
+        detail: this.variantDetail,
+      }),
     );
   }
 
@@ -396,7 +410,9 @@ class ProductForm extends Component {
       // Shopify's `description` is written for shoppers — "All 3 Ski Wax are in
       // your cart." — so it is shown rather than replaced with a generic line.
       const message =
-        error instanceof Error ? error.message : "Could not update your cart.";
+        (error instanceof Error && error.message) ||
+        status?.dataset.errorLabel ||
+        "Could not update your cart.";
       if (status) status.textContent = message;
       // The status line sits by the main button, off screen whenever the bar
       // is up, so the bar shows the message too. Not a live region: the

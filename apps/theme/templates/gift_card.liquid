@@ -41,16 +41,13 @@
         {% endif %}
 
         <p>
-          {% if settings.logo %}
-            {{ settings.logo | image_url: width: 300 | image_tag: alt: shop.name }}
-          {% else %}
-            <img
-              src="{{ 'gift-card/card.svg' | shopify_asset_url }}"
-              alt="{{ 'gift_card.card' | t }}"
-              width="300"
-              height="200"
-            >
-          {% endif %}
+          {% comment %} The theme has no logo setting; the wordmark is text. {% endcomment %}
+          <img
+            src="{{ 'gift-card/card.svg' | shopify_asset_url }}"
+            alt="{{ 'gift_card.card' | t }}"
+            width="300"
+            height="200"
+          >
         </p>
 
         <h2>{{ shop.name }}</h2>

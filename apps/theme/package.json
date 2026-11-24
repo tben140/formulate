@@ -6,15 +6,19 @@
   "scripts": {
     "build": "node scripts/sync-tokens.mjs",
     "dev": "./scripts/with-env.sh shopify theme dev --path .",
-    "lint": "node scripts/check-css.mjs && shopify theme check --path .",
-    "typecheck": "tsc --noEmit",
+    "lint": "node scripts/check-css.mjs && node scripts/check-settings.mjs && shopify theme check --path .",
+    "typecheck": "tsc --noEmit && tsc -p e2e",
     "push": "./scripts/with-env.sh shopify theme push --path . --unpublished",
-    "pull": "./scripts/with-env.sh shopify theme pull --path ."
+    "pull": "./scripts/with-env.sh shopify theme pull --path .",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@formulate/tokens": "workspace:*",
     "@formulate/typescript-config": "workspace:*",
-    "@shopify/cli": "4.9.4",
+    "@playwright/test": "1.63.0",
+    "@shopify/cli": "5.0.1",
+    "@types/node": "^22.19.0",
     "typescript": "~6.0.3"
   }
 }

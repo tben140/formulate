@@ -26,6 +26,11 @@ describe("catalogVariantId", () => {
     expect(catalogVariantId("gid://shopify/ProductVariant/abc")).toBeNull();
     expect(catalogVariantId(0)).toBeNull();
     expect(catalogVariantId(1.5)).toBeNull();
+    // Too big to be exact: it would round to a different variant.
+    expect(catalogVariantId("90071992547409930")).toBeNull();
+    // A gid for something that isn't a variant.
+    expect(catalogVariantId("gid://shopify/Product/52871790756152")).toBeNull();
+    expect(catalogVariantId("x/52871790756152")).toBeNull();
   });
 });
 
@@ -104,6 +109,11 @@ describe("submitBackInStock", () => {
     expect(
       await submitBackInStock({ publicKey: PUBLIC_KEY, email: "a@b.co", variant: GID }),
     ).toEqual({ ok: false, reason: "rejected", status: 400, detail: '{"errors":[]}' });
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 429 })));
+    expect(
+      await submitBackInStock({ publicKey: PUBLIC_KEY, email: "a@b.co", variant: GID }),
+    ).toEqual({ ok: false, reason: "rate-limited", status: 429 });
 
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
     expect(

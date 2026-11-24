@@ -1,6 +1,13 @@
 "use client";
 
-import { EVENTS, addedToCart } from "@formulate/analytics";
+import {
+  EVENTS,
+  PRODUCT_EVENTS,
+  addedToCart,
+  addedToCartProperties,
+  numericId,
+  productRef,
+} from "@formulate/analytics";
 import {
   defaultSelectedOptions,
   findVariantByOptions,
@@ -14,7 +21,9 @@ import { useActionState, useEffect, useRef, useState, useSyncExternalStore } fro
 
 import { addToCart, type CartActionState } from "@/app/actions/cart";
 import { track } from "@/lib/klaviyo";
+import { analytics } from "@/lib/product-analytics";
 
+import { AnalyticsIdField } from "./analytics-id-field";
 import { BackInStockForm } from "./back-in-stock-form";
 import { useCartUi } from "./cart-provider";
 
@@ -37,7 +46,7 @@ const IDLE: CartActionState = { status: "idle" };
  * only the rendering is here. See docs/adr/0005-parity-means-design-not-data.md.
  */
 export const AddToCartForm = ({ product }: { product: Product }) => {
-  const { openCart, storeDomain } = useCartUi();
+  const { openCart, siteOrigin } = useCartUi();
   const [state, formAction, pending] = useActionState(addToCart, IDLE);
 
   const [selected, setSelected] = useState<readonly SelectedOption[]>(() =>
@@ -92,10 +101,21 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
     openCart();
 
     const line = state.cart?.lines.nodes.find((l) => l.id === state.addedLineId);
-    if (state.cart && line) {
-      track(EVENTS.addedToCart, addedToCart(state.cart, line, storeDomain));
+    const quantity = state.addedQuantity ?? 1;
+    if (state.cart && line && quantity > 0) {
+      track(EVENTS.addedToCart, addedToCart(state.cart, line, siteOrigin, quantity));
+      const added = addedToCartProperties(line, quantity);
+      if (added) analytics()?.capture(PRODUCT_EVENTS.addedToCart, added);
     }
-  }, [state.token, state.status, state.cart, state.addedLineId, openCart, storeDomain]);
+  }, [
+    state.token,
+    state.status,
+    state.cart,
+    state.addedLineId,
+    state.addedQuantity,
+    openCart,
+    siteOrigin,
+  ]);
 
   const chosenAllocation = allocations.find((a) => a.sellingPlan.id === effectivePlanId);
   const displayPrice =
@@ -131,6 +151,7 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         className="mt-6"
       >
         <input type="hidden" name="merchandiseId" value={variant?.id ?? ""} />
+        <AnalyticsIdField />
         <input type="hidden" name="sellingPlanId" value={effectivePlanId} />
 
         {product.options.map((option) =>
@@ -172,16 +193,25 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                         name={`option-${option.name}`}
                         value={value.name}
                         checked={checked}
-                        onChange={() => setSelected(candidate)}
+                        onChange={() => {
+                          setSelected(candidate);
+                          if (match) {
+                            analytics()?.capture(PRODUCT_EVENTS.variantSelected, {
+                              ...productRef(product),
+                              variant_id: numericId(match.id),
+                              variant_title: match.title,
+                            });
+                          }
+                        }}
                         className="sr-only"
                       />
                       {value.name}
                       {/*
-                      Sold-out combinations stay selectable. A shopper who wants
-                      one needs to be able to select it and be told it is gone —
-                      hiding it just makes the product look like it never
-                      existed.
-                    */}
+                        Sold-out combinations stay selectable. A shopper who wants
+                        one needs to be able to select it and be told it is gone —
+                        hiding it just makes the product look like it never
+                        existed.
+                      */}
                       {match && !match.availableForSale ? (
                         <span className="sr-only"> (sold out)</span>
                       ) : null}
@@ -219,7 +249,13 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       name="purchase-option"
                       value={choice.id}
                       checked={effectivePlanId === choice.id}
-                      onChange={() => setPlanId(choice.id)}
+                      onChange={() => {
+                        setPlanId(choice.id);
+                        analytics()?.capture(PRODUCT_EVENTS.sellingPlanSelected, {
+                          ...productRef(product),
+                          selling_plan: choice.id === ONE_TIME ? null : choice.label,
+                        });
+                      }}
                     />
                     {choice.label}
                   </span>
@@ -234,11 +270,11 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
                       }`}
                     >
                       {/*
-                      The leading space is for the accessible name, not the
-                      layout — flex handles the visual gap. Without it the
-                      label computes as "One-time purchase£24.95", which is
-                      what a screen reader would announce.
-                    */}
+                        The leading space is for the accessible name, not the
+                        layout — flex handles the visual gap. Without it the
+                        label computes as "One-time purchase£24.95", which is
+                        what a screen reader would announce.
+                      */}
                       {` ${formatMoney(choice.price)}`}
                     </span>
                   ) : null}
@@ -256,14 +292,14 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         ) : null}
 
         {/*
-        ⚠️ `aria-disabled`, never `disabled` (SHO-134). A focused button that
-        becomes disabled drops focus to <body>, so the cart drawer, which
-        returns focus to whatever had it when it opened, would send a keyboard
-        user back to the top of the page on close. That happens while an add is
-        in flight, and also after one: adding the last unit in stock
-        revalidates the page, the variant comes back sold out, and the button
-        that has focus would turn disabled in the same render.
-      */}
+          ⚠️ `aria-disabled`, never `disabled` (SHO-134). A focused button that
+          becomes disabled drops focus to <body>, so the cart drawer, which
+          returns focus to whatever had it when it opened, would send a keyboard
+          user back to the top of the page on close. That happens while an add is
+          in flight, and also after one: adding the last unit in stock
+          revalidates the page, the variant comes back sold out, and the button
+          that has focus would turn disabled in the same render.
+        */}
         <button
           ref={primaryButton}
           type="submit"
@@ -275,16 +311,16 @@ export const AddToCartForm = ({ product }: { product: Product }) => {
         </button>
 
         {/*
-        The drawer opening is a visual event a screen reader does not narrate,
-        and errors here are the only ones a shopper can act on — so both are
-        announced. `polite` rather than `assertive`: nothing here is urgent
-        enough to interrupt.
-      */}
+          The drawer opening is a visual event a screen reader does not narrate,
+          and errors here are the only ones a shopper can act on — so both are
+          announced. `polite` rather than `assertive`: nothing here is urgent
+          enough to interrupt.
+        */}
         {/*
-        Inside the same form and fed by the same render, so it cannot disagree
-        with the controls above: one state, two views of it (SHO-117). Its
-        button submits this form, with the same variant and plan.
-      */}
+          Inside the same form and fed by the same render, so it cannot disagree
+          with the controls above: one state, two views of it (SHO-117). Its
+          button submits this form, with the same variant and plan.
+        */}
         <StickyAddToCart
           visible={stickyVisible}
           title={product.title}
