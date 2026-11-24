@@ -1921,7 +1921,7 @@ export const ProductByHandleDocument = new TypedDocumentString(`
       width
       height
     }
-    images(first: 6) {
+    images(first: 10) {
       nodes {
         url
         altText
