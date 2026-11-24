@@ -2,8 +2,8 @@
   The brand's social accounts as icon links, for the footer.
 
   The links come from Theme settings → Social media (placeholders: each is
-  the platform's home page until the account exists); a blank link hides its
-  icon. The order, labels and icon paths match packages/tokens/src/social.ts,
+  the platform's home page until the account exists); a blank link, or one
+  that isn't a full http(s) address, hides its icon. The order, labels and icon paths match packages/tokens/src/social.ts,
   which web and the app read: Simple Icons 13.21.0 (CC0), one path on a 24×24
   viewBox, drawn in the text colour.
 {% enddoc %}
@@ -40,9 +40,20 @@
   {%- when 'pinterest' -%}{%- assign label = 'Pinterest' -%}
   {%- when 'x' -%}{%- assign label = 'X' -%}
       {%- endcase -%}
-      {%- if url != blank -%}
+      {%- comment -%}
+        Only a full http(s) address: "www.instagram.com/…" would be a path on
+        the store, and anything else (javascript:, data:) isn't a profile.
+      {%- endcomment -%}
+      {%- assign linkable = false -%}
+      {%- if url contains '://' -%}
+        {%- assign scheme = url | split: '://' | first | strip | downcase -%}
+        {%- if scheme == 'https' or scheme == 'http' -%}
+          {%- assign linkable = true -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if linkable -%}
         <li>
-          <a class="social-links__link" href="{{ url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ label }}">
+          <a class="social-links__link" href="{{ url | escape }}" target="_blank" rel="noopener noreferrer" aria-label="{{ label }}">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ path }}"/></svg>
           </a>
         </li>

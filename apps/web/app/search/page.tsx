@@ -1,4 +1,5 @@
 import {
+  pageVariables,
   priorityIndex,
   productFiltersFromParams,
   SearchProductsQuery,
@@ -9,8 +10,10 @@ import Link from "@/components/link";
 import { redirect } from "next/navigation";
 
 import { FilteredListing } from "@/components/collection-filters";
+import { Pagination } from "@/components/pagination";
 import { ProductCard } from "@/components/product-card";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { COLLECTION_PAGE_SIZE } from "@/lib/catalogue";
 import { toSearchParams } from "@/lib/search-params";
 import { storefront } from "@/lib/storefront";
 
@@ -46,7 +49,8 @@ const SearchPage = async ({ searchParams }: PageProps) => {
   const result = term
     ? await storefront.request(SearchProductsQuery, {
         query: term,
-        first: 24,
+        // Paged by cursor, the same size as a collection page.
+        ...pageVariables(query, COLLECTION_PAGE_SIZE),
         filters: productFiltersFromParams(query),
       })
     : null;
@@ -125,6 +129,12 @@ const SearchPage = async ({ searchParams }: PageProps) => {
                   )}
                 </ul>
               )}
+
+              <Pagination
+                path="/search"
+                params={query}
+                pageInfo={result.data.search.pageInfo}
+              />
             </FilteredListing>
           ) : (
             <p className="py-12 text-center text-foreground-muted">
