@@ -50,12 +50,12 @@ export const SiteNav = ({
   // Shop sits outside the scrolling list: the list's fade (a mask) would also
   // fade the dropdown's panel, and Shop should never scroll out of reach.
   return (
-    <div className="order-3 flex w-full items-center gap-5 text-sm whitespace-nowrap md:order-2 md:w-auto md:flex-1">
+    <div className="order-3 flex w-full items-center gap-5 text-sm whitespace-nowrap">
       {shopGroups.length > 0 ? <ShopMenu groups={shopGroups} /> : null}
       <ul
         ref={list}
         aria-label="Collections"
-        className="-mr-4 flex min-w-0 flex-1 gap-5 overflow-x-auto pr-4 pb-1 md:mr-0 md:pr-0 md:pb-0 max-md:[mask-image:linear-gradient(to_right,black_85%,transparent)]"
+        className="-mr-4 flex min-w-0 flex-1 gap-5 overflow-x-auto pr-4 pb-1 lg:mr-0 lg:pr-0 lg:pb-0 max-lg:[mask-image:linear-gradient(to_right,black_85%,transparent)]"
       >
         {links.map((link) => {
           const current = pathname === link.path;

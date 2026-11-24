@@ -130,8 +130,11 @@
     border-block-start: 1px solid var(--color-border);
   }
 
+  /* Wraps, like web's footer: on a phone the policy links go under the
+     copyright instead of pushing the page wider than the screen. */
   .site-footer__inner {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--spacing-4);
@@ -142,7 +145,8 @@
 
   .site-footer__links {
     display: flex;
-    gap: var(--spacing-4);
+    flex-wrap: wrap;
+    gap: var(--spacing-2) var(--spacing-4);
     margin: 0;
     padding: 0;
     list-style: none;
