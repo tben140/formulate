@@ -6,7 +6,6 @@ import {
   startedCheckout,
 } from "@formulate/analytics";
 import { formatMoney } from "@formulate/shopify";
-import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
@@ -18,6 +17,7 @@ import { useClearCart, useOptimisticCart, useUpdateCartLine } from "../lib/use-c
 
 import { FreeShippingBar } from "./free-shipping-bar";
 import { Text } from "./text";
+import { ShopImage } from "./shop-image";
 
 /**
  * The cart, as a bottom sheet.
@@ -188,11 +188,12 @@ export const CartSheet = ({
                   className={`flex-row gap-3 border-b border-border px-4 py-4 ${busy.has(line.id) ? "opacity-60" : ""}`}
                 >
                   {variant.image ? (
-                    <Image
-                      source={variant.image.url}
-                      contentFit="cover"
+                    <ShopImage
+                      url={variant.image.url}
+                      width={64}
+                      height={64}
+                      transition={0}
                       style={{ width: 64, height: 64, borderRadius: 8 }}
-                      accessibilityIgnoresInvertColors
                     />
                   ) : null}
 

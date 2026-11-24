@@ -147,6 +147,8 @@ const ProductBody = ({ product }: { product: Product }) => {
   const keyboardOpen = useKeyboardOpen();
   const showBar = button !== null && view.height > 0 && !buttonOnScreen && !keyboardOpen;
 
+  // The image's drawn size: the screen width less the 16 pt padding each side.
+
   return (
     <View className="flex-1">
       <ScrollView

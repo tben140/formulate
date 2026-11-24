@@ -1,9 +1,9 @@
 import { formatMoney } from "@formulate/shopify";
-import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { View } from "react-native";
 
 import { useComplementaryProducts } from "../lib/queries";
+import { ShopImage } from "./shop-image";
 import { Text } from "./text";
 
 /** How many pairings to show at most. Two are set per product today. */
@@ -37,12 +37,11 @@ export const PairsWellWith = ({ productId }: { readonly productId: string }) => 
             accessibilityLabel={`${product.title}, ${formatMoney(product.priceRange.minVariantPrice)}`}
             className="flex-row items-center gap-3 rounded-lg border border-border p-2"
           >
-            <Image
-              source={product.featuredImage?.url}
-              contentFit="cover"
-              transition={150}
+            <ShopImage
+              url={product.featuredImage?.url}
+              width={56}
+              height={56}
               style={{ width: 56, height: 56, borderRadius: 8 }}
-              accessibilityIgnoresInvertColors
             />
             <View className="flex-1">
               <Text numberOfLines={1} className="text-sm font-medium text-foreground">
