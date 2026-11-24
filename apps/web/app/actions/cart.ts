@@ -139,10 +139,17 @@ export const addToCart = async (
    * cart is still fine, and clearing it would silently lose everything in it.
    * See `addLinesOrCreate` and `isCartGone` in packages/shopify (SHO-122).
    */
+  const cartId = await cartIdForAdd();
+  if (!cartId.ok) {
+    console.error(
+      `[cart] add stopped, cart owner unknown: ${describeError(cartId.error)}`,
+    );
+    return { status: "error", message: describeForShopper(cartId.error) };
+  }
   const attributes = await newCartAttributes(formData);
   const { result, storedCartGone, notice, attributesFailed } =
     await cartClient.addLinesOrCreate({
-      cartId: await cartIdForAdd(),
+      cartId: cartId.data,
       lines: [line],
       email: readBuyerEmail,
       // Signed in: the new cart is theirs, as sign-in makes an existing one

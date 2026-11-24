@@ -1,4 +1,9 @@
-import { createCartClient, isCartId, type Cart } from "@formulate/shopify";
+import {
+  createCartClient,
+  isCartId,
+  type Cart,
+  type StorefrontResult,
+} from "@formulate/shopify";
 import { cookies } from "next/headers";
 
 import { CONSENT_COOKIE, parseConsent } from "./consent";
@@ -101,14 +106,19 @@ const isAnotherBuyersCart = async (cart: Cart): Promise<boolean> =>
 /**
  * The stored cart id for an add to cart, or null to start a new cart when
  * the stored one is another buyer's. Asks Shopify only when signed out with
- * a cart; if that fails, the cart is kept (SHO-122: never lose a cart on a
- * blip) and the add itself reports the problem.
+ * a cart. If that fails, the add stops there: the cookie keeps the cart
+ * (SHO-122: never lose a cart on a blip), and nothing is added to a cart
+ * whose owner wasn't checked. A retry checks again.
  */
-export const cartIdForAdd = async (): Promise<string | null> => {
+export const cartIdForAdd = async (): Promise<StorefrontResult<string | null>> => {
   const id = await readCartId();
-  if (!id || (await readCustomerTokens())) return id;
+  if (!id || (await readCustomerTokens())) return { ok: true, data: id };
   const result = await cartClient.get(id);
-  return result.ok && result.data && (await isAnotherBuyersCart(result.data)) ? null : id;
+  if (!result.ok) return result;
+  return {
+    ok: true,
+    data: result.data && (await isAnotherBuyersCart(result.data)) ? null : id,
+  };
 };
 
 const BUYER_EMAIL_COOKIE = "formulate_buyer_email";
