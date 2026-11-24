@@ -11,7 +11,7 @@ import { openApp, productLinks } from "./helpers";
 /**
  * Ticks a value. Its group may start collapsed, and a long group shows five
  * values before a "Show N more" button. The header is tapped only while its
- * own group is collapsed (a tap while the sheet is still sliding in can be
+ * own group shows no values (a tap while the sheet is still sliding in can be
  * lost, so it's retried), and only that group's "Show N more" is used.
  */
 const tick = async (page: Page, group: string, value: RegExp) => {
@@ -20,9 +20,12 @@ const tick = async (page: Page, group: string, value: RegExp) => {
   const section = header.locator("..");
   const box = section.getByRole("checkbox", { name: value });
   const more = section.getByRole("button", { name: /^Show \d+ more$/ });
+  // Open means it shows values. (React Native Web doesn't render
+  // accessibilityState.expanded as aria-expanded, so that can't be read.)
+  const values = section.getByRole("checkbox");
   await expect(async () => {
-    if ((await header.getAttribute("aria-expanded")) !== "true") await header.click();
-    await expect(header).toHaveAttribute("aria-expanded", "true", { timeout: 2_000 });
+    if ((await values.count()) === 0) await header.click();
+    await expect(values.first()).toBeVisible({ timeout: 2_000 });
   }).toPass({ timeout: 30_000 });
   if (!(await box.isVisible()) && (await more.count()) > 0) await more.click();
   await box.click();
