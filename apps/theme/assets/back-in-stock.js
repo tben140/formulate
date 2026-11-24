@@ -48,6 +48,11 @@ class BackInStock extends Component {
       document.querySelector("product-form")
     );
     if (form && form.variantDetail !== undefined) this.#follow(form.variantDetail);
+
+    // Hidden in the markup so it can't submit without this script (see
+    // back-in-stock.liquid); shown once the script owns submission.
+    const alertForm = this.querySelector("form");
+    if (alertForm) alertForm.hidden = false;
   }
 
   /** @param {Event} event */

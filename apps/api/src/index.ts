@@ -1,5 +1,6 @@
 import { handleOrderCounted, type OrderCountedEnv } from "./order-backup";
 import { handleOrderWebhook, type OrderWebhookEnv } from "./order-webhook";
+import { handleBackInStock, type BackInStockEnv } from "./routes/back-in-stock";
 import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 
 /**
@@ -16,7 +17,7 @@ import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 export { OrderBackup } from "./order-backup";
 export { RateLimiter } from "./rate-limiter";
 
-export type Env = SubscribeEnv & OrderWebhookEnv & OrderCountedEnv;
+export type Env = SubscribeEnv & BackInStockEnv & OrderWebhookEnv & OrderCountedEnv;
 
 type Route = (request: Request, env: Env) => Promise<Response>;
 
@@ -35,6 +36,8 @@ const routes: ReadonlyMap<string, Route> = new Map<string, Route>([
   // The checkout pixel's "order counted" note (SHO-88). The one route with a
   // CORS header: see order-backup.ts and AGENTS.md.
   ["/orders/counted", handleOrderCounted],
+  // Restock alerts from the app (SHO-118).
+  ["/back-in-stock", handleBackInStock],
 ]);
 
 export default {
