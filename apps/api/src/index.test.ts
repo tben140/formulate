@@ -44,8 +44,16 @@ const stubKlaviyo = (response: Partial<Response>) => {
   return mock;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Env is supplied by the pool
-const run = (request: Request, e: unknown = testEnv()) => worker.fetch(request, e as any);
+// The Worker takes the execution context for Sentry reports (ctx.waitUntil).
+// Nothing here waits on it.
+const ctx = { waitUntil: () => {}, passThroughOnException: () => {}, props: {} };
+const fetchWithContext = worker.fetch as unknown as (
+  request: Request,
+  env: unknown,
+  context: typeof ctx,
+) => Promise<Response>;
+const run = (request: Request, e: unknown = testEnv()) =>
+  fetchWithContext(request, e, ctx);
 
 afterEach(() => {
   vi.unstubAllGlobals();

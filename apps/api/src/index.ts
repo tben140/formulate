@@ -1,6 +1,8 @@
+import { json } from "./http";
 import { handleOrderCounted, type OrderCountedEnv } from "./order-backup";
 import { handleOrderWebhook, type OrderWebhookEnv } from "./order-webhook";
 import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
+import { reportError, type SentryEnv } from "./sentry";
 
 /**
  * The Worker's entry point: the Durable Object classes Cloudflare binds, the
@@ -16,9 +18,12 @@ import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 export { OrderBackup } from "./order-backup";
 export { RateLimiter } from "./rate-limiter";
 
-export type Env = SubscribeEnv & OrderWebhookEnv & OrderCountedEnv;
+export type Env = SubscribeEnv & OrderWebhookEnv & OrderCountedEnv & SentryEnv;
 
-type Route = (request: Request, env: Env) => Promise<Response>;
+/** What a route may use from Cloudflare's context: work after the response. */
+export type Ctx = Pick<ExecutionContext, "waitUntil">;
+
+type Route = (request: Request, env: Env, ctx: Ctx) => Promise<Response>;
 
 /**
  * Routes by exact path.
@@ -37,9 +42,24 @@ const routes: ReadonlyMap<string, Route> = new Map<string, Route>([
   ["/orders/counted", handleOrderCounted],
 ]);
 
+/**
+ * Uncaught errors go to Sentry (EU region, project `worker`), as do the
+ * routes' own reports. Errors only, no tracing, and no dependency: see
+ * src/sentry.ts for exactly what is sent (never the request or the user).
+ * The caller gets a bare 500, no error detail.
+ */
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: Ctx): Promise<Response> {
     const { pathname } = new URL(request.url);
-    return (routes.get(pathname) ?? handleSubscribe)(request, env);
+    try {
+      return await (routes.get(pathname) ?? handleSubscribe)(request, env, ctx);
+    } catch (error) {
+      reportError(env.SENTRY_DSN, ctx, {
+        message: "Uncaught error",
+        level: "error",
+        error,
+      });
+      return json({ ok: false, reason: "rejected" }, 500);
+    }
   },
 } satisfies ExportedHandler<Env>;

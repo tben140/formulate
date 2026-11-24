@@ -267,6 +267,7 @@ describe("POST /orders/counted", () => {
       }),
       // The stubs stand in for Cloudflare's bindings.
       env as unknown as Parameters<typeof worker.fetch>[1],
+      { waitUntil: () => {} },
     );
 
   afterEach(() => {
