@@ -33,6 +33,13 @@ export {
 export type { SubscribeResult, SubscriptionSource } from "./subscribe";
 
 export {
+  backInStockPayload,
+  backInStockUrl,
+  catalogVariantId,
+  submitBackInStock,
+} from "./back-in-stock";
+
+export {
   CART_ATTRIBUTES,
   CART_ATTRIBUTE_KEYS,
   PAGEVIEW,

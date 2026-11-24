@@ -5,6 +5,7 @@ import { openCartDrawer, replaceCartDrawer } from "@theme/cart-drawer";
 /**
  * @typedef {Object} VariantData
  * @property {number} id
+ * @property {string} title
  * @property {boolean} available
  * @property {string[]} options Option values, in the product's option order.
  * @property {string} price Already formatted by Liquid's `money` filter.
@@ -61,6 +62,14 @@ class ProductForm extends Component {
    * just focused. */
   /** @type {number | null} */
   #plansBuiltFor = null;
+
+  /**
+   * The detail of the last `product-form:variant-change`, for a listener that
+   * connects after it fired (the restock alert's script can load after this
+   * one). undefined until the first sync.
+   * @type {{ id: number, title: string, available: boolean } | null | undefined}
+   */
+  variantDetail = undefined;
 
   /** An add is in flight. Guards against a double add now that the buttons
    * stay enabled while it runs (see #onSubmit). */
@@ -231,6 +240,19 @@ class ProductForm extends Component {
     }
 
     this.#markSoldOut(chosen);
+
+    // For the restock alert below the form (SHO-118), which follows whichever
+    // variant is chosen. An event rather than a reference: the form doesn't
+    // need to know the alert exists.
+    this.variantDetail = match
+      ? { id: match.id, title: match.title, available: match.available }
+      : null;
+    this.dispatchEvent(
+      new CustomEvent("product-form:variant-change", {
+        bubbles: true,
+        detail: this.variantDetail,
+      }),
+    );
   }
 
   /**
