@@ -1,7 +1,7 @@
 import { Link } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
-import { useShopGroups } from "../lib/queries";
+import { useShopGroups } from "../../../lib/queries";
 
 /**
  * Everything to browse, grouped: the app's version of web's header Shop

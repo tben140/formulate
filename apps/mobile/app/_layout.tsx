@@ -1,14 +1,9 @@
-import { BRAND_NAME } from "@formulate/tokens";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
 
 import { AnalyticsConsent } from "../components/analytics-consent";
-import { CartButton } from "../components/cart-button";
-import { HeaderActions } from "../components/header-actions";
 import { CartProvider } from "../components/cart-provider";
-import { DemoNotice } from "../components/demo-notice";
 import { CheckoutProvider } from "../lib/checkout";
 import { initKlaviyo } from "../lib/klaviyo";
 import { analytics, loadAnalyticsIdentity } from "../lib/product-analytics";
@@ -67,32 +62,12 @@ const RootLayout = () => {
       */}
       <CheckoutProvider>
         <CartProvider>
-          <Stack
-            // Wraps every screen below its native header, including screens
-            // added later — so the demo notice cannot be forgotten on one.
-            screenLayout={({ children }) => (
-              <View className="flex-1">
-                <DemoNotice />
-                {children}
-              </View>
-            )}
-            screenOptions={{
-              headerStyle: { backgroundColor: "#ffffff" },
-              headerTintColor: "#0f172a",
-              contentStyle: { backgroundColor: "#ffffff" },
-              headerRight: () => <HeaderActions />,
-            }}
-          >
-            <Stack.Screen name="index" options={{ title: BRAND_NAME }} />
-            <Stack.Screen name="collections/[handle]" options={{ title: "" }} />
-            <Stack.Screen name="products/[handle]" options={{ title: "Product" }} />
-            <Stack.Screen name="policies/[handle]" options={{ title: "" }} />
-            <Stack.Screen name="shop" options={{ title: "Shop" }} />
-            {/* Cart only: a Search button on the search screen goes nowhere. */}
-            <Stack.Screen
-              name="search"
-              options={{ title: "Search", headerRight: () => <CartButton /> }}
-            />
+          {/*
+            The tab bar is the whole app (SHO-151). Each tab has its own stack
+            and header; see app/(tabs)/(shop,search)/_layout.tsx.
+          */}
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
           </Stack>
           <AnalyticsScreens />
           <AnalyticsConsent />

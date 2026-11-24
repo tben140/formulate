@@ -11,9 +11,9 @@ import {
   View,
 } from "react-native";
 
-import { CollectionFilters } from "../components/collection-filters";
-import { SiteFooter } from "../components/site-footer";
-import { useSearch } from "../lib/queries";
+import { CollectionFilters } from "../../../components/collection-filters";
+import { SiteFooter } from "../../../components/site-footer";
+import { useSearch } from "../../../lib/queries";
 
 /** How long typing must pause before a search runs. */
 const DEBOUNCE_MS = 300;

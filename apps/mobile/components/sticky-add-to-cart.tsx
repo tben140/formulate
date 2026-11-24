@@ -1,7 +1,6 @@
 import { formatMoney } from "@formulate/shopify";
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, Pressable, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { Product, Purchase } from "../lib/use-purchase";
 
@@ -60,7 +59,6 @@ export const StickyAddToCart = ({
   readonly visible: boolean;
   readonly onAdded: () => void;
 }) => {
-  const { bottom } = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
   const { variant, displayPrice, disabled, label, add, addToCart } = purchase;
 
@@ -105,7 +103,8 @@ export const StickyAddToCart = ({
   const variantTitle =
     variant && variant.title !== "Default Title" ? variant.title : null;
 
-  const travel = STICKY_BAR_HEIGHT + bottom;
+  // The tab bar below takes the home-indicator inset, so the bar needs none.
+  const travel = STICKY_BAR_HEIGHT;
 
   return (
     /*
@@ -134,7 +133,7 @@ export const StickyAddToCart = ({
     >
       <View
         className="gap-2 border-t border-border bg-surface px-4 pt-3"
-        style={{ paddingBottom: Math.max(bottom, 12) }}
+        style={{ paddingBottom: 12 }}
       >
         {/*
           A failed add from the bar shows here too. The form's own message is
