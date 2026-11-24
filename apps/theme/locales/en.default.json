@@ -118,6 +118,9 @@
     "enter": "Enter"
   },
   "product": {
+    "share": "Share",
+    "share_label": "Share {{ title }}",
+    "link_copied": "Link copied",
     "add_to_cart": "Add to cart",
     "sold_out": "Sold out",
     "unavailable": "Unavailable in this combination",

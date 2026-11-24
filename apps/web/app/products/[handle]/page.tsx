@@ -11,13 +11,14 @@ import { ExperimentExposure } from "@/components/experiment-exposure";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { ProductGallery } from "@/components/product-gallery";
+import { ShareButton } from "@/components/share-button";
 import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
 import { assignExperiment } from "@/lib/experiments";
 import { getNavLinks, getShopGroups } from "@/lib/nav";
-import { baseOpenGraph, siteUrl } from "@/lib/site";
+import { absoluteUrl, baseOpenGraph, siteUrl } from "@/lib/site";
 import { breadcrumbJsonLd, metaDescription, productJsonLd } from "@/lib/structured-data";
 
 interface PageProps {
@@ -145,7 +146,13 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
         </div>
 
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-3xl font-semibold tracking-tight">{product.title}</h1>
+            <ShareButton
+              url={absoluteUrl(`/products/${product.handle}`)}
+              title={product.title}
+            />
+          </div>
           {product.subtitle?.value ? (
             <p className="mt-2 text-lg text-foreground-muted">{product.subtitle.value}</p>
           ) : null}
