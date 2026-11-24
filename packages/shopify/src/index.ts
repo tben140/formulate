@@ -119,6 +119,12 @@ export {
 export type { FilterGroup, SortOption } from "./listing";
 export type { ProductFilter } from "./generated/graphql";
 
+export {
+  limitMessage,
+  MAX_PER_PRODUCT,
+  maxQuantityForLine,
+  quantityOfProduct,
+} from "./cart-limit";
 export { policyBlocks, richTextBlocks } from "./rich-text";
 export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";
 export { PLANNED_PAYMENT_ICON_IDS, payLaterIds, paymentIconIds } from "./payment-icons";
