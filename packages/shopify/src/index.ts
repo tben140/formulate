@@ -107,6 +107,13 @@ export {
 export type { FilterLike, FilterValueLike } from "./filters";
 export { WEBP_ACCEPT, sizedImageUrl } from "./image-url";
 export {
+  nextCursor,
+  nextPageParams,
+  pageVariables,
+  previousPageParams,
+} from "./pagination";
+export type { PageInfoLike, PageVariables } from "./pagination";
+export {
   FILTER_GROUPS_OPEN,
   FILTER_VALUES_SHOWN,
   SORT_OPTIONS,

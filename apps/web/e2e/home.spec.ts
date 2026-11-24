@@ -13,18 +13,16 @@ test("home introduces the shop, lists the menu's categories and features its fir
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-  const menu = page
+  // The header's own list of the menu, in order and with any repeats (the
+  // Shop dropdown shows the same collections again, grouped).
+  const menuHrefs = await page
     .getByRole("navigation", { name: "Main" })
-    .locator('a[href^="/collections/"]');
-  const menuLinks = await menu.evaluateAll((links) =>
-    links.map((link) => ({
-      href: link.getAttribute("href") ?? "",
-      title: (link.textContent ?? "").trim(),
-    })),
-  );
-  const menuHrefs = [...new Set(menuLinks.map((link) => link.href))];
+    .getByRole("list", { name: "Collections" })
+    .getByRole("link")
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""))
+    .then((hrefs) => hrefs.filter((href) => href.startsWith("/collections/")));
   expect(menuHrefs.length).toBeGreaterThan(0);
-  const first = menuLinks[0]!;
+  const first = menuHrefs[0]!;
 
   const categories = page.locator("section", {
     has: page.getByRole("heading", { name: "Shop by category" }),
@@ -32,17 +30,19 @@ test("home introduces the shop, lists the menu's categories and features its fir
   const categoryHrefs = await categories
     .getByRole("link")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
-  // Every card is a menu collection, in the menu's order.
-  expect(categoryHrefs).toEqual(menuHrefs.filter((href) => categoryHrefs.includes(href)));
-  expect(categoryHrefs.length).toBeGreaterThan(0);
+  // A card for every menu collection, in the menu's order.
+  expect(categoryHrefs).toEqual(menuHrefs);
 
+  // Found by its "View all" link: the heading is the collection's title,
+  // which a merchant's menu label needn't match.
   const featured = page.locator("section", {
-    has: page.getByRole("heading", { level: 2, name: first.title }),
+    has: page.getByRole("link", { name: /View all/ }),
   });
   await expect(featured.getByRole("link", { name: /View all/ })).toHaveAttribute(
     "href",
-    first.href,
+    first,
   );
+  await expect(featured.getByRole("heading", { level: 2 })).toBeVisible();
   // The featured products are the links in the section's list.
   await expect(featured.getByRole("list").getByRole("link").first()).toBeVisible();
 });
