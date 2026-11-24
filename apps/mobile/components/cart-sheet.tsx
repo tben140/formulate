@@ -15,6 +15,7 @@ import { analytics } from "../lib/product-analytics";
 import { SITE_ORIGIN } from "../lib/site";
 import { useClearCart, useOptimisticCart, useUpdateCartLine } from "../lib/use-cart";
 
+import { CartSuggestions } from "./cart-suggestions";
 import { FreeShippingBar } from "./free-shipping-bar";
 import { Text } from "./text";
 import { ShopImage } from "./shop-image";
@@ -267,6 +268,7 @@ export const CartSheet = ({
                 </View>
               );
             })}
+            <CartSuggestions cart={cart} onOpenProduct={onClose} />
           </ScrollView>
         )}
 
