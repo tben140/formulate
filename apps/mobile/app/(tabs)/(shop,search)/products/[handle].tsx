@@ -15,6 +15,7 @@ import { useCartUi } from "../../../../components/cart-provider";
 import { PairsWellWith } from "../../../../components/pairs-well-with";
 import { ProductGallery } from "../../../../components/product-gallery";
 import { RichText } from "../../../../components/rich-text";
+import { ShareButton } from "../../../../components/share-button";
 import { SiteFooter } from "../../../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../../../components/sticky-add-to-cart";
 import { useExperiment } from "../../../../lib/experiments";
@@ -24,6 +25,7 @@ import { useProduct } from "../../../../lib/queries";
 import { SITE_ORIGIN } from "../../../../lib/site";
 import { useTrackingConsent } from "../../../../lib/tracking-consent";
 import { usePurchase, type Product } from "../../../../lib/use-purchase";
+import { productWebUrl } from "../../../../lib/web-links";
 import { Text } from "../../../../components/text";
 
 /** Whether the software keyboard is showing. The "did" events fire on both platforms. */
@@ -193,7 +195,14 @@ const ProductBody = ({ product }: { product: Product }) => {
           setView((v) => ({ ...v, offset }));
         }}
       >
-        <Stack.Screen options={{ title: product.title }} />
+        <Stack.Screen
+          options={{
+            title: product.title,
+            headerRight: () => (
+              <ShareButton url={productWebUrl(product.handle)} title={product.title} />
+            ),
+          }}
+        />
 
         <ProductGallery images={galleryImages(product)} title={product.title} />
 

@@ -114,6 +114,13 @@ export {
 } from "./pagination";
 export type { PageInfoLike, PageVariables } from "./pagination";
 export {
+  APP_IDENTIFIERS,
+  APP_LINK_PATHS,
+  SHARED_ROUTES,
+  SURFACE_ONLY_ROUTES,
+  paths,
+} from "./routes";
+export {
   FILTER_GROUPS_OPEN,
   FILTER_VALUES_SHOWN,
   SORT_OPTIONS,

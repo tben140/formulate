@@ -5,6 +5,9 @@
     "test": {
       "inputs": [
         "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/web/app/**",
+        "$TURBO_ROOT$/apps/mobile/app/**",
+        "$TURBO_ROOT$/apps/mobile/app.config.ts",
         "$TURBO_ROOT$/apps/theme/sections/featured-collection.liquid",
         "$TURBO_ROOT$/apps/web/lighthouserc.cjs",
         "$TURBO_ROOT$/apps/web/playwright.config.ts",
