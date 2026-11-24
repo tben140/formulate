@@ -18,8 +18,9 @@ test("home introduces the shop, lists the menu's categories and features its fir
   const menuHrefs = await page
     .getByRole("navigation", { name: "Main" })
     .getByRole("list", { name: "Collections" })
-    .locator('a[href^="/collections/"]')
-    .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
+    .getByRole("link")
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""))
+    .then((hrefs) => hrefs.filter((href) => href.startsWith("/collections/")));
   expect(menuHrefs.length).toBeGreaterThan(0);
   const first = menuHrefs[0]!;
 
@@ -29,9 +30,8 @@ test("home introduces the shop, lists the menu's categories and features its fir
   const categoryHrefs = await categories
     .getByRole("link")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
-  // Every card is a menu collection, in the menu's order.
-  expect(categoryHrefs).toEqual(menuHrefs.filter((href) => categoryHrefs.includes(href)));
-  expect(categoryHrefs.length).toBeGreaterThan(0);
+  // A card for every menu collection, in the menu's order.
+  expect(categoryHrefs).toEqual(menuHrefs);
 
   // Found by its "View all" link: the heading is the collection's title,
   // which a merchant's menu label needn't match.

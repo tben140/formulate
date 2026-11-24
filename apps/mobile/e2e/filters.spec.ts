@@ -10,19 +10,21 @@ import { openApp, productLinks } from "./helpers";
 
 /**
  * Ticks a value. Its group may start collapsed, and a long group shows five
- * values before a "Show N more" button. Tapping the header toggles it, so it's
- * tapped only while nothing of the group shows: a tap while the sheet is still
- * sliding in can be lost.
+ * values before a "Show N more" button. The header is tapped only while its
+ * own group is collapsed (a tap while the sheet is still sliding in can be
+ * lost, so it's retried), and only that group's "Show N more" is used.
  */
 const tick = async (page: Page, group: string, value: RegExp) => {
   const header = page.getByRole("button", { name: new RegExp(`^${group}`) });
-  const box = page.getByRole("checkbox", { name: value });
-  const more = page.getByRole("button", { name: /^Show \d+ more$/ });
+  // The header's parent holds the group's values and its "Show N more".
+  const section = header.locator("..");
+  const box = section.getByRole("checkbox", { name: value });
+  const more = section.getByRole("button", { name: /^Show \d+ more$/ });
   await expect(async () => {
-    if ((await box.count()) === 0 && (await more.count()) === 0) await header.click();
-    await expect(box.or(more).first()).toBeVisible({ timeout: 2_000 });
+    if ((await header.getAttribute("aria-expanded")) !== "true") await header.click();
+    await expect(header).toHaveAttribute("aria-expanded", "true", { timeout: 2_000 });
   }).toPass({ timeout: 30_000 });
-  if ((await box.count()) === 0) await more.first().click();
+  if (!(await box.isVisible()) && (await more.count()) > 0) await more.click();
   await box.click();
 };
 
