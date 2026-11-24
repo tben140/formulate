@@ -37,7 +37,14 @@ export const handleBackInStock = async (
   if (request.method !== "POST") {
     return json({ ok: false, reason: "rejected" }, 405);
   }
-  if (!request.headers.get("content-type")?.includes("application/json")) {
+  // Media types are case-insensitive and may carry parameters (charset), so
+  // compare the bare type exactly: `includes` would also pass text/x-application/json.
+  const mediaType = request.headers
+    .get("content-type")
+    ?.split(";")[0]
+    ?.trim()
+    .toLowerCase();
+  if (mediaType !== "application/json") {
     return json({ ok: false, reason: "rejected" }, 415);
   }
 

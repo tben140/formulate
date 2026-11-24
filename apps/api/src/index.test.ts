@@ -249,6 +249,30 @@ describe("POST /back-in-stock (SHO-118)", () => {
     expect(body.data.attributes.profile.data.attributes.email).toBe("a@b.co");
   });
 
+  it.each(["Application/JSON", "application/json; charset=utf-8"])(
+    "accepts a JSON content type written as %s",
+    async (contentType) => {
+      stubKlaviyo({ ok: true, status: 202 });
+      const request = new Request("https://api.example/back-in-stock", {
+        method: "POST",
+        headers: { "content-type": contentType },
+        body: JSON.stringify({ email: "a@b.co", variant: VARIANT }),
+      });
+      expect((await run(request, bisEnv)).status).toBe(202);
+    },
+  );
+
+  it("refuses a media type that only contains application/json", async () => {
+    const klaviyo = stubKlaviyo({ ok: true, status: 202 });
+    const request = new Request("https://api.example/back-in-stock", {
+      method: "POST",
+      headers: { "content-type": "text/x-application/json" },
+      body: JSON.stringify({ email: "a@b.co", variant: VARIANT }),
+    });
+    expect((await run(request, bisEnv)).status).toBe(415);
+    expect(klaviyo).not.toHaveBeenCalled();
+  });
+
   it.each([null, [], 7, "text"])(
     "rejects a JSON body that isn't an object (%j)",
     async (body) => {
