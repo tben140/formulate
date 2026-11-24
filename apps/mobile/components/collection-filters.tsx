@@ -223,7 +223,7 @@ const FilterSheet = ({
                     key={option.value}
                     onPress={() => setDraft(withSort(params, option.value).toString())}
                     accessibilityRole="radio"
-                    accessibilityState={{ checked: selected }}
+                    aria-checked={selected}
                     className="flex-row items-center gap-3 py-2"
                   >
                     <View
@@ -349,7 +349,10 @@ const GroupView = ({
                   setDraft(withValueToggled(params, filter, value).toString())
                 }
                 accessibilityRole="checkbox"
-                accessibilityState={{ checked }}
+                // aria-checked, not accessibilityState: react-native-web drops a
+                // false accessibilityState.checked, so an unticked box had no
+                // state on web (SHO-92). It maps the same on native.
+                aria-checked={checked}
                 accessibilityLabel={`${value.label}, ${value.count} ${value.count === 1 ? "product" : "products"}`}
                 className="flex-row items-center gap-3 py-2"
               >
