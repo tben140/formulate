@@ -10,7 +10,13 @@ import prettier from "eslint-config-prettier";
 export const reactNative = [
   ...expoConfig,
   {
-    ignores: ["**/node_modules/**", "**/.expo/**", "**/dist/**", "**/generated/**"],
+    ignores: [
+      "**/node_modules/**",
+      "**/.expo/**",
+      "**/dist/**",
+      "**/generated/**",
+      "**/storybook-static/**",
+    ],
   },
   {
     /**
