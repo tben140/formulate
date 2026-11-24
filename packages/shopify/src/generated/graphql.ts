@@ -1517,18 +1517,18 @@ export type CollectionProductsQueryVariables = Exact<{
 }>;
 
 
-export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> } } | null };
+export type CollectionProductsQuery = { collection: { id: string, title: string, description: string, seo: { title: string | null, description: string | null }, products: { filters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null }> } } | null };
 
 export type ProductByHandleQueryVariables = Exact<{
   handle: string;
 }>;
 
 
-export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, descriptionHtml: string, vendor: string, subtitle: { value: string } | null, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
+export type ProductByHandleQuery = { product: { id: string, handle: string, title: string, description: string, descriptionHtml: string, vendor: string, subtitle: { value: string } | null, rating: { value: string } | null, ratingCount: { value: string } | null, seo: { title: string | null, description: string | null }, breadcrumbCollections: { nodes: Array<{ handle: string, title: string }> }, collections: { nodes: Array<{ title: string }> }, compareAtPriceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, images: { nodes: Array<{ url: string, altText: string | null, width: number | null, height: number | null }> }, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, options: Array<{ name: string, optionValues: Array<{ name: string }> }>, sellingPlanGroups: { nodes: Array<{ name: string, appName: string | null, options: Array<{ name: string, values: Array<string> }>, sellingPlans: { nodes: Array<{ id: string }> } }> }, variants: { nodes: Array<{ id: string, title: string, availableForSale: boolean, sku: string | null, selectedOptions: Array<{ name: string, value: string }>, price: { amount: string, currencyCode: CurrencyCode }, compareAtPrice: { amount: string, currencyCode: CurrencyCode } | null, image: { url: string, altText: string | null, width: number | null, height: number | null } | null, sellingPlanAllocations: { nodes: Array<{ sellingPlan: { id: string, name: string }, priceAdjustments: Array<{ price: { amount: string, currencyCode: CurrencyCode } }> }> } }> } } | null };
 
 export type FilterFieldsFragment = { id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> };
 
-export type ProductCardFieldsFragment = { id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } };
+export type ProductCardFieldsFragment = { id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null };
 
 export type SearchProductsQueryVariables = Exact<{
   query: string;
@@ -1540,7 +1540,7 @@ export type SearchProductsQueryVariables = Exact<{
 export type SearchProductsQuery = { search: { totalCount: number, productFilters: Array<{ id: string, label: string, type: FilterType, values: Array<{ id: string, label: string, count: number, input: unknown }> }>, nodes: Array<
       | { __typename: 'Article' }
       | { __typename: 'Page' }
-      | { __typename: 'Product', id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }
+      | { __typename: 'Product', id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null }
     > } };
 
 export type PredictiveSearchQueryVariables = Exact<{
@@ -1549,14 +1549,14 @@ export type PredictiveSearchQueryVariables = Exact<{
 }>;
 
 
-export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text: string, styledText: string }>, products: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }>, collections: Array<{ id: string, handle: string, title: string }> } | null };
+export type PredictiveSearchQuery = { predictiveSearch: { queries: Array<{ text: string, styledText: string }>, products: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null }>, collections: Array<{ id: string, handle: string, title: string }> } | null };
 
 export type ComplementaryProductsQueryVariables = Exact<{
   productId: string | number;
 }>;
 
 
-export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } } }> | null };
+export type ComplementaryProductsQuery = { productRecommendations: Array<{ id: string, handle: string, title: string, featuredImage: { url: string, altText: string | null, width: number | null, height: number | null } | null, priceRange: { minVariantPrice: { amount: string, currencyCode: CurrencyCode } }, rating: { value: string } | null, ratingCount: { value: string } | null }> | null };
 
 export type NavMenuQueryVariables = Exact<{
   handle: string;
@@ -1741,6 +1741,12 @@ export const ProductCardFieldsFragmentDoc = new TypedDocumentString(`
       currencyCode
     }
   }
+  rating: metafield(namespace: "reviews", key: "rating") {
+    value
+  }
+  ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+    value
+  }
 }
     `, {"fragmentName":"ProductCardFields"}) as unknown as TypedDocumentString<ProductCardFieldsFragment, unknown>;
 export const CartFieldsFragmentDoc = new TypedDocumentString(`
@@ -1850,6 +1856,12 @@ export const CollectionProductsDocument = new TypedDocumentString(`
             currencyCode
           }
         }
+        rating: metafield(namespace: "reviews", key: "rating") {
+          value
+        }
+        ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+          value
+        }
       }
     }
   }
@@ -1872,6 +1884,12 @@ export const ProductByHandleDocument = new TypedDocumentString(`
     handle
     title
     subtitle: metafield(namespace: "descriptors", key: "subtitle") {
+      value
+    }
+    rating: metafield(namespace: "reviews", key: "rating") {
+      value
+    }
+    ratingCount: metafield(namespace: "reviews", key: "rating_count") {
       value
     }
     description
@@ -2024,6 +2042,12 @@ fragment ProductCardFields on Product {
       currencyCode
     }
   }
+  rating: metafield(namespace: "reviews", key: "rating") {
+    value
+  }
+  ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+    value
+  }
 }`) as unknown as TypedDocumentString<SearchProductsQuery, SearchProductsQueryVariables>;
 export const PredictiveSearchDocument = new TypedDocumentString(`
     query PredictiveSearch($query: String!, $limit: Int!) {
@@ -2062,6 +2086,12 @@ export const PredictiveSearchDocument = new TypedDocumentString(`
       currencyCode
     }
   }
+  rating: metafield(namespace: "reviews", key: "rating") {
+    value
+  }
+  ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+    value
+  }
 }`) as unknown as TypedDocumentString<PredictiveSearchQuery, PredictiveSearchQueryVariables>;
 export const ComplementaryProductsDocument = new TypedDocumentString(`
     query ComplementaryProducts($productId: ID!) {
@@ -2084,6 +2114,12 @@ export const ComplementaryProductsDocument = new TypedDocumentString(`
       amount
       currencyCode
     }
+  }
+  rating: metafield(namespace: "reviews", key: "rating") {
+    value
+  }
+  ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+    value
   }
 }`) as unknown as TypedDocumentString<ComplementaryProductsQuery, ComplementaryProductsQueryVariables>;
 export const NavMenuDocument = new TypedDocumentString(`

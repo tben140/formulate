@@ -20,6 +20,15 @@ export type {
 
 export { GALLERY_LIMIT, galleryAlt, galleryImages, galleryPosition } from "./gallery";
 export type { GalleryImage } from "./gallery";
+export {
+  formatReviewDate,
+  ratingLabel,
+  reviewSummary,
+  reviewerDisplayName,
+  singleRatingLabel,
+  starFills,
+} from "./reviews";
+export type { PublicReview, ReviewSummary } from "./reviews";
 
 export { formatMoney } from "./format-money";
 

@@ -51,6 +51,13 @@ export const CollectionProductsQuery = graphql(`
               currencyCode
             }
           }
+          # As in ProductCardFields, so collection cards show stars too.
+          rating: metafield(namespace: "reviews", key: "rating") {
+            value
+          }
+          ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+            value
+          }
         }
       }
     }
@@ -66,6 +73,13 @@ export const ProductByHandleQuery = graphql(`
       # A one-line summary shown under the title on every product page: the
       # standard "Product subtitle" metafield, set per product in the admin.
       subtitle: metafield(namespace: "descriptors", key: "subtitle") {
+        value
+      }
+      # Standard review metafields (see ProductCardFields and reviews.ts).
+      rating: metafield(namespace: "reviews", key: "rating") {
+        value
+      }
+      ratingCount: metafield(namespace: "reviews", key: "rating_count") {
         value
       }
       description
@@ -246,6 +260,14 @@ export const ProductCardFields = graphql(`
         amount
         currencyCode
       }
+    }
+    # Shopify's standard review metafields, kept in sync by the reviews app
+    # (Judge.me). Null until a product has reviews. See reviews.ts.
+    rating: metafield(namespace: "reviews", key: "rating") {
+      value
+    }
+    ratingCount: metafield(namespace: "reviews", key: "rating_count") {
+      value
     }
   }
 `);

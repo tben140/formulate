@@ -1,5 +1,6 @@
 import { handleOrderCounted, type OrderCountedEnv } from "./order-backup";
 import { handleOrderWebhook, type OrderWebhookEnv } from "./order-webhook";
+import { handleReviews, type ReviewsRouteEnv } from "./routes/reviews";
 import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 
 /**
@@ -16,7 +17,7 @@ import { handleSubscribe, type SubscribeEnv } from "./routes/subscribe";
 export { OrderBackup } from "./order-backup";
 export { RateLimiter } from "./rate-limiter";
 
-export type Env = SubscribeEnv & OrderWebhookEnv & OrderCountedEnv;
+export type Env = SubscribeEnv & ReviewsRouteEnv & OrderWebhookEnv & OrderCountedEnv;
 
 type Route = (request: Request, env: Env) => Promise<Response>;
 
@@ -35,6 +36,8 @@ const routes: ReadonlyMap<string, Route> = new Map<string, Route>([
   // The checkout pixel's "order counted" note (SHO-88). The one route with a
   // CORS header: see order-backup.ts and AGENTS.md.
   ["/orders/counted", handleOrderCounted],
+  // Product reviews (Judge.me): public, read-only. See src/reviews.ts.
+  ["/reviews", handleReviews],
 ]);
 
 export default {
