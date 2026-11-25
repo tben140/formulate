@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 /** True once hydrated: the button does nothing without JavaScript. */
 const useHydrated = (): boolean =>
@@ -19,18 +19,29 @@ const useHydrated = (): boolean =>
 export const ShareButton = ({ url, title }: { url: string; title: string }) => {
   const hydrated = useHydrated();
   const [copied, setCopied] = useState(false);
+  // One confirmation timer: a second copy restarts it rather than being cut
+  // short by the first one's.
+  const reset = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(reset.current), []);
   if (!hydrated) return null;
 
   const share = async () => {
     if (typeof navigator.share === "function") {
-      // A cancelled sheet rejects with AbortError; nothing to say about it.
-      await navigator.share({ title, url }).catch(() => {});
-      return;
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch (error) {
+        // A cancelled sheet rejects with AbortError: nothing to say about it.
+        // Anything else (NotAllowedError under a permissions policy) falls
+        // through to copying the link, as the theme's button does.
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
     }
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(reset.current);
+      reset.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // No clipboard either (an insecure origin): the address bar has the link.
     }

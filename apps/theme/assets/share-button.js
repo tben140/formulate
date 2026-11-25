@@ -39,9 +39,15 @@ class ShareButton extends Component {
     const url = this.dataset.url ?? window.location.href;
     const title = this.dataset.title ?? document.title;
     if (typeof navigator.share === "function") {
-      // A cancelled sheet rejects with AbortError; nothing to say about it.
-      await navigator.share({ title, url }).catch(() => {});
-      return;
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch (error) {
+        // A cancelled sheet rejects with AbortError: nothing to say about it.
+        // Anything else (NotAllowedError under a permissions policy) falls
+        // through to copying the link, so the button still does something.
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
     }
     const label = this.refs.label;
     try {
