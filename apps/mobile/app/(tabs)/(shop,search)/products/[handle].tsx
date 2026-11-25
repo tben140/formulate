@@ -15,7 +15,7 @@ import { BackInStockForm } from "../../../../components/back-in-stock-form";
 import { useCartUi } from "../../../../components/cart-provider";
 import { PairsWellWith } from "../../../../components/pairs-well-with";
 import { ProductGallery } from "../../../../components/product-gallery";
-import { RichText } from "../../../../components/rich-text";
+import { ProductDetails, ProductSummary } from "../../../../components/product-description";
 import { ShareButton } from "../../../../components/share-button";
 import { SiteFooter } from "../../../../components/site-footer";
 import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../../../components/sticky-add-to-cart";
@@ -216,7 +216,9 @@ const ProductBody = ({ product }: { product: Product }) => {
           ) : null}
         </View>
 
-        {product.descriptionHtml ? <RichText html={product.descriptionHtml} /> : null}
+        {/* Only the opening paragraph before the buy box; the rest follows it in
+            closed sections, as on web and the theme (descriptionSections). */}
+        <ProductSummary html={product.descriptionHtml} />
 
         {/*
           The price lives inside AddToCart, because it changes with the selection
@@ -251,6 +253,8 @@ const ProductBody = ({ product }: { product: Product }) => {
             }
           />
         ) : null}
+
+        <ProductDetails html={product.descriptionHtml} />
 
         <PairsWellWith productId={product.id} />
 
