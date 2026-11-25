@@ -8,23 +8,26 @@ import { EXPERIMENTS } from "@formulate/experiments";
 import { galleryImages } from "@formulate/shopify";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Keyboard, ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, Keyboard, ScrollView, View } from "react-native";
 
-import { AddToCart } from "../../components/add-to-cart";
-import { useCartUi } from "../../components/cart-provider";
-import { PairsWellWith } from "../../components/pairs-well-with";
-import { ProductGallery } from "../../components/product-gallery";
-import { RichText } from "../../components/rich-text";
-import { SiteFooter } from "../../components/site-footer";
-import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../components/sticky-add-to-cart";
-import { useExperiment } from "../../lib/experiments";
-import { trackEvent } from "../../lib/klaviyo";
-import { analytics } from "../../lib/product-analytics";
-import { useProduct } from "../../lib/queries";
-import { SITE_ORIGIN } from "../../lib/site";
-import { useTrackingConsent } from "../../lib/tracking-consent";
-import { usePurchase, type Product } from "../../lib/use-purchase";
+import { AddToCart } from "../../../../components/add-to-cart";
+import { BackInStockForm } from "../../../../components/back-in-stock-form";
+import { useCartUi } from "../../../../components/cart-provider";
+import { PairsWellWith } from "../../../../components/pairs-well-with";
+import { ProductGallery } from "../../../../components/product-gallery";
+import { RichText } from "../../../../components/rich-text";
+import { ShareButton } from "../../../../components/share-button";
+import { SiteFooter } from "../../../../components/site-footer";
+import { STICKY_BAR_HEIGHT, StickyAddToCart } from "../../../../components/sticky-add-to-cart";
+import { useExperiment } from "../../../../lib/experiments";
+import { trackEvent } from "../../../../lib/klaviyo";
+import { analytics } from "../../../../lib/product-analytics";
+import { useProduct } from "../../../../lib/queries";
+import { SITE_ORIGIN } from "../../../../lib/site";
+import { useTrackingConsent } from "../../../../lib/tracking-consent";
+import { usePurchase, type Product } from "../../../../lib/use-purchase";
+import { productWebUrl } from "../../../../lib/web-links";
+import { Text } from "../../../../components/text";
 
 /** Whether the software keyboard is showing. The "did" events fire on both platforms. */
 const useKeyboardOpen = () => {
@@ -49,7 +52,7 @@ const ProductScreen = () => {
   if (isPending) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator />
+        <ActivityIndicator accessibilityLabel="Loading product" />
       </View>
     );
   }
@@ -120,7 +123,6 @@ const ProductBody = ({ product }: { product: Product }) => {
   const params = useLocalSearchParams<Record<string, string | string[]>>();
   useExperiment(aa, params[aa.key]);
 
-  const { bottom } = useSafeAreaInsets();
   const purchase = usePurchase(product);
 
   /*
@@ -148,6 +150,8 @@ const ProductBody = ({ product }: { product: Product }) => {
   const keyboardOpen = useKeyboardOpen();
   const showBar = button !== null && view.height > 0 && !buttonOnScreen && !keyboardOpen;
 
+  // The image's drawn size: the screen width less the 16 pt padding each side.
+
   return (
     <View className="flex-1">
       <ScrollView
@@ -164,7 +168,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         contentContainerStyle={{
           padding: 16,
           gap: 16,
-          paddingBottom: STICKY_BAR_HEIGHT + bottom + 16,
+          // No home-indicator inset: the tab bar below the screen takes it.
+          paddingBottom: STICKY_BAR_HEIGHT + 16,
         }}
         /*
           The footer's email field is the last thing in this view, so the
@@ -173,6 +178,8 @@ const ProductBody = ({ product }: { product: Product }) => {
         */
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode="on-drag"
+        // Sign up takes one tap with the keyboard up; see collection-view.tsx.
+        keyboardShouldPersistTaps="handled"
         scrollEventThrottle={32}
         /*
           ⚠️ Read the event before calling setView. React Native recycles the
@@ -189,7 +196,14 @@ const ProductBody = ({ product }: { product: Product }) => {
           setView((v) => ({ ...v, offset }));
         }}
       >
-        <Stack.Screen options={{ title: product.title }} />
+        <Stack.Screen
+          options={{
+            title: product.title,
+            headerRight: () => (
+              <ShareButton url={productWebUrl(product.handle)} title={product.title} />
+            ),
+          }}
+        />
 
         <ProductGallery images={galleryImages(product)} title={product.title} />
 
@@ -225,6 +239,18 @@ const ProductBody = ({ product }: { product: Product }) => {
             }}
           />
         </View>
+
+        {purchase.soldOut && purchase.variant ? (
+          <BackInStockForm
+            key={purchase.variant.id}
+            variantId={purchase.variant.id}
+            itemName={
+              purchase.variant.title === "Default Title"
+                ? product.title
+                : `${product.title}, ${purchase.variant.title}`
+            }
+          />
+        ) : null}
 
         <PairsWellWith productId={product.id} />
 

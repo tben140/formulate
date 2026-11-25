@@ -1,7 +1,8 @@
 import { formatMoney, type MoneyLike } from "@formulate/shopify";
-import { Image } from "expo-image";
 import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { Text } from "./text";
+import { ShopImage } from "./shop-image";
 
 export type ProductRowData = {
   readonly handle: string;
@@ -21,16 +22,15 @@ export const ProductRow = ({ product }: { readonly product: ProductRowData }) =>
       accessibilityLabel={`${product.title}, ${formatMoney(product.priceRange.minVariantPrice)}`}
       className="flex-row items-center gap-3 rounded-lg border border-border p-3"
     >
-      <Image
-        source={product.featuredImage?.url}
-        contentFit="cover"
-        transition={150}
+      <ShopImage
+        url={product.featuredImage?.url}
+        width={64}
+        height={64}
         style={{ width: 64, height: 64, borderRadius: 8 }}
-        accessibilityIgnoresInvertColors
       />
       <View className="flex-1">
         <Text className="text-base font-medium text-foreground">{product.title}</Text>
-        <Text className="mt-1 text-sm text-foreground-muted">
+        <Text className="mt-1 font-mono text-sm text-foreground-muted">
           {formatMoney(product.priceRange.minVariantPrice)}
         </Text>
       </View>

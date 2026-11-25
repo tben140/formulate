@@ -1,8 +1,9 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 
-import { RichText } from "../../components/rich-text";
-import { usePolicy } from "../../lib/queries";
+import { RichText } from "../../../../components/rich-text";
+import { Text } from "../../../../components/text";
+import { usePolicy } from "../../../../lib/queries";
 
 /**
  * A store policy (privacy, subscription and so on), as written in Shopify

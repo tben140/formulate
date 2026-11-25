@@ -14,8 +14,10 @@ import {
   type FilterLike,
 } from "@formulate/shopify";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text } from "./text";
+import { fontFor } from "../lib/fonts";
 
 import { COLLECTION_PAGE_SIZE, useCollection } from "../lib/queries";
 
@@ -221,7 +223,7 @@ const FilterSheet = ({
                     key={option.value}
                     onPress={() => setDraft(withSort(params, option.value).toString())}
                     accessibilityRole="radio"
-                    accessibilityState={{ checked: selected }}
+                    aria-checked={selected}
                     className="flex-row items-center gap-3 py-2"
                   >
                     <View
@@ -347,7 +349,10 @@ const GroupView = ({
                   setDraft(withValueToggled(params, filter, value).toString())
                 }
                 accessibilityRole="checkbox"
-                accessibilityState={{ checked }}
+                // aria-checked, not accessibilityState: react-native-web drops a
+                // false accessibilityState.checked, so an unticked box had no
+                // state on web (SHO-92). It maps the same on native.
+                aria-checked={checked}
                 accessibilityLabel={`${value.label}, ${value.count} ${value.count === 1 ? "product" : "products"}`}
                 className="flex-row items-center gap-3 py-2"
               >
@@ -428,6 +433,8 @@ const PriceGroup = ({
           <View key={label} className="flex-1 gap-1">
             <Text className="text-sm text-foreground">{label}</Text>
             <TextInput
+              // TextInput doesn't inherit a font either (SHO-144).
+              style={{ fontFamily: fontFor() }}
               defaultValue={value ?? ""}
               // Into the draft on every keystroke, not on blur: "Show results"
               // sits outside the scroll view and doesn't blur the field, and

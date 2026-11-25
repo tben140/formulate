@@ -1,3 +1,5 @@
+import { APP_IDENTIFIERS, APP_LINK_PATHS } from "@formulate/shopify";
+
 /**
  * The files that let a link to this site open the app instead (universal
  * links on iOS, App Links on Android), served under `/.well-known/`.
@@ -8,17 +10,11 @@
  * set. A file with a placeholder would be worse than none: the OS caches it and
  * treats the association as tried and failed.
  *
- * Only product and collection pages are claimed, the screens the app has. A
- * claimed path the app can't show would open a blank screen instead of the
- * page. The app's side is `associatedDomains` and `intentFilters` in
- * apps/mobile/app.config.ts, which must claim the same paths.
+ * The claimed paths are APP_LINK_PATHS and the app's ids APP_IDENTIFIERS
+ * (packages/shopify routes.ts), which apps/mobile/app.config.ts reads too, so
+ * the two sides can't drift. Only screens the app has are claimed: a path it
+ * can't show would open a blank screen instead of the page.
  */
-
-/** The bundle id and Android package, as in apps/mobile/app.config.ts. */
-export const APP_ID = "com.tben140.formulate";
-
-/** The paths both platforms open in the app. */
-export const APP_PATHS = ["/products/*", "/collections/*"] as const;
 
 const json = (body: unknown): Response =>
   new Response(JSON.stringify(body), {
@@ -38,8 +34,8 @@ export const appleAppSiteAssociation = (): Response => {
     applinks: {
       details: [
         {
-          appIDs: [`${team}.${APP_ID}`],
-          components: APP_PATHS.map((path) => ({ "/": path })),
+          appIDs: [`${team}.${APP_IDENTIFIERS.ios}`],
+          components: APP_LINK_PATHS.map((path) => ({ "/": path })),
         },
       ],
     },
@@ -62,7 +58,7 @@ export const assetLinks = (): Response => {
       relation: ["delegate_permission/common.handle_all_urls"],
       target: {
         namespace: "android_app",
-        package_name: APP_ID,
+        package_name: APP_IDENTIFIERS.android,
         sha256_cert_fingerprints: fingerprints,
       },
     },

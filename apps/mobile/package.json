@@ -9,9 +9,11 @@
     "android": "expo run:android",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "build": "expo export --platform ios --output-dir dist"
+    "build": "expo export --platform ios --output-dir dist",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "@formulate/analytics": "workspace:*",
     "@formulate/experiments": "workspace:*",
     "@formulate/shopify": "workspace:*",
@@ -20,6 +22,7 @@
     "@tanstack/react-query": "^5.101.4",
     "expo": "~58.0.23",
     "expo-constants": "~58.0.15",
+    "expo-font": "~58.0.9",
     "expo-image": "~58.0.18",
     "expo-linking": "~58.0.16",
     "expo-router": "~58.0.30",
@@ -38,8 +41,10 @@
     "react-native-web": "~0.21.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@formulate/eslint-config": "workspace:*",
     "@formulate/typescript-config": "workspace:*",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19.3.0",
     "eslint": "^10.8.0",

@@ -1,5 +1,6 @@
 import { richTextBlocks, type RichTextBlock } from "@formulate/shopify";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { Text } from "./text";
 
 /**
  * Store rich text (a product description, a policy body) as native text. The

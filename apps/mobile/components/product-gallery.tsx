@@ -1,23 +1,22 @@
-import { galleryAlt, galleryPosition, type GalleryImage } from "@formulate/shopify";
+import {
+  galleryAlt,
+  galleryPosition,
+  sizedImageUrl,
+  type GalleryImage,
+} from "@formulate/shopify";
 import { Image } from "expo-image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
+  PixelRatio,
   Pressable,
   ScrollView,
-  Text,
   View,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
-
-/** A Shopify CDN image at this width, for a thumbnail: not the original. */
-const sized = (url: string, width: number): string => {
-  const parsed = new URL(url);
-  parsed.searchParams.set("width", String(width));
-  return parsed.toString();
-};
+import { Text } from "./text";
 
 /** Slides this far either side of the one shown load their full image. */
 const NEARBY = 1;
@@ -155,7 +154,11 @@ export const ProductGallery = ({
             renderItem={({ item, index }) => (
               <Image
                 // Pages further away keep their space but load nothing yet.
-                source={Math.abs(index - current) <= NEARBY ? item.url : undefined}
+                source={
+                  Math.abs(index - current) <= NEARBY
+                    ? sizedImageUrl(item.url, { width: width * PixelRatio.get() })
+                    : undefined
+                }
                 contentFit="cover"
                 contentPosition="center"
                 transition={150}
@@ -214,8 +217,8 @@ export const ProductGallery = ({
               }`}
             >
               <Image
-                // Three times its 56pt, for the sharpest screens.
-                source={sized(image.url, 168)}
+                // Three times its 56 pt, for the sharpest screens (SHO-62).
+                source={sizedImageUrl(image.url, { width: 168, height: 168 })}
                 contentFit="cover"
                 style={{ width: 56, height: 56 }}
                 // Decorative: the button around it carries the label, so

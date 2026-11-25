@@ -6,16 +6,8 @@ import {
   startedCheckout,
 } from "@formulate/analytics";
 import { formatMoney } from "@formulate/shopify";
-import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 
 import { useCheckout } from "../lib/checkout";
 import { trackEvent } from "../lib/klaviyo";
@@ -24,6 +16,8 @@ import { SITE_ORIGIN } from "../lib/site";
 import { useClearCart, useOptimisticCart, useUpdateCartLine } from "../lib/use-cart";
 
 import { FreeShippingBar } from "./free-shipping-bar";
+import { Text } from "./text";
+import { ShopImage } from "./shop-image";
 
 /**
  * The cart, as a bottom sheet.
@@ -178,7 +172,7 @@ export const CartSheet = ({
 
         {isPending ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator />
+            <ActivityIndicator accessible accessibilityLabel="Loading your cart" />
           </View>
         ) : lines.length === 0 ? (
           <Text className="p-8 text-sm text-foreground-muted">Your cart is empty.</Text>
@@ -194,11 +188,12 @@ export const CartSheet = ({
                   className={`flex-row gap-3 border-b border-border px-4 py-4 ${busy.has(line.id) ? "opacity-60" : ""}`}
                 >
                   {variant.image ? (
-                    <Image
-                      source={variant.image.url}
-                      contentFit="cover"
+                    <ShopImage
+                      url={variant.image.url}
+                      width={64}
+                      height={64}
+                      transition={0}
                       style={{ width: 64, height: 64, borderRadius: 8 }}
-                      accessibilityIgnoresInvertColors
                     />
                   ) : null}
 
@@ -264,7 +259,7 @@ export const CartSheet = ({
                         </Pressable>
                       </View>
 
-                      <Text className="text-sm text-foreground">
+                      <Text className="text-sm text-foreground font-mono">
                         {formatMoney(line.cost.totalAmount)}
                       </Text>
                     </View>
@@ -279,7 +274,7 @@ export const CartSheet = ({
           <View className="border-t border-border px-4 pb-8 pt-4">
             <View className="mb-3 flex-row items-center justify-between">
               <Text className="text-sm text-foreground-muted">Subtotal</Text>
-              <Text className="text-sm font-medium text-foreground">
+              <Text className="text-sm font-medium text-foreground font-mono">
                 {formatMoney(cart.cost.subtotalAmount)}
               </Text>
             </View>

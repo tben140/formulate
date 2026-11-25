@@ -1,9 +1,9 @@
 import { useState } from "react";
 import {
   AccessibilityInfo,
+  Keyboard,
   Platform,
   Pressable,
-  Text,
   TextInput,
   View,
 } from "react-native";
@@ -12,6 +12,8 @@ import type { SubscribeResult } from "@formulate/analytics";
 
 import { subscribe } from "../lib/klaviyo";
 import { useIdentifyBuyer } from "../lib/use-cart";
+import { Text } from "./text";
+import { fontFor } from "../lib/fonts";
 
 /**
  * Turns a failure into something a shopper can act on.
@@ -80,6 +82,9 @@ export const EmailCapture = () => {
 
   const onSubmit = async () => {
     if (pending) return;
+    // The result message sits below the field, which is exactly where the
+    // keyboard is. Closing it on submit is what makes the outcome visible.
+    Keyboard.dismiss();
     setPending(true);
 
     const result = await subscribe(email);
@@ -130,6 +135,8 @@ export const EmailCapture = () => {
 
       <View className="mt-2 flex-row gap-2">
         <TextInput
+          // TextInput doesn't inherit a font either (SHO-144).
+          style={{ fontFamily: fontFor() }}
           value={email}
           onChangeText={(next) => {
             setEmail(next);

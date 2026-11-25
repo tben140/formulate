@@ -1,9 +1,10 @@
 import { PRODUCT_EVENTS, numericId, productRef } from "@formulate/analytics";
 import { findVariantByOptions, formatMoney, withOption } from "@formulate/shopify";
-import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
+import { Pressable, View, type LayoutChangeEvent } from "react-native";
 
 import { analytics } from "../lib/product-analytics";
 import type { Product, Purchase } from "../lib/use-purchase";
+import { Text } from "./text";
 
 /**
  * Variant pickers, subscribe-and-save, and add to cart.
@@ -72,7 +73,10 @@ export const AddToCart = ({
                       }
                     }}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: checked }}
+                    // aria-checked, not accessibilityState.selected: a radio
+                    // is checked, and react-native-web only writes
+                    // aria-checked from the aria- prop, including false.
+                    aria-checked={checked}
                     // Sold-out combinations stay selectable — a shopper who
                     // wants one needs to select it and be told it is gone.
                     accessibilityLabel={
@@ -120,7 +124,7 @@ export const AddToCart = ({
                   });
                 }}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: effectivePlanId === choice.id }}
+                aria-checked={effectivePlanId === choice.id}
                 accessibilityLabel={
                   choice.price
                     ? `${choice.label}, ${formatMoney(choice.price)}`
@@ -135,7 +139,7 @@ export const AddToCart = ({
                 <Text className="text-sm text-foreground">{choice.label}</Text>
                 {choice.price ? (
                   <Text
-                    className={`text-sm ${
+                    className={`font-mono text-sm ${
                       effectivePlanId === choice.id
                         ? "text-foreground"
                         : "text-foreground-muted"
@@ -151,7 +155,7 @@ export const AddToCart = ({
       ) : null}
 
       {displayPrice ? (
-        <Text className="text-2xl font-semibold text-foreground">
+        <Text className="text-2xl font-semibold text-foreground font-mono">
           {formatMoney(displayPrice)}
         </Text>
       ) : null}

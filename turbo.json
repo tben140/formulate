@@ -17,7 +17,10 @@
     "NEXT_PUBLIC_KLAVIYO_LIST_ID",
     "NEXT_PUBLIC_POSTHOG_KEY",
     "EXPO_PUBLIC_POSTHOG_KEY",
-    "SITE_URL"
+    "SITE_URL",
+    "ANDROID_CERT_SHA256",
+    "APPLE_TEAM_ID",
+    "EXPO_PUBLIC_WEB_URL"
   ],
   "tasks": {
     "build": {

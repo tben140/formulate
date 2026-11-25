@@ -1,4 +1,3 @@
-import { Image } from "expo-image";
 import { Link, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import {
@@ -7,10 +6,8 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Text,
   View,
 } from "react-native";
-
 import {
   useCollection,
   useCollectionCards,
@@ -19,6 +16,8 @@ import {
 } from "../lib/queries";
 import { ProductRow } from "./product-row";
 import { SiteFooter } from "./site-footer";
+import { Text } from "./text";
+import { ShopImage } from "./shop-image";
 
 /** How many featured products the home screen lists before "View all". */
 const FEATURED_COUNT = 4;
@@ -80,6 +79,8 @@ export const HomeView = () => {
       // The footer's email field is last; see collection-view.tsx.
       automaticallyAdjustKeyboardInsets
       keyboardDismissMode="on-drag"
+      // Sign up takes one tap with the keyboard up; see collection-view.tsx.
+      keyboardShouldPersistTaps="handled"
     >
       <View className="rounded-xl bg-surface-muted p-6">
         <Text
@@ -165,12 +166,12 @@ export const HomeView = () => {
                     accessibilityLabel={link.title}
                     className="w-36 overflow-hidden rounded-lg border border-border"
                   >
-                    <Image
-                      source={image?.url}
-                      contentFit="cover"
-                      transition={150}
+                    {/* The card is w-36: 144 pt square. */}
+                    <ShopImage
+                      url={image?.url}
+                      width={144}
+                      height={144}
                       style={{ width: "100%", aspectRatio: 1 }}
-                      accessibilityIgnoresInvertColors
                     />
                     <Text className="p-3 text-sm font-medium text-foreground">
                       {link.title}

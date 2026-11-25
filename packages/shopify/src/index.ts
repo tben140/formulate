@@ -74,14 +74,23 @@ export type { CartSuggestion } from "./recommendations";
 export type { MoneyLike } from "./format-money";
 
 export {
+  ONE_TIME,
   defaultSelectedOptions,
+  displayPrice,
+  effectivePlanId,
   findVariantByOptions,
   hasOwningApp,
   purchasableAllocations,
   purchasableSellingPlanGroups,
+  purchaseOptions,
+  selectionStatus,
   withOption,
 } from "./product-selection";
-export type { SelectedOption } from "./product-selection";
+export type {
+  PurchaseOption,
+  SelectedOption,
+  SelectionStatus,
+} from "./product-selection";
 
 export {
   CartBuyerIdentityUpdateMutation,
@@ -144,6 +153,21 @@ export {
   withValueToggled,
 } from "./filters";
 export type { FilterLike, FilterValueLike } from "./filters";
+export { WEBP_ACCEPT, sizedImageUrl } from "./image-url";
+export {
+  nextCursor,
+  nextPageParams,
+  pageVariables,
+  previousPageParams,
+} from "./pagination";
+export type { PageInfoLike, PageVariables } from "./pagination";
+export {
+  APP_IDENTIFIERS,
+  APP_LINK_PATHS,
+  SHARED_ROUTES,
+  SURFACE_ONLY_ROUTES,
+  paths,
+} from "./routes";
 export {
   FILTER_GROUPS_OPEN,
   FILTER_VALUES_SHOWN,
@@ -157,6 +181,8 @@ export {
 } from "./listing";
 export type { FilterGroup, SortOption } from "./listing";
 export type { ProductFilter } from "./generated/graphql";
+export { descriptionBlocks } from "./description";
+export type { DescriptionBlock } from "./description";
 
 export { policyBlocks, richTextBlocks } from "./rich-text";
 export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";
