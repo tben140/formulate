@@ -6,6 +6,7 @@ import Link from "@/components/link";
 import { notFound } from "next/navigation";
 
 import { AddToCartForm } from "@/components/add-to-cart-form";
+import { ProductDetails, ProductSummary } from "@/components/product-description";
 import { JsonLd } from "@/components/json-ld";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
@@ -114,9 +115,13 @@ const ProductPage = async ({ params }: PageProps) => {
 
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{product.title}</h1>
 
-        {product.description ? (
-          <p className="mt-4 text-foreground-muted">{product.description}</p>
-        ) : null}
+        {/*
+          Only the opening paragraph comes before the buy box; the rest of the
+          description follows it, in closed sections. On a phone the button was
+          a long scroll down, below every variant's specification. The same
+          order on the app and the theme (descriptionSections, packages/shopify).
+        */}
+        <ProductSummary html={product.descriptionHtml} />
 
         {/*
           The price now lives inside the form, because it changes with the
@@ -125,6 +130,8 @@ const ProductPage = async ({ params }: PageProps) => {
           whatever the shopper had chosen.
         */}
         <AddToCartForm product={product} />
+
+        <ProductDetails html={product.descriptionHtml} />
       </div>
     </article>
   );
