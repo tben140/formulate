@@ -2,7 +2,8 @@ import type { RateLimiter } from "./rate-limiter";
 
 export { RateLimiter } from "./rate-limiter";
 
-import { deleteAccount, previewDeletion, type DeletionEnv } from "./account-deletion";
+import { deleteAccount, previewDeletion } from "./account-deletion";
+import { handleProxyDeletion, type AppProxyEnv } from "./app-proxy";
 
 import {
   KLAVIYO_REVISION,
@@ -33,7 +34,7 @@ import {
  * ever needing it.
  */
 
-interface Env extends DeletionEnv {
+interface Env extends AppProxyEnv {
   /** Set with `wrangler secret put`. Never in `vars`, never in the repo. */
   readonly KLAVIYO_PRIVATE_KEY: string;
   readonly KLAVIYO_LIST_ID: string;
@@ -166,6 +167,35 @@ export default {
       return json({ ok: false, reason: "rejected" }, 415);
     }
 
+    // The theme's account deletion, through Shopify's app proxy
+    // (src/app-proxy.ts). Before the IP limit: every proxied request comes
+    // from Shopify's servers, so it's limited per customer instead.
+    const url = new URL(request.url);
+    if (url.pathname.startsWith("/proxy/")) {
+      if (
+        url.pathname !== "/proxy/account/deletion/preview" &&
+        url.pathname !== "/proxy/account/deletion"
+      ) {
+        return json({ ok: false, reason: "rejected" }, 404);
+      }
+      const raw = await request.text();
+      if (raw.length > MAX_BODY_BYTES) {
+        return json({ ok: false, reason: "rejected" }, 413);
+      }
+      const { status, body } = await handleProxyDeletion(
+        env,
+        url,
+        raw,
+        async (customerId) =>
+          (
+            await env.RATE_LIMITER.get(
+              env.RATE_LIMITER.idFromName(`customer:${customerId}`),
+            ).limit()
+          ).success,
+      );
+      return respond(body, status);
+    }
+
     /*
      * Rate limit keyed on the connecting IP.
      *
@@ -186,7 +216,7 @@ export default {
       return json({ ok: false, reason: "rejected" }, 413);
     }
 
-    const { pathname } = new URL(request.url);
+    const { pathname } = url;
 
     // Restock alerts (SHO-118) share every check above, then take one more
     // field: the variant.

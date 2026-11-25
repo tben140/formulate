@@ -32,7 +32,8 @@
     "text": "Text",
     "theme": "Theme",
     "typography": "Typography",
-    "cart_suggestions": "Cart suggestions"
+    "cart_suggestions": "Cart suggestions",
+    "account_deletion": "Account deletion"
   },
   "labels": {
     "alignment": "Alignment",

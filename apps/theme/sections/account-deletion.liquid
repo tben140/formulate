@@ -1,0 +1,194 @@
+{% comment %}
+  Delete your account (SHO-90), the theme's counterpart of apps/web's
+  /account/delete and the app's Account → Delete account. Used by a page with
+  the `page.delete-account` template.
+
+  The theme can't send a Customer Account token as web and the app do, so
+  account-deletion.js posts to this store's app proxy,
+  /apps/double-helix/account/deletion…, and Shopify forwards the request to
+  the Worker with the signed-in customer's id, signed. See
+  apps/api/src/app-proxy.ts.
+
+  ⚠️ The words are a promise to the customer, copied from DELETION_COPY in
+  packages/shopify/src/account-deletion.ts (the theme has no build step to
+  import it). Change one, change the other.
+{% endcomment %}
+<div class="container page-section account-deletion">
+  <h1>{{ 'account_deletion.heading' | t }}</h1>
+  <p class="account-deletion__intro">{{ 'account_deletion.intro' | t }}</p>
+
+  <h2 class="account-deletion__subheading">{{ 'account_deletion.what_happens_heading' | t }}</h2>
+  <ul class="account-deletion__list">
+    <li>{{ 'account_deletion.what_happens_1' | t }}</li>
+    <li>{{ 'account_deletion.what_happens_2' | t }}</li>
+    <li>{{ 'account_deletion.what_happens_3' | t }}</li>
+  </ul>
+
+  {% if customer %}
+    <noscript>
+      <p class="account-deletion__note">{{ 'account_deletion.no_script' | t }}</p>
+    </noscript>
+    <account-deletion
+      class="account-deletion__panel"
+      data-endpoint="/apps/double-helix/account/deletion"
+      data-next-delivery="{{ 'account_deletion.next_delivery' | t: date: '%DATE%' }}"
+      data-prepaid="{{ 'account_deletion.prepaid' | t }}"
+      data-confirm-required="{{ 'account_deletion.confirm_required' | t }}"
+      data-pending="{{ 'account_deletion.pending' | t }}"
+      data-error-unauthorized="{{ 'account_deletion.error_unauthorized' | t }}"
+      data-error-unavailable="{{ 'account_deletion.error_unavailable' | t }}"
+      data-error-not-configured="{{ 'account_deletion.error_not_configured' | t }}"
+      data-error-subscriptions="{{ 'account_deletion.error_subscriptions' | t }}"
+      data-error-partial="{{ 'account_deletion.error_partial' | t }}"
+      data-error-rate-limited="{{ 'account_deletion.error_rate_limited' | t }}"
+      data-error-generic="{{ 'account_deletion.error_generic' | t }}"
+      hidden
+    >
+      <p ref="loading" class="account-deletion__note">{{ 'account_deletion.loading' | t }}</p>
+
+      <div ref="preview" hidden>
+        <p ref="none" class="account-deletion__note" hidden>
+          {{ 'account_deletion.no_subscriptions' | t }}
+        </p>
+        <div ref="some" hidden>
+          <h2 class="account-deletion__subheading">
+            {{ 'account_deletion.subscriptions_heading' | t }}
+          </h2>
+          <ul ref="subscriptions" class="account-deletion__subscriptions"></ul>
+        </div>
+        <p ref="chargeToday" class="account-deletion__warning" hidden>
+          {{ 'account_deletion.charge_today' | t }}
+        </p>
+
+        {% comment %} POST, never GET: a confirmation must not live in a URL. {% endcomment %}
+        <form ref="form" class="account-deletion__form" method="post" novalidate>
+          <label class="account-deletion__confirm">
+            <input ref="confirm" type="checkbox" required aria-describedby="account-deletion-message">
+            {{ 'account_deletion.confirm_label' | t }}
+          </label>
+          {% comment %}
+            aria-disabled, never disabled, while sending: a focused button that
+            becomes disabled drops focus to <body> (SHO-134).
+          {% endcomment %}
+          <button ref="submit" class="account-deletion__button" type="submit">
+            {{ 'account_deletion.button' | t }}
+          </button>
+        </form>
+      </div>
+
+      <p
+        ref="message"
+        id="account-deletion-message"
+        class="account-deletion__message"
+        role="status"
+        aria-live="polite"
+      ></p>
+
+      <div ref="done" class="account-deletion__done" tabindex="-1" hidden>
+        <h2 class="account-deletion__subheading">{{ 'account_deletion.deleted_heading' | t }}</h2>
+        <p>{{ 'account_deletion.deleted_body' | t }}</p>
+        <a class="account-deletion__button" href="{{ routes.account_logout_url }}">
+          {{- 'account_deletion.sign_out' | t -}}
+        </a>
+      </div>
+    </account-deletion>
+  {% else %}
+    <p class="account-deletion__note">{{ 'account_deletion.signed_out' | t }}</p>
+    <a class="account-deletion__button" href="{{ routes.account_login_url }}">
+      {{- 'account_deletion.sign_in' | t -}}
+    </a>
+  {% endif %}
+</div>
+
+{% stylesheet %}
+  /* Matched against apps/web's /account/delete. */
+  .account-deletion {
+    max-width: 40rem;
+  }
+  .account-deletion__intro,
+  .account-deletion__note {
+    color: var(--color-foreground-muted);
+  }
+  .account-deletion__subheading {
+    margin-block-start: var(--spacing-6);
+    font-size: var(--text-base);
+    font-weight: 600;
+  }
+  .account-deletion__list,
+  .account-deletion__subscriptions {
+    margin-block-start: var(--spacing-2);
+    padding-inline-start: var(--spacing-5);
+    list-style: disc;
+  }
+  .account-deletion__list li + li,
+  .account-deletion__subscriptions li + li {
+    margin-block-start: var(--spacing-2);
+  }
+  .account-deletion__panel {
+    display: block;
+    margin-block-start: var(--spacing-6);
+  }
+  .account-deletion__panel[hidden] {
+    display: none;
+  }
+  .account-deletion__warning {
+    margin-block-start: var(--spacing-4);
+    padding: var(--spacing-3);
+    font-size: var(--text-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+  .account-deletion__form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-4);
+    margin-block-start: var(--spacing-6);
+  }
+  .account-deletion__confirm {
+    display: flex;
+    gap: var(--spacing-2);
+    align-items: center;
+  }
+  .account-deletion__button {
+    display: inline-block;
+    margin-block-start: var(--spacing-4);
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-surface);
+    background: var(--color-danger);
+    border: 0;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .account-deletion__form .account-deletion__button {
+    margin-block-start: 0;
+  }
+  .account-deletion__button[aria-disabled='true'] {
+    cursor: wait;
+    opacity: 0.7;
+  }
+  .account-deletion__button:focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+  .account-deletion__message {
+    margin-block-start: var(--spacing-3);
+    font-size: var(--text-sm);
+  }
+  .account-deletion__done p {
+    margin-block-start: var(--spacing-2);
+  }
+  .account-deletion__message:empty {
+    display: none;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "t:general.account_deletion",
+  "settings": []
+}
+{% endschema %}

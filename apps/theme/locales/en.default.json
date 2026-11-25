@@ -133,5 +133,36 @@
   "footer": {
     "social": "Social media",
     "payment_methods": "Payment methods"
+  },
+  "account_deletion": {
+    "heading": "Delete your account",
+    "intro": "This permanently deletes your account. You can't undo it.",
+    "what_happens_heading": "What happens",
+    "what_happens_1": "Your subscriptions are cancelled straight away, so you won't be charged again.",
+    "what_happens_2": "Your marketing preferences and email history with us are deleted.",
+    "what_happens_3": "Shopify erases your account details and order history. If you've ordered in the last six months, Shopify keeps your order records until six months have passed, because we must keep them for tax and accounting. Otherwise it happens within about 10 days.",
+    "signed_out": "Sign in to delete your account.",
+    "sign_in": "Sign in",
+    "loading": "Checking your subscriptions…",
+    "no_subscriptions": "You don't have any active subscriptions.",
+    "subscriptions_heading": "These subscriptions will be cancelled",
+    "next_delivery": "Next delivery {{ date }}",
+    "charge_today": "A subscription payment is due today and may already be processing. If it has been taken, that order will still be sent.",
+    "prepaid": "Paid in advance: the remaining deliveries won't be sent. Contact us about a refund.",
+    "confirm_label": "I understand this can't be undone",
+    "confirm_required": "Tick the box to confirm first.",
+    "button": "Delete my account",
+    "pending": "Deleting…",
+    "deleted_heading": "Your account has been deleted",
+    "deleted_body": "We've cancelled your subscriptions. Shopify will finish erasing your details as described above. Sign out now to finish on this device. If you change your mind, you can create a new account at any time, but your order history won't come back.",
+    "sign_out": "Sign out",
+    "no_script": "Account deletion needs JavaScript. Contact us and we'll delete your account for you.",
+    "error_unauthorized": "Your sign-in has expired. Please sign in again, then try once more.",
+    "error_unavailable": "We couldn't reach the account service, so nothing has been deleted. Please try again in a moment.",
+    "error_not_configured": "Account deletion isn't available here yet. Contact us and we'll delete your account for you.",
+    "error_subscriptions": "We couldn't cancel your subscriptions, so nothing has been deleted. Please try again in a moment.",
+    "error_partial": "Your subscriptions are cancelled, but we couldn't finish deleting your account. Please try again: it's safe to repeat.",
+    "error_rate_limited": "Too many attempts. Please wait a minute and try again.",
+    "error_generic": "Something went wrong and nothing was deleted. Please try again."
   }
 }

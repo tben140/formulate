@@ -22,3 +22,13 @@ use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [ ]
+
+# Account deletion on the theme (SHO-90). The theme posts to
+# /apps/double-helix/account/deletion… on its own store; Shopify forwards it to
+# the Worker's /proxy/… with the signed-in customer's id, signed with this
+# app's client secret. The Worker checks that signature (apps/api/src/app-proxy.ts)
+# and needs the secret as SHOPIFY_APP_PROXY_SECRET.
+[app_proxy]
+url = "https://formulate-api.tben140-6bc.workers.dev/proxy"
+subpath = "double-helix"
+prefix = "apps"
