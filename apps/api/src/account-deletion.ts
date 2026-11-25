@@ -79,6 +79,12 @@ export interface DeletionPreview {
   }[];
   /** A charge is due today: it may already be processing, and can't be stopped. */
   readonly chargeToday: boolean;
+  /**
+   * The theme only (app-proxy.ts): deletion through the proxy needs this
+   * back. Only the store's own page can read it, so another site can't
+   * delete a signed-in shopper's account by posting to the proxy.
+   */
+  readonly confirmToken?: string;
 }
 
 export type DeletionFailure = {
@@ -102,7 +108,10 @@ export type DeletionResult =
     }
   | { readonly status: number; readonly body: DeletionFailure };
 
-const fail = (status: number, reason: DeletionFailure["reason"]): DeletionResult => ({
+export const fail = (
+  status: number,
+  reason: DeletionFailure["reason"],
+): DeletionResult => ({
   status,
   body: { ok: false, reason },
 });
@@ -248,7 +257,7 @@ const isPrepaid = (subscription: AdminSubscription): boolean =>
   Number(subscription.charge_interval_frequency) >
   Number(subscription.order_interval_frequency);
 
-interface Authorised extends VerifiedCustomer {
+export interface Authorised extends VerifiedCustomer {
   /** A live Shopify Admin token, obtained before anything is changed. */
   readonly adminToken: string;
 }
@@ -289,8 +298,70 @@ const authorise = async (
   return { ...customer, adminToken };
 };
 
-const isResult = (value: Authorised | DeletionResult): value is DeletionResult =>
+export const isResult = (value: Authorised | DeletionResult): value is DeletionResult =>
   "status" in value;
+
+/**
+ * The theme's way in (app-proxy.ts): the customer id comes from Shopify's
+ * signature on the proxied request, already checked, so only the email is
+ * looked up here, with the Admin token. Every other check is as above.
+ */
+export const authoriseCustomerId = async (
+  env: DeletionEnv,
+  customerId: string,
+): Promise<Authorised | DeletionResult> => {
+  if (
+    !hasAdminCredentials(env) ||
+    !env.RECHARGE_ADMIN_TOKEN ||
+    !env.KLAVIYO_DELETION_KEY
+  ) {
+    console.error(
+      "account deletion: a Shopify, Recharge or Klaviyo credential is not set",
+    );
+    return fail(503, "not-configured");
+  }
+  let adminToken: string | null;
+  try {
+    adminToken = await adminAccessToken(env);
+  } catch {
+    return fail(502, "unavailable");
+  }
+  if (!adminToken) return fail(503, "not-configured");
+
+  const response = await tryFetch(
+    `https://${env.SHOPIFY_STORE_DOMAIN}/admin/api/${env.SHOPIFY_API_VERSION}/graphql.json`,
+    {
+      method: "POST",
+      headers: {
+        "X-Shopify-Access-Token": adminToken,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `query Customer($id: ID!) {
+          customer(id: $id) { id defaultEmailAddress { emailAddress } }
+        }`,
+        variables: { id: `gid://shopify/Customer/${customerId}` },
+      }),
+    },
+    "shopify customer lookup",
+  );
+  if (!response || !response.ok) return fail(502, "unavailable");
+  const body = (await response.json().catch(() => null)) as {
+    data?: {
+      customer?: {
+        id?: string;
+        defaultEmailAddress?: { emailAddress?: string } | null;
+      } | null;
+    };
+  } | null;
+  // Signed by Shopify but gone since (already erased): nothing to delete.
+  if (!body?.data?.customer?.id) return fail(401, "unauthorized");
+  return {
+    id: customerId,
+    email: body.data.customer.defaultEmailAddress?.emailAddress ?? null,
+    adminToken,
+  };
+};
 
 export const previewDeletion = async (
   env: DeletionEnv,
@@ -299,7 +370,15 @@ export const previewDeletion = async (
 ): Promise<DeletionResult> => {
   const customer = await authorise(env, request);
   if (isResult(customer)) return customer;
+  return previewFor(env, customer, now);
+};
 
+/** The preview for a customer already authorised, by token or by proxy. */
+export const previewFor = async (
+  env: DeletionEnv,
+  customer: Authorised,
+  now: Date = new Date(),
+): Promise<DeletionResult> => {
   const state = await rechargeState(env, customer);
   if (!state) return fail(502, "subscriptions");
 
@@ -338,7 +417,18 @@ export const deleteAccount = async (
 
   const customer = await authorise(env, request);
   if (isResult(customer)) return customer;
+  return deleteFor(env, customer);
+};
 
+/**
+ * The deletion for a customer already authorised and confirmed. Callers
+ * check the confirmation first: deleteAccount the body's, app-proxy.ts its
+ * confirmation token.
+ */
+export const deleteFor = async (
+  env: DeletionEnv,
+  customer: Authorised,
+): Promise<DeletionResult> => {
   // 1. Subscriptions.
   const state = await rechargeState(env, customer);
   if (!state) return fail(502, "subscriptions");

@@ -1,0 +1,9 @@
+{
+  "sections": {
+    "main": {
+      "type": "account-deletion",
+      "settings": {}
+    }
+  },
+  "order": ["main"]
+}

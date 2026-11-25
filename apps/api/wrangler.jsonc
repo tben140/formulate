@@ -48,6 +48,9 @@
      * RECHARGE_ADMIN_TOKEN and KLAVIYO_DELETION_KEY, are secrets: Cloudflare
      * dashboard, type Secret.
      * Until all three exist, deletion answers 503 and deletes nothing.
+     * The theme's way in, through Shopify's app proxy (src/app-proxy.ts),
+     * also needs SHOPIFY_APP_PROXY_SECRET: the Double Helix app's client
+     * secret, type Secret. Without it the /proxy/ routes answer 503.
      */
     "SHOPIFY_SHOP_ID": "100581966136",
     "SHOPIFY_STORE_DOMAIN": "tben140plus-xcorpito.myshopify.com",
