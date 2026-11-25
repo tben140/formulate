@@ -13,6 +13,7 @@ import {
   requestOrigin,
   clearPendingSignIn,
   readPendingSignIn,
+  rememberCustomerId,
   writeCustomerTokens,
 } from "@/lib/customer-account";
 
@@ -54,6 +55,9 @@ const completeSignIn = async (request: NextRequest) => {
   }
 
   await writeCustomerTokens(result.data);
+  // Who this is, so lib/cart.ts can tell this customer's cart from anyone
+  // else's.
+  await rememberCustomerId(result.data.accessToken);
 
   /*
    * Attach the cart built while signed out to the buyer.

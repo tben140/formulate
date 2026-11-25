@@ -1,5 +1,7 @@
 import {
   DEFAULT_API_VERSION,
+  customerAccountRequest,
+  describeCustomerAccountError,
   isTokenExpiring,
   type AuthCrypto,
   type CustomerAccountConfig,
@@ -109,6 +111,41 @@ export const clearCustomerTokens = async (): Promise<void> => {
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
   jar.delete(REFRESHED_COOKIE);
+  jar.delete(CUSTOMER_ID_COOKIE);
+};
+
+/**
+ * The signed-in customer's id (`gid://shopify/Customer/…`), the same form a
+ * cart's `buyerIdentity.customer.id` takes. lib/cart.ts compares the two, so
+ * a cart attached to anyone else is never shown or added to, even when this
+ * browser has a session of its own (a sign-in whose cart attach failed).
+ * Lives as long as the session, and goes with it.
+ */
+const CUSTOMER_ID_COOKIE = "formulate_customer_id";
+
+export const readCustomerId = async (): Promise<string | null> =>
+  (await cookies()).get(CUSTOMER_ID_COOKIE)?.value ?? null;
+
+/**
+ * Asks Shopify whose token this is and keeps the answer. Only callable from a
+ * Route Handler or Server Action. On failure the id is cleared, never left
+ * over from an earlier session: a previous customer's id would make their
+ * cart look like this one's. A cart with an owner is then treated as someone
+ * else's until a refresh learns the id: safe, at worst a fresh cart.
+ */
+export const rememberCustomerId = async (accessToken: string): Promise<void> => {
+  const result = await customerAccountRequest<{ customer?: { id?: string } | null }>(
+    customerAccountConfig,
+    accessToken,
+    "{ customer { id } }",
+  );
+  const id = result.ok ? result.data.customer?.id : undefined;
+  if (!id) {
+    if (!result.ok) console.error(describeCustomerAccountError(result.error));
+    (await cookies()).delete(CUSTOMER_ID_COOKIE);
+    return;
+  }
+  (await cookies()).set(CUSTOMER_ID_COOKIE, id, cookieOptions(SESSION_MAX_AGE));
 };
 
 /**
