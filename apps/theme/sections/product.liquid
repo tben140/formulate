@@ -127,7 +127,23 @@
   </media-gallery>
 
   <div class="product__info">
-    <h1 class="product__title">{{ product.title }}</h1>
+    <div class="product__heading">
+      <h1 class="product__title">{{ product.title }}</h1>
+      {%- comment -%} Hidden until share-button.js runs: a button that does nothing without it would be worse than none. {%- endcomment -%}
+      <share-button
+        class="product__share"
+        data-url="{{ shop.url | append: product.url | escape }}"
+        data-title="{{ product.title | escape }}"
+        data-copied-label="{{ 'product.link_copied' | t }}"
+        data-share-label="{{ 'product.share' | t }}"
+        hidden
+      >
+        <button ref="button" type="button" class="product__share-button" aria-label="{{ 'product.share_label' | t: title: product.title }}">
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v10M6 7l4-4 4 4M4 11v5h12v-5"/></svg>
+          <span ref="label" aria-live="polite">{{ 'product.share' | t }}</span>
+        </button>
+      </share-button>
+    </div>
     {%- if product.metafields.descriptors.subtitle != blank -%}
       <p class="product__subtitle">{{ product.metafields.descriptors.subtitle.value | escape }}</p>
     {%- endif %}
@@ -297,6 +313,35 @@
   .product__thumbnail:focus-visible {
     outline: 2px solid var(--color-brand-600);
     outline-offset: 2px;
+  }
+
+  .product__heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+  }
+
+  /* Matched against apps/web's <ShareButton />. */
+  .product__share-button {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    /* web's gap-1.5 and py-1.5: 6px, between the theme's spacing steps. */
+    gap: calc(var(--spacing-1) * 1.5);
+    padding: calc(var(--spacing-1) * 1.5) var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--color-foreground);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .product__share-button:hover {
+    background: var(--color-surface-muted);
   }
 
   .product__title {
