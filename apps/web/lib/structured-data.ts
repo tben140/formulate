@@ -56,6 +56,34 @@ export const productJsonLd = (product: Product) => {
   };
 };
 
+/**
+ * The shop itself, for the home page: an Organization (the brand Google can
+ * show beside results) and a WebSite whose SearchAction points at our search
+ * page, which is what lets Google offer a search box for the site.
+ */
+export const siteJsonLd = (name: string) => [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name,
+    url: absoluteUrl("/"),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name,
+    url: absoluteUrl("/"),
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${absoluteUrl("/search")}?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  },
+];
+
 export interface Crumb {
   readonly name: string;
   readonly path: string;
@@ -103,6 +131,34 @@ export const plainText = (text: string): string =>
     .replace(/([.!?])(?=[A-Z])/g, "$1 ")
     .replace(/\s+/g, " ")
     .trim();
+
+const ENTITIES: Readonly<Record<string, string>> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+
+/**
+ * HTML's words only: tags become spaces, so words either side stay apart,
+ * and entities are decoded, so "&amp;" reads "&". For a description, not
+ * for markup: the result is text, not HTML.
+ */
+export const htmlText = (html: string): string =>
+  html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, name: string) => {
+      if (name.startsWith("#")) {
+        const code =
+          name[1] === "x" || name[1] === "X"
+            ? Number.parseInt(name.slice(2), 16)
+            : Number(name.slice(1));
+        return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+      }
+      return ENTITIES[name.toLowerCase()] ?? entity;
+    });
 
 /** Trims text to a meta-description length at a word boundary. */
 export const metaDescription = (text: string, max = 155): string => {
