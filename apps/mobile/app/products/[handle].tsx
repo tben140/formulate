@@ -4,6 +4,7 @@ import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
 import { AddToCart } from "../../components/add-to-cart";
 import { useCartUi } from "../../components/cart-provider";
+import { ProductDetails, ProductSummary } from "../../components/product-description";
 import { SiteFooter } from "../../components/site-footer";
 import { useProduct } from "../../lib/queries";
 
@@ -68,9 +69,9 @@ const ProductScreen = () => {
         <Text className="text-2xl font-semibold text-foreground">{product.title}</Text>
       </View>
 
-      {product.description ? (
-        <Text className="text-base text-foreground-muted">{product.description}</Text>
-      ) : null}
+      {/* Only the opening paragraph before the buy box; the rest follows it in
+          closed sections, as on web and the theme (descriptionSections). */}
+      <ProductSummary html={product.descriptionHtml} />
 
       {/*
         The price lives inside AddToCart, because it changes with the selection
@@ -81,6 +82,8 @@ const ProductScreen = () => {
         price at once next to a picker that changes the price.
       */}
       <AddToCart product={product} onAdded={openCart} />
+
+      <ProductDetails html={product.descriptionHtml} />
 
       <SiteFooter />
     </ScrollView>

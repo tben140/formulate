@@ -61,3 +61,10 @@ export type {
   CollectionProductsQuery as CollectionProductsResult,
   ProductByHandleQuery as ProductByHandleResult,
 } from "./generated/graphql";
+
+export {
+  DESCRIPTION_DETAILS_TITLE,
+  descriptionBlocks,
+  descriptionSections,
+} from "./description";
+export type { DescriptionBlock, DescriptionRun, DescriptionSection } from "./description";

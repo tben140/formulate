@@ -53,6 +53,9 @@ export const ProductByHandleQuery = graphql(`
       handle
       title
       description
+      # The description with its structure: descriptionBlocks parses it for
+      # the summary above the buy box and the closed sections below it.
+      descriptionHtml
       seo {
         title
         description

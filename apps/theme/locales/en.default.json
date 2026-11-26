@@ -81,7 +81,8 @@
     "added": "Added to your cart.",
     "purchase_options": "Purchase options",
     "one_time": "One-time purchase",
-    "variant": "Variant"
+    "variant": "Variant",
+    "details": "Details"
   },
   "search": {
     "title": "Search",
