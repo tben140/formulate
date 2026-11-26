@@ -37,7 +37,12 @@ export const SHARED_ROUTES = [
  * here or in SHARED_ROUTES fails the parity test.
  */
 export const SURFACE_ONLY_ROUTES = {
-  web: {},
+  web: {
+    // Temporary: the app's account screens arrive with its sign-in (#78),
+    // which moves these two into SHARED_ROUTES.
+    "/account": "customer accounts on web first (SHO-70); the app's follow in #78",
+    "/account/orders/[id]": "order detail, with /account",
+  },
   mobile: {
     // Not a page: the Cart tab opens the cart sheet (app/(tabs)/_layout.tsx).
     // Web's cart is a drawer with no route either.

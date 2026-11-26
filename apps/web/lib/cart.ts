@@ -1,7 +1,17 @@
-import { createCartClient, isCartId, type Cart } from "@formulate/shopify";
+import {
+  createCartClient,
+  isCartId,
+  type Cart,
+  type StorefrontResult,
+} from "@formulate/shopify";
 import { cookies } from "next/headers";
 
 import { CONSENT_COOKIE, parseConsent } from "./consent";
+import {
+  readCustomerId,
+  readCustomerTokens,
+  rememberCustomerId,
+} from "./customer-account";
 
 import { storefront } from "./storefront";
 
@@ -84,7 +94,64 @@ export const getCart = async (): Promise<Cart | null> => {
   if (!id) return null;
 
   const result = await cartClient.get(id);
-  return result.ok ? result.data : null;
+  if (!result.ok || !result.data) return null;
+  return (await isAnotherBuyersCart(result.data)) ? null : result.data;
+};
+
+/**
+ * ⚠️ A cart attached to a customer is someone else's unless this browser is
+ * signed in as that same customer. Its checkout would open signed in as them,
+ * with their saved details, so it's shown as no cart, and the next add starts
+ * a fresh one (`cartIdForAdd`). Two ways it happens:
+ * - no session: an add to cart that finished after its shopper signed out
+ *   wrote the cart id back;
+ * - another session: a previous shopper's cart cookie outlived their session,
+ *   and attaching it at the next sign-in failed.
+ * A session whose customer id isn't known yet (lib/customer-account.ts
+ * `rememberCustomerId`) can't prove it owns the cart, so it doesn't;
+ * `cartIdForAdd` asks for the id before deciding.
+ */
+const isAnotherBuyersCart = async (cart: Cart): Promise<boolean> => {
+  const owner = cart.buyerIdentity.customer?.id;
+  if (!owner) return false;
+  if (!(await readCustomerTokens())) return true;
+  return owner !== (await readCustomerId());
+};
+
+/**
+ * The stored cart id for an add to cart, or null to start a new cart when
+ * the stored one is another buyer's. Asks Shopify whenever there's a cart,
+ * signed in or not: a session doesn't make the cart its own. If that fails,
+ * the add stops there: the cookie keeps the cart (SHO-122: never lose a cart
+ * on a blip), and nothing is added to a cart whose owner wasn't checked. A
+ * retry checks again.
+ *
+ * A signed-in shopper whose customer id lookup failed at sign-in would
+ * otherwise get a new cart on every add, each one theirs but unprovably so.
+ * So the lookup runs again here (a Server Action, which can write the
+ * cookie; `getCart` runs while rendering and can't), and if it fails again
+ * the add stops the same way, keeping the cart.
+ */
+export const cartIdForAdd = async (): Promise<StorefrontResult<string | null>> => {
+  const id = await readCartId();
+  if (!id) return { ok: true, data: id };
+  const result = await cartClient.get(id);
+  if (!result.ok) return result;
+  const cart = result.data;
+  if (cart?.buyerIdentity.customer?.id && !(await readCustomerId())) {
+    const tokens = await readCustomerTokens();
+    if (tokens && !(await rememberCustomerId(tokens.accessToken))) {
+      return {
+        ok: false,
+        error: {
+          kind: "network",
+          message: "the signed-in customer's id couldn't be looked up",
+          cause: null,
+        },
+      };
+    }
+  }
+  return { ok: true, data: cart && (await isAnotherBuyersCart(cart)) ? null : id };
 };
 
 const BUYER_EMAIL_COOKIE = "formulate_buyer_email";
@@ -104,6 +171,11 @@ const BUYER_EMAIL_COOKIE = "formulate_buyer_email";
  */
 export const readBuyerEmail = async (): Promise<string | null> =>
   (await cookies()).get(BUYER_EMAIL_COOKIE)?.value ?? null;
+
+/** On sign-out, so the next shopper's cart isn't created with this email. */
+export const clearBuyerEmail = async (): Promise<void> => {
+  (await cookies()).delete(BUYER_EMAIL_COOKIE);
+};
 
 /** Only callable from a Server Action or Route Handler. */
 export const writeBuyerEmail = async (email: string): Promise<void> => {

@@ -480,6 +480,11 @@ export const CartFields = graphql(`
     }
     buyerIdentity {
       countryCode
+      # Set when a signed-in buyer's token is attached: apps/web's getCart
+      # won't show such a cart to a browser that isn't signed in.
+      customer {
+        id
+      }
     }
     cost {
       subtotalAmount {
