@@ -9,15 +9,18 @@ import {
   SHOP_MENU_HANDLES,
   ComplementaryProductsQuery,
   ProductByHandleQuery,
+  ProductRecommendationsQuery,
   SearchProductsQuery,
   ShopPoliciesQuery,
   describeError,
   nextCursor,
   payLaterIds,
   paymentIconIds,
+  selectCartSuggestions,
   productFiltersFromParams,
   toNavGroup,
   toNavLinks,
+  type Cart,
 } from "@formulate/shopify";
 import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
@@ -226,6 +229,32 @@ export const useComplementaryProducts = (productId: string | undefined) =>
     enabled: Boolean(productId),
     staleTime: 10 * 60_000,
   });
+
+/**
+ * "You might also like" in the cart sheet (SHO-116), as web's drawer and the
+ * theme's: Shopify's related products for the cart's first line (newest
+ * first, so in practice the latest add), picked by the shared
+ * `selectCartSuggestions` rule. Keyed on the product and what's in the cart,
+ * so an add from the list drops that product without a refetch of the rest.
+ * Failures show nothing: suggestions are an extra.
+ */
+export const useCartSuggestions = (cart: Cart | null | undefined) => {
+  const lines = cart?.lines.nodes ?? [];
+  const source = lines[0]?.merchandise.product.id;
+  const inCart = lines.map((line) => line.merchandise.product.id);
+  return useQuery({
+    queryKey: ["cart-suggestions", source],
+    queryFn: async () =>
+      unwrap(
+        await storefront.request(ProductRecommendationsQuery, {
+          productId: source ?? "",
+        }),
+      ).productRecommendations ?? [],
+    enabled: Boolean(source),
+    staleTime: 10 * 60_000,
+    select: (recommendations) => selectCartSuggestions(recommendations, inCart),
+  });
+};
 
 /**
  * Product search, as Search & Discovery tunes it, with the same filter query
