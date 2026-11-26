@@ -7,7 +7,11 @@ import {
 import { cookies } from "next/headers";
 
 import { CONSENT_COOKIE, parseConsent } from "./consent";
-import { readCustomerId, readCustomerTokens } from "./customer-account";
+import {
+  readCustomerId,
+  readCustomerTokens,
+  rememberCustomerId,
+} from "./customer-account";
 
 import { storefront } from "./storefront";
 
@@ -104,7 +108,8 @@ export const getCart = async (): Promise<Cart | null> => {
  * - another session: a previous shopper's cart cookie outlived their session,
  *   and attaching it at the next sign-in failed.
  * A session whose customer id isn't known yet (lib/customer-account.ts
- * `rememberCustomerId`) can't prove it owns the cart, so it doesn't.
+ * `rememberCustomerId`) can't prove it owns the cart, so it doesn't;
+ * `cartIdForAdd` asks for the id before deciding.
  */
 const isAnotherBuyersCart = async (cart: Cart): Promise<boolean> => {
   const owner = cart.buyerIdentity.customer?.id;
@@ -120,16 +125,33 @@ const isAnotherBuyersCart = async (cart: Cart): Promise<boolean> => {
  * the add stops there: the cookie keeps the cart (SHO-122: never lose a cart
  * on a blip), and nothing is added to a cart whose owner wasn't checked. A
  * retry checks again.
+ *
+ * A signed-in shopper whose customer id lookup failed at sign-in would
+ * otherwise get a new cart on every add, each one theirs but unprovably so.
+ * So the lookup runs again here (a Server Action, which can write the
+ * cookie; `getCart` runs while rendering and can't), and if it fails again
+ * the add stops the same way, keeping the cart.
  */
 export const cartIdForAdd = async (): Promise<StorefrontResult<string | null>> => {
   const id = await readCartId();
   if (!id) return { ok: true, data: id };
   const result = await cartClient.get(id);
   if (!result.ok) return result;
-  return {
-    ok: true,
-    data: result.data && (await isAnotherBuyersCart(result.data)) ? null : id,
-  };
+  const cart = result.data;
+  if (cart?.buyerIdentity.customer?.id && !(await readCustomerId())) {
+    const tokens = await readCustomerTokens();
+    if (tokens && !(await rememberCustomerId(tokens.accessToken))) {
+      return {
+        ok: false,
+        error: {
+          kind: "network",
+          message: "the signed-in customer's id couldn't be looked up",
+          cause: null,
+        },
+      };
+    }
+  }
+  return { ok: true, data: cart && (await isAnotherBuyersCart(cart)) ? null : id };
 };
 
 const BUYER_EMAIL_COOKIE = "formulate_buyer_email";

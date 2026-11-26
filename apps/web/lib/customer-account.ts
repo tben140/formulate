@@ -130,10 +130,11 @@ export const readCustomerId = async (): Promise<string | null> =>
  * Asks Shopify whose token this is and keeps the answer. Only callable from a
  * Route Handler or Server Action. On failure the id is cleared, never left
  * over from an earlier session: a previous customer's id would make their
- * cart look like this one's. A cart with an owner is then treated as someone
- * else's until a refresh learns the id: safe, at worst a fresh cart.
+ * cart look like this one's. A cart with an owner then shows as someone
+ * else's, and the next add to cart (`cartIdForAdd`) asks again. Returns the
+ * id, or null when the lookup failed.
  */
-export const rememberCustomerId = async (accessToken: string): Promise<void> => {
+export const rememberCustomerId = async (accessToken: string): Promise<string | null> => {
   const result = await customerAccountRequest<{ customer?: { id?: string } | null }>(
     customerAccountConfig,
     accessToken,
@@ -143,9 +144,10 @@ export const rememberCustomerId = async (accessToken: string): Promise<void> => 
   if (!id) {
     if (!result.ok) console.error(describeCustomerAccountError(result.error));
     (await cookies()).delete(CUSTOMER_ID_COOKIE);
-    return;
+    return null;
   }
   (await cookies()).set(CUSTOMER_ID_COOKIE, id, cookieOptions(SESSION_MAX_AGE));
+  return id;
 };
 
 /**

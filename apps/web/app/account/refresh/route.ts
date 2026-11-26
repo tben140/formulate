@@ -11,7 +11,6 @@ import {
   clearCustomerTokens,
   customerAccountConfig,
   markRefreshedAfter401,
-  readCustomerId,
   readCustomerTokens,
   rememberCustomerId,
   requestOrigin,
@@ -69,8 +68,9 @@ const refresh = async (request: NextRequest) => {
 
   await writeCustomerTokens(result.data);
   if (after401) await markRefreshedAfter401();
-  // A sign-in whose lookup failed learns the customer's id here instead.
-  if (!(await readCustomerId())) await rememberCustomerId(result.data.accessToken);
+  // Every refresh writes the id again from the new token, so the id cookie
+  // lives as long as the session's and always names the tokens' customer.
+  await rememberCustomerId(result.data.accessToken);
 
   // Keep the cart's identity on a token that still works.
   const cartId = await readCartId();
