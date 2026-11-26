@@ -39,6 +39,7 @@ vault to browse it as a graph; it is plain markdown either way.
 | --------------------------------------- | ----------------------------------------------------------------------------------------- |
 | [Recharge](integration-recharge.md)     | Installed; subscription flows live in Klaviyo. Read-only portal in review (#80)           |
 | [Klaviyo](integration-klaviyo.md)       | Live on web and the theme: email capture, events, flows. App events in review (#107)      |
+| [Email testing](email-testing.md)       | How emails are checked: client support, dark mode, real devices, spam                     |
 | [PostHog](integration-posthog.md)       | Web, app and theme, with orders from a Shopify custom pixel                               |
 | [Pay later](integration-pay-later.md)   | Klarna and Clearpay: storefront side ready; providers not set up yet                      |
 | [GrowthBook](integration-growthbook.md) | A/B tests, analysed in Databricks. Web code in review (#265)                              |
