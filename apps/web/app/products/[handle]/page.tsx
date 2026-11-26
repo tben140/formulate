@@ -11,8 +11,8 @@ import { ExperimentExposure } from "@/components/experiment-exposure";
 import { JsonLd } from "@/components/json-ld";
 import { PairsWellWith } from "@/components/pairs-well-with";
 import { ProductGallery } from "@/components/product-gallery";
+import { ProductDetails, ProductSummary } from "@/components/product-description";
 import { ShareButton } from "@/components/share-button";
-import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
@@ -157,10 +157,13 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
             <p className="mt-2 text-lg text-foreground-muted">{product.subtitle.value}</p>
           ) : null}
 
-          {product.descriptionHtml ? (
-            // Its first paragraph's own top margin spaces it from the title.
-            <StoreHtml html={product.descriptionHtml} />
-          ) : null}
+          {/*
+          Only the opening paragraph comes before the buy box; the rest of the
+          description follows it, in closed sections. On a phone the button was
+          a long scroll down, below every variant's specification. The same
+          order on the app and the theme (descriptionSections, packages/shopify).
+        */}
+          <ProductSummary html={product.descriptionHtml} />
 
           {/*
           The price now lives inside the form, because it changes with the
@@ -169,6 +172,8 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
           whatever the shopper had chosen.
         */}
           <AddToCartForm product={product} />
+
+          <ProductDetails html={product.descriptionHtml} />
 
           {/* No fallback: nothing at all is better than a loading box here. */}
           <Suspense fallback={null}>

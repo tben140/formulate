@@ -135,7 +135,8 @@
     "choose_image": "Choose an image",
     "show_image": "Show image {{ index }} of {{ count }}",
     "previous_image": "Previous image",
-    "next_image": "Next image"
+    "next_image": "Next image",
+    "details": "Details"
   },
   "search": {
     "title": "Search",

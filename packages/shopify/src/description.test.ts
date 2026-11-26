@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { descriptionBlocks } from "./description";
+import { descriptionBlocks, descriptionSections } from "./description";
 
 describe("descriptionBlocks", () => {
   it("keeps the structure Shopify's plain description loses", () => {
@@ -24,12 +24,22 @@ describe("descriptionBlocks", () => {
     ]);
   });
 
-  it("drops inline tags but keeps their text, and turns <br> into a newline", () => {
+  it("drops inline tags but keeps their text and links, and turns <br> into a newline", () => {
     expect(
       descriptionBlocks(
         '<p>Take <strong>one</strong> a <a href="/x">day</a>.<br>With food.</p>',
       ),
-    ).toEqual([{ kind: "paragraph", text: "Take one a day.\nWith food." }]);
+    ).toEqual([
+      {
+        kind: "paragraph",
+        text: "Take one a day.\nWith food.",
+        runs: [
+          { text: "Take one a " },
+          { text: "day", href: "/x" },
+          { text: ".\nWith food." },
+        ],
+      },
+    ]);
   });
 
   it("decodes entities, named and numeric", () => {
@@ -78,7 +88,9 @@ describe("descriptionBlocks", () => {
 
   it("flattens a nested list into its outer list", () => {
     expect(
-      descriptionBlocks("<ul><li>Morning<ul><li>with food</li></ul></li><li>Evening</li></ul>"),
+      descriptionBlocks(
+        "<ul><li>Morning<ul><li>with food</li></ul></li><li>Evening</li></ul>",
+      ),
     ).toEqual([
       { kind: "list", ordered: false, items: ["Morning", "with food", "Evening"] },
     ]);
@@ -104,5 +116,132 @@ describe("descriptionBlocks", () => {
   it("gives nothing for no description", () => {
     expect(descriptionBlocks(null)).toEqual([]);
     expect(descriptionBlocks("")).toEqual([]);
+  });
+});
+
+describe("descriptionSections", () => {
+  it("keeps the opening paragraph as the summary and groups the rest by heading", () => {
+    const blocks = descriptionBlocks(
+      "<p>One tub holds 30 servings.</p><h3>Choose your flavour</h3><p>Three flavours:</p><ul><li>Vanilla</li></ul><h3>Storage</h3><p>Keep it dry.</p>",
+    );
+    expect(descriptionSections(blocks)).toEqual({
+      summary: "One tub holds 30 servings.",
+      sections: [
+        {
+          title: "Choose your flavour",
+          blocks: [
+            { kind: "paragraph", text: "Three flavours:" },
+            { kind: "list", ordered: false, items: ["Vanilla"] },
+          ],
+        },
+        { title: "Storage", blocks: [{ kind: "paragraph", text: "Keep it dry." }] },
+      ],
+    });
+  });
+
+  it("keeps paragraphs inside one list item together", () => {
+    expect(
+      descriptionBlocks(
+        "<ol><li><p>Mix.</p><p>Drink slowly.</p></li><li>Repeat.</li></ol>",
+      ),
+    ).toEqual([
+      { kind: "list", ordered: true, items: ["Mix.\nDrink slowly.", "Repeat."] },
+    ]);
+  });
+
+  it("still flattens a nested list, keeping the outer item's own text", () => {
+    expect(
+      descriptionBlocks(
+        "<ul><li>Morning<ul><li>With food</li></ul>after</li><li>Night</li></ul>",
+      ),
+    ).toEqual([
+      {
+        kind: "list",
+        ordered: false,
+        items: ["Morning", "With food", "after", "Night"],
+      },
+    ]);
+  });
+
+  it("keeps safe links as runs, and shows unsafe ones as text", () => {
+    expect(
+      descriptionBlocks(
+        '<p>See our <a href="/pages/allergens">allergen information</a> or <a href="javascript:alert(1)">this</a>.</p>',
+      ),
+    ).toEqual([
+      {
+        kind: "paragraph",
+        text: "See our allergen information or this.",
+        runs: [
+          { text: "See our " },
+          { text: "allergen information", href: "/pages/allergens" },
+          { text: " or this." },
+        ],
+      },
+    ]);
+    expect(
+      descriptionBlocks(
+        '<ul><li>Plain</li><li><a href="mailto:hello@example.com">Email us</a></li></ul>',
+      ),
+    ).toEqual([
+      {
+        kind: "list",
+        ordered: false,
+        items: ["Plain", "Email us"],
+        runs: [
+          [{ text: "Plain" }],
+          [{ text: "Email us", href: "mailto:hello@example.com" }],
+        ],
+      },
+    ]);
+    expect(descriptionBlocks('<p><a href="//evil.example">x</a></p>')).toEqual([
+      { kind: "paragraph", text: "x" },
+    ]);
+  });
+
+  it("gives the summary's links", () => {
+    expect(
+      descriptionSections(
+        descriptionBlocks('<p>Read <a href="https://example.com/a">this</a>.</p>'),
+      ),
+    ).toEqual({
+      summary: "Read this.",
+      summaryRuns: [
+        { text: "Read " },
+        { text: "this", href: "https://example.com/a" },
+        { text: "." },
+      ],
+      sections: [],
+    });
+  });
+
+  it("puts text before the first heading under Details", () => {
+    const blocks = descriptionBlocks(
+      "<p>A 30-day capsule.</p><p><em>Draft item.</em></p>",
+    );
+    expect(descriptionSections(blocks)).toEqual({
+      summary: "A 30-day capsule.",
+      sections: [
+        { title: "Details", blocks: [{ kind: "paragraph", text: "Draft item." }] },
+      ],
+    });
+  });
+
+  it("has no summary when the description opens with a heading or a list", () => {
+    expect(
+      descriptionSections(descriptionBlocks("<h3>Use</h3><p>Daily.</p>")).summary,
+    ).toBeNull();
+    expect(
+      descriptionSections(descriptionBlocks("<ul><li>One</li></ul>")).sections,
+    ).toEqual([
+      { title: "Details", blocks: [{ kind: "list", ordered: false, items: ["One"] }] },
+    ]);
+  });
+
+  it("drops a heading with nothing under it, and handles an empty description", () => {
+    expect(
+      descriptionSections(descriptionBlocks("<p>Hi.</p><h3>Empty</h3>")).sections,
+    ).toEqual([]);
+    expect(descriptionSections([])).toEqual({ summary: null, sections: [] });
   });
 });
