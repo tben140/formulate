@@ -147,7 +147,7 @@ export {
   descriptionBlocks,
   descriptionSections,
 } from "./description";
-export type { DescriptionBlock, DescriptionSection } from "./description";
+export type { DescriptionBlock, DescriptionRun, DescriptionSection } from "./description";
 
 export { policyBlocks, richTextBlocks } from "./rich-text";
 export type { RichTextBlock, RichTextOptions, TextRun } from "./rich-text";

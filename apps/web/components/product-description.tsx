@@ -1,4 +1,4 @@
-import type { DescriptionBlock } from "@formulate/shopify";
+import type { DescriptionBlock, DescriptionRun } from "@formulate/shopify";
 import { descriptionBlocks, descriptionSections } from "@formulate/shopify";
 
 /**
@@ -8,6 +8,30 @@ import { descriptionBlocks, descriptionSections } from "@formulate/shopify";
  * HTML: no merchant markup reaches the page, and the app renders the same
  * blocks. Shopify's plain `description` ran headings into paragraphs.
  */
+
+/**
+ * Text with its links. The parser keeps only web, mail and same-site hrefs;
+ * they open in the same tab, as the sanitised HTML's did.
+ */
+const Runs = ({
+  text,
+  runs,
+}: {
+  readonly text: string;
+  readonly runs: readonly DescriptionRun[] | undefined;
+}) => {
+  if (!runs) return text;
+  return runs.map((run, index) =>
+    run.href ? (
+      // Runs have no ids and never reorder.
+      <a key={index} href={run.href} className="text-brand-600 underline">
+        {run.text}
+      </a>
+    ) : (
+      run.text
+    ),
+  );
+};
 const DescriptionBlocks = ({
   blocks,
 }: {
@@ -41,7 +65,7 @@ const DescriptionBlocks = ({
             >
               {block.items.map((item, itemIndex) => (
                 <li key={`${key}-${itemIndex}`} className="whitespace-pre-line">
-                  {item}
+                  <Runs text={item} runs={block.runs?.[itemIndex]} />
                 </li>
               ))}
             </List>
@@ -49,7 +73,7 @@ const DescriptionBlocks = ({
         }
         return (
           <p key={key} className="whitespace-pre-line">
-            {block.text}
+            <Runs text={block.text} runs={block.runs} />
           </p>
         );
       })}
@@ -62,9 +86,13 @@ const DescriptionBlocks = ({
  * buy box. See `descriptionSections`.
  */
 export const ProductSummary = ({ html }: { readonly html: string }) => {
-  const { summary } = descriptionSections(descriptionBlocks(html));
+  const { summary, summaryRuns } = descriptionSections(descriptionBlocks(html));
   if (!summary) return null;
-  return <p className="mt-3 whitespace-pre-line text-foreground-muted">{summary}</p>;
+  return (
+    <p className="mt-3 whitespace-pre-line text-foreground-muted">
+      <Runs text={summary} runs={summaryRuns} />
+    </p>
+  );
 };
 
 /**
