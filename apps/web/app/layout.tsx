@@ -104,9 +104,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
             {/* relative: the Shop dropdown's panel hangs from the header's full width. */}
             <header className="relative z-30 border-b border-border">
               {/*
-                One row from md up: wordmark, collections, cart. Below that the
-                collections drop to their own scrolling row, via `order`, so the
-                wordmark and cart keep their places.
+                Two rows at every width: wordmark, search and cart, then the
+                collections (via `order`). The menu doesn't fit beside them in
+                the header's width; below lg its row scrolls, with a fade.
               */}
               <nav
                 aria-label="Main"
@@ -119,7 +119,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
                   {SITE_NAME}
                 </Link>
                 <SiteNav links={navLinks} shopGroups={shopGroups} />
-                <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
+                <div className="order-2 ml-auto flex items-center gap-2">
                   {/* A link to the search page, not an inline field: it works
                       without JavaScript and keeps the header compact on a phone. */}
                   <Link
