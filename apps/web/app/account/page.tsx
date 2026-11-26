@@ -18,6 +18,8 @@ import {
   refreshAfter401,
   requireCustomerTokens,
 } from "@/lib/customer-account";
+import { IdentifyCustomer } from "@/components/identify-customer";
+import { SignOutForm } from "@/components/sign-out-form";
 
 /**
  * Personal pages are never indexed, on any deployment: they'd only ever show
@@ -113,15 +115,9 @@ const AccountPage = async ({ searchParams }: PageProps) => {
             <p className="mt-1 text-foreground-muted">Signed in as {email}</p>
           ) : null}
         </div>
-        <form action="/account/logout" method="post">
-          <button
-            type="submit"
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
-          >
-            Sign out
-          </button>
-        </form>
+        <SignOutForm />
       </div>
+      <IdentifyCustomer customerId={customer.id} />
 
       <h2 className="mt-10 text-xl font-semibold">Orders</h2>
       {orders.length === 0 ? (

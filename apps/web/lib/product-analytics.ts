@@ -31,6 +31,8 @@ import { readConsent } from "./consent";
 export const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
 
 const STORAGE_KEY = "formulate_analytics";
+/** Which customer this browser's anonymous id was last linked to. */
+const IDENTIFIED_KEY = "formulate_analytics_identified";
 
 interface Stored {
   readonly distinctId: string;
@@ -144,8 +146,40 @@ export const forgetProductAnalytics = (): void => {
   clearAnalyticsId();
   try {
     window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(IDENTIFIED_KEY);
   } catch {
     // Storage blocked: nothing was kept.
   }
   notifyId();
+};
+
+/**
+ * Links this browser's anonymous id to a signed-in customer (SHO-172), so the
+ * visits before sign-in and after join up as one person in PostHog.
+ *
+ * Once per anonymous id: PostHog keeps the link, so later visits on this
+ * browser are already that person. Takes the Customer Account API's id
+ * (`gid://shopify/Customer/123`) and sends the number, the id Shopify shows
+ * in admin. Nothing happens without consent (`analytics()` is null).
+ */
+export const identifyCustomer = (customerId: string): void => {
+  const client = analytics();
+  const id = customerId.split("/").pop() ?? "";
+  if (!client || !id) return;
+  const { distinctId } = identity();
+  const link = `${distinctId}:${id}`;
+  try {
+    if (window.localStorage.getItem(IDENTIFIED_KEY) === link) return;
+  } catch {
+    // Storage blocked: identify anyway; PostHog ignores a repeat.
+  }
+  // Kept only once PostHog has it, so a failed send is tried again next visit.
+  void client.identify(id).then((delivered) => {
+    if (!delivered) return;
+    try {
+      window.localStorage.setItem(IDENTIFIED_KEY, link);
+    } catch {
+      // Storage blocked: nothing kept, and the next visit identifies again.
+    }
+  });
 };

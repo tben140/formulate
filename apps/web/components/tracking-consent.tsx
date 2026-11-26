@@ -43,6 +43,8 @@ import {
 
 interface ConsentContextValue {
   readonly reopen: () => void;
+  /** The current choice, for anything that waits for consent (SHO-172). */
+  readonly consent: TrackingConsent;
 }
 
 const ConsentContext = createContext<ConsentContextValue | null>(null);
@@ -188,9 +190,21 @@ export const TrackingConsentProvider = ({
     channel.onmessage = (event: MessageEvent) => {
       if (event.data !== "denied") return;
       discardQueuedEvents();
+      /*
+       * On every refusal, not only a withdrawal: the consent cookie expires
+       * after six months while localStorage and Klaviyo's cookies don't, so a
+       * shopper asked again ("unset") may still have an old id here.
+       */
+      forgetKlaviyo();
+      forgetProductAnalytics();
+
+      /*
+       * Withdrawing after accepting. `klaviyo.js` is already running and there
+       * is no API to stop it, so reload into a page the server renders without
+       * it. Heavy-handed, but it is the only way the refusal is actually true
+       * for the rest of the visit.
+       */
       if (consent === "granted") {
-        forgetKlaviyo();
-        forgetProductAnalytics();
         window.location.reload();
         return;
       }
@@ -256,7 +270,7 @@ export const TrackingConsentProvider = ({
     Boolean(KLAVIYO_PUBLIC_KEY || POSTHOG_KEY) && (consent === "unset" || reopened);
 
   return (
-    <ConsentContext.Provider value={{ reopen: () => setReopened(true) }}>
+    <ConsentContext.Provider value={{ reopen: () => setReopened(true), consent }}>
       {children}
 
       {showBanner ? (
@@ -359,3 +373,7 @@ export const CookiePreferencesButton = () => {
     </button>
   );
 };
+
+/** The shopper's tracking choice, or "unset" outside the provider. */
+export const useTrackingConsent = (): TrackingConsent =>
+  useContext(ConsentContext)?.consent ?? "unset";
