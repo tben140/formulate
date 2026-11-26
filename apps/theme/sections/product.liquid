@@ -70,10 +70,18 @@
       assign description = product.description | strip
       assign summary = ''
       assign rest = description
-      assign opening = description | slice: 0, 2
-      if opening == '<p'
-        assign summary = description | split: '</p>' | first | append: '</p>'
-        assign rest = description | remove_first: summary
+      # '<p>' or '<p ' (attributes), never '<pre>' or '<picture>'.
+      assign opening = description | slice: 0, 3
+      if opening == '<p>' or opening == '<p '
+        if description contains '</p>'
+          assign first_paragraph = description | split: '</p>' | first
+          # An opening paragraph may end at a heading without its </p>: then
+          # the text up to the first </p> holds sections, so keep it all below.
+          unless first_paragraph contains '<h2' or first_paragraph contains '<h3' or first_paragraph contains '<h4'
+            assign summary = first_paragraph | append: '</p>'
+            assign rest = description | remove_first: summary
+          endunless
+        endif
       endif
     -%}
     {% if summary != blank %}
@@ -101,7 +109,8 @@
           -%}
           {% if body != blank and body.size > 0 %}
             {%- assign body_text = body | strip_html | strip -%}
-            {% if body_text != blank %}
+            {%- comment -%} A size chart is an image with no text: keep it. {%- endcomment -%}
+            {% if body_text != blank or body contains '<img' or body contains '<video' or body contains '<iframe' %}
               <details class="product-details__item">
                 <summary class="product-details__summary">
                   <h2 class="product-details__title">{{ title }}</h2>
@@ -242,6 +251,12 @@
   .product-details__body {
     padding-block-end: var(--spacing-4);
     color: var(--color-foreground-muted);
+  }
+
+  /* The reset zeroes every margin, which would run paragraphs and lists together. */
+  .product__description > * + *,
+  .product-details__body > * + * {
+    margin-block-start: var(--spacing-4);
   }
 
 {% endstylesheet %}
