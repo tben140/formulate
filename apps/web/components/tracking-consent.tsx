@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { forgetCartAnalytics } from "@/app/actions/cart";
+import { CONSENT_EVENT } from "@/components/shopify-scripts";
 import { writeConsent, type TrackingConsent } from "@/lib/consent";
 import {
   analytics,
@@ -207,6 +208,8 @@ export const TrackingConsentProvider = ({
       writeConsent(next);
       // The add-to-cart forms' id field reads consent; tell it.
       notifyAnalyticsConsentChanged();
+      // Tells Shopify's Customer Privacy API too (components/shopify-scripts.tsx).
+      window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: next }));
 
       if (next === "denied") {
         discardQueuedEvents();

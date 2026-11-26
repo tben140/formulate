@@ -14,6 +14,7 @@ import { ProductGallery } from "@/components/product-gallery";
 import { ShareButton } from "@/components/share-button";
 import { StoreHtml } from "@/components/store-html";
 import { StorefrontErrorState } from "@/components/storefront-error";
+import { ShopifyProductViewed } from "@/components/shopify-scripts";
 import { TrackViewedProduct } from "@/components/track-viewed-product";
 import { getProduct } from "@/lib/catalogue";
 import { assignExperiment } from "@/lib/experiments";
@@ -133,6 +134,18 @@ const ProductPage = async ({ params, searchParams }: ProductPageProps) => {
           payload={viewedProduct(product, siteUrl.origin)}
           productViewed={productViewedProperties(product)}
         />
+        {product.variants.nodes[0] ? (
+          <ShopifyProductViewed
+            product={{
+              id: product.id,
+              title: product.title,
+              vendor: product.vendor,
+              price: product.variants.nodes[0].price,
+              variantId: product.variants.nodes[0].id,
+              variantTitle: product.variants.nodes[0].title,
+            }}
+          />
+        ) : null}
 
         {/*
           `self-start`: a grid cell stretches to the row's height, and the
