@@ -22,8 +22,9 @@ but gave up more than necessary.
 TypeScript `~6.0.3` across every package.
 
 6.0.3 is the highest version that satisfies `typescript-eslint`'s `<6.1.0` cap,
-and it is also exactly what Expo SDK 57 expects — so one version serves both
-constraints with nothing left over.
+and Expo's version check accepts it (SDK 57 expected exactly 6.0.3; SDK 58's
+`expo install --check` raises no TypeScript mismatch) — so one version serves
+both constraints.
 
 ## Alternatives considered
 
